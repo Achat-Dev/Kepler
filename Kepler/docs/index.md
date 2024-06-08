@@ -24,7 +24,7 @@ uint64 g = 1
 float32 h = 1.0
 float64 i = 1.0
 
-pointer\<type> j = &a;
+pointer<type> j = &a;
 ```
 
 ### Structs
