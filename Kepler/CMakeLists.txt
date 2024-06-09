@@ -15,7 +15,7 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-add_executable (Kepler "src/main.cpp" "src/lexing/lexer.cpp" "src/lexing/tokens.cpp")
+add_executable (Kepler "src/main.cpp" "src/lexer.cpp" )
 
 llvm_map_components_to_libnames(llvm_libs
 	support

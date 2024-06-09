@@ -1,22 +1,19 @@
 ﻿#include <iostream>
 #include <string>
 #include <vector>
-#include "lexing/lexer.hpp"
+
+#include "lexer.hpp"
 
 using namespace Kepler;
 
 int main() {
 	std::string src = "+ - ( $ * )";
 
-	std::vector<Lexing::IToken*> tokens = Lexing::tokenize(src);
+	std::vector<Lexer::Token> tokens = Lexer::tokenize(src);
 
-	for (size_t i = 0; i < tokens.size(); i++)
-	{
-		std::cout << "[" << (int)tokens[i]->getType() << ", " << tokens[i]->getValue() << "]" << std::endl;
-		delete tokens[i];
+	for (auto token : tokens) {
+		std::cout << token << std::endl;
 	}
-
-	tokens.clear();
 
 	return 0;
 }
