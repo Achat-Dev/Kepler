@@ -26,7 +26,7 @@ namespace Kepler::Lexer {
 	};
 
 	const std::string c_binaryOperators[] = {
-	"+", "-", "*", "/", "="
+	   "+", "-", "*", "/", "="
 	};
 
 	template<typename T>
@@ -60,7 +60,6 @@ namespace Kepler::Lexer {
 			else {
 				tokens.push_back({ TokenType::Unknown, word });
 			}
-
 		} while (stream);
 
 		return tokens;
