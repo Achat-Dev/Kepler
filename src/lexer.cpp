@@ -1,68 +1,79 @@
-#include <algorithm>
-#include <iostream>
-#include <sstream>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
 
 #include "lexer.hpp"
 
 namespace Kepler::Lexer {
 
-#define PRINT_TOKEN_TYPE(type) case type: return out << #type;
+    static int read_identifier(int* last_char);
+    static int read_number(int* last_char);
+    static int read_comment(int* last_char);
 
-	std::ostream& operator<<(std::ostream& out, const TokenType value) {
-		switch (value)
-		{
-			PRINT_TOKEN_TYPE(TokenType::Separator);
-			PRINT_TOKEN_TYPE(TokenType::BinaryOperator);
-		default: PRINT_TOKEN_TYPE(TokenType::Unknown);
-		}
-	}
+    static std::string identifier;
+    static double value;
 
-	std::ostream& operator<<(std::ostream& out, const Token& value) {
-		return out << "{ \"" << value.Type << "\" , \"" << value.Value << "\" }";
-	}
+    int read_token() {
+        static int last_char = ' ';
 
-	const std::string c_separators[] = {
-		"(", ")"
-	};
+        while (isspace(last_char)) {
+            last_char = getchar();
+        }
 
-	const std::string c_binaryOperators[] = {
-	   "+", "-", "*", "/", "="
-	};
+        if (isalpha(last_char)) {
+            return read_identifier(&last_char);
+        }
+        if (isdigit(last_char)) {
+            return read_number(&last_char);
+        }
+        if (last_char == '#') {
+            return read_comment(&last_char);
+        }
+        if (last_char == EOF) {
+            return TokenType::Token_EndOfFile;
+        }
 
-	template<typename T>
-	bool matchToken(const T& tokens, const std::string& word) {
-		const auto begin = std::begin(tokens);
-		const auto end = std::end(tokens);
-		const auto element = std::find(begin, end, word);
-		return element != end;
-	}
+        int c = last_char;
+        last_char = getchar();
+        return c;
+    }
 
-	std::vector<Token> tokenize(const std::string& src) {
-		std::vector<Token> tokens;
+    static int read_identifier(int* last_char) {
+        identifier = *last_char;
+        while (isalnum((*last_char = getchar()))) {
+            identifier += *last_char;
+        }
 
-		std::istringstream stream(src);
+        if (identifier == "function") {
+            return TokenType::Token_Function;
+        }
+        else if (identifier == "extern") {
+            return TokenType::Token_Extern;
+        }
+        return TokenType::Token_Identifier;
+    }
 
-		do {
-			std::string word;
+    static int read_number(int* last_char) {
 
-			stream >> word;
+        std::string value_string;
+            do {
+                value_string += *last_char;
+                *last_char = getchar();
+            } while (isdigit(*last_char) || *last_char == '.');
 
-			if (word.empty()) {
-				continue;
-			}
+            value = strtod(value_string.c_str(), 0);
+            return TokenType::Token_Number;
+    }
 
-			if (matchToken(c_separators, word)) {
-				tokens.push_back({ TokenType::Separator, word });
-			}
-			else if (matchToken(c_binaryOperators, word)) {
-				tokens.push_back({ TokenType::BinaryOperator, word });
-			}
-			else {
-				tokens.push_back({ TokenType::Unknown, word });
-			}
-		} while (stream);
+    static int read_comment(int* last_char) {
+        do {
+            *last_char = getchar();
+        } while (*last_char != EOF && *last_char != '\n' && *last_char != '\r');
 
-		return tokens;
-	}
+        if (*last_char != EOF) {
+            return read_token();
+        }
+        return TokenType::Token_EndOfFile;
+    }
 
 }

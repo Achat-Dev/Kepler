@@ -6,23 +6,18 @@
 
 namespace Kepler::Lexer {
 
-	enum class TokenType {
-		Unknown,
-		Identifier,
-		Separator,
-		BinaryOperator,
-		Keyword,
-		DataType,
-	};
+    enum TokenType {
+        Token_EndOfFile = -1,
 
-	struct Token {
-		TokenType Type;
-		std::string Value;
-	};
+        // Keywords
+        Token_Function = -2,
+        Token_Extern = -3,
 
-	std::ostream& operator<<(std::ostream& out, const TokenType value);
-	std::ostream& operator<<(std::ostream& out, const Token& value);
+        // Values
+        Token_Identifier = -4,
+        Token_Number = -5,
+    };
 
-	std::vector<Token> tokenize(const std::string& src);
+    int read_token();
 
 }
