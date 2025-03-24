@@ -1,8 +1,6 @@
 #pragma once
 
-#include <ostream>
 #include <string>
-#include <vector>
 
 namespace Kepler::Lexer {
 
@@ -13,11 +11,13 @@ namespace Kepler::Lexer {
         Token_Function = -2,
         Token_Extern = -3,
 
-        // Values
+        // Primary
         Token_Identifier = -4,
         Token_Number = -5,
     };
 
-    int read_token();
+    const int read_token();
+    const std::string get_identifier();
+    const double get_number_value();
 
 }

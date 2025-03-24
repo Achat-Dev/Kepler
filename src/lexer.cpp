@@ -1,6 +1,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 
 #include "lexer.hpp"
 
@@ -11,9 +12,17 @@ namespace Kepler::Lexer {
     static int read_comment(int* last_char);
 
     static std::string identifier;
-    static double value;
+    static double number_value;
 
-    int read_token() {
+    const std::string get_identifier() {
+        return identifier;
+    }
+
+    const double get_number_value() {
+        return number_value;
+    }
+
+    const int read_token() {
         static int last_char = ' ';
 
         while (isspace(last_char)) {
@@ -61,7 +70,7 @@ namespace Kepler::Lexer {
                 *last_char = getchar();
             } while (isdigit(*last_char) || *last_char == '.');
 
-            value = strtod(value_string.c_str(), 0);
+            number_value = strtod(value_string.c_str(), 0);
             return TokenType::Token_Number;
     }
 
