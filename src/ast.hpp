@@ -1,5 +1,7 @@
 #pragma once
 
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,6 +11,7 @@ namespace Kepler::AST {
     class Expression {
     public:
         virtual ~Expression() = default;
+        virtual llvm::Value* codegen() = 0;
     };
 
     class NumberExpression: public Expression {
@@ -17,6 +20,7 @@ namespace Kepler::AST {
 
     public:
         NumberExpression(double value) : value(value) {}
+        llvm::Value* codegen() override;
     };
 
     class VariableExpression: public Expression {
@@ -25,6 +29,7 @@ namespace Kepler::AST {
 
     public:
         VariableExpression(const std::string& name) : name(name) {}
+        llvm::Value* codegen() override;
     };
 
     class BinaryExpression : public Expression {
@@ -36,6 +41,7 @@ namespace Kepler::AST {
     public:
         BinaryExpression(char op, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
             : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+        llvm::Value* codegen() override;
     };
 
     class CallExpression : public Expression {
@@ -46,6 +52,7 @@ namespace Kepler::AST {
     public:
         CallExpression(const std::string& callee, std::vector<std::unique_ptr<Expression>> args)
             : callee(callee), args(std::move(args)) {}
+        llvm::Value* codegen() override;
     };
 
     class Prototype {
@@ -57,6 +64,7 @@ namespace Kepler::AST {
         Prototype() : name(""), args(std::vector<std::string>()) {}
         Prototype(const std::string& name, std::vector<std::string> args)
             : name(name), args(std::move(args)) {}
+        llvm::Function* codegen();
         const std::string& get_name() const { return name; }
     };
 
@@ -68,6 +76,7 @@ namespace Kepler::AST {
     public:
         Function(std::unique_ptr<Prototype> prototype, std::unique_ptr<Expression> body)
             : prototype(std::move(prototype)), body(std::move(body)) {}
+        llvm::Function* codegen();
     };
 
 }

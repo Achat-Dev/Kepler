@@ -7,13 +7,10 @@
 
 #include "ast.hpp"
 #include "lexer.hpp"
+#include "log.hpp"
 #include "parser.hpp"
 
 namespace Kepler::Parser {
-
-
-    static std::unique_ptr<AST::Expression> log_error(const std::string& str);
-    static std::unique_ptr<AST::Prototype> log_errorp(const std::string& str);
 
     static int get_token_precedence();
 
@@ -28,27 +25,16 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Prototype> parse_extern();
     static std::unique_ptr<AST::Function> parse_top_level_expression();
 
-    static std::unique_ptr<AST::Expression> log_error(const std::string& str) {
-        std::fprintf(stderr, "Error: %s\n", str.c_str());
-        return nullptr;
-    }
-
-    static std::unique_ptr<AST::Prototype> log_errorp(const std::string& str) {
-        log_error(str);
-        return nullptr;
-    }
-
     static int current_token;
 
     // Higher values mean higher precedence
     static std::map<char, int> binop_precedence_map = {
-        { '>', 10 },
         { '<', 10 },
+        { '>', 10 },
         { '+', 20 },
         { '-', 20 },
         { '*', 40 },
-        { '/', 40 },
-        { '%', 40 }
+        { '/', 40 }
     };
     static int get_token_precedence() {
         if (!isascii(current_token)) {

@@ -12,7 +12,9 @@ add_definitions(${LLVM_DEFINITIONS})
 
 add_executable (${CMAKE_PROJECT_NAME}
     "src/main.cpp"
+    "src/ast.cpp"
     "src/lexer.cpp"
+    "src/log.cpp"
     "src/parser.cpp")
 
 llvm_map_components_to_libnames(llvm_libs
