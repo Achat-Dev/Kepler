@@ -1,89 +1,111 @@
-# Kepler Documentation
+# Kepler documentation
 
-## Rough idea
+## Idea
 
-### Misc
-```
-// Comment
-namespace Kepler
-```
+The idea is to create a language that is a mix of Lua and Python.
+The general syntax is taken from Lua with some concepts like OOP and operator overloading from Python mixed in.
 
-### Data types
-```
-bool a = true
-char b = 'A'
-string c = "Hello"
-int8 d = 1
-int16 e = 1
-int32 f = 1
-int64 g = 1
-uint8 d = 1
-uint16 e = 1
-uint32 f = 1
-uint64 g = 1
-float32 h = 1.0
-float64 i = 1.0
+However, the catch (and research reason) of this programming language is to be able to use both static and dynamic typing.
 
-pointer<type> j = &a;
-```
+### Typing
 
-### Structs
+The general syntax for typing is as follows:
+
+`<type> <name> <expression>`
+
+where:
+
+| Component | Meaning | Further notes |
+| :- | :- | :- |
+| `<type>` | Either the data type (static typing) or `var` (dynamic typing) | If the whole statement is a variable definition, the variable can be made immutable by prefixing it with `const` (static typing) or by replacing `var` with `const` (dynamic typing) |
+| `<name>` | The name of the thing in question (variable name, function name, ...) | |
+| `<expression>` | In case of<br><ul><li>variable declaration: empty</li><li>variable definition: `= <value>`</li><li>function definition: the function arguments (in brackets) separated by commas. Function arguments are written like variable definitions</li></ul> | |
+
+The possible static types are:
+
+- `boolean`
+- `char`
+- `string`
+- `int8`
+- `int16`
+- `int32`
+- `int64`
+- `uint8`
+- `uint16`
+- `uint32`
+- `uint64`
+- `float32`
+- `float64`
+
+### Syntax
+
+#### OOP
+
 ```
-public struct Name
-	
+struct Name
+  ...
 end
 ```
 
-### Access modifiers
-```
-private
-protected
-internal -> only in namespace
-public
-```
-
-### Control structures
-
 #### if
+
 ```
-if (true)
-	
-else if (false)
-	
+if (<expression>)
+  ...
+elseif (<expression>)
+  ...
 else
-	
+  ...
 end
 ```
 
 #### while
+
 ```
-while (true)
-	
+while (<expression>)
+  ...
 end
 ```
 
 #### for
-```
-for (int32 i = 0, i < 5, i++)
-
-end
-```
 
 ```
-for (datatype item in list)
-
+for (<type> item : list)
+  ...
 end
 ```
 
 #### Methods
-```
-public void main()
 
+```
+void foo()
+  ...
 end
 ```
 
 ```
-public int32 method(int32 a, int32 b)
+int32 bar(int32 a, int32 b)
 	return a + b
 end
+```
+
+```
+var baz()
+  return ...
+end
+```
+
+### Modules
+
+Modules are handled similar to how Lua (and JavaScript) do it.
+Some kind ob "object" that holds all the methods and variables is exported from the respective and imported from any other file.
+Once a file is imported it will be compiled and executed on startup.
+
+### Comments
+
+```
+# Single line comment
+## Multi
+line
+comment ##
 ```
