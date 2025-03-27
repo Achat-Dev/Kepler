@@ -1,5 +1,6 @@
 #include <cctype>
 #include <cstdio>
+#include <llvm/Support/raw_ostream.h>
 #include <map>
 #include <memory>
 #include <utility>
@@ -164,8 +165,14 @@ namespace Kepler::Parser {
         }
 
         std::vector<std::string> arg_names;
-        while (read_next_token() == Lexer::Token_Identifier) {
+        read_next_token();
+        while (current_token == Lexer::Token_Identifier) {
             arg_names.push_back(Lexer::get_identifier());
+
+            read_next_token();
+            if (current_token == ',') {
+                read_next_token();
+            }
         }
         if (current_token != ')') {
             log_errorp("expected ')' after function arguments in prototype");
@@ -211,8 +218,12 @@ namespace Kepler::Parser {
     }
 
     void handle_function() {
-        if (parse_function()) {
-            std::fprintf(stderr, "> parsed a function definition <\n");
+        if (auto ast = parse_function()) {
+            if (auto ir = ast->codegen()) {
+                std::fprintf(stderr, "> parsed a function definition <\n");
+                ir->print(llvm::errs());
+                std::fprintf(stderr, "\n");
+            }
         }
         else {
             read_next_token(); // skip token for error recovery
@@ -220,8 +231,12 @@ namespace Kepler::Parser {
     }
 
     void handle_extern() {
-        if (parse_extern()) {
-            std::fprintf(stderr, "> parsed an extern <\n");
+        if (auto ast = parse_extern()) {
+            if (auto ir = ast->codegen()) {
+                std::fprintf(stderr, "> parsed an extern <\n");
+                ir->print(llvm::errs());
+                std::fprintf(stderr, "\n");
+            }
         }
         else {
             read_next_token(); // skip token for error recovery
@@ -229,8 +244,12 @@ namespace Kepler::Parser {
     }
 
     void handle_top_level_expression() {
-        if (parse_top_level_expression()) {
-            std::fprintf(stderr, "> parsed a top level expression <\n");
+        if (auto ast = parse_top_level_expression()) {
+            if (auto ir = ast->codegen()) {
+                std::fprintf(stderr, "> parsed a top level expression <\n");
+                ir->print(llvm::errs());
+                std::fprintf(stderr, "\n");
+            }
         }
         else {
             read_next_token(); // skip token for error recovery

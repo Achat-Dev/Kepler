@@ -16,6 +16,9 @@ namespace Kepler::Lexer {
         Token_Number = -5,
     };
 
+    const bool initialise(const char* filename);
+    const void cleanup();
+
     const int read_token();
     const std::string get_identifier();
     const double get_number_value();

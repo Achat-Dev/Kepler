@@ -23,7 +23,7 @@ where:
 
 The possible static types are:
 
-- `boolean`
+- `bool`
 - `char`
 - `string`
 - `int8`

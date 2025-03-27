@@ -4,11 +4,13 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/ADT/APFloat.h>
+#include <llvm/Support/raw_ostream.h>
 #include <map>
 #include <memory>
 #include <vector>
@@ -18,9 +20,9 @@
 
 namespace Kepler::AST {
 
-    static std::unique_ptr<llvm::LLVMContext> context;
-    static std::unique_ptr<llvm::IRBuilder<>> builder;
-    static std::unique_ptr<llvm::Module> module;
+    static std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
+    static std::unique_ptr<llvm::IRBuilder<>> builder = std::make_unique<llvm::IRBuilder<>>(*context);
+    static std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>("Kepler", *context);
     static std::map<std::string, llvm::Value*> named_values;
 
     llvm::Value* NumberExpression::codegen() {
