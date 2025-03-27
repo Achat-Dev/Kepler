@@ -8,6 +8,8 @@
 
 namespace Kepler::AST {
 
+    const bool initialise();
+
     class Expression {
     public:
         virtual ~Expression() = default;

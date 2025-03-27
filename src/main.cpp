@@ -2,6 +2,7 @@
 #include <iostream>
 #include <ostream>
 
+#include "ast.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 
@@ -26,6 +27,9 @@ int main(int argc, char* argv[]) {
 
 bool compile_file(const char* filename) {
     if (!Lexer::initialise(filename)) {
+        return false;
+    }
+    if(!AST::initialise()) {
         return false;
     }
 

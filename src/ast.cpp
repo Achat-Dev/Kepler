@@ -1,4 +1,7 @@
 #include <cmath>
+#include <cstdio>
+#include <llvm/ADT/APFloat.h>
+#include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -6,13 +9,28 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/PassInstrumentation.h>
+#include <llvm/IR/PassManager.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
-#include <llvm/ADT/APFloat.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Passes/StandardInstrumentations.h>
+#include <llvm/Support/CodeGen.h>
+#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/Host.h>
+#include <llvm/TargetParser/Triple.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Scalar/Reassociate.h>
+#include <llvm/Transforms/Scalar/SimplifyCFG.h>
 #include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "ast.hpp"
@@ -20,10 +38,72 @@
 
 namespace Kepler::AST {
 
-    static std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
-    static std::unique_ptr<llvm::IRBuilder<>> builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    static std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>("Kepler", *context);
+    static std::unique_ptr<llvm::LLVMContext> context;
+    static std::unique_ptr<llvm::IRBuilder<>> builder;
+    static std::unique_ptr<llvm::Module> module;
+
+    static std::unique_ptr<llvm::FunctionPassManager> fpm;
+    static std::unique_ptr<llvm::FunctionAnalysisManager> fam;
+    static std::unique_ptr<llvm::LoopAnalysisManager> lam;
+    static std::unique_ptr<llvm::CGSCCAnalysisManager> cgam;
+    static std::unique_ptr<llvm::ModuleAnalysisManager> mam;
+    static std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
+    static std::unique_ptr<llvm::StandardInstrumentations> si;
+
     static std::map<std::string, llvm::Value*> named_values;
+
+    const bool initialise() {
+        context = std::make_unique<llvm::LLVMContext>();
+        builder = std::make_unique<llvm::IRBuilder<>>(*context);
+        module = std::make_unique<llvm::Module>("Kepler", *context);
+
+        llvm::InitializeAllTargetInfos();
+        llvm::InitializeAllTargets();
+        llvm::InitializeAllTargetMCs();
+        llvm::InitializeAllAsmParsers();
+        llvm::InitializeAllAsmPrinters();
+
+        std::string target_triple_string = llvm::sys::getDefaultTargetTriple();
+        llvm::Triple target_triple(target_triple_string);
+        module->setTargetTriple(target_triple);
+
+        std::string error;
+        const llvm::Target* target = llvm::TargetRegistry::lookupTarget(target_triple_string, error);
+
+        if (!target) {
+            llvm::errs() << error;
+            return false;
+        }
+
+        std::string cpu = "generic";
+        std::string features = "";
+        llvm::TargetOptions target_options;
+        llvm::TargetMachine* target_machine = target->createTargetMachine(target_triple, cpu, features, target_options, llvm::Reloc::PIC_);
+
+        module->setDataLayout(target_machine->createDataLayout());
+
+        // optimisation
+        fpm = std::make_unique<llvm::FunctionPassManager>();
+        fam = std::make_unique<llvm::FunctionAnalysisManager>();
+        lam = std::make_unique<llvm::LoopAnalysisManager>();
+        cgam = std::make_unique<llvm::CGSCCAnalysisManager>();
+        mam = std::make_unique<llvm::ModuleAnalysisManager>();
+        pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
+        si = std::make_unique<llvm::StandardInstrumentations>(*context, true);
+        si->registerCallbacks(*pic, mam.get());
+
+        fpm->addPass(llvm::InstCombinePass());
+        fpm->addPass(llvm::ReassociatePass());
+        fpm->addPass(llvm::GVNPass());
+        fpm->addPass(llvm::SimplifyCFGPass());
+
+        llvm::PassBuilder passbuilder;
+        passbuilder.registerModuleAnalyses(*mam);
+        passbuilder.registerFunctionAnalyses(*fam);
+        passbuilder.crossRegisterProxies(*lam, *fam, *cgam, *mam);
+
+        return true;
+    }
 
     llvm::Value* NumberExpression::codegen() {
         return llvm::ConstantFP::get(*context, llvm::APFloat(value));
@@ -124,6 +204,7 @@ namespace Kepler::AST {
         if (llvm::Value* return_value = body->codegen()) {
             builder->CreateRet(return_value);
             llvm::verifyFunction(*f);
+            fpm->run(*f, *fam);
             return f;
         }
 

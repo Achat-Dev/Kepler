@@ -17,11 +17,7 @@ add_executable (${CMAKE_PROJECT_NAME}
     "src/log.cpp"
     "src/parser.cpp")
 
-llvm_map_components_to_libnames(llvm_libs
-	support
-	core
-	irreader
-)
+llvm_map_components_to_libnames(llvm_libs ${LLVM_TARGETS_TO_BUILD})
 
 target_link_libraries(${CMAKE_PROJECT_NAME} ${llvm_libs})
 
