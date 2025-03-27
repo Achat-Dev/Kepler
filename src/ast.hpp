@@ -9,6 +9,7 @@
 namespace Kepler::AST {
 
     const bool initialise();
+    const int write_file(const char* filename);
 
     class Expression {
     public:

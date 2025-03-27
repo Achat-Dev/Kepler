@@ -7,6 +7,7 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/PassInstrumentation.h>
@@ -18,8 +19,9 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/StandardInstrumentations.h>
 #include <llvm/Support/CodeGen.h>
-#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Host.h>
@@ -31,6 +33,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "ast.hpp"
@@ -49,6 +52,8 @@ namespace Kepler::AST {
     static std::unique_ptr<llvm::ModuleAnalysisManager> mam;
     static std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
     static std::unique_ptr<llvm::StandardInstrumentations> si;
+
+    static llvm::TargetMachine* target_machine;
 
     static std::map<std::string, llvm::Value*> named_values;
 
@@ -78,7 +83,7 @@ namespace Kepler::AST {
         std::string cpu = "generic";
         std::string features = "";
         llvm::TargetOptions target_options;
-        llvm::TargetMachine* target_machine = target->createTargetMachine(target_triple, cpu, features, target_options, llvm::Reloc::PIC_);
+        target_machine = target->createTargetMachine(target_triple, cpu, features, target_options, llvm::Reloc::PIC_);
 
         module->setDataLayout(target_machine->createDataLayout());
 
@@ -103,6 +108,28 @@ namespace Kepler::AST {
         passbuilder.crossRegisterProxies(*lam, *fam, *cgam, *mam);
 
         return true;
+    }
+
+    const int write_file(const char* filename) {
+        std::error_code ec;
+        llvm::raw_fd_ostream out(filename, ec, llvm::sys::fs::OF_None);
+
+        if (ec) {
+            llvm::errs() << "Error: Failed to open output file: " << ec.message();
+            return 1;
+        }
+
+        llvm::legacy::PassManager pass_manager;
+        if (target_machine->addPassesToEmitFile(pass_manager, out, nullptr, llvm::CodeGenFileType::ObjectFile)) {
+            llvm::errs() << "Error: Target machine can't emit file of type 'Object File'";
+            return 1;
+        }
+
+        pass_manager.run(*module);
+        out.flush();
+        llvm::outs() << "Wrote " << filename << "\n";
+
+        return 0;
     }
 
     llvm::Value* NumberExpression::codegen() {
