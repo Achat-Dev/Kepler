@@ -25,6 +25,7 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Function> parse_function();
     static std::unique_ptr<AST::Prototype> parse_extern();
     static std::unique_ptr<AST::Function> parse_top_level_expression();
+    static std::unique_ptr<AST::Expression> parse_if();
 
     static int current_token;
 
@@ -121,6 +122,8 @@ namespace Kepler::Parser {
         switch (current_token) {
             case Lexer::Token_Identifier: return parse_identifier();
             case Lexer::Token_Number: return parse_number();
+            case Lexer::Token_If: return parse_if();
+            case Lexer::Token_Elseif: return parse_if();
             case '(': return parse_parenthesis();
             default: return log_error("unknown token when expected expression");
         }
@@ -207,6 +210,35 @@ namespace Kepler::Parser {
             return std::make_unique<AST::Function>(std::move(prototype), std::move(expression));
         }
         return nullptr;
+    }
+
+    static std::unique_ptr<AST::Expression> parse_if() {
+        read_next_token(); // eat 'if' or 'elseif'
+
+        auto condition = parse_expression();
+        if (!condition) {
+            return nullptr;
+        }
+
+        auto if_branch = parse_expression();
+        if (!if_branch) {
+            return log_error("Expected 'if'");
+        }
+
+        if (current_token != Lexer::Token_Elseif && current_token != Lexer::Token_Else) {
+            return log_error("Expected 'else' or 'elseif'");
+        }
+
+        if (current_token == Lexer::Token_Else) {
+            read_next_token(); // eat 'else'
+        }
+
+        auto else_branch = parse_expression();
+        if (!else_branch) {
+            return nullptr;
+        }
+
+        return std::make_unique<AST::IfExpression>(std::move(condition), std::move(if_branch), std::move(else_branch));
     }
 
     const int get_current_token() {

@@ -14,6 +14,9 @@ namespace Kepler::Lexer {
         // Primary
         Token_Identifier = -4,
         Token_Number = -5,
+        Token_If = -6,
+        Token_Elseif = -7,
+        Token_Else = -8
     };
 
     const bool initialise(const char* filename);

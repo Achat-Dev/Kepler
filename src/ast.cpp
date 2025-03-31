@@ -136,6 +136,55 @@ namespace Kepler::AST {
         return llvm::ConstantFP::get(*context, llvm::APFloat(value));
     }
 
+    llvm::Value* IfExpression::codegen() {
+        llvm::Value* conditionv = condition->codegen();
+        if (!conditionv) {
+            return nullptr;
+        }
+
+        // Make conditional a bool by comparing it to 0.0
+        conditionv = builder->CreateFCmpONE(conditionv, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), "ifcond");
+
+        llvm::Function* f = builder->GetInsertBlock()->getParent();
+
+        llvm::BasicBlock* if_block = llvm::BasicBlock::Create(*context, "ifbranch", f);
+        llvm::BasicBlock* else_block = llvm::BasicBlock::Create(*context, "elsebranch");
+        llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(*context, "mergebranch");
+
+        builder->CreateCondBr(conditionv, if_block, else_block);
+
+        builder->SetInsertPoint(if_block);
+        llvm::Value* ifv = if_branch->codegen();
+        if (!ifv) {
+            return nullptr;
+        }
+
+        builder->CreateBr(merge_block);
+        if_block = builder->GetInsertBlock();
+
+        f->insert(f->end(), else_block);
+        builder->SetInsertPoint(else_block);
+
+        if (!else_branch) {
+            return nullptr;
+        }
+
+        llvm::Value* elsev = else_branch->codegen();
+        if (!elsev) {
+            return nullptr;
+        }
+
+        builder->CreateBr(merge_block);
+        else_block = builder->GetInsertBlock();
+
+        f->insert(f->end(), merge_block);
+        builder->SetInsertPoint(merge_block);
+        llvm::PHINode* phi = builder->CreatePHI(llvm::Type::getDoubleTy(*context), 2, "iftmp");
+        phi->addIncoming(ifv, if_block);
+        phi->addIncoming(elsev, else_block);
+        return phi;
+    }
+
     llvm::Value* VariableExpression::codegen() {
         llvm::Value* v = named_values[name];
         if (!v) {
