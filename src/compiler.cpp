@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <fstream>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
@@ -28,6 +29,8 @@ namespace Kepler::Compiler {
 
     static llvm::TargetMachine* target_machine;
 
+    static std::ifstream file;
+
     const static bool write_file(const char* outname);
     const static bool initialise();
 
@@ -49,30 +52,44 @@ namespace Kepler::Compiler {
             return named_values;
         }
 
+        std::ifstream& get_file() {
+            return file;
+        }
+
     }
 
-
     const bool compile_file(const char* filename, const char* outname) {
-        if (!Lexer::initialise(filename)) {
-            return false;
-        }
         if(!initialise()) {
             return false;
         }
 
+        file.open(filename);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        // Read first token to kick things off
+        Parser::read_next_token();
+
         while (true) {
             switch (Parser::get_current_token()) {
                 case Lexer::Token_EndOfFile:
-                    Lexer::cleanup();
+                    file.close();
                     return write_file(outname);
                 case Lexer::Token_Function:
-                    Parser::handle_function();
+                    if (!Parser::handle_function()) {
+                        return false;
+                    }
                     break;
                 case Lexer::Token_Extern:
-                    Parser::handle_extern();
+                    if (!Parser::handle_extern()) {
+                        return false;
+                    }
                     break;
                 default:
-                    Parser::handle_top_level_expression();
+                    if (!Parser::handle_top_level_expression()) {
+                        return false;
+                    }
                     break;
             }
         }

@@ -4,8 +4,8 @@ namespace Kepler::Parser {
 
     const int get_current_token();
     const int read_next_token();
-    void handle_function();
-    void handle_extern();
-    void handle_top_level_expression();
+    const bool handle_function();
+    const bool handle_extern();
+    const bool handle_top_level_expression();
 
 }

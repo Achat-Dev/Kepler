@@ -1,12 +1,11 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
 #include <string>
 
+#include "compiler.hpp"
 #include "lexer.hpp"
-#include "parser.hpp"
 
 namespace Kepler::Lexer {
 
@@ -14,23 +13,9 @@ namespace Kepler::Lexer {
     static int read_number();
     static int read_comment();
 
-    static std::ifstream file;
     static char last_char = ' ';
     static std::string identifier = "";
     static double number_value = 0.0;
-
-    const bool initialise(const char *filename) {
-        file.open(filename);
-        if (file.is_open()) {
-            Parser::read_next_token();
-            return true;
-        }
-        return false;
-    }
-
-    const void cleanup() {
-        file.close();
-    }
 
     const std::string get_identifier() {
         return identifier;
@@ -41,13 +26,13 @@ namespace Kepler::Lexer {
     }
 
     const int read_token() {
-        if (file.peek() == EOF) {
+        if (Compiler::Internal::get_file().peek() == EOF) {
             std::cout << "{ TokenType: EndOfFile }" << std::endl;
             return TokenType::Token_EndOfFile;
         }
 
         while (isspace(last_char)) {
-            file.get(last_char);
+            Compiler::Internal::get_file().get(last_char);
         }
 
         if (isalpha(last_char)) {
@@ -61,7 +46,7 @@ namespace Kepler::Lexer {
         }
 
         int c = last_char;
-        file.get(last_char);
+        Compiler::Internal::get_file().get(last_char);
 
         std::cout << "{ TokenType: Character: " << (char)c << " }" << std::endl;
         return c;
@@ -69,10 +54,10 @@ namespace Kepler::Lexer {
 
     static int read_identifier() {
         identifier = last_char;
-        file.get(last_char);
+        Compiler::Internal::get_file().get(last_char);
         while (isalnum(last_char)) {
             identifier += last_char;
-            file.get(last_char);
+            Compiler::Internal::get_file().get(last_char);
         }
 
         if (identifier == "function") {
@@ -108,7 +93,7 @@ namespace Kepler::Lexer {
         std::string value_string;
             do {
                 value_string += last_char;
-                file.get(last_char);
+                Compiler::Internal::get_file().get(last_char);
             } while (isdigit(last_char) || last_char == '.');
 
             number_value = strtod(value_string.c_str(), 0);
@@ -119,7 +104,7 @@ namespace Kepler::Lexer {
 
     static int read_comment() {
         do {
-            file.get(last_char);
+            Compiler::Internal::get_file().get(last_char);
         } while (last_char != EOF && last_char != '\n' && last_char != '\r');
 
         if (last_char != EOF) {

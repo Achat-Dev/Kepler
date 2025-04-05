@@ -305,43 +305,40 @@ namespace Kepler::Parser {
         return current_token = Lexer::read_token();
     }
 
-    void handle_function() {
+    const bool handle_function() {
         if (auto ast = parse_function()) {
             if (auto ir = ast->codegen()) {
                 std::fprintf(stderr, "> parsed a function definition <\n");
                 ir->print(llvm::errs());
                 std::fprintf(stderr, "\n");
+                return true;
             }
         }
-        else {
-            read_next_token(); // skip token for error recovery
-        }
+        return false;
     }
 
-    void handle_extern() {
+    const bool handle_extern() {
         if (auto ast = parse_extern()) {
             if (auto ir = ast->codegen()) {
                 std::fprintf(stderr, "> parsed an extern <\n");
                 ir->print(llvm::errs());
                 std::fprintf(stderr, "\n");
+                return true;
             }
         }
-        else {
-            read_next_token(); // skip token for error recovery
-        }
+        return false;
     }
 
-    void handle_top_level_expression() {
+    const bool handle_top_level_expression() {
         if (auto ast = parse_top_level_expression()) {
             if (auto ir = ast->codegen()) {
                 std::fprintf(stderr, "> parsed a top level expression <\n");
                 ir->print(llvm::errs());
                 std::fprintf(stderr, "\n");
+                return true;
             }
         }
-        else {
-            read_next_token(); // skip token for error recovery
-        }
+        return false;
     }
 
 }
