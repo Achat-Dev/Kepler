@@ -16,7 +16,8 @@ namespace Kepler::Lexer {
         Token_Number = -5,
         Token_If = -6,
         Token_Elseif = -7,
-        Token_Else = -8
+        Token_Else = -8,
+        Token_For  =-9
     };
 
     const bool initialise(const char* filename);

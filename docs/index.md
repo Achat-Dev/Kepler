@@ -70,6 +70,12 @@ end
 #### for
 
 ```
+for (type i : start, stop, step)
+  ...
+end
+```
+
+```
 for (<type> item : list)
   ...
 end

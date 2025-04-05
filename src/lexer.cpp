@@ -95,6 +95,10 @@ namespace Kepler::Lexer {
             std::cout << "{ TokenType: else }" << std::endl;
             return TokenType::Token_Else;
         }
+        else if (identifier == "for") {
+            std::cout << "{ TokenType: for }" << std::endl;
+            return TokenType::Token_For;
+        }
 
         std::cout << "{ TokenType: Identifier: " << identifier << " }" << std::endl;
         return TokenType::Token_Identifier;

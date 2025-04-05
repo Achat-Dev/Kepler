@@ -26,6 +26,7 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Prototype> parse_extern();
     static std::unique_ptr<AST::Function> parse_top_level_expression();
     static std::unique_ptr<AST::Expression> parse_if();
+    static std::unique_ptr<AST::Expression> parse_for();
 
     static int current_token;
 
@@ -124,6 +125,7 @@ namespace Kepler::Parser {
             case Lexer::Token_Number: return parse_number();
             case Lexer::Token_If: return parse_if();
             case Lexer::Token_Elseif: return parse_if();
+            case Lexer::Token_For: return parse_for();
             case '(': return parse_parenthesis();
             default: return log_error("unknown token when expected expression");
         }
@@ -217,16 +219,17 @@ namespace Kepler::Parser {
 
         auto condition = parse_expression();
         if (!condition) {
+            return log_error("Expected condition after 'if'");
             return nullptr;
         }
 
         auto if_branch = parse_expression();
         if (!if_branch) {
-            return log_error("Expected 'if'");
+            return log_error("Expected body after 'if' condition");
         }
 
         if (current_token != Lexer::Token_Elseif && current_token != Lexer::Token_Else) {
-            return log_error("Expected 'else' or 'elseif'");
+            return log_error("Expected 'elseif' or 'else'");
         }
 
         if (current_token == Lexer::Token_Else) {
@@ -239,6 +242,51 @@ namespace Kepler::Parser {
         }
 
         return std::make_unique<AST::IfExpression>(std::move(condition), std::move(if_branch), std::move(else_branch));
+    }
+
+    static std::unique_ptr<AST::Expression> parse_for() {
+        read_next_token(); // eat 'for'
+
+        if (current_token != Lexer::Token_Identifier) {
+            return log_error("expected identifier after 'for'");
+        }
+
+        std::string variable_name = Lexer::get_identifier();
+
+        read_next_token();
+        if (current_token != '=') {
+            return log_error("expected '=' after identifier in for");
+        }
+        read_next_token(); // eat '='
+
+        std::unique_ptr<AST::Expression> start = parse_expression();
+        if (!start) {
+            return nullptr;
+        }
+        if (current_token != ',') {
+            return log_error("expected ',' after for variable initialisation");
+        }
+        read_next_token(); // eat ','
+
+        std::unique_ptr<AST::Expression> end = parse_expression();
+        if (!end) {
+            return nullptr;
+        }
+
+        std::unique_ptr<AST::Expression> step;
+        if (current_token == ',') {
+            read_next_token(); // eat ','
+            step = parse_expression();
+            if (!step) {
+                return nullptr;
+            }
+        }
+
+        std::unique_ptr<AST::Expression> body = parse_expression();
+        if (!body) {
+            return nullptr;
+        }
+        return std::make_unique<AST::ForExpression>(variable_name, std::move(start), std::move(end), std::move(step), std::move(body));
     }
 
     const int get_current_token() {

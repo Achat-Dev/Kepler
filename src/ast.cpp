@@ -3,10 +3,12 @@
 #include <llvm/ADT/APFloat.h>
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -165,10 +167,6 @@ namespace Kepler::AST {
         f->insert(f->end(), else_block);
         builder->SetInsertPoint(else_block);
 
-        if (!else_branch) {
-            return nullptr;
-        }
-
         llvm::Value* elsev = else_branch->codegen();
         if (!elsev) {
             return nullptr;
@@ -183,6 +181,69 @@ namespace Kepler::AST {
         phi->addIncoming(ifv, if_block);
         phi->addIncoming(elsev, else_block);
         return phi;
+    }
+
+    llvm::Value* ForExpression::codegen() {
+        llvm::Value* startv = start->codegen();
+        if (!startv) {
+            return nullptr;
+        }
+
+        llvm::Function* f = builder->GetInsertBlock()->getParent();
+        llvm::BasicBlock* preheader_block = builder->GetInsertBlock();
+        llvm::BasicBlock* loop_block = llvm::BasicBlock::Create(*context, "loop", f);
+
+        builder->CreateBr(loop_block);
+        builder->SetInsertPoint(loop_block);
+
+        llvm::PHINode* variable = builder->CreatePHI(llvm::Type::getDoubleTy(*context), 2, variable_name);
+        variable->addIncoming(startv, preheader_block);
+
+        // Save old variable if the loop variable overrides it
+        llvm::Value* old_value = named_values[variable_name];
+        named_values[variable_name] = variable;
+
+        if (!body->codegen()) {
+            return nullptr;
+        }
+
+        llvm::Value* step_value = nullptr;
+        if (step) {
+            step_value = step->codegen();
+            if (!step_value) {
+                return nullptr;
+            }
+        }
+        else {
+            step_value = llvm::ConstantFP::get(*context, llvm::APFloat(1.0));
+        }
+        llvm::Value* next_variable = builder->CreateFAdd(variable, step_value, "nextvariable");
+
+        llvm::Value* end_condition = end->codegen();
+        if (!end_condition) {
+            return nullptr;
+        }
+        // Convert condition to a bool by comparing to 0.0
+        end_condition = builder->CreateFCmpONE(end_condition, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), "loopcondition");
+
+        //Evaluate if loop should exit
+        llvm::BasicBlock* loop_end_block = builder->GetInsertBlock();
+        llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(*context, "afterloop", f);
+        builder->CreateCondBr(end_condition, loop_block, after_loop_block);
+        builder->SetInsertPoint(after_loop_block);
+
+        variable->addIncoming(next_variable, loop_end_block);
+
+        // Restore old variable if necessary
+        if (old_value) {
+            named_values[variable_name] = old_value;
+        }
+        else {
+            named_values.erase(variable_name);
+        }
+
+        // return 0
+        return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
     }
 
     llvm::Value* VariableExpression::codegen() {
@@ -280,7 +341,7 @@ namespace Kepler::AST {
         if (llvm::Value* return_value = body->codegen()) {
             builder->CreateRet(return_value);
             llvm::verifyFunction(*f);
-            fpm->run(*f, *fam);
+            //fpm->run(*f, *fam);
             return f;
         }
 

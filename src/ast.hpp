@@ -17,6 +17,7 @@ namespace Kepler::AST {
         virtual llvm::Value* codegen() = 0;
     };
 
+    // Data types
     class NumberExpression: public Expression {
     private:
         double value;
@@ -26,6 +27,7 @@ namespace Kepler::AST {
         llvm::Value* codegen() override;
     };
 
+    // Control flow
     class IfExpression: public Expression {
     private:
         std::unique_ptr<Expression> condition;
@@ -42,6 +44,26 @@ namespace Kepler::AST {
         llvm::Value* codegen() override;
     };
 
+    class ForExpression: public Expression {
+    private:
+        std::string variable_name;
+        std::unique_ptr<Expression> start, end, step, body;
+
+    public:
+        ForExpression(std::string variable_name,
+            std::unique_ptr<Expression> start,
+            std::unique_ptr<Expression> end,
+            std::unique_ptr<Expression> step,
+            std::unique_ptr<Expression> body)
+            : variable_name(variable_name),
+              start(std::move(start)),
+              end(std::move(end)),
+              step(std::move(step)),
+              body(std::move(body)) {}
+        llvm::Value* codegen() override;
+    };
+
+    // Other
     class VariableExpression: public Expression {
     private:
         std::string name;
@@ -74,6 +96,7 @@ namespace Kepler::AST {
         llvm::Value* codegen() override;
     };
 
+    // Function
     class Prototype {
     private:
         std::string name;
