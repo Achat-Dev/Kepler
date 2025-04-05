@@ -6,7 +6,15 @@
 #include <utility>
 #include <vector>
 
-#include "ast.hpp"
+#include "ast/binary_expression.hpp"
+#include "ast/call_expression.hpp"
+#include "ast/expression.hpp"
+#include "ast/for_expression.hpp"
+#include "ast/function.hpp"
+#include "ast/if_expression.hpp"
+#include "ast/number_expression.hpp"
+#include "ast/prototype.hpp"
+#include "ast/variable_expression.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "parser.hpp"

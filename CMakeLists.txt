@@ -10,12 +10,24 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+set(AST_SRC
+    "src/ast/binary_expression.cpp"
+    "src/ast/call_expression.cpp"
+    "src/ast/for_expression.cpp"
+    "src/ast/function.cpp"
+    "src/ast/if_expression.cpp"
+    "src/ast/number_expression.cpp"
+    "src/ast/prototype.cpp"
+    "src/ast/variable_expression.cpp")
+
 add_executable (${CMAKE_PROJECT_NAME}
     "src/main.cpp"
-    "src/ast.cpp"
+    "src/compiler.cpp"
     "src/lexer.cpp"
     "src/log.cpp"
-    "src/parser.cpp")
+    "src/optimiser.cpp"
+    "src/parser.cpp"
+    ${AST_SRC})
 
 llvm_map_components_to_libnames(llvm_libs ${LLVM_TARGETS_TO_BUILD})
 
