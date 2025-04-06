@@ -23,6 +23,7 @@ set(AST_SRC
 add_executable (${CMAKE_PROJECT_NAME}
     "src/main.cpp"
     "src/compiler.cpp"
+    "src/file.cpp"
     "src/lexer.cpp"
     "src/log.cpp"
     "src/optimiser.cpp"

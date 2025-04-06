@@ -1,5 +1,5 @@
 #include <cstdio>
-#include <fstream>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 
+#include "file.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "compiler.hpp"
@@ -29,7 +30,7 @@ namespace Kepler::Compiler {
 
     static llvm::TargetMachine* target_machine;
 
-    static std::ifstream file;
+    static std::unique_ptr<File> file;
 
     const static bool write_file(const char* outname);
     const static bool initialise();
@@ -52,7 +53,7 @@ namespace Kepler::Compiler {
             return named_values;
         }
 
-        std::ifstream& get_file() {
+        std::unique_ptr<File>& get_file() {
             return file;
         }
 
@@ -63,8 +64,7 @@ namespace Kepler::Compiler {
             return false;
         }
 
-        file.open(filename);
-        if (!file.is_open()) {
+        if (!(file = File::create(filename))) {
             return false;
         }
 
@@ -74,7 +74,7 @@ namespace Kepler::Compiler {
         while (true) {
             switch (Parser::get_current_token()) {
                 case Lexer::Token_EndOfFile:
-                    file.close();
+                    file->close();
                     return write_file(outname);
                 case Lexer::Token_Function:
                     if (!Parser::handle_function()) {
