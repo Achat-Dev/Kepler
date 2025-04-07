@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 
 #include "file.hpp"
@@ -10,7 +9,6 @@ namespace Kepler {
         stream.get(c);
         if (c == '\n') {
             current_line_number++;
-            std::cout << "--- line break detected " << current_line_number << " ---";
         }
         return c;
     }
@@ -23,7 +21,7 @@ namespace Kepler {
         stream.close();
     }
 
-    const uint File::get_current_line_number() const {
+    const int File::get_current_line_number() const {
         return current_line_number;
     }
 

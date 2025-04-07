@@ -26,7 +26,7 @@ namespace Kepler::Compiler {
     static std::unique_ptr<llvm::IRBuilder<>> builder;
     static std::unique_ptr<llvm::Module> module;
 
-    static std::map<std::string, llvm::Value*> named_values;
+    static std::map<std::string, llvm::AllocaInst*> named_values;
 
     static llvm::TargetMachine* target_machine;
 
@@ -49,7 +49,7 @@ namespace Kepler::Compiler {
             return *module;
         }
 
-        std::map<std::string, llvm::Value*>& get_named_values() {
+        std::map<std::string, llvm::AllocaInst*>& get_named_values() {
             return named_values;
         }
 

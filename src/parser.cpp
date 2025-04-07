@@ -1,5 +1,6 @@
 #include <cctype>
 #include <cstdio>
+#include <iostream>
 #include <llvm/Support/raw_ostream.h>
 #include <map>
 #include <memory>
@@ -40,6 +41,7 @@ namespace Kepler::Parser {
 
     // Higher values mean higher precedence
     static std::map<char, int> binop_precedence_map = {
+        { '=', 2 },
         { '<', 10 },
         { '>', 10 },
         { '+', 20 },
@@ -47,6 +49,7 @@ namespace Kepler::Parser {
         { '*', 40 },
         { '/', 40 }
     };
+
     static int get_token_precedence() {
         if (!isascii(current_token)) {
             return -1;
@@ -61,7 +64,7 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Expression> parse_number() {
         auto result = std::make_unique<AST::NumberExpression>(Lexer::get_number_value());
-        read_next_token();
+        read_next_token(); // eat the number
         return std::move(result);
     }
 
@@ -118,7 +121,7 @@ namespace Kepler::Parser {
                     return log_error("expected ')' or ',' in function argument list");
                 }
 
-                read_next_token();
+                read_next_token(); // eat ','
             }
         }
 

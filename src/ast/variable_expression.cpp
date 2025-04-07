@@ -1,4 +1,6 @@
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
+#include <string>
 
 #include "../compiler.hpp"
 #include "../log.hpp"
@@ -7,11 +9,15 @@
 namespace Kepler::AST {
 
     llvm::Value* VariableExpression::codegen() {
-        llvm::Value* v = Compiler::Internal::get_named_values()[name];
-        if (!v) {
-            log_errorv("unknown variable name");
+        llvm::AllocaInst* a = Compiler::Internal::get_named_values()[name];
+        if (!a) {
+            return log_errorv("unknown variable name " + name);
         }
-        return v;
+        return Compiler::Internal::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str());
+    }
+
+    const std::string& VariableExpression::get_name() const {
+        return name;
     }
 
 }

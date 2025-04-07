@@ -3,11 +3,33 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "variable_expression.hpp"
 #include "binary_expression.hpp"
 
 namespace Kepler::AST {
 
     llvm::Value* BinaryExpression::codegen() {
+        if (op == '=') {
+            VariableExpression* lhs_expression = static_cast<VariableExpression*>(lhs.get());
+            if (!lhs_expression) {
+                return log_errorv("Destination of '=' must be a variable");
+            }
+
+            llvm::Value* value = rhs->codegen();
+            if (!value) {
+                return nullptr;
+            }
+
+            llvm::Value* variable = Compiler::Internal::get_named_values()[lhs_expression->get_name()];
+
+            if (!variable) {
+                return log_errorv("Unknown variable name " + lhs_expression->get_name());
+            }
+
+            Compiler::Internal::get_builder().CreateStore(value, variable);
+            return value;
+        }
+
         llvm::Value* l = lhs->codegen();
         llvm::Value* r = rhs->codegen();
 

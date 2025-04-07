@@ -14,6 +14,7 @@ namespace Kepler::AST {
     public:
         VariableExpression(const std::string& name) : name(name) {}
         llvm::Value* codegen() override;
+        const std::string& get_name() const;
     };
 
 

@@ -7,6 +7,7 @@
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Scalar/Reassociate.h>
 #include <llvm/Transforms/Scalar/SimplifyCFG.h>
+#include <llvm/Transforms/Utils/Mem2Reg.h>
 #include <memory>
 
 #include "compiler.hpp"
@@ -36,6 +37,11 @@ namespace Kepler::Optimiser {
         fpm->addPass(llvm::ReassociatePass());
         fpm->addPass(llvm::GVNPass());
         fpm->addPass(llvm::SimplifyCFGPass());
+
+        // mem2reg passes (crucial for mutable local variables)
+        fpm->addPass(llvm::PromotePass());
+        fpm->addPass(llvm::InstCombinePass());
+        fpm->addPass(llvm::ReassociatePass());
 
         llvm::PassBuilder passbuilder;
         passbuilder.registerModuleAnalyses(*mam);

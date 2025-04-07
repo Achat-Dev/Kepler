@@ -1,5 +1,6 @@
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
@@ -8,6 +9,7 @@
 #include "../compiler.hpp"
 #include "../log.hpp"
 #include "../optimiser.hpp"
+#include "../utils.hpp"
 #include "function.hpp"
 
 namespace Kepler::AST {
@@ -36,7 +38,9 @@ namespace Kepler::AST {
         // record function arguments
         Compiler::Internal::get_named_values().clear();
         for (auto& arg : f->args()) {
-            Compiler::Internal::get_named_values()[std::string(arg.getName())] = &arg;
+            llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getName());
+            Compiler::Internal::get_builder().CreateStore(&arg, alloca);
+            Compiler::Internal::get_named_values()[std::string(arg.getName())] = alloca;
         }
 
         if (llvm::Value* return_value = body->codegen()) {
