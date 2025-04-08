@@ -22,8 +22,8 @@ namespace Kepler::AST {
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
 
         llvm::BasicBlock* if_block = llvm::BasicBlock::Create(Compiler::get_context(), "ifbranch", f);
-        llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get_context(), "elsebranch");
-        llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(Compiler::get_context(), "mergebranch");
+        llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get_context(), "elsebranch", f);
+        llvm::BasicBlock* after_branch_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterbranch");
 
         Compiler::get_builder().CreateCondBr(conditionv, if_block, else_block);
 
@@ -33,8 +33,7 @@ namespace Kepler::AST {
             return nullptr;
         }
 
-        Compiler::get_builder().CreateBr(merge_block);
-        if_block = Compiler::get_builder().GetInsertBlock();
+        Compiler::get_builder().CreateBr(after_branch_block);
 
         f->insert(f->end(), else_block);
         Compiler::get_builder().SetInsertPoint(else_block);
@@ -44,15 +43,12 @@ namespace Kepler::AST {
             return nullptr;
         }
 
-        Compiler::get_builder().CreateBr(merge_block);
-        else_block = Compiler::get_builder().GetInsertBlock();
+        Compiler::get_builder().CreateBr(after_branch_block);
 
-        f->insert(f->end(), merge_block);
-        Compiler::get_builder().SetInsertPoint(merge_block);
-        llvm::PHINode* phi = Compiler::get_builder().CreatePHI(llvm::Type::getDoubleTy(Compiler::get_context()), 2, "iftmp");
-        phi->addIncoming(ifv, if_block);
-        phi->addIncoming(elsev, else_block);
-        return phi;
+        f->insert(f->end(), after_branch_block);
+        Compiler::get_builder().SetInsertPoint(after_branch_block);
+
+        return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(Compiler::get_context()));
     }
 
 }
