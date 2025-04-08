@@ -25,7 +25,6 @@ add_executable (${CMAKE_PROJECT_NAME}
     "src/compiler.cpp"
     "src/file.cpp"
     "src/lexer.cpp"
-    "src/log.cpp"
     "src/optimiser.cpp"
     "src/parser.cpp"
     "src/utils.cpp"

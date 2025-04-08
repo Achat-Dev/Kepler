@@ -29,7 +29,8 @@ namespace Kepler::AST {
         }
 
         if (!f->empty()) {
-            return static_cast<llvm::Function*>(log_errorv("function cannot be redefined"));
+            log("Compile error: function cannot be redefined");
+            return nullptr;
         }
 
         llvm::BasicBlock* bb = llvm::BasicBlock::Create(Compiler::Internal::get_context(), "entry", f);

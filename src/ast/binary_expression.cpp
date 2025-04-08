@@ -12,7 +12,8 @@ namespace Kepler::AST {
         if (op == '=') {
             VariableExpression* lhs_expression = static_cast<VariableExpression*>(lhs.get());
             if (!lhs_expression) {
-                return log_errorv("Destination of '=' must be a variable");
+                log("Compile error: destination of '=' must be a variable");
+                return nullptr;
             }
 
             llvm::Value* value = rhs->codegen();
@@ -23,7 +24,8 @@ namespace Kepler::AST {
             llvm::Value* variable = Compiler::Internal::get_named_values()[lhs_expression->get_name()];
 
             if (!variable) {
-                return log_errorv("Unknown variable name " + lhs_expression->get_name());
+                log("Compile error: unknown variable name:", lhs_expression->get_name());
+                return nullptr;
             }
 
             Compiler::Internal::get_builder().CreateStore(value, variable);
@@ -48,7 +50,9 @@ namespace Kepler::AST {
             case '-': return Compiler::Internal::get_builder().CreateFSub(l, r, "subtmp");
             case '*': return Compiler::Internal::get_builder().CreateFMul(l, r, "multmp");
             case '/': return Compiler::Internal::get_builder().CreateFDiv(l, r, "divtmp");
-            default: return log_errorv("invalid binary operator");
+            default:
+                log("Compile error: invalid binary operator");
+                return nullptr;
         }
     }
 

@@ -12,11 +12,13 @@ namespace Kepler::AST {
     llvm::Value* CallExpression::codegen() {
         llvm::Function* calleef = Compiler::Internal::get_module().getFunction(callee);
         if (!calleef) {
-            return log_errorv("unknown function called");
+            log("Compile error: unknown function called");
+            return nullptr;
         }
 
         if (calleef->arg_size() != args.size()) {
-            return log_errorv("incorrect number of arguments passed to function");
+            log("Compile error: incorrect number of arguments passed to function");
+            return nullptr;
         }
 
         std::vector<llvm::Value*> argsv;

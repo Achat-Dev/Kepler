@@ -1,10 +1,10 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <string>
 
 #include "compiler.hpp"
+#include "log.hpp"
 #include "lexer.hpp"
 
 namespace Kepler::Lexer {
@@ -27,7 +27,7 @@ namespace Kepler::Lexer {
 
     const int read_token() {
         if (Compiler::Internal::get_file()->peek() == EOF) {
-            std::cout << "{ TokenType: EndOfFile }" << std::endl;
+            log("{ TokenType: EndOfFile }");
             return TokenType::Token_EndOfFile;
         }
 
@@ -48,7 +48,7 @@ namespace Kepler::Lexer {
         int c = last_char;
         last_char = Compiler::Internal::get_file()->read_next_char();
 
-        std::cout << "{ TokenType: Character: " << (char)c << " }" << std::endl;
+        log("{ TokenType: Character:", (char)c, "}");
         return c;
     }
 
@@ -61,31 +61,31 @@ namespace Kepler::Lexer {
         }
 
         if (identifier == "function") {
-            std::cout << "{ TokenType: Function }" << std::endl;
+            log("{ TokenType: function }");
             return TokenType::Token_Function;
         }
         else if (identifier == "extern") {
-            std::cout << "{ TokenType: Extern }" << std::endl;
+            log("{ TokenType: extern }");
             return TokenType::Token_Extern;
         }
         else if (identifier == "if") {
-            std::cout << "{ TokenType: if }" << std::endl;
+            log("{ TokenType: if }");
             return TokenType::Token_If;
         }
         else if (identifier == "elseif") {
-            std::cout << "{ TokenType: elseif }" << std::endl;
+            log("{ TokenType: elseif }");
             return TokenType::Token_Elseif;
         }
         else if (identifier == "else") {
-            std::cout << "{ TokenType: else }" << std::endl;
+            log("{ TokenType: else }");
             return TokenType::Token_Else;
         }
         else if (identifier == "for") {
-            std::cout << "{ TokenType: for }" << std::endl;
+            log("{ TokenType: for }");
             return TokenType::Token_For;
         }
 
-        std::cout << "{ TokenType: Identifier: " << identifier << " }" << std::endl;
+        log("{ TokenType: identifier", identifier, "}");
         return TokenType::Token_Identifier;
     }
 
@@ -98,7 +98,7 @@ namespace Kepler::Lexer {
 
             number_value = strtod(value_string.c_str(), 0);
 
-            std::cout << "{ TokenType: Number: " << number_value << " }" << std::endl;
+            log("{ TokenType: number", number_value, "}");
             return TokenType::Token_Number;
     }
 
@@ -111,7 +111,7 @@ namespace Kepler::Lexer {
             return read_token();
         }
 
-        std::cout << "{ TokenType: EndOfFile }" << std::endl;
+        log("{ TokenType: EndOfFile }");
         return TokenType::Token_EndOfFile;
     }
 

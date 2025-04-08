@@ -11,7 +11,8 @@ namespace Kepler::AST {
     llvm::Value* VariableExpression::codegen() {
         llvm::AllocaInst* a = Compiler::Internal::get_named_values()[name];
         if (!a) {
-            return log_errorv("unknown variable name " + name);
+            log("Compile error: unknown variable name", name);
+            return nullptr;
         }
         return Compiler::Internal::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str());
     }

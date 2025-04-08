@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "compiler.hpp"
+#include "log.hpp"
 
 int main(int argc, char* argv[]) {
     if (argc <= 1) {
@@ -16,7 +17,7 @@ int main(int argc, char* argv[]) {
     const char* filename = argv[1];
     const char* outname = argv[2];
     if (!Kepler::Compiler::compile_file(filename, outname)) {
-        std::cout << "Failed to compile file '" << filename << "'" << std::endl;
+        Kepler::log("Failed to compile file", filename, "and write it to", outname);
         return 1;
     }
 

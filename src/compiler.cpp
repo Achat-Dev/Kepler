@@ -16,6 +16,7 @@
 
 #include "file.hpp"
 #include "lexer.hpp"
+#include "log.hpp"
 #include "parser.hpp"
 #include "compiler.hpp"
 #include "optimiser.hpp"
@@ -114,7 +115,7 @@ namespace Kepler::Compiler {
         const llvm::Target* target = llvm::TargetRegistry::lookupTarget(target_triple_string, error);
 
         if (!target) {
-            llvm::errs() << error;
+            log("Initialisation error:", error);
             return false;
         }
 
@@ -135,19 +136,19 @@ namespace Kepler::Compiler {
         llvm::raw_fd_ostream out(outname, ec, llvm::sys::fs::OF_None);
 
         if (ec) {
-            llvm::errs() << "Error: Failed to open output file: " << ec.message();
+            log("Writing error: failed to open output file", ec.message());
             return false;
         }
 
         llvm::legacy::PassManager pass_manager;
         if (target_machine->addPassesToEmitFile(pass_manager, out, nullptr, llvm::CodeGenFileType::ObjectFile)) {
-            llvm::errs() << "Error: Target machine can't emit file of type 'Object File'";
+            log("Writing error: target machine can't emit file of type 'Object File'");
             return false;
         }
 
         pass_manager.run(*module);
         out.flush();
-        llvm::outs() << "Wrote " << outname << "\n";
+        log("Successfully wrote", outname);
 
         return true;
     }

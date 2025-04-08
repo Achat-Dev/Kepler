@@ -77,7 +77,8 @@ namespace Kepler::Parser {
         }
 
         if (current_token != ')') {
-            return log_error("expected ')'");
+            log("Parsing error: expected ')'");
+            return nullptr;
         }
 
         read_next_token(); // eat ')'
@@ -118,7 +119,8 @@ namespace Kepler::Parser {
                 }
 
                 if (current_token != ',') {
-                    return log_error("expected ')' or ',' in function argument list");
+                    log("Parsing error: expected ')' or ',' in function argument list");
+                    return nullptr;
                 }
 
                 read_next_token(); // eat ','
@@ -138,7 +140,9 @@ namespace Kepler::Parser {
             case Lexer::Token_Elseif: return parse_if();
             case Lexer::Token_For: return parse_for();
             case '(': return parse_parenthesis();
-            default: return log_error("unknown token when expected expression");
+            default:
+                log("Parsing error: unknown token when expected expression");
+                return nullptr;
         }
     }
 
@@ -171,13 +175,15 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Prototype> parse_prototype() {
         if (current_token != Lexer::Token_Identifier) {
-            return log_errorp("expected function name in prototype");
+            log("Parsing error: expected function name in prototype");
+            return nullptr;
         }
 
         std::string function_name = Lexer::get_identifier();
         read_next_token();
         if (current_token != '(') {
-            return log_errorp("expected '(' after function name in prototype");
+            log("Parsing error: expected '(' after function name in prototype");
+            return nullptr;
         }
 
         std::vector<std::string> arg_names;
@@ -191,7 +197,8 @@ namespace Kepler::Parser {
             }
         }
         if (current_token != ')') {
-            log_errorp("expected ')' after function arguments in prototype");
+            log("Parsing error: expected ')' after function arguments in prototype");
+            return nullptr;
         }
 
         read_next_token(); // eat ')'
@@ -230,17 +237,20 @@ namespace Kepler::Parser {
 
         auto condition = parse_expression();
         if (!condition) {
-            return log_error("Expected condition after 'if'");
+            log("Parsing error: expected condition after 'if'");
             return nullptr;
         }
 
         auto if_branch = parse_expression();
         if (!if_branch) {
-            return log_error("Expected body after 'if' condition");
+            log("Parsing error: expected body after 'if' condition");
+            return nullptr;
         }
 
+        // TMP until explicit return statements are implemented
         if (current_token != Lexer::Token_Elseif && current_token != Lexer::Token_Else) {
-            return log_error("Expected 'elseif' or 'else'");
+            log("Parsing error: expected 'elseif' or 'else'");
+            return nullptr;
         }
 
         if (current_token == Lexer::Token_Else) {
@@ -259,14 +269,16 @@ namespace Kepler::Parser {
         read_next_token(); // eat 'for'
 
         if (current_token != Lexer::Token_Identifier) {
-            return log_error("expected identifier after 'for'");
+            log("Parsing error: expected identifier after 'for'");
+            return nullptr;
         }
 
         std::string variable_name = Lexer::get_identifier();
 
         read_next_token();
         if (current_token != '=') {
-            return log_error("expected '=' after identifier in for");
+            log("Parsing error: expected '=' after identifier in for");
+            return nullptr;
         }
         read_next_token(); // eat '='
 
@@ -275,12 +287,14 @@ namespace Kepler::Parser {
             return nullptr;
         }
         if (current_token != ',') {
-            return log_error("expected ',' after for variable initialisation");
+            log("Parsing error: expected ',' after for variable initialisation");
+            return nullptr;
         }
         read_next_token(); // eat ','
 
         std::unique_ptr<AST::Expression> end = parse_expression();
         if (!end) {
+            log("Parsing error: expected end value after ','");
             return nullptr;
         }
 
@@ -289,12 +303,14 @@ namespace Kepler::Parser {
             read_next_token(); // eat ','
             step = parse_expression();
             if (!step) {
+                log("Parsing error: expected step value after ','");
                 return nullptr;
             }
         }
 
         std::unique_ptr<AST::Expression> body = parse_expression();
         if (!body) {
+            log("Parsing error: expected loop body");
             return nullptr;
         }
         return std::make_unique<AST::ForExpression>(variable_name, std::move(start), std::move(end), std::move(step), std::move(body));
@@ -311,9 +327,8 @@ namespace Kepler::Parser {
     const bool handle_function() {
         if (auto ast = parse_function()) {
             if (auto ir = ast->codegen()) {
-                std::fprintf(stderr, "> parsed a function definition <\n");
+                log("> parsed a function definition <");
                 ir->print(llvm::errs());
-                std::fprintf(stderr, "\n");
                 return true;
             }
         }
@@ -323,9 +338,8 @@ namespace Kepler::Parser {
     const bool handle_extern() {
         if (auto ast = parse_extern()) {
             if (auto ir = ast->codegen()) {
-                std::fprintf(stderr, "> parsed an extern <\n");
+                log("> parsed an extern <");
                 ir->print(llvm::errs());
-                std::fprintf(stderr, "\n");
                 return true;
             }
         }
@@ -335,9 +349,8 @@ namespace Kepler::Parser {
     const bool handle_top_level_expression() {
         if (auto ast = parse_top_level_expression()) {
             if (auto ir = ast->codegen()) {
-                std::fprintf(stderr, "> parsed a top level expression <\n");
+                log("> parsed a top level expression <");
                 ir->print(llvm::errs());
-                std::fprintf(stderr, "\n");
                 return true;
             }
         }

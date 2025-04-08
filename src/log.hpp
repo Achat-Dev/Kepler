@@ -1,15 +1,19 @@
 #pragma once
 
+#include <iostream>
 #include <llvm/IR/Value.h>
-#include <memory>
-
-#include "ast/expression.hpp"
-#include "ast/prototype.hpp"
 
 namespace Kepler {
 
-    const std::unique_ptr<AST::Expression> log_error(const std::string& message);
-    const std::unique_ptr<AST::Prototype> log_errorp(const std::string& message);
-    llvm::Value* log_errorv(const std::string& message);
+    template<typename T>
+    void log(T t) {
+        std::cout << t << std::endl;
+    }
+
+    template<typename T, typename... Args>
+    void log(T t, Args... args) {
+        std::cout << t << ' ';
+        log(args...);
+    }
 
 }
