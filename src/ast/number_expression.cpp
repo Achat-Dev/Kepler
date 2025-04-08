@@ -8,7 +8,7 @@
 namespace Kepler::AST {
 
     llvm::Value* NumberExpression::codegen() {
-        return llvm::ConstantFP::get(Compiler::Internal::get_context(), llvm::APFloat(value));
+        return llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(value));
     }
 
 }

@@ -26,13 +26,13 @@ namespace Kepler::Lexer {
     }
 
     const int read_token() {
-        if (Compiler::Internal::get_file()->peek() == EOF) {
+        if (Compiler::get_file()->peek() == EOF) {
             log("{ TokenType: EndOfFile }");
             return TokenType::Token_EndOfFile;
         }
 
         while (isspace(last_char)) {
-            last_char = Compiler::Internal::get_file()->read_next_char();
+            last_char = Compiler::get_file()->read_next_char();
         }
 
         if (isalpha(last_char)) {
@@ -46,7 +46,7 @@ namespace Kepler::Lexer {
         }
 
         int c = last_char;
-        last_char = Compiler::Internal::get_file()->read_next_char();
+        last_char = Compiler::get_file()->read_next_char();
 
         log("{ TokenType: Character:", (char)c, "}");
         return c;
@@ -54,10 +54,10 @@ namespace Kepler::Lexer {
 
     static int read_identifier() {
         identifier = last_char;
-        last_char = Compiler::Internal::get_file()->read_next_char();
+        last_char = Compiler::get_file()->read_next_char();
         while (isalnum(last_char)) {
             identifier += last_char;
-            last_char = Compiler::Internal::get_file()->read_next_char();
+            last_char = Compiler::get_file()->read_next_char();
         }
 
         if (identifier == "function") {
@@ -93,7 +93,7 @@ namespace Kepler::Lexer {
         std::string value_string;
             do {
                 value_string += last_char;
-                last_char = Compiler::Internal::get_file()->read_next_char();
+                last_char = Compiler::get_file()->read_next_char();
             } while (isdigit(last_char) || last_char == '.');
 
             number_value = strtod(value_string.c_str(), 0);
@@ -104,7 +104,7 @@ namespace Kepler::Lexer {
 
     static int read_comment() {
         do {
-            last_char = Compiler::Internal::get_file()->read_next_char();
+            last_char = Compiler::get_file()->read_next_char();
         } while (last_char != EOF && last_char != '\n' && last_char != '\r');
 
         if (last_char != EOF) {

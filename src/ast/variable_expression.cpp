@@ -9,12 +9,12 @@
 namespace Kepler::AST {
 
     llvm::Value* VariableExpression::codegen() {
-        llvm::AllocaInst* a = Compiler::Internal::get_named_values()[name];
+        llvm::AllocaInst* a = Compiler::get_named_values()[name];
         if (!a) {
             log("Compile error: unknown variable name", name);
             return nullptr;
         }
-        return Compiler::Internal::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str());
+        return Compiler::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str());
     }
 
     const std::string& VariableExpression::get_name() const {

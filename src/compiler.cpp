@@ -36,28 +36,24 @@ namespace Kepler::Compiler {
     const static bool write_file(const char* outname);
     const static bool initialise();
 
-    namespace Internal {
+    llvm::LLVMContext& get_context() {
+        return *context;
+    }
 
-        llvm::LLVMContext& get_context() {
-            return *context;
-        }
+    llvm::IRBuilder<>& get_builder() {
+        return *builder;
+    }
 
-        llvm::IRBuilder<>& get_builder() {
-            return *builder;
-        }
+    llvm::Module& get_module() {
+        return *module;
+    }
 
-        llvm::Module& get_module() {
-            return *module;
-        }
+    std::map<std::string, llvm::AllocaInst*>& get_named_values() {
+        return named_values;
+    }
 
-        std::map<std::string, llvm::AllocaInst*>& get_named_values() {
-            return named_values;
-        }
-
-        std::unique_ptr<File>& get_file() {
-            return file;
-        }
-
+    std::unique_ptr<File>& get_file() {
+        return file;
     }
 
     const bool compile_file(const char* filename, const char* outname) {

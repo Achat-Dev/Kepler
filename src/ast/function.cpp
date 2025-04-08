@@ -19,7 +19,7 @@ namespace Kepler::AST {
     * If the FunctionAST::codegen() method finds an existing IR Function, it does not validate its signature against the definition’s own prototype. This means that an earlier ‘extern’ declaration will take precedence over the function definition’s signature, which can cause codegen to fail, for instance if the function arguments are named differently
     */
     llvm::Function* Function::codegen() {
-        llvm::Function* f = Compiler::Internal::get_module().getFunction(prototype->get_name());
+        llvm::Function* f = Compiler::get_module().getFunction(prototype->get_name());
         if (!f) {
             f = prototype->codegen();
         }
@@ -33,19 +33,19 @@ namespace Kepler::AST {
             return nullptr;
         }
 
-        llvm::BasicBlock* bb = llvm::BasicBlock::Create(Compiler::Internal::get_context(), "entry", f);
-        Compiler::Internal::get_builder().SetInsertPoint(bb);
+        llvm::BasicBlock* bb = llvm::BasicBlock::Create(Compiler::get_context(), "entry", f);
+        Compiler::get_builder().SetInsertPoint(bb);
 
         // record function arguments
-        Compiler::Internal::get_named_values().clear();
+        Compiler::get_named_values().clear();
         for (auto& arg : f->args()) {
             llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getName());
-            Compiler::Internal::get_builder().CreateStore(&arg, alloca);
-            Compiler::Internal::get_named_values()[std::string(arg.getName())] = alloca;
+            Compiler::get_builder().CreateStore(&arg, alloca);
+            Compiler::get_named_values()[std::string(arg.getName())] = alloca;
         }
 
         if (llvm::Value* return_value = body->codegen()) {
-            Compiler::Internal::get_builder().CreateRet(return_value);
+            Compiler::get_builder().CreateRet(return_value);
             llvm::verifyFunction(*f);
             //Optimiser::optimise_function(*f);
             return f;

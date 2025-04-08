@@ -10,7 +10,7 @@
 namespace Kepler::AST {
 
     llvm::Value* CallExpression::codegen() {
-        llvm::Function* calleef = Compiler::Internal::get_module().getFunction(callee);
+        llvm::Function* calleef = Compiler::get_module().getFunction(callee);
         if (!calleef) {
             log("Compile error: unknown function called");
             return nullptr;
@@ -29,7 +29,7 @@ namespace Kepler::AST {
             }
         }
 
-        return Compiler::Internal::get_builder().CreateCall(calleef, argsv, "calltmp");
+        return Compiler::get_builder().CreateCall(calleef, argsv, "calltmp");
     }
 
 

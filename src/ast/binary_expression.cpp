@@ -21,14 +21,14 @@ namespace Kepler::AST {
                 return nullptr;
             }
 
-            llvm::Value* variable = Compiler::Internal::get_named_values()[lhs_expression->get_name()];
+            llvm::Value* variable = Compiler::get_named_values()[lhs_expression->get_name()];
 
             if (!variable) {
                 log("Compile error: unknown variable name:", lhs_expression->get_name());
                 return nullptr;
             }
 
-            Compiler::Internal::get_builder().CreateStore(value, variable);
+            Compiler::get_builder().CreateStore(value, variable);
             return value;
         }
 
@@ -41,15 +41,15 @@ namespace Kepler::AST {
 
         switch (op) {
             case '<':
-                l = Compiler::Internal::get_builder().CreateFCmpULT(l, r, "cmptmp");
-                return Compiler::Internal::get_builder().CreateUIToFP(l, llvm::Type::getDoubleTy(Compiler::Internal::get_context()), "booltmp");
+                l = Compiler::get_builder().CreateFCmpULT(l, r, "cmptmp");
+                return Compiler::get_builder().CreateUIToFP(l, llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
             case '>':
-                l = Compiler::Internal::get_builder().CreateFCmpUGT(l, r, "cmptmp");
-                return Compiler::Internal::get_builder().CreateUIToFP(l, llvm::Type::getDoubleTy(Compiler::Internal::get_context()), "booltmp");
-            case '+': return Compiler::Internal::get_builder().CreateFAdd(l, r, "addtmp");
-            case '-': return Compiler::Internal::get_builder().CreateFSub(l, r, "subtmp");
-            case '*': return Compiler::Internal::get_builder().CreateFMul(l, r, "multmp");
-            case '/': return Compiler::Internal::get_builder().CreateFDiv(l, r, "divtmp");
+                l = Compiler::get_builder().CreateFCmpUGT(l, r, "cmptmp");
+                return Compiler::get_builder().CreateUIToFP(l, llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
+            case '+': return Compiler::get_builder().CreateFAdd(l, r, "addtmp");
+            case '-': return Compiler::get_builder().CreateFSub(l, r, "subtmp");
+            case '*': return Compiler::get_builder().CreateFMul(l, r, "multmp");
+            case '/': return Compiler::get_builder().CreateFDiv(l, r, "divtmp");
             default:
                 log("Compile error: invalid binary operator");
                 return nullptr;
