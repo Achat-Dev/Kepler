@@ -5,31 +5,32 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "expression_result.hpp"
 #include "call_expression.hpp"
 
 namespace Kepler::AST {
 
-    llvm::Value* CallExpression::codegen() {
+    std::unique_ptr<ExpressionResult> CallExpression::codegen() {
         llvm::Function* calleef = Compiler::get_module().getFunction(callee);
         if (!calleef) {
             log("Compile error: unknown function called");
-            return nullptr;
+            return ExpressionResult::create_invalid();
         }
 
         if (calleef->arg_size() != args.size()) {
             log("Compile error: incorrect number of arguments passed to function");
-            return nullptr;
+            return ExpressionResult::create_invalid();
         }
 
         std::vector<llvm::Value*> argsv;
         for (unsigned i = 0, e = args.size(); i != e; i++) {
-            argsv.push_back(args[i]->codegen());
+            argsv.push_back(args[i]->codegen()->get_value());
             if (!argsv.back()) {
-                return nullptr;
+                return ExpressionResult::create_invalid();
             }
         }
 
-        return Compiler::get_builder().CreateCall(calleef, argsv, "calltmp");
+        return ExpressionResult::create_valid(Compiler::get_builder().CreateCall(calleef, argsv, "calltmp"));
     }
 
 

@@ -10,6 +10,7 @@ namespace Kepler::Lexer {
         // Keywords
         Token_Function = -2,
         Token_Extern = -3,
+        Token_Return = -10,
 
         // Primary
         Token_Identifier = -4,

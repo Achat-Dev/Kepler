@@ -1,6 +1,6 @@
 #pragma once
 
-#include <llvm/IR/Value.h>
+#include <memory>
 
 #include "expression.hpp"
 
@@ -12,7 +12,7 @@ namespace Kepler::AST {
 
     public:
         NumberExpression(double value) : value(value) {}
-        llvm::Value* codegen() override;
+        std::unique_ptr<ExpressionResult> codegen() override;
     };
 
 }

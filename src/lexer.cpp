@@ -68,6 +68,10 @@ namespace Kepler::Lexer {
             log("{ TokenType: extern }");
             return TokenType::Token_Extern;
         }
+        else if (identifier == "return") {
+            log("{ TokenType: return }");
+            return TokenType::Token_Return;
+        }
         else if (identifier == "if") {
             log("{ TokenType: if }");
             return TokenType::Token_If;

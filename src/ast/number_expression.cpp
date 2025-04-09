@@ -3,12 +3,13 @@
 #include <llvm/IR/Value.h>
 
 #include "../compiler.hpp"
+#include "expression_result.hpp"
 #include "number_expression.hpp"
 
 namespace Kepler::AST {
 
-    llvm::Value* NumberExpression::codegen() {
-        return llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(value));
+    std::unique_ptr<ExpressionResult> NumberExpression::codegen() {
+        return ExpressionResult::create_valid(llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(value)));
     }
 
 }

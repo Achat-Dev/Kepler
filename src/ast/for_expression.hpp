@@ -1,10 +1,10 @@
 #pragma once
 
-#include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
 
 #include "expression.hpp"
+#include "expression_result.hpp"
 
 namespace Kepler::AST {
 
@@ -24,7 +24,7 @@ namespace Kepler::AST {
               end(std::move(end)),
               step(std::move(step)),
               body(std::move(body)) {}
-        llvm::Value* codegen() override;
+        std::unique_ptr<ExpressionResult> codegen() override;
     };
 
 }

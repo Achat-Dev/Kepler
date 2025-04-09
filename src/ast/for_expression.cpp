@@ -6,23 +6,26 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <memory>
 
 #include "../compiler.hpp"
 #include "../utils.hpp"
+#include "expression_result.hpp"
 #include "for_expression.hpp"
 
 namespace Kepler::AST {
 
-    llvm::Value* ForExpression::codegen() {
+    // TODO: the end value is currently inclusive
+    std::unique_ptr<ExpressionResult> ForExpression::codegen() {
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
         llvm::AllocaInst* alloca = create_entry_block_alloca(f, variable_name);
 
-        llvm::Value* startv = start->codegen();
-        if (!startv) {
-            return nullptr;
+        std::unique_ptr<ExpressionResult> startv = start->codegen();
+        if (!startv->is_valid()) {
+            return ExpressionResult::create_invalid();
         }
 
-        Compiler::get_builder().CreateStore(startv, alloca);
+        Compiler::get_builder().CreateStore(startv->get_value(), alloca);
 
         llvm::BasicBlock* loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "loop", f);
         Compiler::get_builder().CreateBr(loop_block);
@@ -32,35 +35,35 @@ namespace Kepler::AST {
         llvm::AllocaInst* old_value = Compiler::get_named_values()[variable_name];
         Compiler::get_named_values()[variable_name] = alloca;
 
-        if (!body->codegen()) {
-            return nullptr;
+        if (!body->codegen()->is_valid()) {
+            return ExpressionResult::create_invalid();
         }
 
-        llvm::Value* step_value = nullptr;
+        std::unique_ptr<ExpressionResult> step_value = nullptr;
         if (step) {
             step_value = step->codegen();
-            if (!step_value) {
-                return nullptr;
+            if (!step_value->is_valid()) {
+                return ExpressionResult::create_invalid();
             }
         }
         else {
-            step_value = llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(1.0));
+            step_value->set_value(llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(1.0)));
         }
 
-        llvm::Value* end_condition = end->codegen();
-        if (!end_condition) {
-            return nullptr;
+        std::unique_ptr<ExpressionResult> end_condition = end->codegen();
+        if (!end_condition->is_valid()) {
+            return ExpressionResult::create_invalid();
         }
         // Convert condition to a bool by comparing to 0.0
-        end_condition = Compiler::get_builder().CreateFCmpONE(end_condition, llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "loopcondition");
+        end_condition->set_value(Compiler::get_builder().CreateFCmpONE(end_condition->get_value(), llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "loopcondition"));
 
         llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());
-        llvm::Value* next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_value, "nextvariable");
+        llvm::Value* next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_value->get_value(), "nextvariable");
         Compiler::get_builder().CreateStore(next_variable, alloca);
 
         //Evaluate if loop should exit
         llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterloop", f);
-        Compiler::get_builder().CreateCondBr(end_condition, loop_block, after_loop_block);
+        Compiler::get_builder().CreateCondBr(end_condition->get_value(), loop_block, after_loop_block);
         Compiler::get_builder().SetInsertPoint(after_loop_block);
 
         // Restore old variable if necessary
@@ -71,8 +74,8 @@ namespace Kepler::AST {
             Compiler::get_named_values().erase(variable_name);
         }
 
-        // return 0
-        return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(Compiler::get_context()));
+        //return ExpressionResult::create_not_returnable();
+        return ExpressionResult::create_valid(llvm::Constant::getNullValue(llvm::Type::getDoubleTy(Compiler::get_context())));
     }
 
 }

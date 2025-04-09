@@ -14,6 +14,7 @@
 #include "ast/if_expression.hpp"
 #include "ast/number_expression.hpp"
 #include "ast/prototype.hpp"
+#include "ast/return_expression.hpp"
 #include "ast/variable_expression.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
@@ -35,6 +36,7 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Function> parse_top_level_expression();
     static std::unique_ptr<AST::Expression> parse_if();
     static std::unique_ptr<AST::Expression> parse_for();
+    static std::unique_ptr<AST::Expression> parse_return();
 
     static int current_token;
 
@@ -138,6 +140,7 @@ namespace Kepler::Parser {
             case Lexer::Token_If: return parse_if();
             case Lexer::Token_Elseif: return parse_if();
             case Lexer::Token_For: return parse_for();
+            case Lexer::Token_Return: return parse_return();
             case '(': return parse_parenthesis();
             default:
                 log("Parsing error: unknown token when expected expression");
@@ -205,7 +208,7 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Function> parse_function() {
-        read_next_token();
+        read_next_token(); // eat 'function' keyword
         auto prototype = parse_prototype();
         if (!prototype) {
             return nullptr;
@@ -313,6 +316,17 @@ namespace Kepler::Parser {
             return nullptr;
         }
         return std::make_unique<AST::ForExpression>(variable_name, std::move(start), std::move(end), std::move(step), std::move(body));
+    }
+
+    static std::unique_ptr<AST::Expression> parse_return() {
+        read_next_token(); // eat 'return' keyword
+        auto expression = parse_expression();
+        if (!expression) {
+            log("Parsing error: expected expression after 'return'");
+            return nullptr;
+        }
+
+        return std::make_unique<AST::ReturnExpression>(std::move(expression));
     }
 
     const int get_current_token() {

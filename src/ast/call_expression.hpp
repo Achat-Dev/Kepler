@@ -1,6 +1,5 @@
 #pragma once
 
-#include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -17,7 +16,7 @@ namespace Kepler::AST {
     public:
         CallExpression(const std::string& callee, std::vector<std::unique_ptr<Expression>> args)
             : callee(callee), args(std::move(args)) {}
-        llvm::Value* codegen() override;
+        std::unique_ptr<ExpressionResult> codegen() override;
     };
 
 

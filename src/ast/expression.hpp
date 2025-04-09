@@ -1,13 +1,15 @@
 #pragma once
 
-#include <llvm/IR/Value.h>
+#include <memory>
+
+#include "expression_result.hpp"
 
 namespace Kepler::AST {
 
     class Expression {
     public:
         virtual ~Expression() = default;
-        virtual llvm::Value* codegen() = 0;
+        virtual std::unique_ptr<ExpressionResult> codegen() = 0;
     };
 
 }

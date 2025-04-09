@@ -1,20 +1,20 @@
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/Value.h>
 #include <string>
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "expression_result.hpp"
 #include "variable_expression.hpp"
 
 namespace Kepler::AST {
 
-    llvm::Value* VariableExpression::codegen() {
+    std::unique_ptr<ExpressionResult> VariableExpression::codegen() {
         llvm::AllocaInst* a = Compiler::get_named_values()[name];
         if (!a) {
             log("Compile error: unknown variable name", name);
-            return nullptr;
+            return ExpressionResult::create_invalid();
         }
-        return Compiler::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str());
+        return ExpressionResult::create_valid(Compiler::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str()));
     }
 
     const std::string& VariableExpression::get_name() const {

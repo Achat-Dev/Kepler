@@ -4,20 +4,22 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <memory>
 
 #include "../compiler.hpp"
+#include "expression_result.hpp"
 #include "if_expression.hpp"
 
 namespace Kepler::AST {
 
-    llvm::Value* IfExpression::codegen() {
-        llvm::Value* conditionv = condition->codegen();
-        if (!conditionv) {
-            return nullptr;
+    std::unique_ptr<ExpressionResult> IfExpression::codegen() {
+        std::unique_ptr<ExpressionResult> conditionv = condition->codegen();
+        if (!conditionv->is_valid()) {
+            return ExpressionResult::create_invalid();
         }
 
         // Make conditional a bool by comparing it to 0.0
-        conditionv = Compiler::get_builder().CreateFCmpONE(conditionv, llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "ifcond");
+        conditionv->set_value(Compiler::get_builder().CreateFCmpONE(conditionv->get_value(), llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "ifcond"));
 
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
 
@@ -25,12 +27,12 @@ namespace Kepler::AST {
         llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get_context(), "elsebranch", f);
         llvm::BasicBlock* after_branch_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterbranch");
 
-        Compiler::get_builder().CreateCondBr(conditionv, if_block, else_block);
+        Compiler::get_builder().CreateCondBr(conditionv->get_value(), if_block, else_block);
 
         Compiler::get_builder().SetInsertPoint(if_block);
-        llvm::Value* ifv = if_branch->codegen();
-        if (!ifv) {
-            return nullptr;
+        std::unique_ptr<ExpressionResult> ifv = if_branch->codegen();
+        if (!ifv->is_valid()) {
+            return ExpressionResult::create_invalid();
         }
 
         Compiler::get_builder().CreateBr(after_branch_block);
@@ -38,9 +40,9 @@ namespace Kepler::AST {
         f->insert(f->end(), else_block);
         Compiler::get_builder().SetInsertPoint(else_block);
 
-        llvm::Value* elsev = else_branch->codegen();
-        if (!elsev) {
-            return nullptr;
+        std::unique_ptr<ExpressionResult> elsev = else_branch->codegen();
+        if (!elsev->is_valid()) {
+            return ExpressionResult::create_invalid();
         }
 
         Compiler::get_builder().CreateBr(after_branch_block);
@@ -48,7 +50,8 @@ namespace Kepler::AST {
         f->insert(f->end(), after_branch_block);
         Compiler::get_builder().SetInsertPoint(after_branch_block);
 
-        return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(Compiler::get_context()));
+        //return ExpressionResult::create_not_returnable();
+        return ExpressionResult::create_valid(llvm::Constant::getNullValue(llvm::Type::getDoubleTy(Compiler::get_context())));
     }
 
 }

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <llvm/IR/Value.h>
 #include <memory>
 
 #include "expression.hpp"
+#include "expression_result.hpp"
 
 namespace Kepler::AST {
 
@@ -16,7 +16,7 @@ namespace Kepler::AST {
     public:
         BinaryExpression(char op, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
             : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
-        llvm::Value* codegen() override;
+        std::unique_ptr<ExpressionResult> codegen() override;
     };
 
 }

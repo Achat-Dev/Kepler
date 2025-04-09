@@ -25,6 +25,7 @@ namespace Kepler::AST {
         }
 
         if (!f) {
+            log("Compile error: failed to compile function prototype");
             return nullptr;
         }
 
@@ -44,8 +45,8 @@ namespace Kepler::AST {
             Compiler::get_named_values()[std::string(arg.getName())] = alloca;
         }
 
-        if (llvm::Value* return_value = body->codegen()) {
-            Compiler::get_builder().CreateRet(return_value);
+        if (auto return_value = body->codegen()) {
+            Compiler::get_builder().CreateRet(return_value->get_value());
             llvm::verifyFunction(*f);
             //Optimiser::optimise_function(*f);
             return f;

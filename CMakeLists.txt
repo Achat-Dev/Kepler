@@ -13,11 +13,13 @@ add_definitions(${LLVM_DEFINITIONS})
 set(AST_SRC
     "src/ast/binary_expression.cpp"
     "src/ast/call_expression.cpp"
+    "src/ast/expression_result.cpp"
     "src/ast/for_expression.cpp"
     "src/ast/function.cpp"
     "src/ast/if_expression.cpp"
     "src/ast/number_expression.cpp"
     "src/ast/prototype.cpp"
+    "src/ast/return_expression.cpp"
     "src/ast/variable_expression.cpp")
 
 add_executable (${CMAKE_PROJECT_NAME}

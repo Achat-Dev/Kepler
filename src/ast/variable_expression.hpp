@@ -1,9 +1,9 @@
 #pragma once
 
-#include <llvm/IR/Value.h>
 #include <string>
 
 #include "expression.hpp"
+#include "expression_result.hpp"
 
 namespace Kepler::AST {
 
@@ -13,7 +13,7 @@ namespace Kepler::AST {
 
     public:
         VariableExpression(const std::string& name) : name(name) {}
-        llvm::Value* codegen() override;
+        std::unique_ptr<ExpressionResult> codegen() override;
         const std::string& get_name() const;
     };
 
