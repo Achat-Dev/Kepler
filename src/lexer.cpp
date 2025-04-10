@@ -55,7 +55,7 @@ namespace Kepler::Lexer {
     static int read_identifier() {
         identifier = last_char;
         last_char = Compiler::get_file()->read_next_char();
-        while (isalnum(last_char)) {
+        while (isalnum(last_char) || last_char == '_') {
             identifier += last_char;
             last_char = Compiler::get_file()->read_next_char();
         }
