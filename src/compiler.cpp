@@ -142,7 +142,11 @@ namespace Kepler::Compiler {
             return false;
         }
 
-        pass_manager.run(*module);
+        if (!pass_manager.run(*module)) {
+            log("Writing error: failed to run llvm pass manager on module");
+            return false;
+        }
+
         out.flush();
         log("Successfully wrote", outname);
 

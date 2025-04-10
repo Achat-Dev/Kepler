@@ -47,7 +47,11 @@ namespace Kepler::AST {
 
         if (auto return_value = body->codegen()) {
             Compiler::get_builder().CreateRet(return_value->get_value());
-            llvm::verifyFunction(*f);
+            if (!llvm::verifyFunction(*f)) {
+                log("Compile error: failed to verify function");
+                f->eraseFromParent();
+                return nullptr;
+            }
             //Optimiser::optimise_function(*f);
             return f;
         }
