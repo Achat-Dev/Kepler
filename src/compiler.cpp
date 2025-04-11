@@ -3,6 +3,7 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
@@ -133,6 +134,11 @@ namespace Kepler::Compiler {
 
         if (ec) {
             log("Writing error: failed to open output file", ec.message());
+            return false;
+        }
+
+        if (llvm::verifyModule(*module, &llvm::errs())) {
+            log("Writing error: compiled code is faulty");
             return false;
         }
 
