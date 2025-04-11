@@ -29,13 +29,16 @@ namespace Kepler::AST {
 
         Compiler::get_builder().CreateCondBr(conditionv->get_value(), if_block, else_block);
 
+        f->insert(f->end(), if_block);
         Compiler::get_builder().SetInsertPoint(if_block);
+
         std::unique_ptr<ExpressionResult> ifv = if_branch->codegen();
         if (!ifv->is_valid()) {
             return ExpressionResult::create_invalid();
         }
-
-        Compiler::get_builder().CreateBr(after_branch_block);
+        if (!ifv->is_return_statement()) {
+            Compiler::get_builder().CreateBr(after_branch_block);
+        }
 
         f->insert(f->end(), else_block);
         Compiler::get_builder().SetInsertPoint(else_block);
@@ -44,8 +47,9 @@ namespace Kepler::AST {
         if (!elsev->is_valid()) {
             return ExpressionResult::create_invalid();
         }
-
-        Compiler::get_builder().CreateBr(after_branch_block);
+        if (!elsev->is_return_statement()) {
+            Compiler::get_builder().CreateBr(after_branch_block);
+        }
 
         f->insert(f->end(), after_branch_block);
         Compiler::get_builder().SetInsertPoint(after_branch_block);

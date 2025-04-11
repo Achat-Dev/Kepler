@@ -22,7 +22,7 @@ namespace Kepler::AST {
 
         //Compiler::get_builder().CreateRet(value->get_value());
         //return ExpressionResult::create_not_returnable();
-        return ExpressionResult::create_valid(Compiler::get_builder().CreateRet(value->get_value()));
+        return ExpressionResult::create_returning(Compiler::get_builder().CreateRet(value->get_value()));
     }
 
 }

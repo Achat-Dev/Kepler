@@ -4,6 +4,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
 #include <string>
 
 #include "../compiler.hpp"
@@ -46,8 +47,10 @@ namespace Kepler::AST {
         }
 
         if (auto return_value = body->codegen()) {
-            Compiler::get_builder().CreateRet(return_value->get_value());
-            if (!llvm::verifyFunction(*f)) {
+            if (!return_value->is_return_statement()) {
+                Compiler::get_builder().CreateRet(return_value->get_value());
+            }
+            if (llvm::verifyFunction(*f, &llvm::errs())) {
                 log("Compile error: failed to verify function");
                 f->eraseFromParent();
                 return nullptr;

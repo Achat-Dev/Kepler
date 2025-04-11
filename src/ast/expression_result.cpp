@@ -9,6 +9,10 @@ namespace Kepler::AST {
         return status == ExpressionStatus::Valid;
     }
 
+    bool ExpressionResult::is_return_statement() const {
+        return is_return;
+    }
+
     llvm::Value* ExpressionResult::get_value() const {
         return value;
     }
@@ -22,15 +26,19 @@ namespace Kepler::AST {
     }
 
     std::unique_ptr<ExpressionResult> ExpressionResult::create_valid(llvm::Value* value) {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(value, ExpressionStatus::Valid));
+        return std::unique_ptr<ExpressionResult>(new ExpressionResult(value, ExpressionStatus::Valid, false));
+    }
+
+    std::unique_ptr<ExpressionResult> ExpressionResult::create_returning(llvm::Value* value) {
+        return std::unique_ptr<ExpressionResult>(new ExpressionResult(value, ExpressionStatus::Valid, true));
     }
 
     std::unique_ptr<ExpressionResult> ExpressionResult::create_not_returnable() {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, ExpressionStatus::NotReturnable));
+        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, ExpressionStatus::NotReturnable, false));
     }
 
     std::unique_ptr<ExpressionResult> ExpressionResult::create_invalid() {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, ExpressionStatus::Invalid));
+        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, ExpressionStatus::Invalid, false));
     }
 
 }
