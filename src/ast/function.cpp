@@ -5,6 +5,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Transforms/Utils/BasicBlockUtils.h>
 #include <string>
 
 #include "../compiler.hpp"
@@ -47,15 +48,16 @@ namespace Kepler::AST {
         }
 
         if (auto return_value = body->codegen()) {
-            if (!return_value->is_return_statement()) {
-                Compiler::get_builder().CreateRet(return_value->get_value());
-            }
+            llvm::EliminateUnreachableBlocks(*f);
+
             if (llvm::verifyFunction(*f, &llvm::errs())) {
                 log("Compile error: failed to verify function");
+                f->print(llvm::errs());
                 f->eraseFromParent();
                 return nullptr;
             }
-            //Optimiser::optimise_function(*f);
+
+            Optimiser::optimise_function(*f);
             return f;
         }
 

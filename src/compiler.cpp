@@ -14,6 +14,7 @@
 #include <llvm/TargetParser/Triple.h>
 #include <map>
 #include <memory>
+#include <string>
 
 #include "file.hpp"
 #include "lexer.hpp"
@@ -129,6 +130,8 @@ namespace Kepler::Compiler {
     }
 
     const static bool write_file(const char* outname) {
+        log("Writing file " + (std::string)outname + "...");
+
         std::error_code ec;
         llvm::raw_fd_ostream out(outname, ec, llvm::sys::fs::OF_None);
 
@@ -148,11 +151,7 @@ namespace Kepler::Compiler {
             return false;
         }
 
-        if (!pass_manager.run(*module)) {
-            log("Writing error: failed to run llvm pass manager on module");
-            return false;
-        }
-
+        pass_manager.run(*module);
         out.flush();
         log("Successfully wrote", outname);
 

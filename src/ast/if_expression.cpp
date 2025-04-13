@@ -25,11 +25,9 @@ namespace Kepler::AST {
 
         llvm::BasicBlock* if_block = llvm::BasicBlock::Create(Compiler::get_context(), "ifbranch", f);
         llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get_context(), "elsebranch", f);
-        llvm::BasicBlock* after_branch_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterbranch");
+        llvm::BasicBlock* after_branch_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterbranch", f);
 
         Compiler::get_builder().CreateCondBr(conditionv->get_value(), if_block, else_block);
-
-        f->insert(f->end(), if_block);
         Compiler::get_builder().SetInsertPoint(if_block);
 
         std::unique_ptr<ExpressionResult> ifv = if_branch->codegen();
@@ -40,7 +38,6 @@ namespace Kepler::AST {
             Compiler::get_builder().CreateBr(after_branch_block);
         }
 
-        f->insert(f->end(), else_block);
         Compiler::get_builder().SetInsertPoint(else_block);
 
         std::unique_ptr<ExpressionResult> elsev = else_branch->codegen();
@@ -51,11 +48,9 @@ namespace Kepler::AST {
             Compiler::get_builder().CreateBr(after_branch_block);
         }
 
-        f->insert(f->end(), after_branch_block);
         Compiler::get_builder().SetInsertPoint(after_branch_block);
 
-        //return ExpressionResult::create_not_returnable();
-        return ExpressionResult::create_valid(llvm::Constant::getNullValue(llvm::Type::getDoubleTy(Compiler::get_context())));
+        return ExpressionResult::create_not_returnable();
     }
 
 }
