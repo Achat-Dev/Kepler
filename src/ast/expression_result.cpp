@@ -6,7 +6,7 @@
 namespace Kepler::AST {
 
     bool ExpressionResult::is_valid() const {
-        return status == ExpressionStatus::Valid;
+        return status != ExpressionStatus::Invalid;
     }
 
     bool ExpressionResult::is_return_statement() const {
