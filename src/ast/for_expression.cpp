@@ -35,8 +35,12 @@ namespace Kepler::AST {
         llvm::AllocaInst* old_value = Compiler::get_named_values()[variable_name];
         Compiler::get_named_values()[variable_name] = alloca;
 
-        if (!body->codegen()->is_valid()) {
+        std::unique_ptr<ExpressionResult> bodyv = body->codegen();
+        if (!bodyv->is_valid()) {
             return ExpressionResult::create_invalid();
+        }
+        if (bodyv->is_return_statement()) {
+            return ExpressionResult::create_not_returnable();
         }
 
         std::unique_ptr<ExpressionResult> step_value = nullptr;
@@ -74,8 +78,7 @@ namespace Kepler::AST {
             Compiler::get_named_values().erase(variable_name);
         }
 
-        //return ExpressionResult::create_not_returnable();
-        return ExpressionResult::create_valid(llvm::Constant::getNullValue(llvm::Type::getDoubleTy(Compiler::get_context())));
+        return ExpressionResult::create_not_returnable();
     }
 
 }
