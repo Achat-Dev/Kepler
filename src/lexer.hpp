@@ -11,6 +11,7 @@ namespace Kepler::Lexer {
         Token_Function = -2,
         Token_Extern = -3,
         Token_Return = -10,
+        Token_End = -11,
 
         // Primary
         Token_Identifier = -4,

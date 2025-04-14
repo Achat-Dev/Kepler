@@ -6,12 +6,15 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
+#include <memory>
 #include <string>
 
 #include "../compiler.hpp"
 #include "../log.hpp"
 #include "../optimiser.hpp"
 #include "../utils.hpp"
+#include "expression.hpp"
+#include "expression_result.hpp"
 #include "function.hpp"
 
 namespace Kepler::AST {
@@ -47,22 +50,34 @@ namespace Kepler::AST {
             Compiler::get_named_values()[std::string(arg.getName())] = alloca;
         }
 
-        if (auto return_value = body->codegen()) {
-            llvm::EliminateUnreachableBlocks(*f);
-
-            if (llvm::verifyFunction(*f, &llvm::errs())) {
-                log("Compile error: failed to verify function");
-                f->print(llvm::errs());
+        // Codegen function body
+        for (int i = 0; i < body.size(); i++) {
+            std::unique_ptr<Expression>& expression = body[i];
+            std::unique_ptr<ExpressionResult> result = expression->codegen();
+            if (!result->is_valid()) {
+                log("Compile error: invalid expression in function");
                 f->eraseFromParent();
                 return nullptr;
             }
-
-            Optimiser::optimise_function(*f);
-            return f;
+            if (result->is_return_statement()) {
+                if (body.size() - (i + 1) > 0) {
+                    log("Compile warning: unreachable code detected");
+                }
+                break;
+            }
         }
 
-        f->eraseFromParent();
-        return nullptr;
+        llvm::EliminateUnreachableBlocks(*f);
+
+        if (llvm::verifyFunction(*f, &llvm::errs())) {
+            log("Compile error: failed to verify function");
+            f->print(llvm::errs());
+            f->eraseFromParent();
+            return nullptr;
+        }
+
+        Optimiser::optimise_function(*f);
+        return f;
     }
 
 }

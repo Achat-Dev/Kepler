@@ -72,6 +72,10 @@ namespace Kepler::Lexer {
             log("{ TokenType: return }");
             return TokenType::Token_Return;
         }
+        else if (identifier == "end") {
+            log("{ TokenType: end }");
+            return TokenType::Token_End;
+        }
         else if (identifier == "if") {
             log("{ TokenType: if }");
             return TokenType::Token_If;

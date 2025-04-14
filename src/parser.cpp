@@ -214,10 +214,18 @@ namespace Kepler::Parser {
             return nullptr;
         }
 
-        if (auto expression = parse_expression()) {
-            return std::make_unique<AST::Function>(std::move(prototype), std::move(expression));
+        std::vector<std::unique_ptr<AST::Expression>> body;
+        while (current_token != Lexer::Token_End) {            auto expression = parse_expression();
+            if (!expression) {
+                log("Parsing error: invalid expression in function body");
+                return nullptr;
+            }
+            body.push_back(std::move(expression));
         }
-        return nullptr;
+
+        read_next_token(); // eat 'end'
+
+        return std::make_unique<AST::Function>(std::move(prototype), std::move(body));
     }
 
     static std::unique_ptr<AST::Prototype> parse_extern() {
@@ -229,7 +237,9 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Function> parse_top_level_expression() {
         if (auto expression = parse_expression()) {
             auto prototype = std::make_unique<AST::Prototype>();
-            return std::make_unique<AST::Function>(std::move(prototype), std::move(expression));
+            std::vector<std::unique_ptr<AST::Expression>> body;
+            body.push_back(std::move(expression));
+            return std::make_unique<AST::Function>(std::move(prototype), std::move(body));
         }
         return nullptr;
     }
