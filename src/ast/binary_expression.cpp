@@ -42,17 +42,29 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
+        llvm::Value* value;
+        unsigned int flags = ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable;
         switch (op) {
             case '<':
                 l->set_value(Compiler::get_builder().CreateFCmpULT(l->get_value(), r->get_value(), "cmptmp"));
-                return ExpressionResult::create_valid(Compiler::get_builder().CreateUIToFP(l->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp"));
+                value = Compiler::get_builder().CreateUIToFP(l->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
+                return ExpressionResult::create(value, flags);
             case '>':
                 l->set_value(Compiler::get_builder().CreateFCmpUGT(l->get_value(), r->get_value(), "cmptmp"));
-                return ExpressionResult::create_valid(Compiler::get_builder().CreateUIToFP(l->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp"));
-            case '+': return ExpressionResult::create_valid(Compiler::get_builder().CreateFAdd(l->get_value(), r->get_value(), "addtmp"));
-            case '-': return ExpressionResult::create_valid(Compiler::get_builder().CreateFSub(l->get_value(), r->get_value(), "subtmp"));
-            case '*': return ExpressionResult::create_valid(Compiler::get_builder().CreateFMul(l->get_value(), r->get_value(), "multmp"));
-            case '/': return ExpressionResult::create_valid(Compiler::get_builder().CreateFDiv(l->get_value(), r->get_value(), "divtmp"));
+                value = Compiler::get_builder().CreateUIToFP(l->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
+                return ExpressionResult::create(value, flags);
+            case '+':
+                value = Compiler::get_builder().CreateFAdd(l->get_value(), r->get_value(), "addtmp");
+                return ExpressionResult::create(value, flags);
+            case '-':
+                value = Compiler::get_builder().CreateFSub(l->get_value(), r->get_value(), "subtmp");
+                return ExpressionResult::create(value, flags);
+            case '*':
+                value = Compiler::get_builder().CreateFMul(l->get_value(), r->get_value(), "multmp");
+                return ExpressionResult::create(value, flags);
+            case '/':
+                value = Compiler::get_builder().CreateFDiv(l->get_value(), r->get_value(), "divtmp");
+                return ExpressionResult::create(value, flags);
             default:
                 log("Compile error: invalid binary operator");
                 return ExpressionResult::create_invalid();

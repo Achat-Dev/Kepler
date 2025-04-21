@@ -5,12 +5,20 @@
 
 namespace Kepler::AST {
 
-    bool ExpressionResult::is_valid() const {
-        return status != ExpressionStatus::Invalid;
+    const bool ExpressionResult::is_valid() const {
+        return flags & ExpressionResultFlags::Valid;
     }
 
-    bool ExpressionResult::is_return_statement() const {
-        return status == ExpressionStatus::Return;
+    const bool ExpressionResult::is_return_statement() const {
+        return flags & ExpressionResultFlags::Return;
+    }
+
+    const bool ExpressionResult::is_returnable() const {
+        return flags & ExpressionResultFlags::Returnable;
+    }
+
+    const bool ExpressionResult::forms_qualified_return() const {
+        return flags & ExpressionResultFlags::QualifiedReturn;
     }
 
     llvm::Value* ExpressionResult::get_value() const {
@@ -21,24 +29,16 @@ namespace Kepler::AST {
         value = new_value;
     }
 
-    const ExpressionStatus ExpressionResult::get_status() const {
-        return status;
+    const unsigned int ExpressionResult::get_flags() const {
+        return flags;
     }
 
-    std::unique_ptr<ExpressionResult> ExpressionResult::create_valid(llvm::Value* value) {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(value, ExpressionStatus::Returnable));
-    }
-
-    std::unique_ptr<ExpressionResult> ExpressionResult::create_return(llvm::Value* value) {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(value, ExpressionStatus::Return));
-    }
-
-    std::unique_ptr<ExpressionResult> ExpressionResult::create_not_returnable() {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, ExpressionStatus::NotReturnable));
+    std::unique_ptr<ExpressionResult> ExpressionResult::create(llvm::Value* value, unsigned int flags) {
+        return std::unique_ptr<ExpressionResult>(new ExpressionResult(value, flags));
     }
 
     std::unique_ptr<ExpressionResult> ExpressionResult::create_invalid() {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, ExpressionStatus::Invalid));
+        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, 0));
     }
 
 }

@@ -5,31 +5,31 @@
 
 namespace Kepler::AST {
 
-    enum class ExpressionStatus {
-        Return,
-        Returnable,
-        NotReturnable,
-        Invalid,
+    enum ExpressionResultFlags {
+        Valid = 0b0001,
+        Returnable = 0b0010,
+        Return = 0b0100,
+        QualifiedReturn = 0b1000
     };
 
     class ExpressionResult {
     private:
         llvm::Value* value;
-        const ExpressionStatus status;
+        const unsigned int flags;
 
-        ExpressionResult(llvm::Value* value, ExpressionStatus status)
-            : value(value), status(status) {}
+        ExpressionResult(llvm::Value* value, unsigned int flags)
+            : value(value), flags(flags) {}
 
     public:
-        bool is_valid() const;
-        bool is_return_statement() const;
+        const bool is_valid() const;
+        const bool is_return_statement() const;
+        const bool is_returnable() const;
+        const bool forms_qualified_return() const;
         llvm::Value* get_value() const;
         void set_value(llvm::Value* new_value);
-        const ExpressionStatus get_status() const;
+        const unsigned int get_flags() const;
 
-        static std::unique_ptr<ExpressionResult> create_valid(llvm::Value* value);
-        static std::unique_ptr<ExpressionResult> create_return(llvm::Value* value);
-        static std::unique_ptr<ExpressionResult> create_not_returnable();
+        static std::unique_ptr<ExpressionResult> create(llvm::Value* value, unsigned int flags);
         static std::unique_ptr<ExpressionResult> create_invalid();
     };
 

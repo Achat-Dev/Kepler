@@ -59,7 +59,7 @@ namespace Kepler::AST {
                 f->eraseFromParent();
                 return nullptr;
             }
-            if (result->is_return_statement()) {
+            if (result->is_return_statement() || result->forms_qualified_return()) {
                 if (body.size() - (i + 1) > 0) {
                     log("Compile warning: unreachable code detected");
                 }

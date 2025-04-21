@@ -15,12 +15,12 @@ namespace Kepler::AST {
             log("Compile error: no valid return value");
             return ExpressionResult::create_invalid();
         }
-        if (value->get_status() == ExpressionStatus::NotReturnable) {
+        if (!value->is_returnable()) {
             log("Compile error: return value is not returnable");
             return ExpressionResult::create_invalid();
         }
 
-        return ExpressionResult::create_return(Compiler::get_builder().CreateRet(value->get_value()));
+        return ExpressionResult::create(Compiler::get_builder().CreateRet(value->get_value()), ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
     }
 
 }

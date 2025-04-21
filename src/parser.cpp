@@ -215,7 +215,8 @@ namespace Kepler::Parser {
         }
 
         std::vector<std::unique_ptr<AST::Expression>> body;
-        while (current_token != Lexer::Token_End) {            auto expression = parse_expression();
+        while (current_token != Lexer::Token_End) {
+            auto expression = parse_expression();
             if (!expression) {
                 log("Parsing error: invalid expression in function body");
                 return nullptr;

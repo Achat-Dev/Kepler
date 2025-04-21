@@ -9,7 +9,7 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> NumberExpression::codegen() {
-        return ExpressionResult::create_valid(llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(value)));
+        return ExpressionResult::create(llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(value)), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
 }

@@ -30,7 +30,7 @@ namespace Kepler::AST {
             }
         }
 
-        return ExpressionResult::create_valid(Compiler::get_builder().CreateCall(calleef, argsv, "calltmp"));
+        return ExpressionResult::create(Compiler::get_builder().CreateCall(calleef, argsv, "calltmp"), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
 

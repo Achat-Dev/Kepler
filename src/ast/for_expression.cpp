@@ -40,7 +40,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
         if (bodyv->is_return_statement()) {
-            return ExpressionResult::create_not_returnable();
+            return ExpressionResult::create(nullptr, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
         }
 
         std::unique_ptr<ExpressionResult> step_value = nullptr;
@@ -78,7 +78,7 @@ namespace Kepler::AST {
             Compiler::get_named_values().erase(variable_name);
         }
 
-        return ExpressionResult::create_not_returnable();
+        return ExpressionResult::create(nullptr, ExpressionResultFlags::Valid);
     }
 
 }

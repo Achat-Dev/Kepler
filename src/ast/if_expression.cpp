@@ -50,7 +50,11 @@ namespace Kepler::AST {
 
         Compiler::get_builder().SetInsertPoint(after_branch_block);
 
-        return ExpressionResult::create_not_returnable();
+        unsigned int flags = ExpressionResultFlags::Valid;
+        if (ifv->is_return_statement() && elsev->is_return_statement()) {
+            flags |= ExpressionResultFlags::QualifiedReturn;
+        }
+        return ExpressionResult::create(nullptr, flags);
     }
 
 }
