@@ -80,10 +80,6 @@ namespace Kepler::Lexer {
             log("{ TokenType: if }");
             return TokenType::Token_If;
         }
-        else if (identifier == "elseif") {
-            log("{ TokenType: elseif }");
-            return TokenType::Token_Elseif;
-        }
         else if (identifier == "else") {
             log("{ TokenType: else }");
             return TokenType::Token_Else;

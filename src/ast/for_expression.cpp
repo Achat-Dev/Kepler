@@ -40,7 +40,7 @@ namespace Kepler::AST {
         for (int i = 0; i < body.size(); i++) {
             std::unique_ptr<ExpressionResult> bodyv = body[i]->codegen();
             if (!bodyv->is_valid()) {
-                log("Compile error: loop body is invalid");
+                log("Compile error: invalid expression in loop body");
                 return ExpressionResult::create_invalid();
             }
             if (bodyv->is_return_statement() || bodyv->forms_qualified_return()) {

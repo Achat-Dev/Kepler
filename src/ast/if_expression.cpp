@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "../compiler.hpp"
+#include "../log.hpp"
 #include "expression_result.hpp"
 #include "if_expression.hpp"
 
@@ -28,30 +29,57 @@ namespace Kepler::AST {
         llvm::BasicBlock* after_branch_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterbranch", f);
 
         Compiler::get_builder().CreateCondBr(conditionv->get_value(), if_block, else_block);
+
+        // Codegen if body
         Compiler::get_builder().SetInsertPoint(if_block);
 
-        std::unique_ptr<ExpressionResult> ifv = if_branch->codegen();
-        if (!ifv->is_valid()) {
-            return ExpressionResult::create_invalid();
+        bool if_body_has_return = false;
+        for (int i = 0; i < if_body.size(); i++) {
+            std::unique_ptr<ExpressionResult> ifv = if_body[i]->codegen();
+            if (!ifv->is_valid()) {
+                log("Compile error: invalid expression in if body");
+                return ExpressionResult::create_invalid();
+            }
+            if (ifv->is_return_statement() || ifv->forms_qualified_return()) {
+                if (if_body.size() - (i + 1) > 0) {
+                    log("Compile warning: unreachable code in if body detected");
+                }
+                if_body_has_return = true;
+                break;
+            }
         }
-        if (!ifv->is_return_statement()) {
+
+        if (!if_body_has_return) {
             Compiler::get_builder().CreateBr(after_branch_block);
         }
 
+        // Codegen else body
         Compiler::get_builder().SetInsertPoint(else_block);
 
-        std::unique_ptr<ExpressionResult> elsev = else_branch->codegen();
-        if (!elsev->is_valid()) {
-            return ExpressionResult::create_invalid();
+        bool else_body_has_return = false;
+        for (int i = 0; i < else_body.size(); i++) {
+            std::unique_ptr<ExpressionResult> elsev = else_body[i]->codegen();
+            if (!elsev->is_valid()) {
+                log("Compile error: invalid expression in else body");
+                return ExpressionResult::create_invalid();
+            }
+            if (elsev->is_return_statement() || elsev->forms_qualified_return()) {
+                if (else_body.size() - (i + 1) > 0) {
+                    log("Compile warning: unreachable code in else body detected");
+                }
+                else_body_has_return = true;
+                break;
+            }
         }
-        if (!elsev->is_return_statement()) {
+
+        if (!else_body_has_return) {
             Compiler::get_builder().CreateBr(after_branch_block);
         }
 
         Compiler::get_builder().SetInsertPoint(after_branch_block);
 
         unsigned int flags = ExpressionResultFlags::Valid;
-        if (ifv->is_return_statement() && elsev->is_return_statement()) {
+        if (if_body_has_return && else_body_has_return) {
             flags |= ExpressionResultFlags::QualifiedReturn;
         }
         return ExpressionResult::create(nullptr, flags);

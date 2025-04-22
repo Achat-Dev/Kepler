@@ -10,16 +10,15 @@ namespace Kepler::Lexer {
         // Keywords
         Token_Function = -2,
         Token_Extern = -3,
-        Token_Return = -10,
-        Token_End = -11,
+        Token_Return = -4,
+        Token_End = -5,
 
         // Primary
-        Token_Identifier = -4,
-        Token_Number = -5,
-        Token_If = -6,
-        Token_Elseif = -7,
-        Token_Else = -8,
-        Token_For  =-9
+        Token_Identifier = -6,
+        Token_Number = -7,
+        Token_If = -8,
+        Token_Else = -9,
+        Token_For  =-10
     };
 
     const int read_token();

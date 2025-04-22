@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "expression.hpp"
 
@@ -9,16 +10,16 @@ namespace Kepler::AST {
     class IfExpression: public Expression {
     private:
         std::unique_ptr<Expression> condition;
-        std::unique_ptr<Expression> if_branch;
-        std::unique_ptr<Expression> else_branch;
+        std::vector<std::unique_ptr<Expression>> if_body;
+        std::vector<std::unique_ptr<Expression>> else_body;
 
     public:
         IfExpression(std::unique_ptr<Expression> condition,
-            std::unique_ptr<Expression> if_branch,
-            std::unique_ptr<Expression> else_branch)
+            std::vector<std::unique_ptr<Expression>> if_body,
+            std::vector<std::unique_ptr<Expression>> else_body)
             : condition(std::move(condition)),
-              if_branch(std::move(if_branch)),
-              else_branch(std::move(else_branch)) {}
+              if_body(std::move(if_body)),
+              else_body(std::move(else_body)) {}
         std::unique_ptr<ExpressionResult> codegen() override;
     };
 
