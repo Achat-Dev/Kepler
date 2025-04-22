@@ -26,6 +26,7 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Expression> parse_number();
     static std::unique_ptr<AST::Expression> parse_parenthesis();
+    static std::unique_ptr<AST::Expression> parse_negative();
     static std::unique_ptr<AST::Expression> parse_expression();
     static std::unique_ptr<AST::Expression> parse_identifier();
     static std::unique_ptr<AST::Expression> parse_primary();
@@ -86,6 +87,11 @@ namespace Kepler::Parser {
         return expression;
     }
 
+    static std::unique_ptr<AST::Expression> parse_negative() {
+        auto lhs = std::make_unique<AST::NumberExpression>(0);
+        return parse_binop_rhs(0, std::move(lhs));
+    }
+
     static std::unique_ptr<AST::Expression> parse_expression() {
         auto lhs = parse_primary();
         if (!lhs) {
@@ -141,6 +147,7 @@ namespace Kepler::Parser {
             case Lexer::Token_For: return parse_for();
             case Lexer::Token_Return: return parse_return();
             case '(': return parse_parenthesis();
+            case '-': return parse_negative();
             default:
                 log("Parsing error: unknown token when expected expression. Current token:", current_token);
                 return nullptr;
