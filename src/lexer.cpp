@@ -95,28 +95,48 @@ namespace Kepler::Lexer {
 
     static int read_number() {
         std::string value_string;
-            do {
-                value_string += last_char;
-                last_char = Compiler::get_file()->read_next_char();
-            } while (isdigit(last_char) || last_char == '.');
+        do {
+            value_string += last_char;
+            last_char = Compiler::get_file()->read_next_char();
+        } while (isdigit(last_char) || last_char == '.');
 
-            number_value = strtod(value_string.c_str(), 0);
+        number_value = strtod(value_string.c_str(), 0);
 
-            log("{ TokenType: number", number_value, "}");
-            return TokenType::Token_Number;
+        log("{ TokenType: number", number_value, "}");
+        return TokenType::Token_Number;
     }
 
     static int read_comment() {
-        do {
-            last_char = Compiler::get_file()->read_next_char();
-        } while (last_char != EOF && last_char != '\n' && last_char != '\r');
+        last_char = Compiler::get_file()->read_next_char();
 
-        if (last_char != EOF) {
-            return read_token();
+        // Two # after each other -> multiline comment
+        if (last_char == '#') {
+            while (!(last_char == '#' && Compiler::get_file()->peek() == '#')) {
+                if (Compiler::get_file()->peek() == EOF) {
+                    log("Lexing warning: multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
+                    log("{ TokenType: EndOfFile }");
+                    return TokenType::Token_EndOfFile;
+                }
+
+                last_char = Compiler::get_file()->read_next_char();
+            }
+
+            Compiler::get_file()->read_next_char(); // eat second '#'
+            last_char = Compiler::get_file()->read_next_char(); // save actual next character for reading next token
+        }
+        // Single line comment
+        else {
+            while (last_char != '\n' && last_char != '\r') {
+                if (Compiler::get_file()->peek() == EOF) {
+                    log("{ TokenType: EndOfFile }");
+                    return TokenType::Token_EndOfFile;
+                }
+
+                last_char = Compiler::get_file()->read_next_char();
+            }
         }
 
-        log("{ TokenType: EndOfFile }");
-        return TokenType::Token_EndOfFile;
+        return read_token();
     }
 
 }
