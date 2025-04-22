@@ -14,7 +14,7 @@ namespace Kepler::AST {
             log("Compile error: unknown variable name", name);
             return ExpressionResult::create_invalid();
         }
-        return ExpressionResult::create(Compiler::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str()), ExpressionResultFlags::Valid);
+        return ExpressionResult::create(Compiler::get_builder().CreateLoad(a->getAllocatedType(), a, name.c_str()), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
     const std::string& VariableExpression::get_name() const {
