@@ -12,7 +12,7 @@ namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> BinaryExpression::codegen() {
         if (op == '=') {
-            VariableExpression* lhs_expression = static_cast<VariableExpression*>(lhs.get());
+            VariableExpression* lhs_expression = dynamic_cast<VariableExpression*>(lhs.get());
             if (!lhs_expression) {
                 log("Compile error: destination of '=' must be a variable");
                 return ExpressionResult::create_invalid();
