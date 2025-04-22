@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "../compiler.hpp"
+#include "../log.hpp"
 #include "../utils.hpp"
 #include "expression_result.hpp"
 #include "for_expression.hpp"
@@ -35,12 +36,19 @@ namespace Kepler::AST {
         llvm::AllocaInst* old_value = Compiler::get_named_values()[variable_name];
         Compiler::get_named_values()[variable_name] = alloca;
 
-        std::unique_ptr<ExpressionResult> bodyv = body->codegen();
-        if (!bodyv->is_valid()) {
-            return ExpressionResult::create_invalid();
-        }
-        if (bodyv->is_return_statement()) {
-            return ExpressionResult::create(nullptr, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
+        // Codegen body
+        for (int i = 0; i < body.size(); i++) {
+            std::unique_ptr<ExpressionResult> bodyv = body[i]->codegen();
+            if (!bodyv->is_valid()) {
+                log("Compile error: loop body is invalid");
+                return ExpressionResult::create_invalid();
+            }
+            if (bodyv->is_return_statement() || bodyv->forms_qualified_return()) {
+                if (body.size() - (i + 1) > 0) {
+                    log("Compile warning: unreachable code in for loop detected");
+                }
+                return ExpressionResult::create(nullptr, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
+            }
         }
 
         std::unique_ptr<ExpressionResult> step_value = nullptr;

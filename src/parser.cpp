@@ -321,11 +321,22 @@ namespace Kepler::Parser {
             }
         }
 
-        std::unique_ptr<AST::Expression> body = parse_expression();
-        if (!body) {
-            log("Parsing error: expected loop body");
-            return nullptr;
+        std::vector<std::unique_ptr<AST::Expression>> body;
+        while (current_token != Lexer::Token_End) {
+            auto expression = parse_expression();
+            if (!expression) {
+                log("Parsing error: invalid expression in loop body");
+                return nullptr;
+            }
+            body.push_back(std::move(expression));
         }
+
+        if (body.size() == 0) {
+            log("Parsing warning: empty loop body detected");
+        }
+
+        read_next_token(); // eat 'end'
+
         return std::make_unique<AST::ForExpression>(variable_name, std::move(start), std::move(end), std::move(step), std::move(body));
     }
 

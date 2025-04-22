@@ -52,16 +52,15 @@ namespace Kepler::AST {
 
         // Codegen function body
         for (int i = 0; i < body.size(); i++) {
-            std::unique_ptr<Expression>& expression = body[i];
-            std::unique_ptr<ExpressionResult> result = expression->codegen();
-            if (!result->is_valid()) {
+            std::unique_ptr<ExpressionResult> bodyv = body[i]->codegen();
+            if (!bodyv->is_valid()) {
                 log("Compile error: invalid expression in function");
                 f->eraseFromParent();
                 return nullptr;
             }
-            if (result->is_return_statement() || result->forms_qualified_return()) {
+            if (bodyv->is_return_statement() || bodyv->forms_qualified_return()) {
                 if (body.size() - (i + 1) > 0) {
-                    log("Compile warning: unreachable code detected");
+                    log("Compile warning: unreachable code in function detected");
                 }
                 break;
             }
