@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include <string>
 
 namespace Kepler::Lexer {
@@ -18,7 +19,12 @@ namespace Kepler::Lexer {
         Token_Number = -7,
         Token_If = -8,
         Token_Else = -9,
-        Token_For  =-10
+        Token_Elseif = -10,
+        Token_For = -11,
+
+        // Parsing tokens
+        // These are necessary for certain parsing operations
+        Token_Parsing_Elseif = INT_MIN
     };
 
     const int read_token();

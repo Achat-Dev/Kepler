@@ -143,7 +143,10 @@ namespace Kepler::Parser {
         switch (current_token) {
             case Lexer::Token_Identifier: return parse_identifier();
             case Lexer::Token_Number: return parse_number();
-            case Lexer::Token_If: return parse_if();
+            // Case fallthrough for if and parse_elseif
+            case Lexer::Token_If:
+                case Lexer::Token_Parsing_Elseif:
+                    return parse_if();
             case Lexer::Token_For: return parse_for();
             case Lexer::Token_Return: return parse_return();
             case '(': return parse_parenthesis();
@@ -252,19 +255,33 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Expression> parse_if() {
-        read_next_token(); // eat 'if'
+        bool is_elseif = current_token == Lexer::Token_Parsing_Elseif;
 
+        read_next_token(); // eat 'if' or 'elseif'
+
+        // Parse 'if' condition
         std::unique_ptr<AST::Expression> condition = parse_expression();
         if (!condition) {
-            log("Parsing error: expected condition after 'if'");
+            if (is_elseif) {
+                log("Parsing error: expected condition after 'elseif'");
+            }
+            else {
+                log("Parsing error: expected condition after 'if'");
+            }
             return nullptr;
         }
 
+        // Parse 'if' body
         std::vector<std::unique_ptr<AST::Expression>> if_body;
-        while (current_token != Lexer::Token_End && current_token != Lexer::Token_Else) {
+        while (current_token != Lexer::Token_Elseif && current_token != Lexer::Token_Else && current_token != Lexer::Token_End) {
             auto expression = parse_expression();
             if (!expression) {
-                log("Parsing error: invalid expression in 'if' body");
+                if (is_elseif) {
+                    log("Parsing error: invalid expression in 'elseif' body");
+                }
+                else {
+                    log("Parsing error: invalid expression in 'if' body");
+                }
                 return nullptr;
             }
             if_body.push_back(std::move(expression));
@@ -274,14 +291,21 @@ namespace Kepler::Parser {
             log("Parsing warning: empty 'if' body detected");
         }
 
-        // Return early if there is no 'else'
-        if (current_token == Lexer::Token_End) {
-            read_next_token(); // eat 'end'
+        // Setup behaviour for different 'if' ending cases
+        if (current_token == Lexer::Token_Else) {
+            read_next_token(); // eat 'else'
+        }
+        else if (current_token == Lexer::Token_Elseif) {
+            current_token = Lexer::Token_Parsing_Elseif;
+        }
+        else if (current_token == Lexer::Token_End) {
+            if (!is_elseif) {
+                read_next_token(); // eat 'end'
+            }
             return std::make_unique<AST::IfExpression>(std::move(condition), std::move(if_body), std::vector<std::unique_ptr<AST::Expression>>());
         }
 
-        read_next_token(); // eat 'else'
-
+        // Parse 'else' body
         std::vector<std::unique_ptr<AST::Expression>> else_body;
         while (current_token != Lexer::Token_End) {
             auto expression = parse_expression();
@@ -296,7 +320,9 @@ namespace Kepler::Parser {
             log("Parsing warning: empty else body detected");
         }
 
-        read_next_token(); // eat 'end'
+        if (!is_elseif) {
+            read_next_token(); // eat 'end'
+        }
 
         return std::make_unique<AST::IfExpression>(std::move(condition), std::move(if_body), std::move(else_body));
     }

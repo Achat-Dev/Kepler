@@ -84,6 +84,10 @@ namespace Kepler::Lexer {
             log("{ TokenType: else }");
             return TokenType::Token_Else;
         }
+        else if (identifier == "elseif") {
+            log("{ TokenType: elseif }");
+            return TokenType::Token_Elseif;
+        }
         else if (identifier == "for") {
             log("{ TokenType: for }");
             return TokenType::Token_For;
