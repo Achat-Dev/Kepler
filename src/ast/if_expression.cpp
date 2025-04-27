@@ -16,6 +16,7 @@ namespace Kepler::AST {
     std::unique_ptr<ExpressionResult> IfExpression::codegen() {
         std::unique_ptr<ExpressionResult> conditionv = condition->codegen();
         if (!conditionv->is_valid()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in if condition");
             return ExpressionResult::create_invalid();
         }
 
@@ -37,12 +38,12 @@ namespace Kepler::AST {
         for (int i = 0; i < if_body.size(); i++) {
             std::unique_ptr<ExpressionResult> ifv = if_body[i]->codegen();
             if (!ifv->is_valid()) {
-                log("Compile error: invalid expression in if body");
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in if body");
                 return ExpressionResult::create_invalid();
             }
             if (ifv->is_return_statement() || ifv->forms_qualified_return()) {
                 if (if_body.size() - (i + 1) > 0) {
-                    log("Compile warning: unreachable code in if body detected");
+                    log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": unreachable code in if body detected");
                 }
                 if_body_has_return = true;
                 break;
@@ -60,12 +61,12 @@ namespace Kepler::AST {
         for (int i = 0; i < else_body.size(); i++) {
             std::unique_ptr<ExpressionResult> elsev = else_body[i]->codegen();
             if (!elsev->is_valid()) {
-                log("Compile error: invalid expression in else body");
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in else body");
                 return ExpressionResult::create_invalid();
             }
             if (elsev->is_return_statement() || elsev->forms_qualified_return()) {
                 if (else_body.size() - (i + 1) > 0) {
-                    log("Compile warning: unreachable code in else body detected");
+                    log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": unreachable code in else body detected");
                 }
                 else_body_has_return = true;
                 break;

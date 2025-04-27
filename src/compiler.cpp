@@ -113,7 +113,7 @@ namespace Kepler::Compiler {
         const llvm::Target* target = llvm::TargetRegistry::lookupTarget(target_triple_string, error);
 
         if (!target) {
-            log("Initialisation error:", error);
+            log(LogStyle::ERROR, "[ Initialisation error ]", LogStyle::DEFAULT, ": ", error);
             return false;
         }
 
@@ -130,30 +130,30 @@ namespace Kepler::Compiler {
     }
 
     const static bool write_file(const char* outname) {
-        log("Writing file " + (std::string)outname + "...");
+        log("Writing file '", outname, '\'');
 
         std::error_code ec;
         llvm::raw_fd_ostream out(outname, ec, llvm::sys::fs::OF_None);
 
         if (ec) {
-            log("Writing error: failed to open output file", ec.message());
+            log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": failed to open output file: ", ec.message());
             return false;
         }
 
         if (llvm::verifyModule(*module, &llvm::errs())) {
-            log("Writing error: compiled code is faulty");
+            log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": compiled code is faulty");
             return false;
         }
 
         llvm::legacy::PassManager pass_manager;
         if (target_machine->addPassesToEmitFile(pass_manager, out, nullptr, llvm::CodeGenFileType::ObjectFile)) {
-            log("Writing error: target machine can't emit file of type 'Object File'");
+            log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": target machine can't emit file of type 'Object File'");
             return false;
         }
 
         pass_manager.run(*module);
         out.flush();
-        log("Successfully wrote", outname);
+        log("Successfully wrote '", outname, '\'');
 
         return true;
     }

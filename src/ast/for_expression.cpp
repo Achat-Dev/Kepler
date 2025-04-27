@@ -20,6 +20,7 @@ namespace Kepler::AST {
     static std::unique_ptr<ExpressionResult> codegen_end_condition(std::unique_ptr<Expression>& end) {
         std::unique_ptr<ExpressionResult> end_condition = end->codegen();
         if (!end_condition->is_valid()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' end condition");
             return ExpressionResult::create_invalid();
         }
 
@@ -28,7 +29,6 @@ namespace Kepler::AST {
         return std::move(end_condition);
     }
 
-    // BUG: a for expression that forms a qualified return is always executed even if the loop condition is false at start
     std::unique_ptr<ExpressionResult> ForExpression::codegen() {
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
         llvm::AllocaInst* alloca = create_entry_block_alloca(f, variable_name);
@@ -40,6 +40,7 @@ namespace Kepler::AST {
         // Codegen start value
         std::unique_ptr<ExpressionResult> startv = start->codegen();
         if (!startv->is_valid()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' start value");
             return ExpressionResult::create_invalid();
         }
         Compiler::get_builder().CreateStore(startv->get_value(), alloca);
@@ -57,11 +58,11 @@ namespace Kepler::AST {
         for (int i = 0; i < body.size(); i++) {
             std::unique_ptr<ExpressionResult> bodyv = body[i]->codegen();
             if (!bodyv->is_valid()) {
-                log("Compile error: invalid expression in loop body");
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' body");
                 return ExpressionResult::create_invalid();
             }
             if (bodyv->is_return_statement() || bodyv->forms_qualified_return()) {
-                log("Compile warning: return in for body detected. This will always be executed even if the loop condition is false at start. Consider removing the for loop");
+                log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": return in 'for' body detected. This will always be executed even if the loop condition is false at start. Consider removing the for loop");
 
                 // Create the terminator for the entry block -> branch to the loop_block
                 Compiler::get_builder().SetInsertPoint(entry_block);

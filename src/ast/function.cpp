@@ -30,12 +30,12 @@ namespace Kepler::AST {
         }
 
         if (!f) {
-            log("Compile error: failed to compile function prototype");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to compile function prototype");
             return nullptr;
         }
 
         if (!f->empty()) {
-            log("Compile error: function cannot be redefined");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": function cannot be redefined");
             return nullptr;
         }
 
@@ -54,13 +54,13 @@ namespace Kepler::AST {
         for (int i = 0; i < body.size(); i++) {
             std::unique_ptr<ExpressionResult> bodyv = body[i]->codegen();
             if (!bodyv->is_valid()) {
-                log("Compile error: invalid expression in function");
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in function");
                 f->eraseFromParent();
                 return nullptr;
             }
             if (bodyv->is_return_statement() || bodyv->forms_qualified_return()) {
                 if (body.size() - (i + 1) > 0) {
-                    log("Compile warning: unreachable code in function detected");
+                    log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": unreachable code in function detected");
                 }
                 break;
             }
@@ -69,7 +69,7 @@ namespace Kepler::AST {
         llvm::EliminateUnreachableBlocks(*f);
 
         if (llvm::verifyFunction(*f, &llvm::errs())) {
-            log("Compile error: failed to verify function");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to verify function");
             f->print(llvm::errs());
             f->eraseFromParent();
             return nullptr;

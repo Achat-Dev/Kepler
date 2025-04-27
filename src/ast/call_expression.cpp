@@ -13,12 +13,12 @@ namespace Kepler::AST {
     std::unique_ptr<ExpressionResult> CallExpression::codegen() {
         llvm::Function* calleef = Compiler::get_module().getFunction(callee);
         if (!calleef) {
-            log("Compile error: unknown function called");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown function called");
             return ExpressionResult::create_invalid();
         }
 
         if (calleef->arg_size() != args.size()) {
-            log("Compile error: incorrect number of arguments passed to function");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": incorrect number of arguments passed to function");
             return ExpressionResult::create_invalid();
         }
 

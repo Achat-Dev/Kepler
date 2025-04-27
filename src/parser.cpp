@@ -79,7 +79,7 @@ namespace Kepler::Parser {
         }
 
         if (current_token != ')') {
-            log("Parsing error: expected ')'");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')'");
             return nullptr;
         }
 
@@ -126,7 +126,7 @@ namespace Kepler::Parser {
                 }
 
                 if (current_token != ',') {
-                    log("Parsing error: expected ')' or ',' in function argument list");
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' or ',' in function argument list");
                     return nullptr;
                 }
 
@@ -152,7 +152,7 @@ namespace Kepler::Parser {
             case '(': return parse_parenthesis();
             case '-': return parse_negative();
             default:
-                log("Parsing error: unknown token when expected expression. Current token:", current_token);
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": unknown token when expected expression. Current token:", current_token);
                 return nullptr;
         }
     }
@@ -169,6 +169,7 @@ namespace Kepler::Parser {
 
             auto rhs = parse_primary();
             if (!rhs) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": no right hand side value when parsing binary operator '", (char)binop, "'");
                 return nullptr;
             }
 
@@ -176,6 +177,7 @@ namespace Kepler::Parser {
             if (token_precedence < next_precedence) {
                 rhs = parse_binop_rhs(token_precedence + 1, std::move(rhs));
                 if (!rhs) {
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": no right hand side value when parsing binary operator '", (char)binop, "'");
                     return nullptr;
                 }
             }
@@ -186,14 +188,14 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Prototype> parse_prototype() {
         if (current_token != Lexer::Token_Identifier) {
-            log("Parsing error: expected function name in prototype");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected function name in prototype");
             return nullptr;
         }
 
         std::string function_name = Lexer::get_identifier();
         read_next_token();
         if (current_token != '(') {
-            log("Parsing error: expected '(' after function name in prototype");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after function name in prototype");
             return nullptr;
         }
 
@@ -208,7 +210,7 @@ namespace Kepler::Parser {
             }
         }
         if (current_token != ')') {
-            log("Parsing error: expected ')' after function arguments in prototype");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after function arguments in prototype");
             return nullptr;
         }
 
@@ -220,6 +222,7 @@ namespace Kepler::Parser {
         read_next_token(); // eat 'function' keyword
         auto prototype = parse_prototype();
         if (!prototype) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid function prototype");
             return nullptr;
         }
 
@@ -227,7 +230,7 @@ namespace Kepler::Parser {
         while (current_token != Lexer::Token_End) {
             auto expression = parse_expression();
             if (!expression) {
-                log("Parsing error: invalid expression in function body");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in function body");
                 return nullptr;
             }
             body.push_back(std::move(expression));
@@ -263,10 +266,10 @@ namespace Kepler::Parser {
         std::unique_ptr<AST::Expression> condition = parse_expression();
         if (!condition) {
             if (is_elseif) {
-                log("Parsing error: expected condition after 'elseif'");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after 'elseif'");
             }
             else {
-                log("Parsing error: expected condition after 'if'");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after 'if'");
             }
             return nullptr;
         }
@@ -277,10 +280,10 @@ namespace Kepler::Parser {
             auto expression = parse_expression();
             if (!expression) {
                 if (is_elseif) {
-                    log("Parsing error: invalid expression in 'elseif' body");
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'elseif' body");
                 }
                 else {
-                    log("Parsing error: invalid expression in 'if' body");
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'if' body");
                 }
                 return nullptr;
             }
@@ -288,7 +291,12 @@ namespace Kepler::Parser {
         }
 
         if (if_body.size() == 0) {
-            log("Parsing warning: empty 'if' body detected");
+            if (is_elseif) {
+                log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty 'elseif' body detected");
+            }
+            else {
+             log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty 'if' body detected");
+            }
         }
 
         // Setup behaviour for different 'if' ending cases
@@ -310,14 +318,14 @@ namespace Kepler::Parser {
         while (current_token != Lexer::Token_End) {
             auto expression = parse_expression();
             if (!expression) {
-                log("Parsing error: invalid expression in 'else' body");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'else' body");
                 return nullptr;
             }
             else_body.push_back(std::move(expression));
         }
 
         if (else_body.size() == 0) {
-            log("Parsing warning: empty else body detected");
+            log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty else body detected");
         }
 
         if (!is_elseif) {
@@ -331,7 +339,7 @@ namespace Kepler::Parser {
         read_next_token(); // eat 'for'
 
         if (current_token != Lexer::Token_Identifier) {
-            log("Parsing error: expected identifier after 'for'");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after 'for'");
             return nullptr;
         }
 
@@ -339,24 +347,25 @@ namespace Kepler::Parser {
 
         read_next_token();
         if (current_token != '=') {
-            log("Parsing error: expected '=' after identifier in for");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '=' after identifier in 'for'");
             return nullptr;
         }
         read_next_token(); // eat '='
 
         std::unique_ptr<AST::Expression> start = parse_expression();
         if (!start) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid start expression in 'for'");
             return nullptr;
         }
         if (current_token != ',') {
-            log("Parsing error: expected ',' after for variable initialisation");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ',' after 'for' variable initialisation");
             return nullptr;
         }
         read_next_token(); // eat ','
 
         std::unique_ptr<AST::Expression> end = parse_expression();
         if (!end) {
-            log("Parsing error: expected end value after ','");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected end value after ','");
             return nullptr;
         }
 
@@ -365,7 +374,7 @@ namespace Kepler::Parser {
             read_next_token(); // eat ','
             step = parse_expression();
             if (!step) {
-                log("Parsing error: expected step value after ','");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected step value after ','");
                 return nullptr;
             }
         }
@@ -374,14 +383,14 @@ namespace Kepler::Parser {
         while (current_token != Lexer::Token_End) {
             auto expression = parse_expression();
             if (!expression) {
-                log("Parsing error: invalid expression in loop body");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'for' body");
                 return nullptr;
             }
             body.push_back(std::move(expression));
         }
 
         if (body.size() == 0) {
-            log("Parsing warning: empty loop body detected");
+            log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty loop body detected");
         }
 
         read_next_token(); // eat 'end'
@@ -393,7 +402,7 @@ namespace Kepler::Parser {
         read_next_token(); // eat 'return' keyword
         auto expression = parse_expression();
         if (!expression) {
-            log("Parsing error: expected expression after 'return'");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected expression after 'return'");
             return nullptr;
         }
 

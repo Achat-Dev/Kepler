@@ -1,16 +1,15 @@
 #include <cstdio>
-#include <iostream>
 
 #include "compiler.hpp"
 #include "log.hpp"
 
 int main(int argc, char* argv[]) {
     if (argc <= 1) {
-        std::cout << "Error: no filename given" << std::endl;
+        Kepler::log(Kepler::LogStyle::ERROR, "[ Error ]", Kepler::LogStyle::DEFAULT, ": no filename given");
         return 1;
     }
     if (argc <= 2) {
-        std::cout << "Error: no output name given" << std::endl;
+        Kepler::log(Kepler::LogStyle::ERROR, "[ Error ]", Kepler::LogStyle::DEFAULT, ": no output name given");
         return 1;
     }
 

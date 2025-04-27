@@ -14,20 +14,20 @@ namespace Kepler::AST {
         if (op == '=') {
             VariableExpression* lhs_expression = dynamic_cast<VariableExpression*>(lhs.get());
             if (!lhs_expression) {
-                log("Compile error: destination of '=' must be a variable");
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": destination of '=' must be a variable");
                 return ExpressionResult::create_invalid();
             }
 
             std::unique_ptr<ExpressionResult> value = rhs->codegen();
             if (!value->is_valid()) {
-                log("Compile error: invalid variable assignment expression");
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid variable assignment expression");
                 return ExpressionResult::create_invalid();
             }
 
             llvm::Value* variable = Compiler::get_named_values()[lhs_expression->get_name()];
 
             if (!variable) {
-                log("Compile error: unknown variable name:", lhs_expression->get_name());
+                log(LogStyle::ERROR, "Compile error", LogStyle::DEFAULT, ": unknown variable name:", lhs_expression->get_name());
                 return ExpressionResult::create_invalid();
             }
 
@@ -66,7 +66,7 @@ namespace Kepler::AST {
                 value = Compiler::get_builder().CreateFDiv(l->get_value(), r->get_value(), "divtmp");
                 return ExpressionResult::create(value, flags);
             default:
-                log("Compile error: invalid binary operator");
+                log(LogStyle::ERROR, "Compile error", LogStyle::DEFAULT, ": invalid binary operator");
                 return ExpressionResult::create_invalid();
         }
     }

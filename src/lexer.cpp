@@ -48,7 +48,7 @@ namespace Kepler::Lexer {
         int c = last_char;
         last_char = Compiler::get_file()->read_next_char();
 
-        log("{ TokenType: Character:", (char)c, "}");
+        log("{ TokenType: Character: ", (char)c, " }");
         return c;
     }
 
@@ -93,7 +93,7 @@ namespace Kepler::Lexer {
             return TokenType::Token_For;
         }
 
-        log("{ TokenType: identifier", identifier, "}");
+        log("{ TokenType: identifier: '", identifier, "' }");
         return TokenType::Token_Identifier;
     }
 
@@ -106,7 +106,7 @@ namespace Kepler::Lexer {
 
         number_value = strtod(value_string.c_str(), 0);
 
-        log("{ TokenType: number", number_value, "}");
+        log("{ TokenType: number: ", number_value, " }");
         return TokenType::Token_Number;
     }
 
@@ -117,7 +117,7 @@ namespace Kepler::Lexer {
         if (last_char == '#') {
             while (!(last_char == '#' && Compiler::get_file()->peek() == '#')) {
                 if (Compiler::get_file()->peek() == EOF) {
-                    log("Lexing warning: multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
+                    log(LogStyle::WARNING, "[ Lexing warning ]", LogStyle::DEFAULT, ": multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
                     log("{ TokenType: EndOfFile }");
                     return TokenType::Token_EndOfFile;
                 }

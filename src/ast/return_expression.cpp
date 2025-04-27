@@ -8,15 +8,14 @@
 
 namespace Kepler::AST {
 
-    // TODO: return values need to break from branches
     std::unique_ptr<ExpressionResult> ReturnExpression::codegen() {
         std::unique_ptr<ExpressionResult> value = expression->codegen();
         if (!value->is_valid()) {
-            log("Compile error: no valid return value");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": no valid return value");
             return ExpressionResult::create_invalid();
         }
         if (!value->is_returnable()) {
-            log("Compile error: return value is not returnable");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": return value is not returnable");
             return ExpressionResult::create_invalid();
         }
 
