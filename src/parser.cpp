@@ -439,15 +439,15 @@ namespace Kepler::Parser {
         return std::make_unique<AST::VariableDefinitionExpression>(variable_name, std::move(assignment_expression));
     }
 
-    const int get_current_token() {
+    int get_current_token() {
         return current_token;
     }
 
-    const int read_next_token() {
+    int read_next_token() {
         return current_token = Lexer::read_token();
     }
 
-    const bool handle_function() {
+    bool handle_function() {
         if (auto ast = parse_function()) {
             if (auto ir = ast->codegen()) {
                 log("> parsed a function definition <");
@@ -458,7 +458,7 @@ namespace Kepler::Parser {
         return false;
     }
 
-    const bool handle_extern() {
+    bool handle_extern() {
         if (auto ast = parse_extern()) {
             if (auto ir = ast->codegen()) {
                 log("> parsed an extern <");
@@ -469,7 +469,7 @@ namespace Kepler::Parser {
         return false;
     }
 
-    const bool handle_top_level_expression() {
+    bool handle_top_level_expression() {
         if (auto ast = parse_top_level_expression()) {
             if (auto ir = ast->codegen()) {
                 log("> parsed a top level expression <");

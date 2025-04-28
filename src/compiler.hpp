@@ -15,6 +15,6 @@ namespace Kepler::Compiler {
     std::map<std::string, llvm::AllocaInst*>& get_named_values();
     std::unique_ptr<File>& get_file();
 
-    const bool compile_file(const char* filename, const char* outname);
+    bool compile_file(const char* filename, const char* outname);
 
 }

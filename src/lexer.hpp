@@ -28,8 +28,8 @@ namespace Kepler::Lexer {
         Token_Parsing_Elseif = INT_MIN
     };
 
-    const int read_token();
-    const std::string get_identifier();
-    const double get_number_value();
+    int read_token();
+    std::string get_identifier();
+    double get_number_value();
 
 }

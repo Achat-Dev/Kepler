@@ -4,7 +4,7 @@
 
 namespace Kepler {
 
-    const char File::read_next_char() {
+    char File::read_next_char() {
         char c;
         stream.get(c);
         if (c == '\n') {
@@ -13,15 +13,15 @@ namespace Kepler {
         return c;
     }
 
-    const int File::peek() {
+    int File::peek() {
         return stream.peek();
     }
 
-    const void File::close() {
+    void File::close() {
         stream.close();
     }
 
-    const int File::get_current_line_number() const {
+    int File::get_current_line_number() const {
         return current_line_number;
     }
 

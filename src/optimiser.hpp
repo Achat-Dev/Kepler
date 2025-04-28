@@ -4,7 +4,7 @@
 
 namespace Kepler::Optimiser {
 
-    const void initialise();
-    const void optimise_function(llvm::Function& f);
+    void initialise();
+    void optimise_function(llvm::Function& f);
 
 }

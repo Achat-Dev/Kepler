@@ -5,23 +5,23 @@
 
 namespace Kepler::AST {
 
-    const bool ExpressionResult::is_valid() const {
+    bool ExpressionResult::is_valid() const {
         return flags & ExpressionResultFlags::Valid;
     }
 
-    const bool ExpressionResult::is_return_statement() const {
+    bool ExpressionResult::is_return_statement() const {
         return flags & ExpressionResultFlags::Return;
     }
 
-    const bool ExpressionResult::is_returnable() const {
+    bool ExpressionResult::is_returnable() const {
         return flags & ExpressionResultFlags::Returnable;
     }
 
-    const bool ExpressionResult::is_assignable() const {
+    bool ExpressionResult::is_assignable() const {
         return flags & ExpressionResultFlags::Returnable;
     }
 
-    const bool ExpressionResult::forms_qualified_return() const {
+    bool ExpressionResult::forms_qualified_return() const {
         return flags & ExpressionResultFlags::QualifiedReturn;
     }
 
@@ -33,7 +33,7 @@ namespace Kepler::AST {
         value = new_value;
     }
 
-    const unsigned int ExpressionResult::get_flags() const {
+    unsigned int ExpressionResult::get_flags() const {
         return flags;
     }
 

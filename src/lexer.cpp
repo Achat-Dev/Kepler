@@ -17,15 +17,15 @@ namespace Kepler::Lexer {
     static std::string identifier = "";
     static double number_value = 0.0;
 
-    const std::string get_identifier() {
+    std::string get_identifier() {
         return identifier;
     }
 
-    const double get_number_value() {
+    double get_number_value() {
         return number_value;
     }
 
-    const int read_token() {
+    int read_token() {
         if (Compiler::get_file()->peek() == EOF) {
             log("{ TokenType: EndOfFile }");
             return TokenType::Token_EndOfFile;

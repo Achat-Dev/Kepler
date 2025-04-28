@@ -35,8 +35,8 @@ namespace Kepler::Compiler {
 
     static std::unique_ptr<File> file;
 
-    const static bool write_file(const char* outname);
-    const static bool initialise();
+    static bool write_file(const char* outname);
+    static bool initialise();
 
     llvm::LLVMContext& get_context() {
         return *context;
@@ -58,7 +58,7 @@ namespace Kepler::Compiler {
         return file;
     }
 
-    const bool compile_file(const char* filename, const char* outname) {
+    bool compile_file(const char* filename, const char* outname) {
         if(!initialise()) {
             return false;
         }
@@ -94,7 +94,7 @@ namespace Kepler::Compiler {
         }
     }
 
-    const static bool initialise() {
+    static bool initialise() {
         context = std::make_unique<llvm::LLVMContext>();
         builder = std::make_unique<llvm::IRBuilder<>>(*context);
         module = std::make_unique<llvm::Module>("Kepler", *context);
@@ -129,7 +129,7 @@ namespace Kepler::Compiler {
         return true;
     }
 
-    const static bool write_file(const char* outname) {
+    static bool write_file(const char* outname) {
         log("Writing file '", outname, '\'');
 
         std::error_code ec;

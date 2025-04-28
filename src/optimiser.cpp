@@ -23,7 +23,7 @@ namespace Kepler::Optimiser {
     static std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
     static std::unique_ptr<llvm::StandardInstrumentations> si;
 
-    const void initialise() {
+    void initialise() {
         fpm = std::make_unique<llvm::FunctionPassManager>();
         fam = std::make_unique<llvm::FunctionAnalysisManager>();
         lam = std::make_unique<llvm::LoopAnalysisManager>();
@@ -49,7 +49,7 @@ namespace Kepler::Optimiser {
         passbuilder.crossRegisterProxies(*lam, *fam, *cgam, *mam);
     }
 
-    const void optimise_function(llvm::Function& f) {
+    void optimise_function(llvm::Function& f) {
         fpm->run(f, *fam);
     }
 
