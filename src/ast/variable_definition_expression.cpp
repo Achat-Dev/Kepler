@@ -1,3 +1,4 @@
+#include <cassert>
 #include <llvm/IR/Function.h>
 #include <memory>
 
@@ -21,21 +22,15 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        std::unique_ptr<ExpressionResult> valuev = value->codegen();
-        if (!valuev->is_valid()) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid assignment expression in definition of local variable '", name, '\'');
-            return ExpressionResult::create_invalid();
-        }
-
         llvm::AllocaInst* alloca = create_entry_block_alloca(f, name);
-        Compiler::get_builder().CreateStore(valuev->get_value(), alloca);
         Compiler::get_named_values()[std::string(name)] = alloca;
 
-        return ExpressionResult::create(nullptr, ExpressionResultFlags::Valid);
-    }
+        assert(value->get_operator() == '=' && "Operator of variable assignment has to be '='");
 
-    const std::string& VariableDefinitionExpression::get_name() const {
-        return name;
+        // Since this is a BinaryExpression codegen handles the assignment and error handling
+        std::unique_ptr<ExpressionResult> valuev = value->codegen();
+
+        return std::move(valuev);
     }
 
 }

@@ -24,6 +24,7 @@ namespace Kepler::AST {
         const bool is_valid() const;
         const bool is_return_statement() const;
         const bool is_returnable() const;
+        const bool is_assignable() const;
         const bool forms_qualified_return() const;
         llvm::Value* get_value() const;
         void set_value(llvm::Value* new_value);

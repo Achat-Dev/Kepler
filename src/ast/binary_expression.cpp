@@ -26,14 +26,18 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
 
-            std::unique_ptr<ExpressionResult> value = rhs->codegen();
-            if (!value->is_valid()) {
+            std::unique_ptr<ExpressionResult> valuev = rhs->codegen();
+            if (!valuev->is_valid()) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid assignment expression to variable '", lhs_as_variable->get_name(), '\'');
                 return ExpressionResult::create_invalid();
             }
+            if (!valuev->is_assignable()) {
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": assignment value to variable '", lhs_as_variable->get_name(), "' is not assignable");
+                return ExpressionResult::create_invalid();
+            }
 
-            Compiler::get_builder().CreateStore(value->get_value(), variable);
-            return std::move(value);
+            Compiler::get_builder().CreateStore(valuev->get_value(), variable);
+            return std::move(valuev);
         }
 
         std::unique_ptr<ExpressionResult> lhsv = lhs->codegen();
@@ -70,6 +74,10 @@ namespace Kepler::AST {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid binary operator");
                 return ExpressionResult::create_invalid();
         }
+    }
+
+    char BinaryExpression::get_operator() const {
+        return op;
     }
 
 }

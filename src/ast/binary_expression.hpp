@@ -17,6 +17,7 @@ namespace Kepler::AST {
         BinaryExpression(char op, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
             : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
         std::unique_ptr<ExpressionResult> codegen() override;
+        char get_operator() const;
     };
 
 }

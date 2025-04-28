@@ -419,7 +419,6 @@ namespace Kepler::Parser {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after 'var'");
             return nullptr;
         }
-
         std::string variable_name = Lexer::get_identifier();
 
         read_next_token();
@@ -435,7 +434,9 @@ namespace Kepler::Parser {
             return nullptr;
         }
 
-        return std::make_unique<AST::VariableDefinitionExpression>(variable_name, std::move(value));
+        std::unique_ptr<AST::BinaryExpression> assignment_expression = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::move(value));
+
+        return std::make_unique<AST::VariableDefinitionExpression>(variable_name, std::move(assignment_expression));
     }
 
     const int get_current_token() {

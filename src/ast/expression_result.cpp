@@ -17,6 +17,10 @@ namespace Kepler::AST {
         return flags & ExpressionResultFlags::Returnable;
     }
 
+    const bool ExpressionResult::is_assignable() const {
+        return flags & ExpressionResultFlags::Returnable;
+    }
+
     const bool ExpressionResult::forms_qualified_return() const {
         return flags & ExpressionResultFlags::QualifiedReturn;
     }
