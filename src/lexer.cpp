@@ -92,6 +92,10 @@ namespace Kepler::Lexer {
             log("{ TokenType: for }");
             return TokenType::Token_For;
         }
+        else if (identifier == "var") {
+            log("{ TokenType: var }");
+            return TokenType::Token_Var;
+        }
 
         log("{ TokenType: identifier: '", identifier, "' }");
         return TokenType::Token_Identifier;

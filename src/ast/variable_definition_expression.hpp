@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include "expression.hpp"
@@ -7,15 +8,16 @@
 
 namespace Kepler::AST {
 
-    class VariableExpression: public Expression {
+    class VariableDefinitionExpression: public Expression {
     private:
+        std::unique_ptr<Expression> value;
         const std::string name;
 
     public:
-        VariableExpression(const std::string& name) : name(name) {}
+        VariableDefinitionExpression(const std::string& name, std::unique_ptr<Expression> value)
+            : name(name), value(std::move(value)) {}
         std::unique_ptr<ExpressionResult> codegen() override;
         const std::string& get_name() const;
     };
-
 
 }

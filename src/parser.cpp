@@ -16,6 +16,7 @@
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
 #include "ast/variable_expression.hpp"
+#include "ast/variable_definition_expression.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "parser.hpp"
@@ -38,6 +39,7 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_if();
     static std::unique_ptr<AST::Expression> parse_for();
     static std::unique_ptr<AST::Expression> parse_return();
+    static std::unique_ptr<AST::Expression> parse_local_variable();
 
     static int current_token;
 
@@ -149,6 +151,7 @@ namespace Kepler::Parser {
                     return parse_if();
             case Lexer::Token_For: return parse_for();
             case Lexer::Token_Return: return parse_return();
+            case Lexer::Token_Var: return parse_local_variable();
             case '(': return parse_parenthesis();
             case '-': return parse_negative();
             default:
@@ -407,6 +410,32 @@ namespace Kepler::Parser {
         }
 
         return std::make_unique<AST::ReturnExpression>(std::move(expression));
+    }
+
+    static std::unique_ptr<AST::Expression> parse_local_variable() {
+        read_next_token(); // eat 'var'
+
+        if (current_token != Lexer::Token_Identifier) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after 'var'");
+            return nullptr;
+        }
+
+        std::string variable_name = Lexer::get_identifier();
+
+        read_next_token();
+        if (current_token != '=') {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '=' after 'var' identifier");
+            return nullptr;
+        }
+        read_next_token(); // eat '='
+
+        std::unique_ptr<AST::Expression> value = parse_expression();
+        if (!value) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'var' assignment");
+            return nullptr;
+        }
+
+        return std::make_unique<AST::VariableDefinitionExpression>(variable_name, std::move(value));
     }
 
     const int get_current_token() {

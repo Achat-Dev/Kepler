@@ -69,7 +69,7 @@ namespace Kepler::AST {
         llvm::EliminateUnreachableBlocks(*f);
 
         if (llvm::verifyFunction(*f, &llvm::errs())) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to verify function");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to verify function. This probably means that the function is missing a 'return' expression");
             f->print(llvm::errs());
             f->eraseFromParent();
             return nullptr;

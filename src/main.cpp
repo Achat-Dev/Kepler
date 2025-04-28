@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     const char* filename = argv[1];
     const char* outname = argv[2];
     if (!Kepler::Compiler::compile_file(filename, outname)) {
-        Kepler::log("Failed to compile file", filename, "and write it to", outname);
+        Kepler::log(Kepler::LogStyle::ERROR, "Failed to compile file '", filename, "' and write it to '", outname, '\'');
         return 1;
     }
 

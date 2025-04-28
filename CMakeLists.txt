@@ -20,7 +20,8 @@ set(AST_SRC
     "src/ast/number_expression.cpp"
     "src/ast/prototype.cpp"
     "src/ast/return_expression.cpp"
-    "src/ast/variable_expression.cpp")
+    "src/ast/variable_expression.cpp"
+    "src/ast/variable_definition_expression.cpp")
 
 add_executable (${CMAKE_PROJECT_NAME}
     "src/main.cpp"

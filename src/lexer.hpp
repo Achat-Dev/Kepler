@@ -21,6 +21,7 @@ namespace Kepler::Lexer {
         Token_Else = -9,
         Token_Elseif = -10,
         Token_For = -11,
+        Token_Var = -12,
 
         // Parsing tokens
         // These are necessary for certain parsing operations
