@@ -75,21 +75,19 @@ namespace Kepler::Compiler {
                 case Lexer::Token_EndOfFile:
                     file->close();
                     return write_file(outname);
-                case Lexer::Token_Function:
-                    if (!Parser::handle_function()) {
-                        return false;
-                    }
-                    break;
                 case Lexer::Token_Extern:
                     if (!Parser::handle_extern()) {
                         return false;
                     }
                     break;
-                default:
-                    if (!Parser::handle_top_level_expression()) {
+                case Lexer::Token_DataType:
+                    if (!Parser::handle_data_type()) {
                         return false;
                     }
                     break;
+                default:
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token on top level (expected 'extern' or data type)");
+                    return false;
             }
         }
     }

@@ -26,16 +26,12 @@ The possible static types are:
 - `bool`
 - `char`
 - `string`
-- `int8`
-- `int16`
-- `int32`
-- `int64`
-- `uint8`
-- `uint16`
-- `uint32`
-- `uint64`
-- `float32`
-- `float64`
+- `i8`
+- `i16`
+- `i32`
+- `i64`
+- `f32`
+- `f64`
 
 ### Syntax
 
@@ -99,6 +95,13 @@ end
 var baz()
   return ...
 end
+```
+
+#### Casts
+
+```
+# <type>(<data>)
+i32(5.4)
 ```
 
 ### Modules

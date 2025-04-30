@@ -19,6 +19,7 @@
 #include "ast/variable_definition_expression.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
+#include "type.hpp"
 #include "parser.hpp"
 
 namespace Kepler::Parser {
@@ -32,14 +33,15 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_identifier();
     static std::unique_ptr<AST::Expression> parse_primary();
     static std::unique_ptr<AST::Expression> parse_binop_rhs(int expression_precedence, std::unique_ptr<AST::Expression> lhs);
-    static std::unique_ptr<AST::Prototype> parse_prototype();
-    static std::unique_ptr<AST::Function> parse_function();
+    static std::unique_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier);
+    static std::unique_ptr<AST::Function> parse_function(TypeToken type, std::string identifier);
     static std::unique_ptr<AST::Prototype> parse_extern();
     static std::unique_ptr<AST::Function> parse_top_level_expression();
     static std::unique_ptr<AST::Expression> parse_if();
     static std::unique_ptr<AST::Expression> parse_for();
     static std::unique_ptr<AST::Expression> parse_return();
     static std::unique_ptr<AST::Expression> parse_local_variable();
+    static bool handle_function(TypeToken type, std::string identifier);
 
     static int current_token;
 
@@ -151,7 +153,7 @@ namespace Kepler::Parser {
                     return parse_if();
             case Lexer::Token_For: return parse_for();
             case Lexer::Token_Return: return parse_return();
-            case Lexer::Token_Var: return parse_local_variable();
+            case Lexer::Token_DataType: return parse_local_variable();
             case '(': return parse_parenthesis();
             case '-': return parse_negative();
             default:
@@ -189,17 +191,20 @@ namespace Kepler::Parser {
         }
     }
 
-    static std::unique_ptr<AST::Prototype> parse_prototype() {
-        if (current_token != Lexer::Token_Identifier) {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected function name in prototype");
-            return nullptr;
-        }
+    static std::unique_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier) {
+        if (identifier.empty()) {
+            read_next_token(); // eat data type
+            if (current_token != Lexer::Token_Identifier) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected function name in prototype");
+                return nullptr;
+            }
 
-        std::string function_name = Lexer::get_identifier();
-        read_next_token();
-        if (current_token != '(') {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after function name in prototype");
-            return nullptr;
+            identifier = Lexer::get_identifier();
+            read_next_token(); // eat identifier
+            if (current_token != '(') {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after function name in prototype");
+                return nullptr;
+            }
         }
 
         std::vector<std::string> arg_names;
@@ -218,12 +223,12 @@ namespace Kepler::Parser {
         }
 
         read_next_token(); // eat ')'
-        return std::make_unique<AST::Prototype>(function_name, std::move(arg_names));
+        return std::make_unique<AST::Prototype>(type, std::move(identifier), std::move(arg_names));
     }
 
-    static std::unique_ptr<AST::Function> parse_function() {
-        read_next_token(); // eat 'function' keyword
-        auto prototype = parse_prototype();
+    static std::unique_ptr<AST::Function> parse_function(TypeToken type, std::string identifier) {
+        //read_next_token(); // eat 'function' keyword
+        auto prototype = parse_prototype(type, std::move(identifier));
         if (!prototype) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid function prototype");
             return nullptr;
@@ -246,7 +251,13 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Prototype> parse_extern() {
         read_next_token(); // eat 'extern' keyword
-        return parse_prototype();
+
+        if (current_token != Lexer::Token_DataType) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected data type after 'extern'");
+            return nullptr;
+        }
+
+        return parse_prototype(Lexer::get_type(), "");
     }
 
     // top level expression are anonymous functions with zero arguments
@@ -439,16 +450,8 @@ namespace Kepler::Parser {
         return std::make_unique<AST::VariableDefinitionExpression>(variable_name, std::move(assignment_expression));
     }
 
-    int get_current_token() {
-        return current_token;
-    }
-
-    int read_next_token() {
-        return current_token = Lexer::read_token();
-    }
-
-    bool handle_function() {
-        if (auto ast = parse_function()) {
+    static bool handle_function(TypeToken type, std::string identifier) {
+        if (auto ast = parse_function(type, std::move(identifier))) {
             if (auto ir = ast->codegen()) {
                 log("> parsed a function definition <");
                 ir->print(llvm::errs());
@@ -458,21 +461,47 @@ namespace Kepler::Parser {
         return false;
     }
 
+    int get_current_token() {
+        return current_token;
+    }
+
+    int read_next_token() {
+        return current_token = Lexer::read_token();
+    }
+
+    bool handle_data_type() {
+        TypeToken type = Lexer::get_type();
+        read_next_token(); // eat data type
+
+        // Variable definition or function definition
+        if (current_token == Lexer::Token_Identifier) {
+            std::string identifier = Lexer::get_identifier();
+            read_next_token(); // eat identifier
+
+            // Variable definition
+            if (current_token == '=') {
+                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": global variables not supported yet");
+                return false;
+            }
+            // Function definition
+            else if (current_token == '(') {
+                return handle_function(type, std::move(identifier));
+            }
+        }
+        // Cast
+        else if (current_token == '(') {
+            log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casts are not supported yet");
+            return false;
+        }
+
+        log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier or parenthesis (cast) after data type");
+        return false;
+    }
+
     bool handle_extern() {
         if (auto ast = parse_extern()) {
             if (auto ir = ast->codegen()) {
                 log("> parsed an extern <");
-                ir->print(llvm::errs());
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool handle_top_level_expression() {
-        if (auto ast = parse_top_level_expression()) {
-            if (auto ir = ast->codegen()) {
-                log("> parsed a top level expression <");
                 ir->print(llvm::errs());
                 return true;
             }

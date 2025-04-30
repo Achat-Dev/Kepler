@@ -30,6 +30,7 @@ add_executable (${CMAKE_PROJECT_NAME}
     "src/lexer.cpp"
     "src/optimiser.cpp"
     "src/parser.cpp"
+    "src/type.cpp"
     "src/utils.cpp"
     ${AST_SRC})
 

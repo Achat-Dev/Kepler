@@ -34,6 +34,8 @@ namespace Kepler {
         // Customs
         const std::string WARNING = BG_YELLOW + BLACK + BOLD;
         const std::string ERROR = BG_RED + BLACK + BOLD;
+        const std::string UNSUPPORTED = BG_MAGENTA + BLACK + BOLD;
+
     }
 
     template<typename T>

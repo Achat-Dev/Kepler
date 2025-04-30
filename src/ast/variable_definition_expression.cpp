@@ -25,7 +25,7 @@ namespace Kepler::AST {
         llvm::AllocaInst* alloca = create_entry_block_alloca(f, name);
         Compiler::get_named_values()[std::string(name)] = alloca;
 
-        assert(value->get_operator() == '=' && "Operator of variable assignment has to be '='");
+        assert(value->get_operator() == '=' && "[ Assertion ]: operator of variable assignment has to be '='");
 
         // Since this is a BinaryExpression codegen handles the assignment and error handling
         std::unique_ptr<ExpressionResult> valuev = value->codegen();

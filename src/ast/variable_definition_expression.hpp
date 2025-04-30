@@ -11,8 +11,8 @@ namespace Kepler::AST {
 
     class VariableDefinitionExpression: public Expression {
     private:
-        std::unique_ptr<BinaryExpression> value;
         const std::string name;
+        std::unique_ptr<BinaryExpression> value;
 
     public:
         VariableDefinitionExpression(const std::string& name, std::unique_ptr<BinaryExpression> value)

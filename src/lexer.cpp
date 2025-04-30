@@ -4,8 +4,9 @@
 #include <string>
 
 #include "compiler.hpp"
-#include "log.hpp"
 #include "lexer.hpp"
+#include "log.hpp"
+#include "type.hpp"
 
 namespace Kepler::Lexer {
 
@@ -16,6 +17,7 @@ namespace Kepler::Lexer {
     static char last_char = ' ';
     static std::string identifier = "";
     static double number_value = 0.0;
+    static TypeToken type_token = TypeToken::None;
 
     std::string get_identifier() {
         return identifier;
@@ -25,10 +27,14 @@ namespace Kepler::Lexer {
         return number_value;
     }
 
+    TypeToken get_type() {
+        return type_token;
+    }
+
     int read_token() {
         if (Compiler::get_file()->peek() == EOF) {
             log("{ TokenType: EndOfFile }");
-            return TokenType::Token_EndOfFile;
+            return Token::Token_EndOfFile;
         }
 
         while (isspace(last_char)) {
@@ -60,45 +66,87 @@ namespace Kepler::Lexer {
             last_char = Compiler::get_file()->read_next_char();
         }
 
-        if (identifier == "function") {
-            log("{ TokenType: function }");
-            return TokenType::Token_Function;
-        }
-        else if (identifier == "extern") {
+        if (identifier == "extern") {
             log("{ TokenType: extern }");
-            return TokenType::Token_Extern;
+            return Token::Token_Extern;
         }
         else if (identifier == "return") {
             log("{ TokenType: return }");
-            return TokenType::Token_Return;
+            return Token::Token_Return;
         }
         else if (identifier == "end") {
             log("{ TokenType: end }");
-            return TokenType::Token_End;
+            return Token::Token_End;
         }
         else if (identifier == "if") {
             log("{ TokenType: if }");
-            return TokenType::Token_If;
+            return Token::Token_If;
         }
         else if (identifier == "else") {
             log("{ TokenType: else }");
-            return TokenType::Token_Else;
+            return Token::Token_Else;
         }
         else if (identifier == "elseif") {
             log("{ TokenType: elseif }");
-            return TokenType::Token_Elseif;
+            return Token::Token_Elseif;
         }
         else if (identifier == "for") {
             log("{ TokenType: for }");
-            return TokenType::Token_For;
+            return Token::Token_For;
         }
         else if (identifier == "var") {
             log("{ TokenType: var }");
-            return TokenType::Token_Var;
+            type_token = TypeToken::Var;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "bool") {
+            log("{ TokenType: bool }");
+            type_token = TypeToken::Bool;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "char") {
+            log("{ TokenType: char }");
+            type_token = TypeToken::Char;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "string") {
+            log("{ TokenType: string }");
+            type_token = TypeToken::String;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "i8") {
+            log("{ TokenType: i8 }");
+            type_token = TypeToken::Int8;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "i16") {
+            log("{ TokenType: i16 }");
+            type_token = TypeToken::Int16;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "i32") {
+            log("{ TokenType: i32 }");
+            type_token = TypeToken::Int32;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "i64") {
+            log("{ TokenType: i64 }");
+            type_token = TypeToken::Int64;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "f32") {
+            log("{ TokenType: f32 }");
+            type_token = TypeToken::Float32;
+            return Token::Token_DataType;
+        }
+        else if (identifier == "f64") {
+            log("{ TokenType: f64 }");
+            type_token = TypeToken::Float64;
+            return Token::Token_DataType;
         }
 
         log("{ TokenType: identifier: '", identifier, "' }");
-        return TokenType::Token_Identifier;
+        return Token::Token_Identifier;
     }
 
     static int read_number() {
@@ -111,7 +159,7 @@ namespace Kepler::Lexer {
         number_value = strtod(value_string.c_str(), 0);
 
         log("{ TokenType: number: ", number_value, " }");
-        return TokenType::Token_Number;
+        return Token::Token_Number;
     }
 
     static int read_comment() {
@@ -123,7 +171,7 @@ namespace Kepler::Lexer {
                 if (Compiler::get_file()->peek() == EOF) {
                     log(LogStyle::WARNING, "[ Lexing warning ]", LogStyle::DEFAULT, ": multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
                     log("{ TokenType: EndOfFile }");
-                    return TokenType::Token_EndOfFile;
+                    return Token::Token_EndOfFile;
                 }
 
                 last_char = Compiler::get_file()->read_next_char();
@@ -137,7 +185,7 @@ namespace Kepler::Lexer {
             while (last_char != '\n' && last_char != '\r') {
                 if (Compiler::get_file()->peek() == EOF) {
                     log("{ TokenType: EndOfFile }");
-                    return TokenType::Token_EndOfFile;
+                    return Token::Token_EndOfFile;
                 }
 
                 last_char = Compiler::get_file()->read_next_char();
