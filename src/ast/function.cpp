@@ -45,7 +45,7 @@ namespace Kepler::AST {
         // record function arguments
         Compiler::get_named_values().clear();
         for (auto& arg : f->args()) {
-            llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getName());
+            llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getType(), arg.getName());
             Compiler::get_builder().CreateStore(&arg, alloca);
             Compiler::get_named_values()[std::string(arg.getName())] = alloca;
         }

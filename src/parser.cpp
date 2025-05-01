@@ -13,6 +13,7 @@
 #include "ast/function.hpp"
 #include "ast/if_expression.hpp"
 #include "ast/number_expression.hpp"
+#include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
 #include "ast/variable_expression.hpp"
@@ -207,23 +208,43 @@ namespace Kepler::Parser {
             }
         }
 
-        std::vector<std::string> arg_names;
-        read_next_token();
-        while (current_token == Lexer::Token_Identifier) {
-            arg_names.push_back(Lexer::get_identifier());
+        std::vector<AST::ParameterData> args;
+        read_next_token(); // eat '('
 
-            read_next_token();
+        if (current_token != Lexer::Token_DataType && current_token != ')') {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected data type or ')' after '(' in prototype");
+            return nullptr;
+        }
+
+        while (current_token == Lexer::Token_DataType) {
+            TypeToken type = Lexer::get_type();
+
+            read_next_token(); // eat data type
+            if (current_token != Lexer::Token_Identifier) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after data type in prototype");
+                return nullptr;
+            }
+
+            args.push_back({ type, std::move(Lexer::get_identifier()) });
+
+            read_next_token(); // eat identifier
             if (current_token == ',') {
-                read_next_token();
+                read_next_token(); // eat ','
+
+                if (current_token != Lexer::Token_DataType) {
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected data type after ',' in prototype");
+                    return nullptr;
+                }
             }
         }
+
         if (current_token != ')') {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after function arguments in prototype");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after function parameters in prototype");
             return nullptr;
         }
 
         read_next_token(); // eat ')'
-        return std::make_unique<AST::Prototype>(type, std::move(identifier), std::move(arg_names));
+        return std::make_unique<AST::Prototype>(type, std::move(identifier), std::move(args));
     }
 
     static std::unique_ptr<AST::Function> parse_function(TypeToken type, std::string identifier) {

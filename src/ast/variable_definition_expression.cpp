@@ -1,5 +1,6 @@
 #include <cassert>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Type.h>
 #include <memory>
 
 #include "../compiler.hpp"
@@ -22,7 +23,8 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        llvm::AllocaInst* alloca = create_entry_block_alloca(f, name);
+        // tmp until explicit types for variable definitions are implemented
+        llvm::AllocaInst* alloca = create_entry_block_alloca(f, llvm::Type::getDoubleTy(Compiler::get_context()), name);
         Compiler::get_named_values()[std::string(name)] = alloca;
 
         assert(value->get_operator() == '=' && "[ Assertion ]: operator of variable assignment has to be '='");

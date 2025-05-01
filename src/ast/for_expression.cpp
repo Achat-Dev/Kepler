@@ -31,7 +31,8 @@ namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> ForExpression::codegen() {
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
-        llvm::AllocaInst* alloca = create_entry_block_alloca(f, variable_name);
+        // Tmp hardcoded type
+        llvm::AllocaInst* alloca = create_entry_block_alloca(f, llvm::Type::getDoubleTy(Compiler::get_context()), variable_name);
 
         // Save old variable if the loop variable overrides it
         llvm::AllocaInst* old_value = Compiler::get_named_values()[variable_name];
