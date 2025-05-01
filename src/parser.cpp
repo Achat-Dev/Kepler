@@ -444,31 +444,33 @@ namespace Kepler::Parser {
         return std::make_unique<AST::ReturnExpression>(std::move(expression));
     }
 
+    // TODO: implement casting ('(' afer data type)
     static std::unique_ptr<AST::Expression> parse_local_variable() {
-        read_next_token(); // eat 'var'
+        TypeToken type = Lexer::get_type();
 
+        read_next_token(); // eat data type
         if (current_token != Lexer::Token_Identifier) {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after 'var'");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after data type in local variable definition");
             return nullptr;
         }
         std::string variable_name = Lexer::get_identifier();
 
-        read_next_token();
+        read_next_token(); // eat idetifier
         if (current_token != '=') {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '=' after 'var' identifier");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '=' after data type identifier in local variable definition");
             return nullptr;
         }
         read_next_token(); // eat '='
 
         std::unique_ptr<AST::Expression> value = parse_expression();
         if (!value) {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'var' assignment");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in variable assignment in local variable definition");
             return nullptr;
         }
 
         std::unique_ptr<AST::BinaryExpression> assignment_expression = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::move(value));
 
-        return std::make_unique<AST::VariableDefinitionExpression>(variable_name, std::move(assignment_expression));
+        return std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment_expression));
     }
 
     static bool handle_function(TypeToken type, std::string identifier) {
@@ -509,13 +511,8 @@ namespace Kepler::Parser {
                 return handle_function(type, std::move(identifier));
             }
         }
-        // Cast
-        else if (current_token == '(') {
-            log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casts are not supported yet");
-            return false;
-        }
 
-        log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier or parenthesis (cast) after data type");
+        log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after data type on top level");
         return false;
     }
 

@@ -5,6 +5,7 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../type.hpp"
 #include "../utils.hpp"
 #include "expression_result.hpp"
 #include "variable_definition_expression.hpp"
@@ -23,8 +24,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        // tmp until explicit types for variable definitions are implemented
-        llvm::AllocaInst* alloca = create_entry_block_alloca(f, llvm::Type::getDoubleTy(Compiler::get_context()), name);
+        llvm::AllocaInst* alloca = create_entry_block_alloca(f, Type::get_by_token(type), name);
         Compiler::get_named_values()[std::string(name)] = alloca;
 
         assert(value->get_operator() == '=' && "[ Assertion ]: operator of variable assignment has to be '='");
