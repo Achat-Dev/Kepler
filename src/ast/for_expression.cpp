@@ -32,8 +32,8 @@ namespace Kepler::AST {
         llvm::AllocaInst* old_value = Compiler::get_named_values()[variable_name];
 
         // Codegen start value
-        std::unique_ptr<ExpressionResult> startv = start->codegen();
-        if (!startv->is_valid()) {
+        std::unique_ptr<ExpressionResult> start_er = start->codegen();
+        if (!start_er->is_valid()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' start value");
             return ExpressionResult::create_invalid();
         }
@@ -41,13 +41,13 @@ namespace Kepler::AST {
 
         // Codegen the end condition
         // This needs to be codegened in the entry block of the function in order to determine if the loop should be entered at all
-        std::unique_ptr<ExpressionResult> endv = end->codegen();
-        if (!endv->is_valid()) {
+        std::unique_ptr<ExpressionResult> end_er = end->codegen();
+        if (!end_er->is_valid()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' end value");
             return ExpressionResult::create_invalid();
         }
-        llvm::Value* start_select_condition = Compiler::get_builder().CreateFCmpULE(startv->get_value(), endv->get_value());
-        llvm::Value* start_condition = codegen_end_condition(start_select_condition, alloca, endv->get_value(), variable_name.c_str());
+        llvm::Value* end_select_condition = Compiler::get_builder().CreateFCmpULE(start_er->get_value(), end_er->get_value());
+        llvm::Value* start_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str());
 
         // Don't create a terminator for the entry block yet because that depends on if the body is a qualified return
         llvm::BasicBlock* entry_block = Compiler::get_builder().GetInsertBlock();
@@ -56,12 +56,12 @@ namespace Kepler::AST {
 
         // Codegen body
         for (int i = 0; i < body.size(); i++) {
-            std::unique_ptr<ExpressionResult> bodyv = body[i]->codegen();
-            if (!bodyv->is_valid()) {
+            std::unique_ptr<ExpressionResult> body_er = body[i]->codegen();
+            if (!body_er->is_valid()) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' body");
                 return ExpressionResult::create_invalid();
             }
-            if (bodyv->is_return_statement() || bodyv->forms_qualified_return()) {
+            if (body_er->is_return_statement() || body_er->forms_qualified_return()) {
                 log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": return in 'for' body detected. This will always be executed even if the loop condition is false at start. Consider removing the for loop");
 
                 // Create the terminator for the entry block -> branch to the loop_block
@@ -74,18 +74,18 @@ namespace Kepler::AST {
         }
 
         // Codegen step
-        llvm::Value* step_value;
+        llvm::Value* step_v;
         if (step) {
-            std::unique_ptr<ExpressionResult> stepv = step->codegen();
-            if (!stepv->is_valid()) {
+            std::unique_ptr<ExpressionResult> step_er = step->codegen();
+            if (!step_er->is_valid()) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' step value");
                 return ExpressionResult::create_invalid();
             }
-            step_value = stepv->get_value();
+            step_v = step_er->get_value();
         }
         else {
             // Step is implicit, so we need to dynamically decide if it should be 1 or -1
-            step_value = Compiler::get_builder().CreateSelect(start_select_condition,
+            step_v = Compiler::get_builder().CreateSelect(end_select_condition,
                 llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(1.0)),
                 llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(-1.0))
             );
@@ -93,11 +93,11 @@ namespace Kepler::AST {
 
         // Calculate loop variable for next iteration
         llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());
-        llvm::Value* next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_value, "nextvariable");
+        llvm::Value* next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_v, "nextvariable");
         Compiler::get_builder().CreateStore(next_variable, alloca);
 
         // Codegen loop end condition in the body to check if the loop should be exited
-        llvm::Value* end_condition = codegen_end_condition(start_select_condition, alloca, endv->get_value(), variable_name.c_str());
+        llvm::Value* end_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str());
 
         //Evaluate if loop should exit
         llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterloop", f);

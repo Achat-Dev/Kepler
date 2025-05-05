@@ -11,26 +11,26 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> CallExpression::codegen() {
-        llvm::Function* calleef = Compiler::get_module().getFunction(callee);
-        if (!calleef) {
+        llvm::Function* callee_f = Compiler::get_module().getFunction(callee);
+        if (!callee_f) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown function called");
             return ExpressionResult::create_invalid();
         }
 
-        if (calleef->arg_size() != args.size()) {
+        if (callee_f->arg_size() != args.size()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": incorrect number of arguments passed to function");
             return ExpressionResult::create_invalid();
         }
 
-        std::vector<llvm::Value*> argsv;
+        std::vector<llvm::Value*> args_v;
         for (unsigned i = 0, e = args.size(); i != e; i++) {
-            argsv.push_back(args[i]->codegen()->get_value());
-            if (!argsv.back()) {
+            args_v.push_back(args[i]->codegen()->get_value());
+            if (!args_v.back()) {
                 return ExpressionResult::create_invalid();
             }
         }
 
-        return ExpressionResult::create(Compiler::get_builder().CreateCall(calleef, argsv, "calltmp"), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        return ExpressionResult::create(Compiler::get_builder().CreateCall(callee_f, args_v, "calltmp"), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
 

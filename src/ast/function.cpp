@@ -1,3 +1,4 @@
+#include <llvm/IR/Argument.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
@@ -39,12 +40,12 @@ namespace Kepler::AST {
             return nullptr;
         }
 
-        llvm::BasicBlock* bb = llvm::BasicBlock::Create(Compiler::get_context(), "entry", f);
-        Compiler::get_builder().SetInsertPoint(bb);
+        llvm::BasicBlock* entry_block = llvm::BasicBlock::Create(Compiler::get_context(), "entry", f);
+        Compiler::get_builder().SetInsertPoint(entry_block);
 
         // record function arguments
         Compiler::get_named_values().clear();
-        for (auto& arg : f->args()) {
+        for (llvm::Argument& arg : f->args()) {
             llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getType(), arg.getName());
             Compiler::get_builder().CreateStore(&arg, alloca);
             Compiler::get_named_values()[std::string(arg.getName())] = alloca;
@@ -52,13 +53,13 @@ namespace Kepler::AST {
 
         // Codegen function body
         for (int i = 0; i < body.size(); i++) {
-            std::unique_ptr<ExpressionResult> bodyv = body[i]->codegen();
-            if (!bodyv->is_valid()) {
+            std::unique_ptr<ExpressionResult> body_er = body[i]->codegen();
+            if (!body_er->is_valid()) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in function");
                 f->eraseFromParent();
                 return nullptr;
             }
-            if (bodyv->is_return_statement() || bodyv->forms_qualified_return()) {
+            if (body_er->is_return_statement() || body_er->forms_qualified_return()) {
                 if (body.size() - (i + 1) > 0) {
                     log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": unreachable code in function detected");
                 }

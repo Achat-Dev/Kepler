@@ -31,9 +31,9 @@ namespace Kepler::AST {
         assert(value->get_operator() == '=' && "[ Assertion ]: operator of variable assignment has to be '='");
 
         // Since this is a BinaryExpression codegen handles the assignment and error handling
-        std::unique_ptr<ExpressionResult> valuev = value->codegen();
+        std::unique_ptr<ExpressionResult> value_er = value->codegen();
 
-        return std::move(valuev);
+        return std::move(value_er);
     }
 
     const std::string& VariableDefinitionExpression::get_name() const {

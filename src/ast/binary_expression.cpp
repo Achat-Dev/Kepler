@@ -20,30 +20,30 @@ namespace Kepler::AST {
 
             // Don't codegen the lhs expression because we know it's a VariableExpression and we don't want to unnecessarily load it
             // Just do a lookup to check if the variable name exists
-            llvm::Value* variable = Compiler::get_named_values()[lhs_as_variable->get_name()];
-            if (!variable) {
+            llvm::Value* variable_v = Compiler::get_named_values()[lhs_as_variable->get_name()];
+            if (!variable_v) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown variable name '", lhs_as_variable->get_name(), '\'');
                 return ExpressionResult::create_invalid();
             }
 
-            std::unique_ptr<ExpressionResult> valuev = rhs->codegen();
-            if (!valuev->is_valid()) {
+            std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
+            if (!rhs_er->is_valid()) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid assignment expression to variable '", lhs_as_variable->get_name(), '\'');
                 return ExpressionResult::create_invalid();
             }
-            if (!valuev->is_assignable()) {
+            if (!rhs_er->is_assignable()) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": assignment value to variable '", lhs_as_variable->get_name(), "' is not assignable");
                 return ExpressionResult::create_invalid();
             }
 
-            Compiler::get_builder().CreateStore(valuev->get_value(), variable);
-            return std::move(valuev);
+            Compiler::get_builder().CreateStore(rhs_er->get_value(), variable_v);
+            return std::move(rhs_er);
         }
 
-        std::unique_ptr<ExpressionResult> lhsv = lhs->codegen();
-        std::unique_ptr<ExpressionResult> rhsv = rhs->codegen();
+        std::unique_ptr<ExpressionResult> lhs_er = lhs->codegen();
+        std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
 
-        if (!lhsv->is_valid() || !rhsv->is_valid()) {
+        if (!lhs_er->is_valid() || !rhs_er->is_valid()) {
             return ExpressionResult::create_invalid();
         }
 
@@ -51,24 +51,24 @@ namespace Kepler::AST {
         unsigned int flags = ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable;
         switch (op) {
             case '<':
-                lhsv->set_value(Compiler::get_builder().CreateFCmpULT(lhsv->get_value(), rhsv->get_value(), "cmptmp"));
-                value = Compiler::get_builder().CreateUIToFP(lhsv->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
+                lhs_er->set_value(Compiler::get_builder().CreateFCmpULT(lhs_er->get_value(), rhs_er->get_value(), "cmptmp"));
+                value = Compiler::get_builder().CreateUIToFP(lhs_er->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
                 return ExpressionResult::create(value, flags);
             case '>':
-                lhsv->set_value(Compiler::get_builder().CreateFCmpUGT(lhsv->get_value(), rhsv->get_value(), "cmptmp"));
-                value = Compiler::get_builder().CreateUIToFP(lhsv->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
+                lhs_er->set_value(Compiler::get_builder().CreateFCmpUGT(lhs_er->get_value(), rhs_er->get_value(), "cmptmp"));
+                value = Compiler::get_builder().CreateUIToFP(lhs_er->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
                 return ExpressionResult::create(value, flags);
             case '+':
-                value = Compiler::get_builder().CreateFAdd(lhsv->get_value(), rhsv->get_value(), "addtmp");
+                value = Compiler::get_builder().CreateFAdd(lhs_er->get_value(), rhs_er->get_value(), "addtmp");
                 return ExpressionResult::create(value, flags);
             case '-':
-                value = Compiler::get_builder().CreateFSub(lhsv->get_value(), rhsv->get_value(), "subtmp");
+                value = Compiler::get_builder().CreateFSub(lhs_er->get_value(), rhs_er->get_value(), "subtmp");
                 return ExpressionResult::create(value, flags);
             case '*':
-                value = Compiler::get_builder().CreateFMul(lhsv->get_value(), rhsv->get_value(), "multmp");
+                value = Compiler::get_builder().CreateFMul(lhs_er->get_value(), rhs_er->get_value(), "multmp");
                 return ExpressionResult::create(value, flags);
             case '/':
-                value = Compiler::get_builder().CreateFDiv(lhsv->get_value(), rhsv->get_value(), "divtmp");
+                value = Compiler::get_builder().CreateFDiv(lhs_er->get_value(), rhs_er->get_value(), "divtmp");
                 return ExpressionResult::create(value, flags);
             default:
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid binary operator");
