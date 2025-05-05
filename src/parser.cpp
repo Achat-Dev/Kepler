@@ -298,18 +298,39 @@ namespace Kepler::Parser {
         bool is_elseif = current_token == Lexer::Token_Parsing_Elseif;
 
         read_next_token(); // eat 'if' or 'elseif'
+        if (current_token != '(') {
+            if (is_elseif) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after 'elseif'");
+            }
+            else {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after 'if'");
+            }
+            return nullptr;
+        }
+        read_next_token(); // eat '('
 
         // Parse 'if' condition
         std::unique_ptr<AST::Expression> condition = parse_expression();
         if (!condition) {
             if (is_elseif) {
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after 'elseif'");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after '(' in 'elseif'");
             }
             else {
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after 'if'");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after '(' in 'if'");
             }
             return nullptr;
         }
+
+        if (current_token != ')') {
+            if (is_elseif) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after condition in 'elseif'");
+            }
+            else {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after condition in 'if'");
+            }
+            return nullptr;
+        }
+        read_next_token(); // eat ')'
 
         // Parse 'if' body
         std::vector<std::unique_ptr<AST::Expression>> if_body;
