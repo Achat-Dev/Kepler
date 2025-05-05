@@ -3,6 +3,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -40,6 +41,7 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Function> parse_top_level_expression();
     static std::unique_ptr<AST::Expression> parse_if();
     static std::unique_ptr<AST::Expression> parse_for();
+    static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body();
     static std::unique_ptr<AST::Expression> parse_return();
     static std::unique_ptr<AST::Expression> parse_local_variable();
     static bool handle_function(TypeToken type, std::string identifier);
@@ -158,7 +160,7 @@ namespace Kepler::Parser {
             case '(': return parse_parenthesis();
             case '-': return parse_negative();
             default:
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": unknown token when expected expression. Current token:", current_token);
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": unknown token when expected expression. Current token: ", current_token);
                 return nullptr;
         }
     }
@@ -372,54 +374,116 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Expression> parse_for() {
         read_next_token(); // eat 'for'
+        if (current_token != '(') {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after 'for'");
+            return nullptr;
+        }
 
+        read_next_token(); // eat '('
+        if (current_token != Lexer::Token_DataType) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected data type after '(' in 'for'");
+            return nullptr;
+        }
+
+        TypeToken type = Lexer::get_type();
+        read_next_token(); // eat data type
         if (current_token != Lexer::Token_Identifier) {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after 'for'");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after data type in 'for'");
             return nullptr;
         }
 
         std::string variable_name = Lexer::get_identifier();
-
-        read_next_token();
-        if (current_token != '=') {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '=' after identifier in 'for'");
+        read_next_token(); // eat identifier
+        if (current_token != ':') {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ':' after identifier in 'for'");
             return nullptr;
         }
-        read_next_token(); // eat '='
+        read_next_token(); // eat ':'
 
         std::unique_ptr<AST::Expression> start = parse_expression();
         if (!start) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid start expression in 'for'");
             return nullptr;
         }
+
+        // Only end value is given, start and step are implicit
+        if (current_token == ')') {
+            read_next_token(); // eat ')'
+            std::optional<std::vector<std::unique_ptr<AST::Expression>>> body = parse_for_body();
+            if (!body) {
+                return nullptr;
+            }
+
+            std::unique_ptr<AST::BinaryExpression> assignment = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::make_unique<AST::NumberExpression>(0));
+            std::unique_ptr<AST::VariableDefinitionExpression> variable = std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment));
+
+            // 'start' is the end value
+            return std::make_unique<AST::ForExpression>(std::move(variable), std::move(start), nullptr, std::move(*body));
+        }
+
         if (current_token != ',') {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ',' after 'for' variable initialisation");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ',' or ')' after first expression in 'for'");
             return nullptr;
         }
         read_next_token(); // eat ','
 
         std::unique_ptr<AST::Expression> end = parse_expression();
         if (!end) {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected end value after ','");
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected end expression after ','");
             return nullptr;
         }
 
-        std::unique_ptr<AST::Expression> step;
-        if (current_token == ',') {
-            read_next_token(); // eat ','
-            step = parse_expression();
-            if (!step) {
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected step value after ','");
+        // Only start and end value are given, step is implicit
+        if (current_token == ')') {
+            read_next_token(); // eat ')'
+
+            std::optional<std::vector<std::unique_ptr<AST::Expression>>> body = parse_for_body();
+            if (!body) {
                 return nullptr;
             }
+
+            std::unique_ptr<AST::BinaryExpression> assignment = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::move(start));
+            std::unique_ptr<AST::VariableDefinitionExpression> variable = std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment));
+
+            return std::make_unique<AST::ForExpression>(std::move(variable), std::move(end), nullptr, std::move(*body));
         }
 
+        if (current_token != ',') {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ',' or ')' after second expression in 'for'");
+            return nullptr;
+        }
+        read_next_token(); // eat ','
+
+        std::unique_ptr<AST::Expression> step = parse_expression();
+        if (!step) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected step expression after ','");
+            return nullptr;
+        }
+
+        if (current_token != ')') {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": after ')' after step expression in 'for'");
+            return nullptr;
+        }
+        read_next_token(); // eat ')'
+
+        std::optional<std::vector<std::unique_ptr<AST::Expression>>> body = parse_for_body();
+        if (!body) {
+            return nullptr;
+        }
+
+        std::unique_ptr<AST::BinaryExpression> assignment = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::move(start));
+        std::unique_ptr<AST::VariableDefinitionExpression> variable = std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment));
+
+        return std::make_unique<AST::ForExpression>(std::move(variable), std::move(end), std::move(step), std::move(*body));
+    }
+
+    static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body() {
         std::vector<std::unique_ptr<AST::Expression>> body;
         while (current_token != Lexer::Token_End) {
-            auto expression = parse_expression();
+            std::unique_ptr<AST::Expression> expression = parse_expression();
             if (!expression) {
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'for' body");
-                return nullptr;
+                return std::nullopt;
             }
             body.push_back(std::move(expression));
         }
@@ -429,8 +493,7 @@ namespace Kepler::Parser {
         }
 
         read_next_token(); // eat 'end'
-
-        return std::make_unique<AST::ForExpression>(variable_name, std::move(start), std::move(end), std::move(step), std::move(body));
+        return std::move(body);
     }
 
     static std::unique_ptr<AST::Expression> parse_return() {
@@ -444,7 +507,7 @@ namespace Kepler::Parser {
         return std::make_unique<AST::ReturnExpression>(std::move(expression));
     }
 
-    // TODO: implement casting ('(' afer data type)
+    // TODO: implement casting ('(' after data type)
     static std::unique_ptr<AST::Expression> parse_local_variable() {
         TypeToken type = Lexer::get_type();
 
@@ -503,7 +566,7 @@ namespace Kepler::Parser {
 
             // Variable definition
             if (current_token == '=') {
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": global variables not supported yet");
+                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": global variables are not supported yet");
                 return false;
             }
             // Function definition

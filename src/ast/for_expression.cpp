@@ -7,36 +7,29 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <memory>
+#include <string>
 
 #include "../compiler.hpp"
 #include "../log.hpp"
-#include "../utils.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
 #include "for_expression.hpp"
 
 namespace Kepler::AST {
 
-    static std::unique_ptr<ExpressionResult> codegen_end_condition(std::unique_ptr<Expression>& end) {
-        std::unique_ptr<ExpressionResult> end_condition = end->codegen();
-        if (!end_condition->is_valid()) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' end condition");
-            return ExpressionResult::create_invalid();
-        }
-
-        // Convert condition to a bool by comparing to 0.0
-        end_condition->set_value(Compiler::get_builder().CreateFCmpONE(end_condition->get_value(), llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "loopcondition"));
-        return std::move(end_condition);
+    static llvm::Value* codegen_end_condition(llvm::Value* select_condition, llvm::AllocaInst* alloca, llvm::Value* endv, const char* variable_name) {
+        return Compiler::get_builder().CreateSelect(select_condition,
+            Compiler::get_builder().CreateFCmpULT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
+            Compiler::get_builder().CreateFCmpUGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
+        );
     }
 
     std::unique_ptr<ExpressionResult> ForExpression::codegen() {
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
-        // Tmp hardcoded type
-        llvm::AllocaInst* alloca = create_entry_block_alloca(f, llvm::Type::getDoubleTy(Compiler::get_context()), variable_name);
 
         // Save old variable if the loop variable overrides it
+        std::string variable_name = start->get_name();
         llvm::AllocaInst* old_value = Compiler::get_named_values()[variable_name];
-        Compiler::get_named_values()[variable_name] = alloca;
 
         // Codegen start value
         std::unique_ptr<ExpressionResult> startv = start->codegen();
@@ -44,11 +37,17 @@ namespace Kepler::AST {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' start value");
             return ExpressionResult::create_invalid();
         }
-        Compiler::get_builder().CreateStore(startv->get_value(), alloca);
+        llvm::AllocaInst* alloca = Compiler::get_named_values()[variable_name];
 
         // Codegen the end condition
         // This needs to be codegened in the entry block of the function in order to determine if the loop should be entered at all
-        std::unique_ptr<ExpressionResult> start_condition = codegen_end_condition(end);
+        std::unique_ptr<ExpressionResult> endv = end->codegen();
+        if (!endv->is_valid()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' end value");
+            return ExpressionResult::create_invalid();
+        }
+        llvm::Value* start_select_condition = Compiler::get_builder().CreateFCmpULE(startv->get_value(), endv->get_value());
+        llvm::Value* start_condition = codegen_end_condition(start_select_condition, alloca, endv->get_value(), variable_name.c_str());
 
         // Don't create a terminator for the entry block yet because that depends on if the body is a qualified return
         llvm::BasicBlock* entry_block = Compiler::get_builder().GetInsertBlock();
@@ -75,32 +74,38 @@ namespace Kepler::AST {
         }
 
         // Codegen step
-        std::unique_ptr<ExpressionResult> step_value = nullptr;
+        llvm::Value* step_value;
         if (step) {
-            step_value = step->codegen();
-            if (!step_value->is_valid()) {
+            std::unique_ptr<ExpressionResult> stepv = step->codegen();
+            if (!stepv->is_valid()) {
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' step value");
                 return ExpressionResult::create_invalid();
             }
+            step_value = stepv->get_value();
         }
         else {
-            step_value->set_value(llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(1.0)));
+            // Step is implicit, so we need to dynamically decide if it should be 1 or -1
+            step_value = Compiler::get_builder().CreateSelect(start_select_condition,
+                llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(1.0)),
+                llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(-1.0))
+            );
         }
 
         // Calculate loop variable for next iteration
         llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());
-        llvm::Value* next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_value->get_value(), "nextvariable");
+        llvm::Value* next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_value, "nextvariable");
         Compiler::get_builder().CreateStore(next_variable, alloca);
 
         // Codegen loop end condition in the body to check if the loop should be exited
-        std::unique_ptr<ExpressionResult> end_condition = codegen_end_condition(end);
+        llvm::Value* end_condition = codegen_end_condition(start_select_condition, alloca, endv->get_value(), variable_name.c_str());
 
         //Evaluate if loop should exit
         llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterloop", f);
-        Compiler::get_builder().CreateCondBr(end_condition->get_value(), loop_block, after_loop_block);
+        Compiler::get_builder().CreateCondBr(end_condition, loop_block, after_loop_block);
 
         // Create the terminator for the entry block -> conditional branch to either the loop_block or after_loop_block
         Compiler::get_builder().SetInsertPoint(entry_block);
-        Compiler::get_builder().CreateCondBr(start_condition->get_value(), loop_block, after_loop_block);
+        Compiler::get_builder().CreateCondBr(start_condition, loop_block, after_loop_block);
 
         Compiler::get_builder().SetInsertPoint(after_loop_block);
 

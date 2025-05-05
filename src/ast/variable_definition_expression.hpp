@@ -20,6 +20,7 @@ namespace Kepler::AST {
         VariableDefinitionExpression(TypeToken type, const std::string& name, std::unique_ptr<BinaryExpression> value)
             : type(type), name(name), value(std::move(value)) {}
         std::unique_ptr<ExpressionResult> codegen() override;
+        const std::string& get_name() const;
     };
 
 }

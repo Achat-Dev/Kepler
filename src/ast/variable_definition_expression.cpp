@@ -2,6 +2,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
 #include <memory>
+#include <string>
 
 #include "../compiler.hpp"
 #include "../log.hpp"
@@ -33,6 +34,10 @@ namespace Kepler::AST {
         std::unique_ptr<ExpressionResult> valuev = value->codegen();
 
         return std::move(valuev);
+    }
+
+    const std::string& VariableDefinitionExpression::get_name() const {
+        return name;
     }
 
 }

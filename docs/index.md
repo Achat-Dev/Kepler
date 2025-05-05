@@ -66,7 +66,17 @@ end
 #### for
 
 ```
-for (type i : start, stop, step)
+# implicit start = 0 and step = 1 / -1
+for (<type> i : stop)
+  ...
+end
+
+# implicit step = 1 / -1
+for (<type> i : start, stop)
+  ...
+end
+
+for (<type> i : start, stop, step)
   ...
 end
 ```

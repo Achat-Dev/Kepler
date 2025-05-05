@@ -1,30 +1,27 @@
 #pragma once
 
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "expression.hpp"
 #include "expression_result.hpp"
+#include "variable_definition_expression.hpp"
 
 namespace Kepler::AST {
 
     class ForExpression: public Expression {
     private:
-        std::string variable_name;
-        std::unique_ptr<Expression> start;
+        std::unique_ptr<VariableDefinitionExpression> start;
         std::unique_ptr<Expression> end;
         std::unique_ptr<Expression> step;
         std::vector<std::unique_ptr<Expression>> body;
 
     public:
-        ForExpression(std::string variable_name,
-            std::unique_ptr<Expression> start,
+        ForExpression(std::unique_ptr<VariableDefinitionExpression> start,
             std::unique_ptr<Expression> end,
             std::unique_ptr<Expression> step,
             std::vector<std::unique_ptr<Expression>> body)
-            : variable_name(variable_name),
-              start(std::move(start)),
+            : start(std::move(start)),
               end(std::move(end)),
               step(std::move(step)),
               body(std::move(body)) {}
