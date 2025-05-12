@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "ast/prototype.hpp"
-#include "ast/variable_data.hpp"
 #include "file.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
@@ -78,10 +77,6 @@ namespace Kepler::Compiler {
         return *module;
     }
 
-    std::map<std::string, std::pair<Type::TypeToken, llvm::AllocaInst*>>& get_local_variables() {
-        return local_variables;
-    }
-
     std::map<std::string, std::shared_ptr<AST::Prototype>>& get_prototypes() {
         return prototypes;
     }
@@ -97,14 +92,6 @@ namespace Kepler::Compiler {
 
     Type::TypeToken get_function_return_type() {
         return function_return_type;
-    }
-
-    std::optional<AST::VariableData> get_local_variable(const std::string& name) {
-        if (local_variables.find(name) != local_variables.end()) {
-            std::pair<Type::TypeToken, llvm::AllocaInst*>& variable = local_variables[name];
-            return AST::VariableData{ variable.first, variable.second };
-        }
-        return std::nullopt;
     }
 
     bool compile_file(const char* filename, const char* outname) {

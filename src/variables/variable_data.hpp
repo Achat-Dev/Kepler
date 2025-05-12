@@ -4,12 +4,13 @@
 
 #include "../type.hpp"
 
-namespace Kepler::AST {
+namespace Kepler::LocalVariables {
 
     struct VariableData {
-        const Type::TypeToken type;
+        Type::TypeToken type;
         llvm::AllocaInst* variable;
 
+        VariableData() = default;
         VariableData(Type::TypeToken type, llvm::AllocaInst* alloca): type(type), variable(alloca) {}
     };
 

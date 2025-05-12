@@ -14,6 +14,7 @@
 #include "../log.hpp"
 #include "../optimiser.hpp"
 #include "../utils.hpp"
+#include "../variables/local_variables.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
 #include "parameter_data.hpp"
@@ -45,12 +46,12 @@ namespace Kepler::AST {
         Compiler::get_builder().SetInsertPoint(entry_block);
 
         // record function arguments
-        Compiler::get_local_variables().clear();
+        LocalVariables::clear();
         for (llvm::Argument& arg : f->args()) {
             llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getType(), arg.getName());
             Compiler::get_builder().CreateStore(&arg, alloca);
             const ParameterData& parameter_data = prototype->get_arg(arg.getName().str());
-            Compiler::get_local_variables()[std::string(arg.getName())] = { parameter_data.type, alloca };
+            LocalVariables::set(std::string(arg.getName()), { parameter_data.type, alloca });
         }
 
         Compiler::set_function_return_type(prototype->get_type());

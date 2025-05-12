@@ -9,6 +9,7 @@
 #include "../log.hpp"
 #include "../type.hpp"
 #include "../utils.hpp"
+#include "../variables/local_variables.hpp"
 #include "expression_result.hpp"
 #include "variable_definition_expression.hpp"
 
@@ -21,13 +22,13 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        if (Compiler::get_local_variable(name)) {
+        if (LocalVariables::get(name)) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": local variable '", name, "' already exists");
             return ExpressionResult::create_invalid();
         }
 
         llvm::AllocaInst* alloca = create_entry_block_alloca(f, Type::get_by_token(type), name);
-        Compiler::get_local_variables()[std::string(name)] = { type, alloca };
+        LocalVariables::set(name, { type, alloca });
 
         assert(value->get_operator() == '=' && "[ Assertion ]: operator of variable assignment has to be '='");
 

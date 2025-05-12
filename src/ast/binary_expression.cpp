@@ -7,9 +7,10 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../variables/local_variables.hpp"
+#include "../variables/variable_data.hpp"
 #include "binary_expression.hpp"
 #include "expression_result.hpp"
-#include "variable_data.hpp"
 #include "variable_expression.hpp"
 
 namespace Kepler::AST {
@@ -24,7 +25,7 @@ namespace Kepler::AST {
 
             // Don't codegen the lhs expression because we know it's a VariableExpression and we don't want to unnecessarily load it
             // Just do a lookup to check if the variable name exists
-            std::optional<VariableData> variable_data = Compiler::get_local_variable(lhs_as_variable->get_name());
+            std::optional<LocalVariables::VariableData> variable_data = LocalVariables::get(lhs_as_variable->get_name());
             if (!variable_data) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown variable name '", lhs_as_variable->get_name(), '\'');
                 return ExpressionResult::create_invalid();

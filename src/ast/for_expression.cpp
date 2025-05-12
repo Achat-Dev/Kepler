@@ -12,9 +12,10 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../variables/variable_data.hpp"
+#include "../variables/local_variables.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
-#include "variable_data.hpp"
 #include "for_expression.hpp"
 
 namespace Kepler::AST {
@@ -31,7 +32,7 @@ namespace Kepler::AST {
 
         // Save old variable if the loop variable overrides it
         std::string variable_name = start->get_name();
-        std::optional<VariableData> old_variable = Compiler::get_local_variable(variable_name);
+        std::optional<LocalVariables::VariableData> old_variable = LocalVariables::get(variable_name);
 
         // Codegen start value
         std::unique_ptr<ExpressionResult> start_er = start->codegen();
@@ -39,7 +40,7 @@ namespace Kepler::AST {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' start value");
             return ExpressionResult::create_invalid();
         }
-        llvm::AllocaInst* alloca = Compiler::get_local_variables()[variable_name].second;
+        llvm::AllocaInst* alloca = LocalVariables::get(variable_name)->variable;
 
         Compiler::TargetTypeStack::push(start_er->get_type());
 
@@ -121,10 +122,10 @@ namespace Kepler::AST {
 
         // Restore old variable if necessary
         if (old_variable) {
-            Compiler::get_local_variables()[variable_name] = { old_variable->type, old_variable->variable };
+            LocalVariables::update(variable_name, *old_variable);
         }
         else {
-            Compiler::get_local_variables().erase(variable_name);
+            LocalVariables::erase(variable_name);
         }
 
         return ExpressionResult::create(nullptr, Type::TypeToken::None, ExpressionResultFlags::Valid);
