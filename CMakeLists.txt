@@ -17,11 +17,12 @@ set(AST_SRC
     "src/ast/for_expression.cpp"
     "src/ast/function.cpp"
     "src/ast/if_expression.cpp"
-    "src/ast/number_expression.cpp"
     "src/ast/prototype.cpp"
     "src/ast/return_expression.cpp"
     "src/ast/variable_expression.cpp"
-    "src/ast/variable_definition_expression.cpp")
+    "src/ast/variable_definition_expression.cpp"
+    "src/ast/value_expressions/floating_point_value_expression.cpp"
+    "src/ast/value_expressions/integer_value_expression.cpp")
 
 add_executable (${CMAKE_PROJECT_NAME}
     "src/main.cpp"
@@ -30,6 +31,7 @@ add_executable (${CMAKE_PROJECT_NAME}
     "src/lexer.cpp"
     "src/optimiser.cpp"
     "src/parser.cpp"
+    "src/target_type_stack.cpp"
     "src/type.cpp"
     "src/utils.cpp"
     ${AST_SRC})

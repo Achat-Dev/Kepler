@@ -16,6 +16,7 @@
 #include "../utils.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
+#include "parameter_data.hpp"
 #include "function.hpp"
 
 namespace Kepler::AST {
@@ -44,12 +45,15 @@ namespace Kepler::AST {
         Compiler::get_builder().SetInsertPoint(entry_block);
 
         // record function arguments
-        Compiler::get_named_values().clear();
+        Compiler::get_local_variables().clear();
         for (llvm::Argument& arg : f->args()) {
             llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getType(), arg.getName());
             Compiler::get_builder().CreateStore(&arg, alloca);
-            Compiler::get_named_values()[std::string(arg.getName())] = alloca;
+            const ParameterData& parameter_data = prototype->get_arg(arg.getName().str());
+            Compiler::get_local_variables()[std::string(arg.getName())] = { parameter_data.type, alloca };
         }
+
+        Compiler::set_function_return_type(prototype->get_type());
 
         // Codegen function body
         for (int i = 0; i < body.size(); i++) {
@@ -66,6 +70,8 @@ namespace Kepler::AST {
                 break;
             }
         }
+
+        Compiler::set_function_return_type(TypeToken::None);
 
         llvm::EliminateUnreachableBlocks(*f);
 

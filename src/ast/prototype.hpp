@@ -20,7 +20,10 @@ namespace Kepler::AST {
         Prototype(TypeToken type, std::string name, std::vector<ParameterData> args)
             : type(type), name(name), args(std::move(args)) {}
         llvm::Function* codegen();
-        const std::string& get_name() const { return name; }
+        TypeToken get_type() const;
+        const std::string& get_name() const;
+        const ParameterData& get_arg(int index) const;
+        const ParameterData& get_arg(const std::string& name) const;
     };
 
 

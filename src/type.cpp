@@ -67,10 +67,7 @@ namespace Kepler {
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'i64' is not supported yet");
                 std::terminate();
                 return nullptr;
-            case TypeToken::Float32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'f32' is not supported yet");
-                std::terminate();
-                return nullptr;
+            case TypeToken::Float32: return llvm::Type::getFloatTy(Compiler::get_context());
             case TypeToken::Float64: return llvm::Type::getDoubleTy(Compiler::get_context());
             default:
                 emergency_exit("type '" + to_string(type) + "' does not map to an llvm type");

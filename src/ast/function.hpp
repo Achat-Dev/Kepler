@@ -11,11 +11,11 @@ namespace Kepler::AST {
 
     class Function {
     private:
-        std::unique_ptr<Prototype> prototype;
+        std::shared_ptr<Prototype> prototype;
         std::vector<std::unique_ptr<Expression>> body;
 
     public:
-        Function(std::unique_ptr<Prototype> prototype, std::vector<std::unique_ptr<Expression>> body)
+        Function(std::shared_ptr<Prototype> prototype, std::vector<std::unique_ptr<Expression>> body)
             : prototype(std::move(prototype)), body(std::move(body)) {}
         llvm::Function* codegen();
     };

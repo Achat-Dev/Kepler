@@ -1,11 +1,15 @@
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <memory>
+#include <optional>
+#include <utility>
 
 #include "../compiler.hpp"
 #include "../log.hpp"
 #include "binary_expression.hpp"
 #include "expression_result.hpp"
+#include "variable_data.hpp"
 #include "variable_expression.hpp"
 
 namespace Kepler::AST {
@@ -20,11 +24,13 @@ namespace Kepler::AST {
 
             // Don't codegen the lhs expression because we know it's a VariableExpression and we don't want to unnecessarily load it
             // Just do a lookup to check if the variable name exists
-            llvm::Value* variable_v = Compiler::get_named_values()[lhs_as_variable->get_name()];
-            if (!variable_v) {
+            std::optional<VariableData> variable_data = Compiler::get_local_variable(lhs_as_variable->get_name());
+            if (!variable_data) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown variable name '", lhs_as_variable->get_name(), '\'');
                 return ExpressionResult::create_invalid();
             }
+
+            Compiler::get_target_type_stack().push(variable_data->type);
 
             std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
             if (!rhs_er->is_valid()) {
@@ -36,14 +42,28 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
 
-            Compiler::get_builder().CreateStore(rhs_er->get_value(), variable_v);
+            if (rhs_er->get_type() != variable_data->type) {
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to assign a value of type '", rhs_er->get_type(), "' to variable of type '", variable_data->type, '\'');
+                return ExpressionResult::create_invalid();
+            }
+
+            Compiler::get_target_type_stack().pop();
+
+            Compiler::get_builder().CreateStore(rhs_er->get_value(), variable_data->variable);
             return std::move(rhs_er);
         }
 
         std::unique_ptr<ExpressionResult> lhs_er = lhs->codegen();
+        Compiler::get_target_type_stack().push(lhs_er->get_type());
         std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
+        Compiler::get_target_type_stack().pop();
 
         if (!lhs_er->is_valid() || !rhs_er->is_valid()) {
+            return ExpressionResult::create_invalid();
+        }
+
+        if (lhs_er->get_type() != rhs_er->get_type()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to create binary operation with types '", lhs_er->get_type(), "' and '", rhs_er->get_type(), '\'');
             return ExpressionResult::create_invalid();
         }
 
@@ -53,23 +73,23 @@ namespace Kepler::AST {
             case '<':
                 lhs_er->set_value(Compiler::get_builder().CreateFCmpULT(lhs_er->get_value(), rhs_er->get_value(), "cmptmp"));
                 value = Compiler::get_builder().CreateUIToFP(lhs_er->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
-                return ExpressionResult::create(value, flags);
+                return ExpressionResult::create(value, lhs_er->get_type(), flags);
             case '>':
                 lhs_er->set_value(Compiler::get_builder().CreateFCmpUGT(lhs_er->get_value(), rhs_er->get_value(), "cmptmp"));
                 value = Compiler::get_builder().CreateUIToFP(lhs_er->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
-                return ExpressionResult::create(value, flags);
+                return ExpressionResult::create(value, lhs_er->get_type(), flags);
             case '+':
                 value = Compiler::get_builder().CreateFAdd(lhs_er->get_value(), rhs_er->get_value(), "addtmp");
-                return ExpressionResult::create(value, flags);
+                return ExpressionResult::create(value, lhs_er->get_type(), flags);
             case '-':
                 value = Compiler::get_builder().CreateFSub(lhs_er->get_value(), rhs_er->get_value(), "subtmp");
-                return ExpressionResult::create(value, flags);
+                return ExpressionResult::create(value, lhs_er->get_type(), flags);
             case '*':
                 value = Compiler::get_builder().CreateFMul(lhs_er->get_value(), rhs_er->get_value(), "multmp");
-                return ExpressionResult::create(value, flags);
+                return ExpressionResult::create(value, lhs_er->get_type(), flags);
             case '/':
                 value = Compiler::get_builder().CreateFDiv(lhs_er->get_value(), rhs_er->get_value(), "divtmp");
-                return ExpressionResult::create(value, flags);
+                return ExpressionResult::create(value, lhs_er->get_type(), flags);
             default:
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid binary operator");
                 return ExpressionResult::create_invalid();

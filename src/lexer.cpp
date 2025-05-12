@@ -1,4 +1,5 @@
 #include <cctype>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -11,20 +12,25 @@
 namespace Kepler::Lexer {
 
     static int read_identifier();
-    static int read_number();
+    static int read_number_value();
     static int read_comment();
 
     static char last_char = ' ';
     static std::string identifier = "";
-    static double number_value = 0.0;
+    static int64_t int_value = 0;
+    static double float_value = 0.0;
     static TypeToken type_token = TypeToken::None;
 
     std::string get_identifier() {
         return identifier;
     }
 
-    double get_number_value() {
-        return number_value;
+    int64_t get_int_value() {
+        return int_value;
+    }
+
+    double get_float_value() {
+        return float_value;
     }
 
     TypeToken get_type() {
@@ -45,7 +51,7 @@ namespace Kepler::Lexer {
             return read_identifier();
         }
         if (isdigit(last_char)) {
-            return read_number();
+            return read_number_value();
         }
         if (last_char == '#') {
             return read_comment();
@@ -149,17 +155,27 @@ namespace Kepler::Lexer {
         return Token::Token_Identifier;
     }
 
-    static int read_number() {
+    static int read_number_value() {
+        bool is_float = false;
         std::string value_string;
         do {
             value_string += last_char;
             last_char = Compiler::get_file()->read_next_char();
+            if (last_char == '.') {
+                is_float = true;
+            }
         } while (isdigit(last_char) || last_char == '.');
 
-        number_value = strtod(value_string.c_str(), 0);
-
-        log("{ TokenType: number: ", number_value, " }");
-        return Token::Token_Number;
+        if (is_float) {
+            float_value = std::stod(value_string);
+            log("{ TokenType: floating point value: ", float_value, " }");
+            return Token::Token_Float_Value;
+        }
+        else {
+            int_value = std::stoll(value_string);
+            log("{ TokenType: integer value: ", int_value, " }");
+            return Token::Token_Int_Value;
+        }
     }
 
     static int read_comment() {

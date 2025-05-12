@@ -9,6 +9,8 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> ReturnExpression::codegen() {
+        Compiler::get_target_type_stack().push(Compiler::get_function_return_type());
+
         std::unique_ptr<ExpressionResult> expression_er = expression->codegen();
         if (!expression_er->is_valid()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": no valid return value");
@@ -19,7 +21,14 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        return ExpressionResult::create(Compiler::get_builder().CreateRet(expression_er->get_value()), ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
+        if (expression_er->get_type() != Compiler::get_function_return_type()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to return a value of type '", expression_er->get_type(), "' from a function of type '", Compiler::get_function_return_type(), '\'');
+            return ExpressionResult::create_invalid();
+        }
+
+        Compiler::get_target_type_stack().pop();
+
+        return ExpressionResult::create(Compiler::get_builder().CreateRet(expression_er->get_value()), expression_er->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
     }
 
 }

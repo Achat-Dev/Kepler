@@ -7,12 +7,14 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "../compiler.hpp"
 #include "../log.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
+#include "variable_data.hpp"
 #include "for_expression.hpp"
 
 namespace Kepler::AST {
@@ -29,7 +31,7 @@ namespace Kepler::AST {
 
         // Save old variable if the loop variable overrides it
         std::string variable_name = start->get_name();
-        llvm::AllocaInst* old_value = Compiler::get_named_values()[variable_name];
+        std::optional<VariableData> old_variable = Compiler::get_local_variable(variable_name);
 
         // Codegen start value
         std::unique_ptr<ExpressionResult> start_er = start->codegen();
@@ -37,7 +39,9 @@ namespace Kepler::AST {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' start value");
             return ExpressionResult::create_invalid();
         }
-        llvm::AllocaInst* alloca = Compiler::get_named_values()[variable_name];
+        llvm::AllocaInst* alloca = Compiler::get_local_variables()[variable_name].second;
+
+        Compiler::get_target_type_stack().push(start_er->get_type());
 
         // Codegen the end condition
         // This needs to be codegened in the entry block of the function in order to determine if the loop should be entered at all
@@ -54,6 +58,8 @@ namespace Kepler::AST {
         llvm::BasicBlock* loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "loop", f);
         Compiler::get_builder().SetInsertPoint(loop_block);
 
+        Compiler::get_target_type_stack().pop();
+
         // Codegen body
         for (int i = 0; i < body.size(); i++) {
             std::unique_ptr<ExpressionResult> body_er = body[i]->codegen();
@@ -69,9 +75,11 @@ namespace Kepler::AST {
                 Compiler::get_builder().CreateBr(loop_block);
                 Compiler::get_builder().SetInsertPoint(loop_block);
 
-                return ExpressionResult::create(nullptr, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
+                return ExpressionResult::create(nullptr, TypeToken::None, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
             }
         }
+
+        Compiler::get_target_type_stack().push(start_er->get_type());
 
         // Codegen step
         llvm::Value* step_v;
@@ -90,6 +98,8 @@ namespace Kepler::AST {
                 llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(-1.0))
             );
         }
+
+        Compiler::get_target_type_stack().pop();
 
         // Calculate loop variable for next iteration
         llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());
@@ -110,14 +120,14 @@ namespace Kepler::AST {
         Compiler::get_builder().SetInsertPoint(after_loop_block);
 
         // Restore old variable if necessary
-        if (old_value) {
-            Compiler::get_named_values()[variable_name] = old_value;
+        if (old_variable) {
+            Compiler::get_local_variables()[variable_name] = { old_variable->type, old_variable->variable };
         }
         else {
-            Compiler::get_named_values().erase(variable_name);
+            Compiler::get_local_variables().erase(variable_name);
         }
 
-        return ExpressionResult::create(nullptr, ExpressionResultFlags::Valid);
+        return ExpressionResult::create(nullptr, TypeToken::None, ExpressionResultFlags::Valid);
     }
 
 }

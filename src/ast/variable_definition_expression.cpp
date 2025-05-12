@@ -1,5 +1,6 @@
 #include <cassert>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <memory>
 #include <string>
@@ -20,17 +21,17 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        if (Compiler::get_named_values()[name]) {
+        if (Compiler::get_local_variable(name)) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": local variable '", name, "' already exists");
             return ExpressionResult::create_invalid();
         }
 
         llvm::AllocaInst* alloca = create_entry_block_alloca(f, Type::get_by_token(type), name);
-        Compiler::get_named_values()[std::string(name)] = alloca;
+        Compiler::get_local_variables()[std::string(name)] = { type, alloca };
 
         assert(value->get_operator() == '=' && "[ Assertion ]: operator of variable assignment has to be '='");
 
-        // Since this is a BinaryExpression codegen handles the assignment and error handling
+        // Since this is a BinaryExpression, codegen handles the assignment and error handling
         std::unique_ptr<ExpressionResult> value_er = value->codegen();
 
         return std::move(value_er);

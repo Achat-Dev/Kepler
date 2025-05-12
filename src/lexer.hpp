@@ -1,6 +1,7 @@
 #pragma once
 
 #include <climits>
+#include <cstdint>
 #include <string>
 
 #include "type.hpp"
@@ -21,8 +22,9 @@ namespace Kepler::Lexer {
 
         // Primary
         Token_Identifier = -9,
-        Token_Number = -10,
-        Token_DataType = -11,
+        Token_Float_Value = -10,
+        Token_Int_Value = -11,
+        Token_DataType = -12,
 
         // Parsing tokens
         // These are necessary for certain parsing operations
@@ -31,7 +33,8 @@ namespace Kepler::Lexer {
 
     int read_token();
     std::string get_identifier();
-    double get_number_value();
+    int64_t get_int_value();
+    double get_float_value();
     TypeToken get_type();
 
 }

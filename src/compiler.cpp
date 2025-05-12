@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstdio>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LegacyPassManager.h>
@@ -14,14 +15,20 @@
 #include <llvm/TargetParser/Triple.h>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <utility>
 
+#include "ast/prototype.hpp"
+#include "ast/variable_data.hpp"
 #include "file.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "parser.hpp"
 #include "compiler.hpp"
 #include "optimiser.hpp"
+#include "target_type_stack.hpp"
+#include "type.hpp"
 
 namespace Kepler::Compiler {
 
@@ -29,11 +36,14 @@ namespace Kepler::Compiler {
     static std::unique_ptr<llvm::IRBuilder<>> builder;
     static std::unique_ptr<llvm::Module> module;
 
-    static std::map<std::string, llvm::AllocaInst*> named_values;
+    static std::map<std::string, std::pair<TypeToken, llvm::AllocaInst*>> local_variables;
+    static std::map<std::string, std::shared_ptr<AST::Prototype>> prototypes;
+    static TargetTypeStack target_type_stack;
 
     static llvm::TargetMachine* target_machine;
 
     static std::unique_ptr<File> file;
+    static TypeToken function_return_type = TypeToken::None;
 
     static bool write_file(const char* outname);
     static bool initialise();
@@ -50,12 +60,37 @@ namespace Kepler::Compiler {
         return *module;
     }
 
-    std::map<std::string, llvm::AllocaInst*>& get_named_values() {
-        return named_values;
+    std::map<std::string, std::pair<TypeToken, llvm::AllocaInst*>>& get_local_variables() {
+        return local_variables;
+    }
+
+    std::map<std::string, std::shared_ptr<AST::Prototype>>& get_prototypes() {
+        return prototypes;
     }
 
     std::unique_ptr<File>& get_file() {
         return file;
+    }
+
+    TargetTypeStack& get_target_type_stack() {
+        return target_type_stack;
+    }
+
+    void set_function_return_type(TypeToken type) {
+        assert((function_return_type == TypeToken::None || type == TypeToken::None) && "[ Assertion ]: trying to set function return type when it is already set");
+        function_return_type = type;
+    }
+
+    TypeToken get_function_return_type() {
+        return function_return_type;
+    }
+
+    std::optional<AST::VariableData> get_local_variable(const std::string& name) {
+        if (local_variables.find(name) != local_variables.end()) {
+            std::pair<TypeToken, llvm::AllocaInst*>& variable = local_variables[name];
+            return AST::VariableData{ variable.first, variable.second };
+        }
+        return std::nullopt;
     }
 
     bool compile_file(const char* filename, const char* outname) {

@@ -14,11 +14,16 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IfExpression::codegen() {
+        // Push 'None' as the target type for the condition so value expressions will choose their default type
+        Compiler::get_target_type_stack().push(TypeToken::None);
+
         std::unique_ptr<ExpressionResult> condition_er = condition->codegen();
         if (!condition_er->is_valid()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in if condition");
             return ExpressionResult::create_invalid();
         }
+
+        Compiler::get_target_type_stack().pop();
 
         // Make conditional a bool by comparing it to 0.0
         condition_er->set_value(Compiler::get_builder().CreateFCmpONE(condition_er->get_value(), llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "ifcond"));
@@ -83,7 +88,7 @@ namespace Kepler::AST {
         if (if_body_has_return && else_body_has_return) {
             flags |= ExpressionResultFlags::QualifiedReturn;
         }
-        return ExpressionResult::create(nullptr, flags);
+        return ExpressionResult::create(nullptr, TypeToken::None, flags);
     }
 
 }

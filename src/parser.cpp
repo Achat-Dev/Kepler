@@ -13,12 +13,14 @@
 #include "ast/for_expression.hpp"
 #include "ast/function.hpp"
 #include "ast/if_expression.hpp"
-#include "ast/number_expression.hpp"
 #include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
+#include "ast/value_expressions/floating_point_value_expression.hpp"
+#include "ast/value_expressions/integer_value_expression.hpp"
 #include "ast/variable_expression.hpp"
 #include "ast/variable_definition_expression.hpp"
+#include "compiler.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "type.hpp"
@@ -28,17 +30,17 @@ namespace Kepler::Parser {
 
     static int get_token_precedence();
 
-    static std::unique_ptr<AST::Expression> parse_number();
+    static std::unique_ptr<AST::Expression> parse_floating_point_value();
+    static std::unique_ptr<AST::Expression> parse_integer_value();
     static std::unique_ptr<AST::Expression> parse_parenthesis();
     static std::unique_ptr<AST::Expression> parse_negative();
     static std::unique_ptr<AST::Expression> parse_expression();
     static std::unique_ptr<AST::Expression> parse_identifier();
     static std::unique_ptr<AST::Expression> parse_primary();
     static std::unique_ptr<AST::Expression> parse_binop_rhs(int expression_precedence, std::unique_ptr<AST::Expression> lhs);
-    static std::unique_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier);
+    static std::shared_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier);
     static std::unique_ptr<AST::Function> parse_function(TypeToken type, std::string identifier);
-    static std::unique_ptr<AST::Prototype> parse_extern();
-    static std::unique_ptr<AST::Function> parse_top_level_expression();
+    static std::shared_ptr<AST::Prototype> parse_extern();
     static std::unique_ptr<AST::Expression> parse_if();
     static std::unique_ptr<AST::Expression> parse_for();
     static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body();
@@ -71,8 +73,14 @@ namespace Kepler::Parser {
         return precedence;
     }
 
-    static std::unique_ptr<AST::Expression> parse_number() {
-        auto result = std::make_unique<AST::NumberExpression>(Lexer::get_number_value());
+    static std::unique_ptr<AST::Expression> parse_floating_point_value() {
+        auto result = std::make_unique<AST::FloatingPointValueExpression>(Lexer::get_float_value());
+        read_next_token(); // eat the number
+        return std::move(result);
+    }
+
+    static std::unique_ptr<AST::Expression> parse_integer_value() {
+        auto result = std::make_unique<AST::IntegerValueExpression>(Lexer::get_int_value());
         read_next_token(); // eat the number
         return std::move(result);
     }
@@ -95,7 +103,7 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Expression> parse_negative() {
-        auto lhs = std::make_unique<AST::NumberExpression>(0);
+        auto lhs = std::make_unique<AST::IntegerValueExpression>(0);
         return parse_binop_rhs(0, std::move(lhs));
     }
 
@@ -149,7 +157,8 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_primary() {
         switch (current_token) {
             case Lexer::Token_Identifier: return parse_identifier();
-            case Lexer::Token_Number: return parse_number();
+            case Lexer::Token_Float_Value: return parse_floating_point_value();
+            case Lexer::Token_Int_Value: return parse_integer_value();
             // Case fallthrough for if and parse_elseif
             case Lexer::Token_If:
                 case Lexer::Token_Parsing_Elseif:
@@ -194,7 +203,7 @@ namespace Kepler::Parser {
         }
     }
 
-    static std::unique_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier) {
+    static std::shared_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier) {
         if (identifier.empty()) {
             read_next_token(); // eat data type
             if (current_token != Lexer::Token_Identifier) {
@@ -246,11 +255,14 @@ namespace Kepler::Parser {
         }
 
         read_next_token(); // eat ')'
-        return std::make_unique<AST::Prototype>(type, std::move(identifier), std::move(args));
+
+        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(type, identifier, std::move(args));
+        Compiler::get_prototypes()[identifier] = { prototype };
+
+        return prototype;
     }
 
     static std::unique_ptr<AST::Function> parse_function(TypeToken type, std::string identifier) {
-        //read_next_token(); // eat 'function' keyword
         auto prototype = parse_prototype(type, std::move(identifier));
         if (!prototype) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid function prototype");
@@ -269,10 +281,10 @@ namespace Kepler::Parser {
 
         read_next_token(); // eat 'end'
 
-        return std::make_unique<AST::Function>(std::move(prototype), std::move(body));
+        return std::make_unique<AST::Function>(prototype, std::move(body));
     }
 
-    static std::unique_ptr<AST::Prototype> parse_extern() {
+    static std::shared_ptr<AST::Prototype> parse_extern() {
         read_next_token(); // eat 'extern' keyword
 
         if (current_token != Lexer::Token_DataType) {
@@ -281,17 +293,6 @@ namespace Kepler::Parser {
         }
 
         return parse_prototype(Lexer::get_type(), "");
-    }
-
-    // top level expression are anonymous functions with zero arguments
-    static std::unique_ptr<AST::Function> parse_top_level_expression() {
-        if (auto expression = parse_expression()) {
-            auto prototype = std::make_unique<AST::Prototype>();
-            std::vector<std::unique_ptr<AST::Expression>> body;
-            body.push_back(std::move(expression));
-            return std::make_unique<AST::Function>(std::move(prototype), std::move(body));
-        }
-        return nullptr;
     }
 
     static std::unique_ptr<AST::Expression> parse_if() {
@@ -435,7 +436,7 @@ namespace Kepler::Parser {
                 return nullptr;
             }
 
-            std::unique_ptr<AST::BinaryExpression> assignment = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::make_unique<AST::NumberExpression>(0));
+            std::unique_ptr<AST::BinaryExpression> assignment = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::make_unique<AST::IntegerValueExpression>(0));
             std::unique_ptr<AST::VariableDefinitionExpression> variable = std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment));
 
             // 'start' is the end value
