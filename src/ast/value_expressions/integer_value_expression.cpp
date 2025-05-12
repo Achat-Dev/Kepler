@@ -11,16 +11,16 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IntegerValueExpression::codegen() {
-        TypeToken type = Compiler::get_target_type_stack().top();
+        Type::TypeToken type = Compiler::get_target_type_stack().top();
 
-        if (type == TypeToken::Int8 || type == TypeToken::Int16 || type == TypeToken::Int32 || type == TypeToken::Int64) {
+        if (type == Type::TypeToken::Int8 || type == Type::TypeToken::Int16 || type == Type::TypeToken::Int32 || type == Type::TypeToken::Int64) {
             return ExpressionResult::create(llvm::ConstantInt::get(Type::get_by_token(type), value, true), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
-        if (type == TypeToken::Float32 || type == TypeToken::Float64) {
+        if (type == Type::TypeToken::Float32 || type == Type::TypeToken::Float64) {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
-        if (type == TypeToken::None) {
-            return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(TypeToken::Int32), value), TypeToken::Int32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        if (type == Type::TypeToken::None) {
+            return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Int32), value), Type::TypeToken::Int32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
         log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from an integer");

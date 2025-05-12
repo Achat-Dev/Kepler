@@ -75,7 +75,7 @@ namespace Kepler::AST {
                 Compiler::get_builder().CreateBr(loop_block);
                 Compiler::get_builder().SetInsertPoint(loop_block);
 
-                return ExpressionResult::create(nullptr, TypeToken::None, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
+                return ExpressionResult::create(nullptr, Type::TypeToken::None, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
             }
         }
 
@@ -127,7 +127,7 @@ namespace Kepler::AST {
             Compiler::get_local_variables().erase(variable_name);
         }
 
-        return ExpressionResult::create(nullptr, TypeToken::None, ExpressionResultFlags::Valid);
+        return ExpressionResult::create(nullptr, Type::TypeToken::None, ExpressionResultFlags::Valid);
     }
 
 }

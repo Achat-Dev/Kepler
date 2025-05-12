@@ -30,7 +30,7 @@ namespace Kepler::AST {
         return f;
     }
 
-    TypeToken Prototype::get_type() const {
+    Type::TypeToken Prototype::get_type() const {
         return type;
     }
 

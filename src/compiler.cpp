@@ -36,14 +36,14 @@ namespace Kepler::Compiler {
     static std::unique_ptr<llvm::IRBuilder<>> builder;
     static std::unique_ptr<llvm::Module> module;
 
-    static std::map<std::string, std::pair<TypeToken, llvm::AllocaInst*>> local_variables;
+    static std::map<std::string, std::pair<Type::TypeToken, llvm::AllocaInst*>> local_variables;
     static std::map<std::string, std::shared_ptr<AST::Prototype>> prototypes;
     static TargetTypeStack target_type_stack;
 
     static llvm::TargetMachine* target_machine;
 
     static std::unique_ptr<File> file;
-    static TypeToken function_return_type = TypeToken::None;
+    static Type::TypeToken function_return_type = Type::TypeToken::None;
 
     static bool write_file(const char* outname);
     static bool initialise();
@@ -60,7 +60,7 @@ namespace Kepler::Compiler {
         return *module;
     }
 
-    std::map<std::string, std::pair<TypeToken, llvm::AllocaInst*>>& get_local_variables() {
+    std::map<std::string, std::pair<Type::TypeToken, llvm::AllocaInst*>>& get_local_variables() {
         return local_variables;
     }
 
@@ -76,18 +76,18 @@ namespace Kepler::Compiler {
         return target_type_stack;
     }
 
-    void set_function_return_type(TypeToken type) {
-        assert((function_return_type == TypeToken::None || type == TypeToken::None) && "[ Assertion ]: trying to set function return type when it is already set");
+    void set_function_return_type(Type::TypeToken type) {
+        assert((function_return_type == Type::TypeToken::None || type == Type::TypeToken::None) && "[ Assertion ]: trying to set function return type when it is already set");
         function_return_type = type;
     }
 
-    TypeToken get_function_return_type() {
+    Type::TypeToken get_function_return_type() {
         return function_return_type;
     }
 
     std::optional<AST::VariableData> get_local_variable(const std::string& name) {
         if (local_variables.find(name) != local_variables.end()) {
-            std::pair<TypeToken, llvm::AllocaInst*>& variable = local_variables[name];
+            std::pair<Type::TypeToken, llvm::AllocaInst*>& variable = local_variables[name];
             return AST::VariableData{ variable.first, variable.second };
         }
         return std::nullopt;

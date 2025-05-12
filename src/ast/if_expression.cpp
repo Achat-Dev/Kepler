@@ -15,7 +15,7 @@ namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IfExpression::codegen() {
         // Push 'None' as the target type for the condition so value expressions will choose their default type
-        Compiler::get_target_type_stack().push(TypeToken::None);
+        Compiler::get_target_type_stack().push(Type::TypeToken::None);
 
         std::unique_ptr<ExpressionResult> condition_er = condition->codegen();
         if (!condition_er->is_valid()) {
@@ -88,7 +88,7 @@ namespace Kepler::AST {
         if (if_body_has_return && else_body_has_return) {
             flags |= ExpressionResultFlags::QualifiedReturn;
         }
-        return ExpressionResult::create(nullptr, TypeToken::None, flags);
+        return ExpressionResult::create(nullptr, Type::TypeToken::None, flags);
     }
 
 }

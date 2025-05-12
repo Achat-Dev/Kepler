@@ -71,7 +71,7 @@ namespace Kepler::AST {
             }
         }
 
-        Compiler::set_function_return_type(TypeToken::None);
+        Compiler::set_function_return_type(Type::TypeToken::None);
 
         llvm::EliminateUnreachableBlocks(*f);
 

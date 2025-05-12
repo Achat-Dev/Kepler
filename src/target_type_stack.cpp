@@ -1,11 +1,10 @@
 #include "target_type_stack.hpp"
-#include "log.hpp"
 #include "type.hpp"
 #include <cassert>
 
 namespace Kepler {
 
-    void TargetTypeStack::push(TypeToken type) {
+    void TargetTypeStack::push(Type::TypeToken type) {
         target_types.push(type);
     }
 
@@ -13,7 +12,7 @@ namespace Kepler {
         return target_types.pop();
     }
 
-    TypeToken TargetTypeStack::top() const {
+    Type::TypeToken TargetTypeStack::top() const {
         assert(!target_types.empty() && "[ Assertion ]: peeking at empty TargetTypeStack");
         return target_types.top();
     }

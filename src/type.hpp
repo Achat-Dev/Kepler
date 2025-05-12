@@ -18,7 +18,7 @@
 
 #include <llvm/IR/Type.h>
 
-namespace Kepler {
+namespace Kepler::Type {
 
     enum class TypeToken {
         None,
@@ -36,9 +36,6 @@ namespace Kepler {
 
     std::ostream& operator<<(std::ostream& os, const TypeToken& color);
 
-    class Type {
-    public:
-        static llvm::Type* get_by_token(TypeToken type);
-    };
+    llvm::Type* get_by_token(TypeToken type);
 
 }

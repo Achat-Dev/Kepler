@@ -7,10 +7,10 @@
 namespace Kepler::AST {
 
     struct VariableData {
-        const TypeToken type;
+        const Type::TypeToken type;
         llvm::AllocaInst* variable;
 
-        VariableData(TypeToken type, llvm::AllocaInst* alloca): type(type), variable(alloca) {}
+        VariableData(Type::TypeToken type, llvm::AllocaInst* alloca): type(type), variable(alloca) {}
     };
 
 }

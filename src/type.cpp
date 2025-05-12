@@ -7,7 +7,7 @@
 #include "log.hpp"
 #include "utils.hpp"
 
-namespace Kepler {
+namespace Kepler::Type {
 
     static std::string to_string(const TypeToken& type) {
         switch (type) {
@@ -32,7 +32,7 @@ namespace Kepler {
         return os;
     }
 
-    llvm::Type* Type::get_by_token(TypeToken type) {
+    llvm::Type* get_by_token(TypeToken type) {
         switch (type) {
             case TypeToken::None: return llvm::Type::getVoidTy(Compiler::get_context());
             case TypeToken::Var:

@@ -19,7 +19,7 @@ namespace Kepler::Lexer {
     static std::string identifier = "";
     static int64_t int_value = 0;
     static double float_value = 0.0;
-    static TypeToken type_token = TypeToken::None;
+    static Type::TypeToken type_token = Type::TypeToken::None;
 
     std::string get_identifier() {
         return identifier;
@@ -33,7 +33,7 @@ namespace Kepler::Lexer {
         return float_value;
     }
 
-    TypeToken get_type() {
+    Type::TypeToken get_type() {
         return type_token;
     }
 
@@ -102,52 +102,52 @@ namespace Kepler::Lexer {
         }
         else if (identifier == "var") {
             log("{ TokenType: var }");
-            type_token = TypeToken::Var;
+            type_token = Type::TypeToken::Var;
             return Token::Token_DataType;
         }
         else if (identifier == "bool") {
             log("{ TokenType: bool }");
-            type_token = TypeToken::Bool;
+            type_token = Type::TypeToken::Bool;
             return Token::Token_DataType;
         }
         else if (identifier == "char") {
             log("{ TokenType: char }");
-            type_token = TypeToken::Char;
+            type_token = Type::TypeToken::Char;
             return Token::Token_DataType;
         }
         else if (identifier == "string") {
             log("{ TokenType: string }");
-            type_token = TypeToken::String;
+            type_token = Type::TypeToken::String;
             return Token::Token_DataType;
         }
         else if (identifier == "i8") {
             log("{ TokenType: i8 }");
-            type_token = TypeToken::Int8;
+            type_token = Type::TypeToken::Int8;
             return Token::Token_DataType;
         }
         else if (identifier == "i16") {
             log("{ TokenType: i16 }");
-            type_token = TypeToken::Int16;
+            type_token = Type::TypeToken::Int16;
             return Token::Token_DataType;
         }
         else if (identifier == "i32") {
             log("{ TokenType: i32 }");
-            type_token = TypeToken::Int32;
+            type_token = Type::TypeToken::Int32;
             return Token::Token_DataType;
         }
         else if (identifier == "i64") {
             log("{ TokenType: i64 }");
-            type_token = TypeToken::Int64;
+            type_token = Type::TypeToken::Int64;
             return Token::Token_DataType;
         }
         else if (identifier == "f32") {
             log("{ TokenType: f32 }");
-            type_token = TypeToken::Float32;
+            type_token = Type::TypeToken::Float32;
             return Token::Token_DataType;
         }
         else if (identifier == "f64") {
             log("{ TokenType: f64 }");
-            type_token = TypeToken::Float64;
+            type_token = Type::TypeToken::Float64;
             return Token::Token_DataType;
         }
 

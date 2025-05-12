@@ -11,13 +11,13 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> FloatingPointValueExpression::codegen() {
-        TypeToken type = Compiler::get_target_type_stack().top();
+        Type::TypeToken type = Compiler::get_target_type_stack().top();
 
-        if (type == TypeToken::Float32 || type == TypeToken::Float64) {
+        if (type == Type::TypeToken::Float32 || type == Type::TypeToken::Float64) {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
-        if (type == TypeToken::None) {
-            return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(TypeToken::Float32), value), TypeToken::Float32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        if (type == Type::TypeToken::None) {
+            return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Float32), value), Type::TypeToken::Float32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
         log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from a float");

@@ -8,12 +8,12 @@ namespace Kepler {
 
     class TargetTypeStack {
     private:
-        std::stack<TypeToken> target_types;
+        std::stack<Type::TypeToken> target_types;
 
     public:
-        void push(TypeToken type);
+        void push(Type::TypeToken type);
         void pop();
-        TypeToken top() const;
+        Type::TypeToken top() const;
     };
 
 }

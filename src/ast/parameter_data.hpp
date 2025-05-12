@@ -7,10 +7,10 @@
 namespace Kepler::AST {
 
     struct ParameterData {
-        const TypeToken type;
+        const Type::TypeToken type;
         const std::string name;
 
-        ParameterData(TypeToken type, std::string name) : type(type), name(std::move(name)) {}
+        ParameterData(Type::TypeToken type, std::string name) : type(type), name(std::move(name)) {}
     };
 
 }

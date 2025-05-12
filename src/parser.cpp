@@ -38,15 +38,15 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_identifier();
     static std::unique_ptr<AST::Expression> parse_primary();
     static std::unique_ptr<AST::Expression> parse_binop_rhs(int expression_precedence, std::unique_ptr<AST::Expression> lhs);
-    static std::shared_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier);
-    static std::unique_ptr<AST::Function> parse_function(TypeToken type, std::string identifier);
+    static std::shared_ptr<AST::Prototype> parse_prototype(Type::TypeToken type, std::string identifier);
+    static std::unique_ptr<AST::Function> parse_function(Type::TypeToken type, std::string identifier);
     static std::shared_ptr<AST::Prototype> parse_extern();
     static std::unique_ptr<AST::Expression> parse_if();
     static std::unique_ptr<AST::Expression> parse_for();
     static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body();
     static std::unique_ptr<AST::Expression> parse_return();
     static std::unique_ptr<AST::Expression> parse_local_variable();
-    static bool handle_function(TypeToken type, std::string identifier);
+    static bool handle_function(Type::TypeToken type, std::string identifier);
 
     static int current_token;
 
@@ -203,7 +203,7 @@ namespace Kepler::Parser {
         }
     }
 
-    static std::shared_ptr<AST::Prototype> parse_prototype(TypeToken type, std::string identifier) {
+    static std::shared_ptr<AST::Prototype> parse_prototype(Type::TypeToken type, std::string identifier) {
         if (identifier.empty()) {
             read_next_token(); // eat data type
             if (current_token != Lexer::Token_Identifier) {
@@ -228,7 +228,7 @@ namespace Kepler::Parser {
         }
 
         while (current_token == Lexer::Token_DataType) {
-            TypeToken type = Lexer::get_type();
+            Type::TypeToken type = Lexer::get_type();
 
             read_next_token(); // eat data type
             if (current_token != Lexer::Token_Identifier) {
@@ -262,7 +262,7 @@ namespace Kepler::Parser {
         return prototype;
     }
 
-    static std::unique_ptr<AST::Function> parse_function(TypeToken type, std::string identifier) {
+    static std::unique_ptr<AST::Function> parse_function(Type::TypeToken type, std::string identifier) {
         auto prototype = parse_prototype(type, std::move(identifier));
         if (!prototype) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid function prototype");
@@ -407,7 +407,7 @@ namespace Kepler::Parser {
             return nullptr;
         }
 
-        TypeToken type = Lexer::get_type();
+        Type::TypeToken type = Lexer::get_type();
         read_next_token(); // eat data type
         if (current_token != Lexer::Token_Identifier) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after data type in 'for'");
@@ -531,7 +531,7 @@ namespace Kepler::Parser {
 
     // TODO: implement casting ('(' after data type)
     static std::unique_ptr<AST::Expression> parse_local_variable() {
-        TypeToken type = Lexer::get_type();
+        Type::TypeToken type = Lexer::get_type();
 
         read_next_token(); // eat data type
         if (current_token != Lexer::Token_Identifier) {
@@ -558,7 +558,7 @@ namespace Kepler::Parser {
         return std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment_expression));
     }
 
-    static bool handle_function(TypeToken type, std::string identifier) {
+    static bool handle_function(Type::TypeToken type, std::string identifier) {
         if (auto ast = parse_function(type, std::move(identifier))) {
             if (auto ir = ast->codegen()) {
                 log("> parsed a function definition <");
@@ -578,7 +578,7 @@ namespace Kepler::Parser {
     }
 
     bool handle_data_type() {
-        TypeToken type = Lexer::get_type();
+        Type::TypeToken type = Lexer::get_type();
         read_next_token(); // eat data type
 
         // Variable definition or function definition

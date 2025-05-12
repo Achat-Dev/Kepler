@@ -37,16 +37,16 @@ namespace Kepler::AST {
         return flags;
     }
 
-    TypeToken ExpressionResult::get_type() const {
+    Type::TypeToken ExpressionResult::get_type() const {
         return type;
     }
 
-    std::unique_ptr<ExpressionResult> ExpressionResult::create(llvm::Value* value, TypeToken type, unsigned int flags) {
+    std::unique_ptr<ExpressionResult> ExpressionResult::create(llvm::Value* value, Type::TypeToken type, unsigned int flags) {
         return std::unique_ptr<ExpressionResult>(new ExpressionResult(value, type, flags));
     }
 
     std::unique_ptr<ExpressionResult> ExpressionResult::create_invalid() {
-        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, TypeToken::None, 0));
+        return std::unique_ptr<ExpressionResult>(new ExpressionResult(nullptr, Type::TypeToken::None, 0));
     }
 
 }
