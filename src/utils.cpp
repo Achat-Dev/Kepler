@@ -5,6 +5,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
+#include <string>
 
 #include "log.hpp"
 #include "utils.hpp"
@@ -16,7 +17,8 @@ namespace Kepler {
         return tmp_builder.CreateAlloca(type, nullptr, variable_name);
     }
 
-    void emergency_exit() {
+    void emergency_exit(const std::string& message) {
+        log(LogStyle::UNSUPPORTED, "[ Emergency exit ]", LogStyle::DEFAULT, ": ", message);
         log(LogStyle::UNSUPPORTED,
             "Roses are red, violets are blue,\n",
             "I reached some code that I never should do.\n",

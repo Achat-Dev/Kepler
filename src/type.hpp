@@ -34,6 +34,8 @@ namespace Kepler {
         Float64
     };
 
+    std::ostream& operator<<(std::ostream& os, const TypeToken& color);
+
     class Type {
     public:
         static llvm::Type* get_by_token(TypeToken type);

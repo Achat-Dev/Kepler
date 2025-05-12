@@ -1,5 +1,6 @@
 #include <exception>
 #include <llvm/IR/Type.h>
+#include <string>
 
 #include "compiler.hpp"
 #include "type.hpp"
@@ -7,6 +8,29 @@
 #include "utils.hpp"
 
 namespace Kepler {
+
+    static std::string to_string(const TypeToken& type) {
+        switch (type) {
+            case TypeToken::None: return "none";
+            case TypeToken::Var: return "var";
+            case TypeToken::Bool: return "bool";
+            case TypeToken::Char: return "char";
+            case TypeToken::String: return "String";
+            case TypeToken::Int8: return "i8";
+            case TypeToken::Int16: return "i16";
+            case TypeToken::Int32: return "i32";
+            case TypeToken::Int64: return "i64";
+            case TypeToken::Float32: return  "f32";
+            case TypeToken::Float64: return "f64";
+        }
+
+        return "unknown type";
+    }
+
+    std::ostream& operator<<(std::ostream& os, const TypeToken& type) {
+        os << to_string(type);
+        return os;
+    }
 
     llvm::Type* Type::get_by_token(TypeToken type) {
         switch (type) {
@@ -49,7 +73,7 @@ namespace Kepler {
                 return nullptr;
             case TypeToken::Float64: return llvm::Type::getDoubleTy(Compiler::get_context());
             default:
-                emergency_exit();
+                emergency_exit("type '" + to_string(type) + "' does not map to an llvm type");
                 return nullptr; // Needed to avoid compile warnings
         }
     }

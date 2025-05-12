@@ -8,6 +8,6 @@
 namespace Kepler {
 
     llvm::AllocaInst* create_entry_block_alloca(llvm::Function* f, llvm::Type* type, llvm::StringRef variable_name);
-    void emergency_exit();
+    void emergency_exit(const std::string& message);
 
 }
