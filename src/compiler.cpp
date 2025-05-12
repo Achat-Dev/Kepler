@@ -16,45 +16,23 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <stack>
 #include <string>
-#include <utility>
 
 #include "ast/prototype.hpp"
+#include "types/type.hpp"
+#include "compiler.hpp"
 #include "file.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "parser.hpp"
-#include "compiler.hpp"
 #include "optimiser.hpp"
-#include "type.hpp"
 
 namespace Kepler::Compiler {
-
-    namespace TargetTypeStack {
-
-        static std::stack<Type::TypeToken> target_types;
-
-        void push(Type::TypeToken type) {
-            target_types.push(type);
-        }
-
-        void pop() {
-            return target_types.pop();
-        }
-
-        Type::TypeToken top() {
-            assert(!target_types.empty() && "[ Assertion ]: peeking at empty TargetTypeStack");
-            return target_types.top();
-        }
-
-    }
 
     static std::unique_ptr<llvm::LLVMContext> context;
     static std::unique_ptr<llvm::IRBuilder<>> builder;
     static std::unique_ptr<llvm::Module> module;
 
-    static std::map<std::string, std::pair<Type::TypeToken, llvm::AllocaInst*>> local_variables;
     static std::map<std::string, std::shared_ptr<AST::Prototype>> prototypes;
 
     static llvm::TargetMachine* target_machine;

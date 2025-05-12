@@ -7,6 +7,7 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../types/target_type_stack.hpp"
 #include "../variables/local_variables.hpp"
 #include "../variables/variable_data.hpp"
 #include "binary_expression.hpp"
@@ -31,7 +32,7 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
 
-            Compiler::TargetTypeStack::push(variable_data->type);
+            Type::TargetTypeStack::push(variable_data->type);
 
             std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
             if (!rhs_er->is_valid()) {
@@ -48,16 +49,16 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
 
-            Compiler::TargetTypeStack::pop();
+            Type::TargetTypeStack::pop();
 
             Compiler::get_builder().CreateStore(rhs_er->get_value(), variable_data->variable);
             return std::move(rhs_er);
         }
 
         std::unique_ptr<ExpressionResult> lhs_er = lhs->codegen();
-        Compiler::TargetTypeStack::push(lhs_er->get_type());
+        Type::TargetTypeStack::push(lhs_er->get_type());
         std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
-        Compiler::TargetTypeStack::pop();
+        Type::TargetTypeStack::pop();
 
         if (!lhs_er->is_valid() || !rhs_er->is_valid()) {
             return ExpressionResult::create_invalid();

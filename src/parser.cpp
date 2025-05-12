@@ -20,10 +20,10 @@
 #include "ast/value_expressions/integer_value_expression.hpp"
 #include "ast/variable_expression.hpp"
 #include "ast/variable_definition_expression.hpp"
+#include "types/type.hpp"
 #include "compiler.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
-#include "type.hpp"
 #include "parser.hpp"
 
 namespace Kepler::Parser {

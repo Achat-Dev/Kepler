@@ -2,7 +2,7 @@
 
 #include <llvm/IR/Instructions.h>
 
-#include "../type.hpp"
+#include "../types/type.hpp"
 
 namespace Kepler::LocalVariables {
 

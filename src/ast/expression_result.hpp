@@ -3,7 +3,7 @@
 #include <llvm/IR/Value.h>
 #include <memory>
 
-#include "../type.hpp"
+#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

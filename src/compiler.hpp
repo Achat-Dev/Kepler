@@ -1,8 +1,5 @@
 #pragma once
 
-#include "ast/prototype.hpp"
-#include "file.hpp"
-#include "type.hpp"
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
@@ -10,15 +7,11 @@
 #include <memory>
 #include <string>
 
+#include "ast/prototype.hpp"
+#include "types/type.hpp"
+#include "file.hpp"
+
 namespace Kepler::Compiler {
-
-    namespace TargetTypeStack {
-
-        void push(Type::TypeToken type);
-        void pop();
-        Type::TypeToken top();
-
-    }
 
     llvm::LLVMContext& get_context();
     llvm::IRBuilder<>& get_builder();

@@ -4,6 +4,7 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../types/type.hpp"
 #include "../variables/local_variables.hpp"
 #include "../variables/variable_data.hpp"
 #include "expression_result.hpp"

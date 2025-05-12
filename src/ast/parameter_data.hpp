@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "../type.hpp"
+#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

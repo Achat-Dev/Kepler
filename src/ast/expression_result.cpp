@@ -1,6 +1,7 @@
 #include <llvm/IR/Value.h>
 #include <memory>
 
+#include "../types/type.hpp"
 #include "expression_result.hpp"
 
 namespace Kepler::AST {

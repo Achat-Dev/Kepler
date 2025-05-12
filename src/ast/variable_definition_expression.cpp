@@ -7,8 +7,8 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
-#include "../type.hpp"
 #include "../utils.hpp"
+#include "../types/type.hpp"
 #include "../variables/local_variables.hpp"
 #include "expression_result.hpp"
 #include "variable_definition_expression.hpp"

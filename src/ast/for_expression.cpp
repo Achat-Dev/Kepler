@@ -12,6 +12,7 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../types/target_type_stack.hpp"
 #include "../variables/variable_data.hpp"
 #include "../variables/local_variables.hpp"
 #include "expression.hpp"
@@ -42,7 +43,7 @@ namespace Kepler::AST {
         }
         llvm::AllocaInst* alloca = LocalVariables::get(variable_name)->variable;
 
-        Compiler::TargetTypeStack::push(start_er->get_type());
+        Type::TargetTypeStack::push(start_er->get_type());
 
         // Codegen the end condition
         // This needs to be codegened in the entry block of the function in order to determine if the loop should be entered at all
@@ -59,7 +60,8 @@ namespace Kepler::AST {
         llvm::BasicBlock* loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "loop", f);
         Compiler::get_builder().SetInsertPoint(loop_block);
 
-        Compiler::TargetTypeStack::pop();
+        // Pop target type before codegening body
+        Type::TargetTypeStack::pop();
 
         // Codegen body
         for (int i = 0; i < body.size(); i++) {
@@ -80,7 +82,7 @@ namespace Kepler::AST {
             }
         }
 
-        Compiler::TargetTypeStack::push(start_er->get_type());
+        Type::TargetTypeStack::push(start_er->get_type());
 
         // Codegen step
         llvm::Value* step_v;
@@ -100,7 +102,7 @@ namespace Kepler::AST {
             );
         }
 
-        Compiler::TargetTypeStack::pop();
+        Type::TargetTypeStack::pop();
 
         // Calculate loop variable for next iteration
         llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());

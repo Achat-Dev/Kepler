@@ -3,13 +3,14 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../types/target_type_stack.hpp"
 #include "expression_result.hpp"
 #include "return_expression.hpp"
 
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> ReturnExpression::codegen() {
-        Compiler::TargetTypeStack::push(Compiler::get_function_return_type());
+        Type::TargetTypeStack::push(Compiler::get_function_return_type());
 
         std::unique_ptr<ExpressionResult> expression_er = expression->codegen();
         if (!expression_er->is_valid()) {
@@ -26,7 +27,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        Compiler::TargetTypeStack::pop();
+        Type::TargetTypeStack::pop();
 
         return ExpressionResult::create(Compiler::get_builder().CreateRet(expression_er->get_value()), expression_er->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
     }

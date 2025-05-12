@@ -24,6 +24,10 @@ set(AST_SRC
     "src/ast/value_expressions/floating_point_value_expression.cpp"
     "src/ast/value_expressions/integer_value_expression.cpp")
 
+set(TYPES_SRC
+    "src/types/target_type_stack.cpp"
+    "src/types/type.cpp")
+
 set(VARIABLES_SRC
     "src/variables/local_variables.cpp")
 
@@ -34,9 +38,9 @@ add_executable (${CMAKE_PROJECT_NAME}
     "src/lexer.cpp"
     "src/optimiser.cpp"
     "src/parser.cpp"
-    "src/type.cpp"
     "src/utils.cpp"
     ${AST_SRC}
+    ${TYPES_SRC}
     ${VARIABLES_SRC})
 
 llvm_map_components_to_libnames(llvm_libs ${LLVM_TARGETS_TO_BUILD})

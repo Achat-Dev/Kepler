@@ -7,6 +7,7 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../types/target_type_stack.hpp"
 #include "expression_result.hpp"
 #include "prototype.hpp"
 #include "call_expression.hpp"
@@ -30,7 +31,7 @@ namespace Kepler::AST {
 
         std::vector<llvm::Value*> args_v;
         for (unsigned i = 0, e = args.size(); i != e; i++) {
-            Compiler::TargetTypeStack::push(prototype->get_arg(i).type);
+            Type::TargetTypeStack::push(prototype->get_arg(i).type);
             std::unique_ptr<ExpressionResult> arg_er = args[i]->codegen();
             if (!arg_er) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression for function call argument");
@@ -41,7 +42,7 @@ namespace Kepler::AST {
             if (!args_v.back()) {
                 return ExpressionResult::create_invalid();
             }
-            Compiler::TargetTypeStack::pop();
+            Type::TargetTypeStack::pop();
         }
 
         return ExpressionResult::create(Compiler::get_builder().CreateCall(callee_f, args_v, "calltmp"), prototype->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);

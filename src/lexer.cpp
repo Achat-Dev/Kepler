@@ -4,10 +4,10 @@
 #include <cstdlib>
 #include <string>
 
+#include "types/type.hpp"
 #include "compiler.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
-#include "type.hpp"
 
 namespace Kepler::Lexer {
 

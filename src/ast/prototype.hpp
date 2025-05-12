@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../type.hpp"
+#include "../types/type.hpp"
 #include "parameter_data.hpp"
 
 namespace Kepler::AST {

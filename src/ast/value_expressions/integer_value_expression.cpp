@@ -2,16 +2,16 @@
 #include <llvm/IR/Constants.h>
 #include <memory>
 
-#include "../../compiler.hpp"
 #include "../../log.hpp"
-#include "../../type.hpp"
+#include "../../types/type.hpp"
+#include "../../types/target_type_stack.hpp"
 #include "../expression_result.hpp"
 #include "integer_value_expression.hpp"
 
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IntegerValueExpression::codegen() {
-        Type::TypeToken type = Compiler::TargetTypeStack::top();
+        Type::TypeToken type = Type::TargetTypeStack::top();
 
         if (type == Type::TypeToken::Int8 || type == Type::TypeToken::Int16 || type == Type::TypeToken::Int32 || type == Type::TypeToken::Int64) {
             return ExpressionResult::create(llvm::ConstantInt::get(Type::get_by_token(type), value, true), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);

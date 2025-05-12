@@ -2,10 +2,10 @@
 #include <llvm/IR/Type.h>
 #include <string>
 
-#include "compiler.hpp"
+#include "../compiler.hpp"
+#include "../log.hpp"
+#include "../utils.hpp"
 #include "type.hpp"
-#include "log.hpp"
-#include "utils.hpp"
 
 namespace Kepler::Type {
 

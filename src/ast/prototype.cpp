@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "../compiler.hpp"
-#include "../type.hpp"
 #include "../utils.hpp"
+#include "../types/type.hpp"
 #include "parameter_data.hpp"
 #include "prototype.hpp"
 

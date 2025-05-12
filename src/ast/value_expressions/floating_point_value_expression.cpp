@@ -2,16 +2,16 @@
 #include <llvm/IR/Type.h>
 #include <memory>
 
-#include "../../compiler.hpp"
 #include "../../log.hpp"
-#include "../../type.hpp"
+#include "../../types/type.hpp"
+#include "../../types/target_type_stack.hpp"
 #include "../expression_result.hpp"
 #include "floating_point_value_expression.hpp"
 
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> FloatingPointValueExpression::codegen() {
-        Type::TypeToken type = Compiler::TargetTypeStack::top();
+        Type::TypeToken type = Type::TargetTypeStack::top();
 
         if (type == Type::TypeToken::Float32 || type == Type::TypeToken::Float64) {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
