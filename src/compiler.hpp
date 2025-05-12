@@ -3,7 +3,6 @@
 #include "ast/prototype.hpp"
 #include "ast/variable_data.hpp"
 #include "file.hpp"
-#include "target_type_stack.hpp"
 #include "type.hpp"
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
@@ -15,13 +14,20 @@
 
 namespace Kepler::Compiler {
 
+    namespace TargetTypeStack {
+
+        void push(Type::TypeToken type);
+        void pop();
+        Type::TypeToken top();
+
+    }
+
     llvm::LLVMContext& get_context();
     llvm::IRBuilder<>& get_builder();
     llvm::Module& get_module();
     std::map<std::string, std::pair<Type::TypeToken, llvm::AllocaInst*>>& get_local_variables();
     std::map<std::string, std::shared_ptr<AST::Prototype>>& get_prototypes();
     std::unique_ptr<File>& get_file();
-    TargetTypeStack& get_target_type_stack();
     void set_function_return_type(Type::TypeToken type);
     Type::TypeToken get_function_return_type();
 

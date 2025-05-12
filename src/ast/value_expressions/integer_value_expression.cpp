@@ -11,7 +11,7 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IntegerValueExpression::codegen() {
-        Type::TypeToken type = Compiler::get_target_type_stack().top();
+        Type::TypeToken type = Compiler::TargetTypeStack::top();
 
         if (type == Type::TypeToken::Int8 || type == Type::TypeToken::Int16 || type == Type::TypeToken::Int32 || type == Type::TypeToken::Int64) {
             return ExpressionResult::create(llvm::ConstantInt::get(Type::get_by_token(type), value, true), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);

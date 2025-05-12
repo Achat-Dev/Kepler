@@ -9,7 +9,7 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> ReturnExpression::codegen() {
-        Compiler::get_target_type_stack().push(Compiler::get_function_return_type());
+        Compiler::TargetTypeStack::push(Compiler::get_function_return_type());
 
         std::unique_ptr<ExpressionResult> expression_er = expression->codegen();
         if (!expression_er->is_valid()) {
@@ -26,7 +26,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        Compiler::get_target_type_stack().pop();
+        Compiler::TargetTypeStack::pop();
 
         return ExpressionResult::create(Compiler::get_builder().CreateRet(expression_er->get_value()), expression_er->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
     }

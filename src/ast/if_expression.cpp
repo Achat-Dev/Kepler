@@ -15,7 +15,7 @@ namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IfExpression::codegen() {
         // Push 'None' as the target type for the condition so value expressions will choose their default type
-        Compiler::get_target_type_stack().push(Type::TypeToken::None);
+        Compiler::TargetTypeStack::push(Type::TypeToken::None);
 
         std::unique_ptr<ExpressionResult> condition_er = condition->codegen();
         if (!condition_er->is_valid()) {
@@ -23,7 +23,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        Compiler::get_target_type_stack().pop();
+        Compiler::TargetTypeStack::pop();
 
         // Make conditional a bool by comparing it to 0.0
         condition_er->set_value(Compiler::get_builder().CreateFCmpONE(condition_er->get_value(), llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "ifcond"));

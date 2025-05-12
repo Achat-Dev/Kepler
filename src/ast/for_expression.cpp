@@ -41,7 +41,7 @@ namespace Kepler::AST {
         }
         llvm::AllocaInst* alloca = Compiler::get_local_variables()[variable_name].second;
 
-        Compiler::get_target_type_stack().push(start_er->get_type());
+        Compiler::TargetTypeStack::push(start_er->get_type());
 
         // Codegen the end condition
         // This needs to be codegened in the entry block of the function in order to determine if the loop should be entered at all
@@ -58,7 +58,7 @@ namespace Kepler::AST {
         llvm::BasicBlock* loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "loop", f);
         Compiler::get_builder().SetInsertPoint(loop_block);
 
-        Compiler::get_target_type_stack().pop();
+        Compiler::TargetTypeStack::pop();
 
         // Codegen body
         for (int i = 0; i < body.size(); i++) {
@@ -79,7 +79,7 @@ namespace Kepler::AST {
             }
         }
 
-        Compiler::get_target_type_stack().push(start_er->get_type());
+        Compiler::TargetTypeStack::push(start_er->get_type());
 
         // Codegen step
         llvm::Value* step_v;
@@ -99,7 +99,7 @@ namespace Kepler::AST {
             );
         }
 
-        Compiler::get_target_type_stack().pop();
+        Compiler::TargetTypeStack::pop();
 
         // Calculate loop variable for next iteration
         llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());

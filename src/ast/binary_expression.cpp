@@ -30,7 +30,7 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
 
-            Compiler::get_target_type_stack().push(variable_data->type);
+            Compiler::TargetTypeStack::push(variable_data->type);
 
             std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
             if (!rhs_er->is_valid()) {
@@ -47,16 +47,16 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
 
-            Compiler::get_target_type_stack().pop();
+            Compiler::TargetTypeStack::pop();
 
             Compiler::get_builder().CreateStore(rhs_er->get_value(), variable_data->variable);
             return std::move(rhs_er);
         }
 
         std::unique_ptr<ExpressionResult> lhs_er = lhs->codegen();
-        Compiler::get_target_type_stack().push(lhs_er->get_type());
+        Compiler::TargetTypeStack::push(lhs_er->get_type());
         std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
-        Compiler::get_target_type_stack().pop();
+        Compiler::TargetTypeStack::pop();
 
         if (!lhs_er->is_valid() || !rhs_er->is_valid()) {
             return ExpressionResult::create_invalid();

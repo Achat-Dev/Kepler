@@ -16,6 +16,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <stack>
 #include <string>
 #include <utility>
 
@@ -27,10 +28,28 @@
 #include "parser.hpp"
 #include "compiler.hpp"
 #include "optimiser.hpp"
-#include "target_type_stack.hpp"
 #include "type.hpp"
 
 namespace Kepler::Compiler {
+
+    namespace TargetTypeStack {
+
+        static std::stack<Type::TypeToken> target_types;
+
+        void push(Type::TypeToken type) {
+            target_types.push(type);
+        }
+
+        void pop() {
+            return target_types.pop();
+        }
+
+        Type::TypeToken top() {
+            assert(!target_types.empty() && "[ Assertion ]: peeking at empty TargetTypeStack");
+            return target_types.top();
+        }
+
+    }
 
     static std::unique_ptr<llvm::LLVMContext> context;
     static std::unique_ptr<llvm::IRBuilder<>> builder;
@@ -38,7 +57,6 @@ namespace Kepler::Compiler {
 
     static std::map<std::string, std::pair<Type::TypeToken, llvm::AllocaInst*>> local_variables;
     static std::map<std::string, std::shared_ptr<AST::Prototype>> prototypes;
-    static TargetTypeStack target_type_stack;
 
     static llvm::TargetMachine* target_machine;
 
@@ -70,10 +88,6 @@ namespace Kepler::Compiler {
 
     std::unique_ptr<File>& get_file() {
         return file;
-    }
-
-    TargetTypeStack& get_target_type_stack() {
-        return target_type_stack;
     }
 
     void set_function_return_type(Type::TypeToken type) {

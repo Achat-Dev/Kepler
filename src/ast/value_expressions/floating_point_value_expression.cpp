@@ -11,7 +11,7 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> FloatingPointValueExpression::codegen() {
-        Type::TypeToken type = Compiler::get_target_type_stack().top();
+        Type::TypeToken type = Compiler::TargetTypeStack::top();
 
         if (type == Type::TypeToken::Float32 || type == Type::TypeToken::Float64) {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
