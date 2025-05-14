@@ -2,11 +2,11 @@
 #include <llvm/IR/Constants.h>
 #include <memory>
 
+#include "integer_value_expression.hpp"
+#include "../expression_result.hpp"
 #include "../../log.hpp"
 #include "../../types/type.hpp"
 #include "../../types/target_type_stack.hpp"
-#include "../expression_result.hpp"
-#include "integer_value_expression.hpp"
 
 namespace Kepler::AST {
 

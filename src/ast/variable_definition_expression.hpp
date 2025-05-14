@@ -3,10 +3,10 @@
 #include <memory>
 #include <string>
 
-#include "../types/type.hpp"
 #include "binary_expression.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
+#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

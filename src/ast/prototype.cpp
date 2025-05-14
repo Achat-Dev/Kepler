@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 
-#include "../compiler.hpp"
-#include "../utils.hpp"
-#include "../types/type.hpp"
 #include "parameter_data.hpp"
 #include "prototype.hpp"
+#include "../compiler.hpp"
+#include "../types/type.hpp"
+#include "../utils.hpp"
 
 namespace Kepler::AST {
 

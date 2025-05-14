@@ -5,9 +5,9 @@
 #include <string>
 #include <utility>
 
-#include "../log.hpp"
-#include "../ast/prototype.hpp"
 #include "function_registry.hpp"
+#include "../ast/prototype.hpp"
+#include "../log.hpp"
 
 namespace Kepler::FunctionRegistry {
 

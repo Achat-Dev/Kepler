@@ -2,9 +2,9 @@
 #include <map>
 #include <optional>
 
-#include "../log.hpp"
 #include "local_variables.hpp"
 #include "variable_data.hpp"
+#include "../log.hpp"
 
 namespace Kepler::LocalVariables {
 

@@ -10,14 +10,14 @@
 #include <optional>
 #include <string>
 
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../types/target_type_stack.hpp"
-#include "../variables/variable_data.hpp"
-#include "../variables/local_variables.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
 #include "for_expression.hpp"
+#include "../compiler.hpp"
+#include "../log.hpp"
+#include "../types/target_type_stack.hpp"
+#include "../variables/local_variables.hpp"
+#include "../variables/variable_data.hpp"
 
 namespace Kepler::AST {
 

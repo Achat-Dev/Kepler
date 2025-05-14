@@ -1,12 +1,12 @@
 #include <llvm/IR/Value.h>
 #include <memory>
 
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../function_registry/function_registry.hpp"
-#include "../types/target_type_stack.hpp"
 #include "expression_result.hpp"
 #include "return_expression.hpp"
+#include "../compiler.hpp"
+#include "../function_registry/function_registry.hpp"
+#include "../log.hpp"
+#include "../types/target_type_stack.hpp"
 
 namespace Kepler::AST {
 

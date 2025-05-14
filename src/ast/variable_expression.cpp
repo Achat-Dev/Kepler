@@ -2,13 +2,13 @@
 #include <optional>
 #include <string>
 
+#include "expression_result.hpp"
+#include "variable_expression.hpp"
 #include "../compiler.hpp"
 #include "../log.hpp"
 #include "../types/type.hpp"
 #include "../variables/local_variables.hpp"
 #include "../variables/variable_data.hpp"
-#include "expression_result.hpp"
-#include "variable_expression.hpp"
 
 namespace Kepler::AST {
 

@@ -10,16 +10,16 @@
 #include <memory>
 #include <string>
 
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../optimiser.hpp"
-#include "../utils.hpp"
-#include "../function_registry/function_registry.hpp"
-#include "../variables/local_variables.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
 #include "parameter_data.hpp"
 #include "function.hpp"
+#include "../compiler.hpp"
+#include "../function_registry/function_registry.hpp"
+#include "../log.hpp"
+#include "../optimiser.hpp"
+#include "../utils.hpp"
+#include "../variables/local_variables.hpp"
 
 namespace Kepler::AST {
 

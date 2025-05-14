@@ -5,13 +5,13 @@
 #include <memory>
 #include <string>
 
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../utils.hpp"
-#include "../types/type.hpp"
-#include "../variables/local_variables.hpp"
 #include "expression_result.hpp"
 #include "variable_definition_expression.hpp"
+#include "../compiler.hpp"
+#include "../log.hpp"
+#include "../types/type.hpp"
+#include "../utils.hpp"
+#include "../variables/local_variables.hpp"
 
 namespace Kepler::AST {
 

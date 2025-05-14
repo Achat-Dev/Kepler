@@ -5,14 +5,14 @@
 #include <optional>
 #include <utility>
 
+#include "binary_expression.hpp"
+#include "expression_result.hpp"
+#include "variable_expression.hpp"
 #include "../compiler.hpp"
 #include "../log.hpp"
 #include "../types/target_type_stack.hpp"
 #include "../variables/local_variables.hpp"
 #include "../variables/variable_data.hpp"
-#include "binary_expression.hpp"
-#include "expression_result.hpp"
-#include "variable_expression.hpp"
 
 namespace Kepler::AST {
 

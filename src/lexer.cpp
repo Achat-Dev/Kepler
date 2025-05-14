@@ -4,9 +4,9 @@
 #include <cstdlib>
 #include <string>
 
-#include "types/type.hpp"
 #include "compiler.hpp"
 #include "lexer.hpp"
+#include "types/type.hpp"
 #include "log.hpp"
 
 namespace Kepler::Lexer {

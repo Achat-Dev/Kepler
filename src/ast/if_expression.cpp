@@ -6,11 +6,11 @@
 #include <llvm/IR/Value.h>
 #include <memory>
 
+#include "expression_result.hpp"
+#include "if_expression.hpp"
 #include "../compiler.hpp"
 #include "../log.hpp"
 #include "../types/target_type_stack.hpp"
-#include "expression_result.hpp"
-#include "if_expression.hpp"
 
 namespace Kepler::AST {
 

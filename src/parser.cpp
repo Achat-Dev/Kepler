@@ -17,15 +17,15 @@
 #include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
-#include "ast/value_expressions/floating_point_value_expression.hpp"
-#include "ast/value_expressions/integer_value_expression.hpp"
 #include "ast/variable_expression.hpp"
 #include "ast/variable_definition_expression.hpp"
+#include "ast/value_expressions/floating_point_value_expression.hpp"
+#include "ast/value_expressions/integer_value_expression.hpp"
 #include "function_registry/function_registry.hpp"
-#include "types/type.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "parser.hpp"
+#include "types/type.hpp"
 
 namespace Kepler::Parser {
 

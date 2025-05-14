@@ -5,14 +5,14 @@
 #include <memory>
 #include <vector>
 
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../function_registry/function_registry.hpp"
-#include "../types/target_type_stack.hpp"
+#include "call_expression.hpp"
 #include "expression_result.hpp"
 #include "parameter_data.hpp"
 #include "prototype.hpp"
-#include "call_expression.hpp"
+#include "../compiler.hpp"
+#include "../function_registry/function_registry.hpp"
+#include "../log.hpp"
+#include "../types/target_type_stack.hpp"
 
 namespace Kepler::AST {
 
