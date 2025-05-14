@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -20,8 +21,8 @@
 #include "ast/value_expressions/integer_value_expression.hpp"
 #include "ast/variable_expression.hpp"
 #include "ast/variable_definition_expression.hpp"
+#include "function_registry/function_registry.hpp"
 #include "types/type.hpp"
-#include "compiler.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "parser.hpp"
@@ -219,7 +220,7 @@ namespace Kepler::Parser {
             }
         }
 
-        std::vector<AST::ParameterData> args;
+        std::vector<AST::ParameterData> parameters;
         read_next_token(); // eat '('
 
         if (current_token != Lexer::Token_DataType && current_token != ')') {
@@ -236,7 +237,7 @@ namespace Kepler::Parser {
                 return nullptr;
             }
 
-            args.push_back({ type, std::move(Lexer::get_identifier()) });
+            parameters.push_back({ type, std::move(Lexer::get_identifier()) });
 
             read_next_token(); // eat identifier
             if (current_token == ',') {
@@ -256,8 +257,11 @@ namespace Kepler::Parser {
 
         read_next_token(); // eat ')'
 
-        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(type, identifier, std::move(args));
-        Compiler::get_prototypes()[identifier] = { prototype };
+        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(type, identifier, std::move(parameters));
+        if (!FunctionRegistry::register_prototype(prototype)) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": trying to redefine a function, which is not allowed");
+            return nullptr;
+        }
 
         return prototype;
     }

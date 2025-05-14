@@ -9,7 +9,7 @@
 
 namespace Kepler::Type {
 
-    static std::string to_string(const TypeToken& type) {
+    std::string to_string(TypeToken type) {
         switch (type) {
             case TypeToken::None: return "none";
             case TypeToken::Var: return "var";
@@ -27,7 +27,7 @@ namespace Kepler::Type {
         return "unknown type";
     }
 
-    std::ostream& operator<<(std::ostream& os, const TypeToken& type) {
+    std::ostream& operator<<(std::ostream& os, TypeToken type) {
         os << to_string(type);
         return os;
     }

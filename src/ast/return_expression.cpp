@@ -3,6 +3,7 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../function_registry/function_registry.hpp"
 #include "../types/target_type_stack.hpp"
 #include "expression_result.hpp"
 #include "return_expression.hpp"
@@ -10,7 +11,8 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> ReturnExpression::codegen() {
-        Type::TargetTypeStack::push(Compiler::get_function_return_type());
+        Type::TypeToken target_return_type = FunctionRegistry::get_compiling_prototype()->get_type();
+        Type::TargetTypeStack::push(target_return_type);
 
         std::unique_ptr<ExpressionResult> expression_er = expression->codegen();
         if (!expression_er->is_valid()) {
@@ -22,8 +24,8 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        if (expression_er->get_type() != Compiler::get_function_return_type()) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to return a value of type '", expression_er->get_type(), "' from a function of type '", Compiler::get_function_return_type(), '\'');
+        if (expression_er->get_type() != target_return_type) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to return a value of type '", expression_er->get_type(), "' from a function of type '", target_return_type, '\'');
             return ExpressionResult::create_invalid();
         }
 

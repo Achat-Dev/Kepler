@@ -16,15 +16,15 @@ namespace Kepler::AST {
 
     llvm::Function* Prototype::codegen() {
         std::vector<llvm::Type*> types;
-        for (ParameterData& arg : args) {
-            types.push_back(Type::get_by_token(arg.type));
+        for (ParameterData& parameter : parameters) {
+            types.push_back(Type::get_by_token(parameter.type));
         }
         llvm::FunctionType* ft = llvm::FunctionType::get(Type::get_by_token(type), types, false);
         llvm::Function* f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, name, Compiler::get_module());
 
         unsigned idx = 0;
         for (llvm::Argument& arg : f->args()) {
-            arg.setName(args[idx++].name);
+            arg.setName(parameters[idx++].name);
         }
 
         return f;
@@ -38,20 +38,19 @@ namespace Kepler::AST {
         return name;
     }
 
-    const ParameterData& Prototype::get_arg(int index) const {
-        assert(index < args.size() && "[ Assertion ]: trying to get argument at an index which is out of bounds");
-        return args[index];
-    }
-
-    const ParameterData& Prototype::get_arg(const std::string& name) const {
-        for (const ParameterData& data : args) {
-            if (data.name == name) {
-                return data;
+    const ParameterData& Prototype::get_parameter(const std::string& name) const {
+        for (const ParameterData& parameter : parameters) {
+            if (parameter.name == name) {
+                return parameter;
             }
         }
 
         emergency_exit("failed to find variable '" + name + "' in function arguments");
-        return args[0]; // Needed to avoid compile errors
+        return parameters[0]; // Needed to avoid compile errors
+    }
+
+    const std::vector<ParameterData>& Prototype::get_parameters() const {
+        return parameters;
     }
 
 }

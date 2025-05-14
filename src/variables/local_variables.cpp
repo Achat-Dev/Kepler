@@ -12,8 +12,8 @@ namespace Kepler::LocalVariables {
 
     std::optional<VariableData> get(const std::string& name) {
         if (local_variables.find(name) != local_variables.end()) {
-            VariableData& data = local_variables[name];
-            return VariableData{ data.type, data.variable };
+            VariableData& local_variable = local_variables[name];
+            return VariableData{ local_variable.type, local_variable.variable };
         }
         return std::nullopt;
     }
@@ -23,13 +23,15 @@ namespace Kepler::LocalVariables {
     }
 
     void update(const std::string& name, const VariableData& data){
-        if (local_variables.find(name) != local_variables.end()) {
-            VariableData& d = local_variables[name];
-            d.type = data.type;
-            d.variable = data.variable;
+        if (local_variables.find(name) == local_variables.end()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to update local variable '", name, '\'');
+            return;
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to update local variable '", name, '\'');
+        VariableData& local_variable = local_variables[name];
+        local_variable.type = data.type;
+        local_variable.variable = data.variable;
+
     }
 
     void erase(const std::string& name) {

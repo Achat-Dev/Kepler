@@ -24,6 +24,9 @@ set(AST_SRC
     "src/ast/value_expressions/floating_point_value_expression.cpp"
     "src/ast/value_expressions/integer_value_expression.cpp")
 
+set(FUNCTION_REGISTRY_SRC
+    "src/function_registry/function_registry.cpp")
+
 set(TYPES_SRC
     "src/types/target_type_stack.cpp"
     "src/types/type.cpp")
@@ -40,6 +43,7 @@ add_executable (${CMAKE_PROJECT_NAME}
     "src/parser.cpp"
     "src/utils.cpp"
     ${AST_SRC}
+    ${FUNCTION_REGISTRY_SRC}
     ${TYPES_SRC}
     ${VARIABLES_SRC})
 

@@ -13,13 +13,10 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 
-#include "ast/prototype.hpp"
-#include "types/type.hpp"
 #include "compiler.hpp"
 #include "file.hpp"
 #include "lexer.hpp"
@@ -33,12 +30,9 @@ namespace Kepler::Compiler {
     static std::unique_ptr<llvm::IRBuilder<>> builder;
     static std::unique_ptr<llvm::Module> module;
 
-    static std::map<std::string, std::shared_ptr<AST::Prototype>> prototypes;
-
     static llvm::TargetMachine* target_machine;
 
     static std::unique_ptr<File> file;
-    static Type::TypeToken function_return_type = Type::TypeToken::None;
 
     static bool write_file(const char* outname);
     static bool initialise();
@@ -55,21 +49,8 @@ namespace Kepler::Compiler {
         return *module;
     }
 
-    std::map<std::string, std::shared_ptr<AST::Prototype>>& get_prototypes() {
-        return prototypes;
-    }
-
     std::unique_ptr<File>& get_file() {
         return file;
-    }
-
-    void set_function_return_type(Type::TypeToken type) {
-        assert((function_return_type == Type::TypeToken::None || type == Type::TypeToken::None) && "[ Assertion ]: trying to set function return type when it is already set");
-        function_return_type = type;
-    }
-
-    Type::TypeToken get_function_return_type() {
-        return function_return_type;
     }
 
     bool compile_file(const char* filename, const char* outname) {

@@ -13,17 +13,17 @@ namespace Kepler::AST {
     private:
         Type::TypeToken type;
         std::string name;
-        std::vector<ParameterData> args;
+        std::vector<ParameterData> parameters;
 
     public:
-        Prototype() : name(""), args(std::vector<ParameterData>()) {}
-        Prototype(Type::TypeToken type, std::string name, std::vector<ParameterData> args)
-            : type(type), name(name), args(std::move(args)) {}
+        Prototype() : name(""), parameters(std::vector<ParameterData>()) {}
+        Prototype(Type::TypeToken type, std::string name, std::vector<ParameterData> parameters)
+            : type(type), name(name), parameters(std::move(parameters)) {}
         llvm::Function* codegen();
         Type::TypeToken get_type() const;
         const std::string& get_name() const;
-        const ParameterData& get_arg(int index) const;
-        const ParameterData& get_arg(const std::string& name) const;
+        const ParameterData& get_parameter(const std::string& name) const;
+        const std::vector<ParameterData>& get_parameters() const;
     };
 
 

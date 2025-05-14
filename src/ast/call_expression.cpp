@@ -7,8 +7,10 @@
 
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../function_registry/function_registry.hpp"
 #include "../types/target_type_stack.hpp"
 #include "expression_result.hpp"
+#include "parameter_data.hpp"
 #include "prototype.hpp"
 #include "call_expression.hpp"
 
@@ -26,12 +28,15 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        std::shared_ptr<Prototype> prototype = Compiler::get_prototypes()[callee];
-        assert(prototype != nullptr && "[ Assertion ]: protoype called from CallExpression not added to known prototypes");
+        std::shared_ptr<Prototype> prototype = FunctionRegistry::get_registered_prototype(callee);
+        assert(prototype != nullptr && "[ Assertion ]: protoype called from CallExpression not registered as known prototype");
+
+        const std::vector<ParameterData>& parameters = prototype->get_parameters();
+        assert(args.size() == parameters.size() && "[ Assertion ]: argument count of CallExpression and respective prototype doesn't match");
 
         std::vector<llvm::Value*> args_v;
         for (unsigned i = 0, e = args.size(); i != e; i++) {
-            Type::TargetTypeStack::push(prototype->get_arg(i).type);
+            Type::TargetTypeStack::push(parameters[i].type);
             std::unique_ptr<ExpressionResult> arg_er = args[i]->codegen();
             if (!arg_er) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression for function call argument");

@@ -14,6 +14,7 @@
 #include "../log.hpp"
 #include "../optimiser.hpp"
 #include "../utils.hpp"
+#include "../function_registry/function_registry.hpp"
 #include "../variables/local_variables.hpp"
 #include "expression.hpp"
 #include "expression_result.hpp"
@@ -50,11 +51,11 @@ namespace Kepler::AST {
         for (llvm::Argument& arg : f->args()) {
             llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getType(), arg.getName());
             Compiler::get_builder().CreateStore(&arg, alloca);
-            const ParameterData& parameter_data = prototype->get_arg(arg.getName().str());
+            const ParameterData& parameter_data = prototype->get_parameter(arg.getName().str());
             LocalVariables::set(std::string(arg.getName()), { parameter_data.type, alloca });
         }
 
-        Compiler::set_function_return_type(prototype->get_type());
+        FunctionRegistry::set_compiling_prototype(prototype);
 
         // Codegen function body
         for (int i = 0; i < body.size(); i++) {
@@ -72,7 +73,7 @@ namespace Kepler::AST {
             }
         }
 
-        Compiler::set_function_return_type(Type::TypeToken::None);
+        FunctionRegistry::set_compiling_prototype(nullptr);
 
         llvm::EliminateUnreachableBlocks(*f);
 
