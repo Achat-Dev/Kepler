@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <limits>
 #include <llvm/IR/Constants.h>
 #include <memory>
 
@@ -20,6 +21,9 @@ namespace Kepler::AST {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
         if (type == Type::TypeToken::None) {
+            if (value > std::numeric_limits<int32_t>::max()) {
+                return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Int64), value), Type::TypeToken::Int64, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+            }
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Int32), value), Type::TypeToken::Int32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
