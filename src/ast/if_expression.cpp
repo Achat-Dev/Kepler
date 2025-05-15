@@ -10,24 +10,15 @@
 #include "if_expression.hpp"
 #include "../compiler.hpp"
 #include "../log.hpp"
-#include "../types/target_type_stack.hpp"
 
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IfExpression::codegen() {
-        // Push 'None' as the target type for the condition so value expressions will choose their default type
-        Type::TargetTypeStack::push(Type::TypeToken::None);
-
         std::unique_ptr<ExpressionResult> condition_er = condition->codegen();
         if (!condition_er->is_valid()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in if condition");
             return ExpressionResult::create_invalid();
         }
-
-        Type::TargetTypeStack::pop();
-
-        // Make conditional a bool by comparing it to 0.0
-        condition_er->set_value(Compiler::get_builder().CreateFCmpONE(condition_er->get_value(), llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(0.0)), "ifcond"));
 
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
 

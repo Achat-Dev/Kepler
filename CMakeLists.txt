@@ -13,6 +13,7 @@ add_definitions(${LLVM_DEFINITIONS})
 set(AST_SRC
     "src/ast/binary_expression.cpp"
     "src/ast/call_expression.cpp"
+    "src/ast/cast_expression.cpp"
     "src/ast/expression_result.cpp"
     "src/ast/for_expression.cpp"
     "src/ast/function.cpp"

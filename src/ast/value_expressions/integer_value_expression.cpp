@@ -14,10 +14,10 @@ namespace Kepler::AST {
     std::unique_ptr<ExpressionResult> IntegerValueExpression::codegen() {
         Type::TypeToken type = Type::TargetTypeStack::top();
 
-        if (type == Type::TypeToken::Int8 || type == Type::TypeToken::Int16 || type == Type::TypeToken::Int32 || type == Type::TypeToken::Int64) {
+        if (Type::is_integer_type(type)) {
             return ExpressionResult::create(llvm::ConstantInt::get(Type::get_by_token(type), value, true), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
-        if (type == Type::TypeToken::Float32 || type == Type::TypeToken::Float64) {
+        if (Type::is_floating_point_type(type)) {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
         if (type == Type::TypeToken::None) {

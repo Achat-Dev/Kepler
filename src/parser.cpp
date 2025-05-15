@@ -10,6 +10,7 @@
 
 #include "ast/binary_expression.hpp"
 #include "ast/call_expression.hpp"
+#include "ast/cast_expression.hpp"
 #include "ast/expression.hpp"
 #include "ast/for_expression.hpp"
 #include "ast/function.hpp"
@@ -325,6 +326,8 @@ namespace Kepler::Parser {
             }
             return nullptr;
         }
+
+        condition = std::make_unique<AST::CastExpression>(std::move(condition), Type::TypeToken::Bool);
 
         if (current_token != ')') {
             if (is_elseif) {

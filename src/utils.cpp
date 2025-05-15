@@ -1,4 +1,3 @@
-#include <cmath>
 #include <exception>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Function.h>
