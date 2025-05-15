@@ -1,7 +1,7 @@
 #pragma once
 
-#include <climits>
 #include <cstdint>
+#include <limits>
 #include <string>
 
 #include "types/type.hpp"
@@ -28,7 +28,7 @@ namespace Kepler::Lexer {
 
         // Parsing tokens
         // These are necessary for certain parsing operations
-        Token_Parsing_Elseif = INT_MIN,
+        Token_Parsing_Elseif = std::numeric_limits<int32_t>::max(),
     };
 
     int read_token();
