@@ -39,8 +39,8 @@ namespace Kepler::AST {
         for (unsigned i = 0, e = args.size(); i != e; i++) {
             Type::TargetTypeStack::push(parameters[i].type);
             std::unique_ptr<ExpressionResult> arg_er = args[i]->codegen();
-            if (!arg_er) {
-                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression for function call argument");
+            if (!arg_er->is_valid()) {
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in function argument");
                 return ExpressionResult::create_invalid();
             }
 
