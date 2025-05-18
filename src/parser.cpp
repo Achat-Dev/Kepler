@@ -415,6 +415,12 @@ namespace Kepler::Parser {
         }
 
         Type::TypeToken type = Lexer::get_type();
+
+        if (!Type::is_integer_type(type) && !Type::is_floating_point_type(type)) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": the loop variable of a 'for' loop has to be an integer or floating point type, the given type is '", type, '\'');
+            return nullptr;
+        }
+
         read_next_token(); // eat data type
         if (current_token != Lexer::Token_Identifier) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after data type in 'for'");

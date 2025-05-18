@@ -36,22 +36,10 @@ namespace Kepler::Type {
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'string' is not supported yet");
                 std::terminate();
                 return nullptr;
-            case TypeToken::Int8:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'i8' is not supported yet");
-                std::terminate();
-                return nullptr;
-            case TypeToken::Int16:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'i16' is not supported yet");
-                std::terminate();
-                return nullptr;
-            case TypeToken::Int32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'i32' is not supported yet");
-                std::terminate();
-                return nullptr;
-            case TypeToken::Int64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'i64' is not supported yet");
-                std::terminate();
-                return nullptr;
+            case TypeToken::Int8: return llvm::Type::getInt8Ty(Compiler::get_context());
+            case TypeToken::Int16: return llvm::Type::getInt16Ty(Compiler::get_context());
+            case TypeToken::Int32: return llvm::Type::getInt32Ty(Compiler::get_context());
+            case TypeToken::Int64: return llvm::Type::getInt64Ty(Compiler::get_context());
             case TypeToken::Float32: return llvm::Type::getFloatTy(Compiler::get_context());
             case TypeToken::Float64: return llvm::Type::getDoubleTy(Compiler::get_context());
             default:
@@ -229,6 +217,7 @@ namespace Kepler::Type {
     }
 
     llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to) {
+
         assert((from != Type::TypeToken::None && from != Type::TypeToken::Var) && "[ Assertion ]: trying to cast from an invalid type");
         assert((to != Type::TypeToken::None && to != Type::TypeToken::Var) && "[ Assertion ]: trying to cast to an invalid type");
 

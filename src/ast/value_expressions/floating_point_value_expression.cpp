@@ -24,7 +24,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Float32), value), Type::TypeToken::Float32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from a float");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from a floating point value");
         return ExpressionResult::create_invalid();
     }
 

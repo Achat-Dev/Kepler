@@ -22,12 +22,12 @@ namespace Kepler::AST {
         }
         if (type == Type::TypeToken::None) {
             if (value > std::numeric_limits<int32_t>::max()) {
-                return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Int64), value), Type::TypeToken::Int64, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+                return ExpressionResult::create(llvm::ConstantInt::get(Type::get_by_token(Type::TypeToken::Int64), value), Type::TypeToken::Int64, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
             }
-            return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Int32), value), Type::TypeToken::Int32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+            return ExpressionResult::create(llvm::ConstantInt::get(Type::get_by_token(Type::TypeToken::Int32), value), Type::TypeToken::Int32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from an integer");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from an integer value");
         return ExpressionResult::create_invalid();
     }
 

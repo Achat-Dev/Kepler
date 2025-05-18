@@ -21,11 +21,19 @@
 
 namespace Kepler::AST {
 
-    static llvm::Value* codegen_end_condition(llvm::Value* select_condition, llvm::AllocaInst* alloca, llvm::Value* endv, const char* variable_name) {
-        return Compiler::get_builder().CreateSelect(select_condition,
-            Compiler::get_builder().CreateFCmpULT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
-            Compiler::get_builder().CreateFCmpUGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
-        );
+    static llvm::Value* codegen_end_condition(llvm::Value* select_condition, llvm::AllocaInst* alloca, llvm::Value* endv, const char* variable_name, bool use_integer_operations) {
+        if (use_integer_operations) {
+            return Compiler::get_builder().CreateSelect(select_condition,
+                Compiler::get_builder().CreateICmpULT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
+                Compiler::get_builder().CreateICmpUGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
+            );
+        }
+        else {
+            return Compiler::get_builder().CreateSelect(select_condition,
+                Compiler::get_builder().CreateFCmpULT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
+                Compiler::get_builder().CreateFCmpUGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
+            );
+        }
     }
 
     std::unique_ptr<ExpressionResult> ForExpression::codegen() {
@@ -41,6 +49,8 @@ namespace Kepler::AST {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' start value");
             return ExpressionResult::create_invalid();
         }
+        bool use_integer_operations = Type::is_integer_type(start_er->get_type());
+
         llvm::AllocaInst* alloca = LocalVariables::get(variable_name)->variable;
 
         Type::TargetTypeStack::push(start_er->get_type());
@@ -52,8 +62,15 @@ namespace Kepler::AST {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in 'for' end value");
             return ExpressionResult::create_invalid();
         }
-        llvm::Value* end_select_condition = Compiler::get_builder().CreateFCmpULE(start_er->get_value(), end_er->get_value());
-        llvm::Value* start_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str());
+
+        llvm::Value* end_select_condition;
+        if (use_integer_operations) {
+            end_select_condition = Compiler::get_builder().CreateICmpULE(start_er->get_value(), end_er->get_value());
+        }
+        else {
+            end_select_condition = Compiler::get_builder().CreateFCmpULE(start_er->get_value(), end_er->get_value());
+        }
+        llvm::Value* start_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str(), use_integer_operations);
 
         // Don't create a terminator for the entry block yet because that depends on if the body is a qualified return
         llvm::BasicBlock* entry_block = Compiler::get_builder().GetInsertBlock();
@@ -96,21 +113,35 @@ namespace Kepler::AST {
         }
         else {
             // Step is implicit, so we need to dynamically decide if it should be 1 or -1
-            step_v = Compiler::get_builder().CreateSelect(end_select_condition,
-                llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(1.0)),
-                llvm::ConstantFP::get(Compiler::get_context(), llvm::APFloat(-1.0))
-            );
+            if (use_integer_operations) {
+                step_v = Compiler::get_builder().CreateSelect(end_select_condition,
+                    llvm::ConstantInt::get(Type::get_by_token(start_er->get_type()), 1),
+                    llvm::ConstantInt::get(Type::get_by_token(start_er->get_type()), -1)
+                );
+            }
+            else {
+                step_v = Compiler::get_builder().CreateSelect(end_select_condition,
+                    llvm::ConstantFP::get(Type::get_by_token(start_er->get_type()), 1),
+                    llvm::ConstantFP::get(Type::get_by_token(start_er->get_type()), -1)
+                );
+            }
         }
 
         Type::TargetTypeStack::pop();
 
         // Calculate loop variable for next iteration
         llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());
-        llvm::Value* next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_v, "nextvariable");
+        llvm::Value* next_variable;
+        if (use_integer_operations) {
+            next_variable = Compiler::get_builder().CreateAdd(current_variable, step_v, "nextvariable");
+        }
+        else {
+            next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_v, "nextvariable");
+        }
         Compiler::get_builder().CreateStore(next_variable, alloca);
 
         // Codegen loop end condition in the body to check if the loop should be exited
-        llvm::Value* end_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str());
+        llvm::Value* end_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str(), use_integer_operations);
 
         //Evaluate if loop should exit
         llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterloop", f);

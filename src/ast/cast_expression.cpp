@@ -14,6 +14,7 @@ namespace Kepler::AST {
         Type::TargetTypeStack::push(Type::TypeToken::None);
 
         std::unique_ptr<ExpressionResult> value_er = value->codegen();
+
         if (!value_er->is_valid()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in cast");
             return ExpressionResult::create_invalid();

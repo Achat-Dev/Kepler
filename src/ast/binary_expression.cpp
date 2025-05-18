@@ -45,7 +45,7 @@ namespace Kepler::AST {
             }
 
             if (rhs_er->get_type() != variable_data->type) {
-                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to assign a value of type '", rhs_er->get_type(), "' to variable of type '", variable_data->type, '\'');
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to assign a value of type '", rhs_er->get_type(), "' to a variable of type '", variable_data->type, '\'');
                 return ExpressionResult::create_invalid();
             }
 
