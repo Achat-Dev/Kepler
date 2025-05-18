@@ -16,7 +16,7 @@ namespace Kepler::AST {
 
         std::unique_ptr<ExpressionResult> expression_er = expression->codegen();
         if (!expression_er->is_valid()) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": no valid return value");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid return value");
             return ExpressionResult::create_invalid();
         }
         if (!expression_er->is_returnable()) {
