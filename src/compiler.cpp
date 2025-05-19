@@ -67,15 +67,15 @@ namespace Kepler::Compiler {
 
         while (true) {
             switch (Parser::get_current_token()) {
-                case Lexer::Token_EndOfFile:
+                case Lexer::Token::EndOfFile:
                     file->close();
                     return write_file(outname);
-                case Lexer::Token_Extern:
+                case Lexer::Token::Extern:
                     if (!Parser::handle_extern()) {
                         return false;
                     }
                     break;
-                case Lexer::Token_DataType:
+                case Lexer::Token::DataType:
                     if (!Parser::handle_data_type()) {
                         return false;
                     }

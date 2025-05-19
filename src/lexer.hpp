@@ -1,37 +1,53 @@
 #pragma once
 
 #include <cstdint>
-#include <limits>
+#include <ostream>
 #include <string>
 
 #include "types/type.hpp"
 
 namespace Kepler::Lexer {
 
-    enum Token {
-        Token_EndOfFile = -1,
+    enum class Token {
+        // Meta
+        EndOfFile,
+        BracketOpen,
+        BracketClose,
+        Comma,
+        Colon,
+
+        // Operators
+        Assignment,
+        Plus,
+        Minus,
+        Multiplication,
+        Division,
+        LessThan,
+        GreaterThan,
 
         // Keywords
-        Token_Extern = -2,
-        Token_Return = -3,
-        Token_End = -4,
-        Token_If = -5,
-        Token_Else = -6,
-        Token_Elseif = -7,
-        Token_For = -8,
+        Extern,
+        Return,
+        End,
+        If,
+        Else,
+        Elseif,
+        For,
 
         // Primary
-        Token_Identifier = -9,
-        Token_Float_Value = -10,
-        Token_Int_Value = -11,
-        Token_DataType = -12,
+        Identifier,
+        FloatValue,
+        IntValue,
+        DataType,
 
         // Parsing tokens
         // These are necessary for certain parsing operations
-        Token_Parsing_Elseif = std::numeric_limits<int32_t>::max(),
+        Parsing_Elseif,
     };
 
-    int read_token();
+    std::ostream& operator<<(std::ostream& os, Token token);
+
+    Token read_token();
     std::string get_identifier();
     int64_t get_int_value();
     double get_float_value();

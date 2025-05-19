@@ -4,20 +4,21 @@
 
 #include "expression.hpp"
 #include "expression_result.hpp"
+#include "../lexer.hpp"
 
 namespace Kepler::AST {
 
     class BinaryExpression : public Expression {
     private:
-        char op;
+        Lexer::Token op;
         std::unique_ptr<Expression> lhs;
         std::unique_ptr<Expression> rhs;
 
     public:
-        BinaryExpression(char op, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+        BinaryExpression(Lexer::Token op, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
             : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
         std::unique_ptr<ExpressionResult> codegen() override;
-        char get_operator() const;
+        Lexer::Token get_operator() const;
     };
 
 }

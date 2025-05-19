@@ -30,7 +30,7 @@ namespace Kepler::AST {
         llvm::AllocaInst* alloca = create_entry_block_alloca(f, Type::get_by_token(type), name);
         LocalVariables::set(name, { type, alloca });
 
-        assert(value->get_operator() == '=' && "[ Assertion ]: operator of variable assignment has to be '='");
+        assert(value->get_operator() == Lexer::Token::Assignment && "[ Assertion ]: operator of variable assignment has to be '='");
 
         // Since this is a BinaryExpression, codegen handles the assignment and error handling
         std::unique_ptr<ExpressionResult> value_er = value->codegen();

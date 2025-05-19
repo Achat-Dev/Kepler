@@ -107,7 +107,7 @@ namespace Kepler::AST {
     }
 
     std::unique_ptr<ExpressionResult> BinaryExpression::codegen() {
-        if (op == '=') {
+        if (op == Lexer::Token::Assignment) {
             VariableExpression* lhs_as_variable = dynamic_cast<VariableExpression*>(lhs.get());
             if (!lhs_as_variable) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": destination of '=' must be a variable");
@@ -162,19 +162,19 @@ namespace Kepler::AST {
         llvm::Value* value;
         unsigned int flags = ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable;
         switch (op) {
-            case '<': return create_less_than(std::move(lhs_er), std::move(rhs_er));
-            case '>': return create_greater_than(std::move(lhs_er), std::move(rhs_er));
-            case '+': return create_add(std::move(lhs_er), std::move(rhs_er));
-            case '-': return create_sub(std::move(lhs_er), std::move(rhs_er));
-            case '*': return create_mul(std::move(lhs_er), std::move(rhs_er));
-            case '/': return create_div(std::move(lhs_er), std::move(rhs_er));
+            case Lexer::Token::LessThan: return create_less_than(std::move(lhs_er), std::move(rhs_er));
+            case Lexer::Token::GreaterThan: return create_greater_than(std::move(lhs_er), std::move(rhs_er));
+            case Lexer::Token::Plus: return create_add(std::move(lhs_er), std::move(rhs_er));
+            case Lexer::Token::Minus: return create_sub(std::move(lhs_er), std::move(rhs_er));
+            case Lexer::Token::Multiplication: return create_mul(std::move(lhs_er), std::move(rhs_er));
+            case Lexer::Token::Division: return create_div(std::move(lhs_er), std::move(rhs_er));
             default:
-                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid binary operator");
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown binary operator '", op, '\'');
                 return ExpressionResult::create_invalid();
         }
     }
 
-    char BinaryExpression::get_operator() const {
+    Lexer::Token BinaryExpression::get_operator() const {
         return op;
     }
 
