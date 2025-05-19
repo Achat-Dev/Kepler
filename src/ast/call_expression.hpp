@@ -8,7 +8,7 @@
 
 namespace Kepler::AST {
 
-    class CallExpression : public Expression {
+    class CallExpression: public Expression {
     private:
         std::string callee;
         std::vector<std::unique_ptr<Expression>> args;

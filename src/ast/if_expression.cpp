@@ -10,14 +10,26 @@
 #include "if_expression.hpp"
 #include "../compiler.hpp"
 #include "../log.hpp"
+#include "../types/target_type_stack.hpp"
+#include "../types/type.hpp"
 
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> IfExpression::codegen() {
+        // Push 'None' as the target type in order to let value expressions choose their default type
+        Type::TargetTypeStack::push(Type::TypeToken::None);
+
         std::unique_ptr<ExpressionResult> condition_er = condition->codegen();
         if (!condition_er->is_valid()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in if condition");
             return ExpressionResult::create_invalid();
+        }
+
+        Type::TargetTypeStack::pop();
+
+        // Manually check for casting because if the condition would be a CastExpression, 'if's would be cluttered with compile warnings
+        if (condition_er->get_type() != Type::TypeToken::Bool) {
+            condition_er->set_value(Type::cast(condition_er->get_value(), condition_er->get_type(), Type::TypeToken::Bool));
         }
 
         llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();

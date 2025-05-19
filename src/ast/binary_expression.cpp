@@ -16,6 +16,96 @@
 
 namespace Kepler::AST {
 
+    static std::unique_ptr<ExpressionResult> create_less_than(std::unique_ptr<ExpressionResult> lhs, std::unique_ptr<ExpressionResult> rhs) {
+        const Type::TypeToken type = lhs->get_type();
+        if (Type::is_integer_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateICmpSLT(lhs->get_value(), rhs->get_value(), "lttmp");
+            return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+        if (Type::is_floating_point_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateFCmpULT(lhs->get_value(), rhs->get_value(), "lttmp");
+            return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '<' operation with type '", type, "' is not supported");
+        return ExpressionResult::create_invalid();
+    }
+
+    static std::unique_ptr<ExpressionResult> create_greater_than(std::unique_ptr<ExpressionResult> lhs, std::unique_ptr<ExpressionResult> rhs) {
+        const Type::TypeToken type = lhs->get_type();
+        if (Type::is_integer_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateICmpSGT(lhs->get_value(), rhs->get_value(), "gttmp");
+            return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+        if (Type::is_floating_point_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateFCmpUGT(lhs->get_value(), rhs->get_value(), "gttmp");
+            return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation with type '", type, "' is not supported");
+        return ExpressionResult::create_invalid();
+    }
+
+    static std::unique_ptr<ExpressionResult> create_add(std::unique_ptr<ExpressionResult> lhs, std::unique_ptr<ExpressionResult> rhs) {
+        const Type::TypeToken type = lhs->get_type();
+        if (Type::is_integer_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateAdd(lhs->get_value(), rhs->get_value(), "addtmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+        if (Type::is_floating_point_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateFAdd(lhs->get_value(), rhs->get_value(), "addtmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '+' operation with type '", type, "' is not supported");
+        return ExpressionResult::create_invalid();
+    }
+
+    static std::unique_ptr<ExpressionResult> create_sub(std::unique_ptr<ExpressionResult> lhs, std::unique_ptr<ExpressionResult> rhs) {
+        const Type::TypeToken type = lhs->get_type();
+        if (Type::is_integer_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateSub(lhs->get_value(), rhs->get_value(), "subtmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+        if (Type::is_floating_point_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateFSub(lhs->get_value(), rhs->get_value(), "subtmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '-' operation with type '", type, "' is not supported");
+        return ExpressionResult::create_invalid();
+    }
+
+    static std::unique_ptr<ExpressionResult> create_mul(std::unique_ptr<ExpressionResult> lhs, std::unique_ptr<ExpressionResult> rhs) {
+        const Type::TypeToken type = lhs->get_type();
+        if (Type::is_integer_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateMul(lhs->get_value(), rhs->get_value(), "multmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+        if (Type::is_floating_point_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateFMul(lhs->get_value(), rhs->get_value(), "multmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '*' operation with type '", type, "' is not supported");
+        return ExpressionResult::create_invalid();
+    }
+
+    static std::unique_ptr<ExpressionResult> create_div(std::unique_ptr<ExpressionResult> lhs, std::unique_ptr<ExpressionResult> rhs) {
+        const Type::TypeToken type = lhs->get_type();
+        if (Type::is_integer_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateSDiv(lhs->get_value(), rhs->get_value(), "divtmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+        if (Type::is_floating_point_type(type)) {
+            llvm::Value* value = Compiler::get_builder().CreateFDiv(lhs->get_value(), rhs->get_value(), "divtmp");
+            return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
+
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '/' operation with type '", type, "' is not supported");
+        return ExpressionResult::create_invalid();
+    }
+
     std::unique_ptr<ExpressionResult> BinaryExpression::codegen() {
         if (op == '=') {
             VariableExpression* lhs_as_variable = dynamic_cast<VariableExpression*>(lhs.get());
@@ -72,26 +162,12 @@ namespace Kepler::AST {
         llvm::Value* value;
         unsigned int flags = ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable;
         switch (op) {
-            case '<':
-                lhs_er->set_value(Compiler::get_builder().CreateFCmpULT(lhs_er->get_value(), rhs_er->get_value(), "cmptmp"));
-                value = Compiler::get_builder().CreateUIToFP(lhs_er->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
-                return ExpressionResult::create(value, lhs_er->get_type(), flags);
-            case '>':
-                lhs_er->set_value(Compiler::get_builder().CreateFCmpUGT(lhs_er->get_value(), rhs_er->get_value(), "cmptmp"));
-                value = Compiler::get_builder().CreateUIToFP(lhs_er->get_value(), llvm::Type::getDoubleTy(Compiler::get_context()), "booltmp");
-                return ExpressionResult::create(value, lhs_er->get_type(), flags);
-            case '+':
-                value = Compiler::get_builder().CreateFAdd(lhs_er->get_value(), rhs_er->get_value(), "addtmp");
-                return ExpressionResult::create(value, lhs_er->get_type(), flags);
-            case '-':
-                value = Compiler::get_builder().CreateFSub(lhs_er->get_value(), rhs_er->get_value(), "subtmp");
-                return ExpressionResult::create(value, lhs_er->get_type(), flags);
-            case '*':
-                value = Compiler::get_builder().CreateFMul(lhs_er->get_value(), rhs_er->get_value(), "multmp");
-                return ExpressionResult::create(value, lhs_er->get_type(), flags);
-            case '/':
-                value = Compiler::get_builder().CreateFDiv(lhs_er->get_value(), rhs_er->get_value(), "divtmp");
-                return ExpressionResult::create(value, lhs_er->get_type(), flags);
+            case '<': return create_less_than(std::move(lhs_er), std::move(rhs_er));
+            case '>': return create_greater_than(std::move(lhs_er), std::move(rhs_er));
+            case '+': return create_add(std::move(lhs_er), std::move(rhs_er));
+            case '-': return create_sub(std::move(lhs_er), std::move(rhs_er));
+            case '*': return create_mul(std::move(lhs_er), std::move(rhs_er));
+            case '/': return create_div(std::move(lhs_er), std::move(rhs_er));
             default:
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid binary operator");
                 return ExpressionResult::create_invalid();

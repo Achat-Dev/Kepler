@@ -47,7 +47,7 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_for();
     static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body();
     static std::unique_ptr<AST::Expression> parse_return();
-    static std::unique_ptr<AST::Expression> parse_local_variable();
+    static std::unique_ptr<AST::Expression> parse_data_type();
     static bool handle_function(Type::TypeToken type, std::string identifier);
 
     static int current_token;
@@ -167,7 +167,7 @@ namespace Kepler::Parser {
                     return parse_if();
             case Lexer::Token_For: return parse_for();
             case Lexer::Token_Return: return parse_return();
-            case Lexer::Token_DataType: return parse_local_variable();
+            case Lexer::Token_DataType: return parse_data_type();
             case '(': return parse_parenthesis();
             case '-': return parse_negative();
             default:
@@ -326,8 +326,6 @@ namespace Kepler::Parser {
             }
             return nullptr;
         }
-
-        condition = std::make_unique<AST::CastExpression>(std::move(condition), Type::TypeToken::Bool);
 
         if (current_token != ')') {
             if (is_elseif) {
@@ -542,33 +540,51 @@ namespace Kepler::Parser {
         return std::make_unique<AST::ReturnExpression>(std::move(expression));
     }
 
-    // TODO: implement casting ('(' after data type)
-    static std::unique_ptr<AST::Expression> parse_local_variable() {
+    static std::unique_ptr<AST::Expression> parse_data_type() {
         Type::TypeToken type = Lexer::get_type();
 
         read_next_token(); // eat data type
-        if (current_token != Lexer::Token_Identifier) {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier after data type in local variable definition");
-            return nullptr;
+        // Parse cast
+        if (current_token == '(') {
+            read_next_token(); // eat '('
+
+            std::unique_ptr<AST::Expression> value = parse_expression();
+            if (!value) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in cast");
+                return nullptr;
+            }
+
+            if (current_token != ')') {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after value of cast");
+                return nullptr;
+            }
+            read_next_token(); // eat ')'
+
+            return std::make_unique<AST::CastExpression>(std::move(value), type);
         }
-        std::string variable_name = Lexer::get_identifier();
+        // Parse local variable definition
+        else if (current_token == Lexer::Token_Identifier) {
+            std::string variable_name = Lexer::get_identifier();
 
-        read_next_token(); // eat idetifier
-        if (current_token != '=') {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '=' after data type identifier in local variable definition");
-            return nullptr;
+            read_next_token(); // eat idetifier
+            if (current_token != '=') {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '=' after identifier in local variable definition");
+                return nullptr;
+            }
+            read_next_token(); // eat '='
+
+            std::unique_ptr<AST::Expression> value = parse_expression();
+            if (!value) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in assignment in local variable definition");
+                return nullptr;
+            }
+
+            std::unique_ptr<AST::BinaryExpression> assignment_expression = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::move(value));
+            return std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment_expression));
         }
-        read_next_token(); // eat '='
 
-        std::unique_ptr<AST::Expression> value = parse_expression();
-        if (!value) {
-            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in variable assignment in local variable definition");
-            return nullptr;
-        }
-
-        std::unique_ptr<AST::BinaryExpression> assignment_expression = std::make_unique<AST::BinaryExpression>('=', std::make_unique<AST::VariableExpression>(variable_name), std::move(value));
-
-        return std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment_expression));
+        log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier or '(' after data type in function");
+        return nullptr;
     }
 
     static bool handle_function(Type::TypeToken type, std::string identifier) {

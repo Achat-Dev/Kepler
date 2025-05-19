@@ -1,6 +1,9 @@
 #include <cassert>
+#include <cstdint>
 #include <exception>
+#include <limits>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
@@ -50,174 +53,139 @@ namespace Kepler::Type {
 
     static llvm::Value* cast_i8(llvm::Value* value, TypeToken to) {
         switch (to) {
-            case TypeToken::Bool:
-                return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int8), 0));
+            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int8), 0));
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'char' is not supported yet");
                 return nullptr;
             case TypeToken::String:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'string' is not supported yet");
                 return nullptr;
-            case TypeToken::Int16:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'i16' is not supported yet");
-                return nullptr;
-            case TypeToken::Int32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'i32' is not supported yet");
-                return nullptr;
-            case TypeToken::Int64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'i64' is not supported yet");
-                return nullptr;
-            case TypeToken::Float32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'f32' is not supported yet");
-                return nullptr;
-            case TypeToken::Float64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'f64' is not supported yet");
-                return nullptr;
+            case TypeToken::Int16: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
+            case TypeToken::Int32: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
+            case TypeToken::Int64: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
+            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
+            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
             default: return nullptr;
         }
     }
 
     static llvm::Value* cast_i16(llvm::Value* value, TypeToken to) {
         switch (to) {
-            case TypeToken::Bool:
-                return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int16), 0));
+            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int16), 0));
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'char' is not supported yet");
                 return nullptr;
             case TypeToken::String:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'string' is not supported yet");
                 return nullptr;
-            case TypeToken::Int8:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'i8' is not supported yet");
-                return nullptr;
-            case TypeToken::Int32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'i32' is not supported yet");
-                return nullptr;
-            case TypeToken::Int64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'i64' is not supported yet");
-                return nullptr;
-            case TypeToken::Float32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'f32' is not supported yet");
-                return nullptr;
-            case TypeToken::Float64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'f64' is not supported yet");
-                return nullptr;
+            case TypeToken::Int8: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
+            case TypeToken::Int32: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
+            case TypeToken::Int64: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
+            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
+            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
             default: return nullptr;
         }
     }
 
     static llvm::Value* cast_i32(llvm::Value* value, TypeToken to) {
         switch (to) {
-            case TypeToken::Bool:
-                return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0));
+            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0));
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'char' is not supported yet");
                 return nullptr;
             case TypeToken::String:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'string' is not supported yet");
                 return nullptr;
-            case TypeToken::Int8:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'i8' is not supported yet");
-                return nullptr;
-            case TypeToken::Int16:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'i16' is not supported yet");
-                return nullptr;
-            case TypeToken::Int64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'i64' is not supported yet");
-                return nullptr;
-            case TypeToken::Float32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'f32' is not supported yet");
-                return nullptr;
-            case TypeToken::Float64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'f64' is not supported yet");
-                return nullptr;
+            case TypeToken::Int8: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
+            case TypeToken::Int16: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
+            case TypeToken::Int64: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
+            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
+            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
             default: return nullptr;
         }
     }
 
     static llvm::Value* cast_i64(llvm::Value* value, TypeToken to) {
         switch (to) {
-            case TypeToken::Bool:
-                return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int64), 0));
+            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int64), 0));
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'char' is not supported yet");
                 return nullptr;
             case TypeToken::String:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'string' is not supported yet");
                 return nullptr;
-            case TypeToken::Int8:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'i8' is not supported yet");
-                return nullptr;
-            case TypeToken::Int16:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'i16' is not supported yet");
-                return nullptr;
-            case TypeToken::Int32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'i32' is not supported yet");
-                return nullptr;
-            case TypeToken::Float32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'f32' is not supported yet");
-                return nullptr;
-            case TypeToken::Float64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'f64' is not supported yet");
-                return nullptr;
+            case TypeToken::Int8: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
+            case TypeToken::Int16: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
+            case TypeToken::Int32: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
+            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
+            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
             default: return nullptr;
         }
     }
 
+    static llvm::Value* cast_float_to_int(llvm::Value* value, TypeToken from, TypeToken to) {
+        assert((is_floating_point_type(from) && is_integer_type(to)) && "[ Assertion ]: TypeTokens given to 'cast_float_to_int' are not of types floating point and integer");
+
+        llvm::Value* min;
+        llvm::Value* max;
+
+        switch (to) {
+            case TypeToken::Int8:
+                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int8_t>::lowest());
+                max = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int8_t>::max());
+                break;
+            case TypeToken::Int16:
+                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int16_t>::lowest());
+                max = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int16_t>::max());
+                break;
+            case TypeToken::Int32:
+                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int32_t>::lowest());
+                max = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int32_t>::max());
+                break;
+            case TypeToken::Int64:
+                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int64_t>::lowest());
+                max = llvm::ConstantFP::get(get_by_token(from), static_cast<double>(std::numeric_limits<int64_t>::max()));
+                break;
+            default: break;
+        }
+
+        llvm::Value* clamped = Compiler::get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
+        clamped = Compiler::get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
+
+        return Compiler::get_builder().CreateFPToSI(clamped, get_by_token(to));
+    }
+
     static llvm::Value* cast_f32(llvm::Value* value, TypeToken to) {
         switch (to) {
-            case TypeToken::Bool:
-                return Compiler::get_builder().CreateFCmpONE(value, llvm::ConstantFP::get(get_by_token(TypeToken::Float32), 0));
+            case TypeToken::Bool: return Compiler::get_builder().CreateFCmpONE(value, llvm::ConstantFP::get(get_by_token(TypeToken::Float32), 0));
             case TypeToken::String:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f32' to 'string' is not supported yet");
                 return nullptr;
-            case TypeToken::Int8:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f32' to 'i8' is not supported yet");
-                return nullptr;
-            case TypeToken::Int16:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f32' to 'i16' is not supported yet");
-                return nullptr;
-            case TypeToken::Int32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f32' to 'i32' is not supported yet");
-                return nullptr;
-            case TypeToken::Int64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f32' to 'i64' is not supported yet");
-                return nullptr;
-            case TypeToken::Float64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f32' to 'f64' is not supported yet");
-                return nullptr;
+            case TypeToken::Int8: return cast_float_to_int(value, TypeToken::Float32, to);
+            case TypeToken::Int16: return cast_float_to_int(value, TypeToken::Float32, to);
+            case TypeToken::Int32: return cast_float_to_int(value, TypeToken::Float32, to);
+            case TypeToken::Int64: return cast_float_to_int(value, TypeToken::Float32, to);
+            case TypeToken::Float64: return Compiler::get_builder().CreateFPExt(value, get_by_token(to));
             default: return nullptr;
         }
     }
 
     static llvm::Value* cast_f64(llvm::Value* value, TypeToken to) {
         switch (to) {
-            case TypeToken::Bool:
-                return Compiler::get_builder().CreateFCmpONE(value, llvm::ConstantFP::get(get_by_token(TypeToken::Float64), 0));
+            case TypeToken::Bool: return Compiler::get_builder().CreateFCmpONE(value, llvm::ConstantFP::get(get_by_token(TypeToken::Float64), 0));
             case TypeToken::String:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f64' to 'string' is not supported yet");
                 return nullptr;
-            case TypeToken::Int8:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f64' to 'i8' is not supported yet");
-                return nullptr;
-            case TypeToken::Int16:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f64' to 'i16' is not supported yet");
-                return nullptr;
-            case TypeToken::Int32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f64' to 'i32' is not supported yet");
-                return nullptr;
-            case TypeToken::Int64:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f64' to 'i64' is not supported yet");
-                return nullptr;
-            case TypeToken::Float32:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f64' to 'f32' is not supported yet");
-                return nullptr;
+            case TypeToken::Int8: return cast_float_to_int(value, TypeToken::Float64, to);
+            case TypeToken::Int16: return cast_float_to_int(value, TypeToken::Float64, to);
+            case TypeToken::Int32: return cast_float_to_int(value, TypeToken::Float64, to);
+            case TypeToken::Int64: return cast_float_to_int(value, TypeToken::Float64, to);
+            case TypeToken::Float32: return Compiler::get_builder().CreateFPTrunc(value, get_by_token(to));
             default: return nullptr;
         }
     }
 
     llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to) {
-
         assert((from != Type::TypeToken::None && from != Type::TypeToken::Var) && "[ Assertion ]: trying to cast from an invalid type");
         assert((to != Type::TypeToken::None && to != Type::TypeToken::Var) && "[ Assertion ]: trying to cast to an invalid type");
 
@@ -285,7 +253,7 @@ namespace Kepler::Type {
             case TypeToken::Int16: return "i16";
             case TypeToken::Int32: return "i32";
             case TypeToken::Int64: return "i64";
-            case TypeToken::Float32: return  "f32";
+            case TypeToken::Float32: return "f32";
             case TypeToken::Float64: return "f64";
         }
 
