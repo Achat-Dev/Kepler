@@ -115,8 +115,8 @@ namespace Kepler::AST {
             // Step is implicit, so we need to dynamically decide if it should be 1 or -1
             if (use_integer_operations) {
                 step_v = Compiler::get_builder().CreateSelect(end_select_condition,
-                    llvm::ConstantInt::get(Type::get_by_token(start_er->get_type()), 1),
-                    llvm::ConstantInt::get(Type::get_by_token(start_er->get_type()), -1)
+                    llvm::ConstantInt::getSigned(Type::get_by_token(start_er->get_type()), 1),
+                    llvm::ConstantInt::getSigned(Type::get_by_token(start_er->get_type()), -1)
                 );
             }
             else {
