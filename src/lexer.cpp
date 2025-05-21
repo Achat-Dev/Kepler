@@ -163,6 +163,14 @@ namespace Kepler::Lexer {
             log("{ TokenType: for }");
             return Token::For;
         }
+        else if (identifier == "true") {
+            log("{ TokenType: true }");
+            return Token::True;
+        }
+        else if (identifier == "false") {
+            log("{ TokenType: false }");
+            return Token::False;
+        }
         else if (identifier == "var") {
             log("{ TokenType: var }");
             type_token = Type::TypeToken::Var;

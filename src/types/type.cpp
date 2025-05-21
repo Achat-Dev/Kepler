@@ -27,10 +27,7 @@ namespace Kepler::Type {
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'var' is not supported yet");
                 std::terminate();
                 return nullptr;
-            case TypeToken::Bool:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'bool' is not supported yet");
-                std::terminate();
-                return nullptr;
+            case TypeToken::Bool: return llvm::Type::getInt1Ty(Compiler::get_context());
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'char' is not supported yet");
                 std::terminate();
@@ -48,6 +45,15 @@ namespace Kepler::Type {
             default:
                 emergency_exit("type '" + to_string(type) + "' does not map to an llvm type");
                 return nullptr; // Needed to avoid compile warnings
+        }
+    }
+
+    static llvm::Value* cast_bool(llvm::Value* value, TypeToken to) {
+        switch (to) {
+            case TypeToken::String:
+                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'bool' to 'string' is not supported yet");
+                return nullptr;
+            default: return nullptr;
         }
     }
 
@@ -196,8 +202,10 @@ namespace Kepler::Type {
 
         switch (from) {
             case TypeToken::Bool:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'bool' is not supported yet");
-                return nullptr;
+                if ((value = cast_bool(value, to))) {
+                    return value;
+                }
+                break;
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'char' is not supported yet");
                 return nullptr;

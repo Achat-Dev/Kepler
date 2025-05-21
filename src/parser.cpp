@@ -1,4 +1,5 @@
 #include <cctype>
+#include <cstdint>
 #include <cstdio>
 #include <llvm/Support/raw_ostream.h>
 #include <map>
@@ -18,6 +19,7 @@
 #include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
+#include "ast/value_expressions/boolean_value_expression.hpp"
 #include "ast/variable_expression.hpp"
 #include "ast/variable_definition_expression.hpp"
 #include "ast/value_expressions/floating_point_value_expression.hpp"
@@ -34,6 +36,7 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Expression> parse_floating_point_value();
     static std::unique_ptr<AST::Expression> parse_integer_value();
+    static std::unique_ptr<AST::Expression> parse_boolean_value(bool value);
     static std::unique_ptr<AST::Expression> parse_parenthesis();
     static std::unique_ptr<AST::Expression> parse_negative();
     static std::unique_ptr<AST::Expression> parse_expression();
@@ -76,15 +79,20 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Expression> parse_floating_point_value() {
-        auto result = std::make_unique<AST::FloatingPointValueExpression>(Lexer::get_float_value());
+        double value = Lexer::get_float_value();
         read_next_token(); // eat the number
-        return std::move(result);
+        return std::make_unique<AST::FloatingPointValueExpression>(value);
     }
 
     static std::unique_ptr<AST::Expression> parse_integer_value() {
-        auto result = std::make_unique<AST::IntegerValueExpression>(Lexer::get_int_value());
+        int64_t value = Lexer::get_int_value();
         read_next_token(); // eat the number
-        return std::move(result);
+        return std::make_unique<AST::IntegerValueExpression>(value);
+    }
+
+    static std::unique_ptr<AST::Expression> parse_boolean_value(bool value) {
+        read_next_token(); // eat 'true' or 'false'
+        return std::make_unique<AST::BooleanValueExpression>(value);
     }
 
     static std::unique_ptr<AST::Expression> parse_parenthesis() {
@@ -162,10 +170,10 @@ namespace Kepler::Parser {
             case Lexer::Token::Identifier: return parse_identifier();
             case Lexer::Token::FloatValue: return parse_floating_point_value();
             case Lexer::Token::IntValue: return parse_integer_value();
-            // Case fallthrough for if and parse_elseif
-            case Lexer::Token::If:
-                case Lexer::Token::Parsing_Elseif:
-                    return parse_if();
+            case Lexer::Token::True: return parse_boolean_value(true);
+            case Lexer::Token::False: return parse_boolean_value(false);
+            case Lexer::Token::If: return parse_if();
+            case Lexer::Token::Parsing_Elseif: return parse_if();
             case Lexer::Token::For: return parse_for();
             case Lexer::Token::Return: return parse_return();
             case Lexer::Token::DataType: return parse_data_type();

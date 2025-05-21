@@ -22,6 +22,7 @@ set(AST_SRC
     "src/ast/return_expression.cpp"
     "src/ast/variable_expression.cpp"
     "src/ast/variable_definition_expression.cpp"
+    "src/ast/value_expressions/boolean_value_expression.cpp"
     "src/ast/value_expressions/floating_point_value_expression.cpp"
     "src/ast/value_expressions/integer_value_expression.cpp")
 

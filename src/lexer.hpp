@@ -33,6 +33,8 @@ namespace Kepler::Lexer {
         Else,
         Elseif,
         For,
+        True,
+        False,
 
         // Primary
         Identifier,
