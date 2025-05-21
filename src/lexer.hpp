@@ -11,6 +11,7 @@ namespace Kepler::Lexer {
     enum class Token {
         // Meta
         EndOfFile,
+        Unknown,
         BracketOpen,
         BracketClose,
         Comma,

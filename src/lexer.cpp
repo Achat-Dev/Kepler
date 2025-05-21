@@ -8,7 +8,6 @@
 #include "lexer.hpp"
 #include "types/type.hpp"
 #include "log.hpp"
-#include "utils.hpp"
 
 namespace Kepler::Lexer {
 
@@ -25,6 +24,7 @@ namespace Kepler::Lexer {
     std::ostream& operator<<(std::ostream& os, Token token) {
         switch (token) {
             case Token::EndOfFile: os << "EndOfFile"; break;
+            case Token::Unknown: os << last_char; break;
             case Token::BracketOpen: os << '('; break;
             case Token::BracketClose: os << ')'; break;
             case Token::Comma: os << ','; break;
@@ -123,8 +123,8 @@ namespace Kepler::Lexer {
                 return Token::GreaterThan;
         }
 
-        emergency_exit("unknown character '" + std::to_string(last_char) + "' while lexing");
-        return Token::EndOfFile;
+        log(LogStyle::ERROR, "[ Lexing error ]", LogStyle::DEFAULT, ": unknown character '", last_char, "' while lexing");
+        return Token::Unknown;
     }
 
     static Token read_identifier() {

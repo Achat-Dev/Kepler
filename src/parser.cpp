@@ -612,7 +612,8 @@ namespace Kepler::Parser {
     }
 
     Lexer::Token read_next_token() {
-        return current_token = Lexer::read_token();
+        current_token = Lexer::read_token();
+        return current_token;
     }
 
     bool handle_data_type() {
