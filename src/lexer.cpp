@@ -171,6 +171,11 @@ namespace Kepler::Lexer {
             log("{ TokenType: false }");
             return Token::False;
         }
+        else if (identifier == "void") {
+            log("{ TokenType: void }");
+            type_token = Type::TypeToken::Void;
+            return Token::DataType;
+        }
         else if (identifier == "var") {
             log("{ TokenType: var }");
             type_token = Type::TypeToken::Var;

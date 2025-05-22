@@ -283,6 +283,8 @@ namespace Kepler::Parser {
             return nullptr;
         }
 
+        FunctionRegistry::set_current_prototype(prototype);
+
         std::vector<std::unique_ptr<AST::Expression>> body;
         while (current_token != Lexer::Token::End) {
             auto expression = parse_expression();
@@ -540,7 +542,12 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Expression> parse_return() {
         read_next_token(); // eat 'return' keyword
-        auto expression = parse_expression();
+
+        if (FunctionRegistry::get_current_prototype()->get_type() == Type::TypeToken::Void) {
+            return std::make_unique<AST::ReturnExpression>(nullptr);
+        }
+
+        std::unique_ptr<AST::Expression> expression = parse_expression();
         if (!expression) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected expression after 'return'");
             return nullptr;
@@ -551,6 +558,11 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Expression> parse_data_type() {
         Type::TypeToken type = Lexer::get_type();
+
+        if (type == Type::TypeToken::Void) {
+            log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": 'void' can only be a function return type");
+            return nullptr;
+        }
 
         read_next_token(); // eat data type
         // Parse cast
@@ -627,6 +639,11 @@ namespace Kepler::Parser {
 
             // Variable definition
             if (current_token == Lexer::Token::Assignment) {
+                if (Lexer::get_type() == Type::TypeToken::Void) {
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": cannot create a global variable of type 'void'");
+                    return false;
+                }
+
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": global variables are not supported yet");
                 return false;
             }

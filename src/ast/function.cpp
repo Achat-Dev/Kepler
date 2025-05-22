@@ -55,8 +55,6 @@ namespace Kepler::AST {
             LocalVariables::set(std::string(arg.getName()), { parameter_data.type, alloca });
         }
 
-        FunctionRegistry::set_compiling_prototype(prototype);
-
         // Codegen function body
         for (int i = 0; i < body.size(); i++) {
             std::unique_ptr<ExpressionResult> body_er = body[i]->codegen();
@@ -73,12 +71,23 @@ namespace Kepler::AST {
             }
         }
 
-        FunctionRegistry::set_compiling_prototype(nullptr);
+        FunctionRegistry::set_current_prototype(nullptr);
 
         llvm::EliminateUnreachableBlocks(*f);
 
+        if (f->back().getTerminator() == nullptr) {
+            if (prototype->get_type() != Type::TypeToken::Void) {
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": function is missing a 'return' expression");
+                f->print(llvm::errs());
+                f->eraseFromParent();
+                return nullptr;
+            }
+
+            Compiler::get_builder().CreateRetVoid();
+        }
+
         if (llvm::verifyFunction(*f, &llvm::errs())) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to verify function. This probably means that the function is missing a 'return' expression");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to verify function");
             f->print(llvm::errs());
             f->eraseFromParent();
             return nullptr;

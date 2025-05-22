@@ -22,7 +22,8 @@ namespace Kepler::Type {
 
     llvm::Type* get_by_token(TypeToken type) {
         switch (type) {
-            case TypeToken::None: return llvm::Type::getVoidTy(Compiler::get_context());
+            //case TypeToken::None: return llvm::Type::getVoidTy(Compiler::get_context());
+            case TypeToken::Void: return llvm::Type::getVoidTy(Compiler::get_context());
             case TypeToken::Var:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'var' is not supported yet");
                 std::terminate();
@@ -253,6 +254,7 @@ namespace Kepler::Type {
     std::string to_string(TypeToken type) {
         switch (type) {
             case TypeToken::None: return "none";
+            case TypeToken::Void: return "void";
             case TypeToken::Var: return "var";
             case TypeToken::Bool: return "bool";
             case TypeToken::Char: return "char";
@@ -263,9 +265,8 @@ namespace Kepler::Type {
             case TypeToken::Int64: return "i64";
             case TypeToken::Float32: return "f32";
             case TypeToken::Float64: return "f64";
+            default: return "unknown type";
         }
-
-        return "unknown type";
     }
 
     bool is_floating_point_type(TypeToken type) {

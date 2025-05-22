@@ -44,12 +44,12 @@ namespace Kepler::FunctionRegistry {
         return prototypes[name];
     }
 
-    std::shared_ptr<AST::Prototype> get_compiling_prototype() {
+    std::shared_ptr<AST::Prototype> get_current_prototype() {
         assert(compiling_prototype != nullptr && "[ Assertion ]: trying to access compiling prototype when it is not set");
         return compiling_prototype;
     }
 
-    void set_compiling_prototype(std::shared_ptr<AST::Prototype> prototype) {
+    void set_current_prototype(std::shared_ptr<AST::Prototype> prototype) {
         assert((compiling_prototype == nullptr || prototype == nullptr) && "[ Assertion ]: trying to set current prototype when it is already set");
         compiling_prototype = std::move(prototype);
     }

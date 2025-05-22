@@ -51,6 +51,9 @@ namespace Kepler::AST {
             Type::TargetTypeStack::pop();
         }
 
+        if (prototype->get_type() == Type::TypeToken::Void) {
+            return ExpressionResult::create(Compiler::get_builder().CreateCall(callee_f, args_v), prototype->get_type(), ExpressionResultFlags::Valid);
+        }
         return ExpressionResult::create(Compiler::get_builder().CreateCall(callee_f, args_v, "calltmp"), prototype->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 

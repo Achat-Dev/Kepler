@@ -8,6 +8,7 @@ namespace Kepler::Type {
 
     enum class TypeToken {
         None,
+        Void,
         Var,
         Bool,
         Char,
