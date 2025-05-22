@@ -27,7 +27,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '<' operation with type '", type, "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '<' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -42,7 +42,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation with type '", type, "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -57,7 +57,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '+' operation with type '", type, "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '+' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -72,7 +72,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '-' operation with type '", type, "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '-' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -87,7 +87,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '*' operation with type '", type, "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '*' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -102,7 +102,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '/' operation with type '", type, "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '/' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
