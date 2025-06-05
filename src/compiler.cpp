@@ -71,17 +71,17 @@ namespace Kepler::Compiler {
                     file->close();
                     return write_file(outname);
                 case Lexer::Token::Extern:
-                    if (!Parser::handle_extern()) {
+                    if (!Parser::handle_top_level_extern()) {
                         return false;
                     }
                     break;
                 case Lexer::Token::DataType:
-                    if (!Parser::handle_data_type()) {
+                    if (!Parser::handle_top_level_data_type()) {
                         return false;
                     }
                     break;
                 default:
-                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token on top level (expected 'extern' or data type)");
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", Parser::get_current_token(), "' on top level, expected 'extern' or data type");
                     return false;
             }
         }

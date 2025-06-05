@@ -19,11 +19,11 @@
 #include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
-#include "ast/value_expressions/boolean_value_expression.hpp"
+#include "ast/literal_expressions/boolean_literal_expression.hpp"
+#include "ast/literal_expressions/floating_point_literal_expression.hpp"
+#include "ast/literal_expressions/integer_literal_expression.hpp"
 #include "ast/variable_expression.hpp"
 #include "ast/variable_definition_expression.hpp"
-#include "ast/value_expressions/floating_point_value_expression.hpp"
-#include "ast/value_expressions/integer_value_expression.hpp"
 #include "function_registry/function_registry.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
@@ -50,7 +50,7 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_for();
     static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body();
     static std::unique_ptr<AST::Expression> parse_return();
-    static std::unique_ptr<AST::Expression> parse_data_type();
+    static std::unique_ptr<AST::Expression> parse_local_data_type();
     static bool handle_function(Type::TypeToken type, std::string identifier);
 
     static Lexer::Token current_token;
@@ -79,20 +79,20 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Expression> parse_floating_point_value() {
-        double value = Lexer::get_float_value();
+        double value = Lexer::get_floating_point_literal();
         read_next_token(); // eat the number
-        return std::make_unique<AST::FloatingPointValueExpression>(value);
+        return std::make_unique<AST::FloatingPointLiteralExpression>(value);
     }
 
     static std::unique_ptr<AST::Expression> parse_integer_value() {
-        int64_t value = Lexer::get_int_value();
+        int64_t value = Lexer::get_integer_literal();
         read_next_token(); // eat the number
-        return std::make_unique<AST::IntegerValueExpression>(value);
+        return std::make_unique<AST::IntegerLiteralExpression>(value);
     }
 
     static std::unique_ptr<AST::Expression> parse_boolean_value(bool value) {
         read_next_token(); // eat 'true' or 'false'
-        return std::make_unique<AST::BooleanValueExpression>(value);
+        return std::make_unique<AST::BooleanLiteralExpression>(value);
     }
 
     static std::unique_ptr<AST::Expression> parse_parenthesis() {
@@ -113,7 +113,7 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Expression> parse_negative() {
-        auto lhs = std::make_unique<AST::IntegerValueExpression>(0);
+        auto lhs = std::make_unique<AST::IntegerLiteralExpression>(0);
         return parse_binop_rhs(0, std::move(lhs));
     }
 
@@ -176,11 +176,11 @@ namespace Kepler::Parser {
             case Lexer::Token::Parsing_Elseif: return parse_if();
             case Lexer::Token::For: return parse_for();
             case Lexer::Token::Return: return parse_return();
-            case Lexer::Token::DataType: return parse_data_type();
+            case Lexer::Token::DataType: return parse_local_data_type();
             case Lexer::Token::BracketOpen: return parse_parenthesis();
             case Lexer::Token::Minus: return parse_negative();
             default:
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": unknown token when expected expression. Current token: '", current_token, '\'');
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", current_token, "' when expected expression");
                 return nullptr;
         }
     }
@@ -458,7 +458,7 @@ namespace Kepler::Parser {
                 return nullptr;
             }
 
-            std::unique_ptr<AST::BinaryExpression> assignment = std::make_unique<AST::BinaryExpression>(Lexer::Token::Assignment, std::make_unique<AST::VariableExpression>(variable_name), std::make_unique<AST::IntegerValueExpression>(0));
+            std::unique_ptr<AST::BinaryExpression> assignment = std::make_unique<AST::BinaryExpression>(Lexer::Token::Assignment, std::make_unique<AST::VariableExpression>(variable_name), std::make_unique<AST::IntegerLiteralExpression>(0));
             std::unique_ptr<AST::VariableDefinitionExpression> variable = std::make_unique<AST::VariableDefinitionExpression>(type, variable_name, std::move(assignment));
 
             // 'start' is the end value
@@ -556,7 +556,7 @@ namespace Kepler::Parser {
         return std::make_unique<AST::ReturnExpression>(std::move(expression));
     }
 
-    static std::unique_ptr<AST::Expression> parse_data_type() {
+    static std::unique_ptr<AST::Expression> parse_local_data_type() {
         Type::TypeToken type = Lexer::get_type();
 
         if (type == Type::TypeToken::Void) {
@@ -628,7 +628,7 @@ namespace Kepler::Parser {
         return current_token;
     }
 
-    bool handle_data_type() {
+    bool handle_top_level_data_type() {
         Type::TypeToken type = Lexer::get_type();
         read_next_token(); // eat data type
 
@@ -657,7 +657,7 @@ namespace Kepler::Parser {
         return false;
     }
 
-    bool handle_extern() {
+    bool handle_top_level_extern() {
         if (auto ast = parse_extern()) {
             if (auto ir = ast->codegen()) {
                 log("> parsed an extern <");

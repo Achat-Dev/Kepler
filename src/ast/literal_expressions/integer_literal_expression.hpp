@@ -8,12 +8,12 @@
 
 namespace Kepler::AST {
 
-    class IntegerValueExpression: public Expression {
+    class IntegerLiteralExpression: public Expression {
     private:
         int64_t value;
 
     public:
-        IntegerValueExpression(int64_t value): value(value) {}
+        IntegerLiteralExpression(int64_t value): value(value) {}
         std::unique_ptr<ExpressionResult> codegen() override;
         int64_t get_value() const;
     };

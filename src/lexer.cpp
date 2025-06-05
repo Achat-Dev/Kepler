@@ -12,19 +12,19 @@
 namespace Kepler::Lexer {
 
     static Token read_identifier();
-    static Token read_number_value();
+    static Token read_number_literal();
     static Token read_comment();
 
     static char last_char = ' ';
     static std::string identifier = "";
-    static int64_t int_value = 0;
-    static double float_value = 0.0;
+    static int64_t integer_literal = 0;
+    static double floating_point_literal = 0.0;
     static Type::TypeToken type_token = Type::TypeToken::None;
 
     std::ostream& operator<<(std::ostream& os, Token token) {
         switch (token) {
             case Token::EndOfFile: os << "EndOfFile"; break;
-            case Token::Unknown: os << last_char; break;
+            case Token::Unknown: os << "unknown: '" << last_char << '\''; break;
             case Token::BracketOpen: os << '('; break;
             case Token::BracketClose: os << ')'; break;
             case Token::Comma: os << ','; break;
@@ -57,12 +57,12 @@ namespace Kepler::Lexer {
         return identifier;
     }
 
-    int64_t get_int_value() {
-        return int_value;
+    int64_t get_integer_literal() {
+        return integer_literal;
     }
 
-    double get_float_value() {
-        return float_value;
+    double get_floating_point_literal() {
+        return floating_point_literal;
     }
 
     Type::TypeToken get_type() {
@@ -83,7 +83,7 @@ namespace Kepler::Lexer {
             return read_identifier();
         }
         if (isdigit(last_char)) {
-            return read_number_value();
+            return read_number_literal();
         }
 
         switch (last_char) {
@@ -231,11 +231,11 @@ namespace Kepler::Lexer {
         return Token::Identifier;
     }
 
-    static Token read_number_value() {
+    static Token read_number_literal() {
         bool is_float = false;
-        std::string value_string;
+        std::string literal_string;
         do {
-            value_string += last_char;
+            literal_string += last_char;
             last_char = Compiler::get_file()->read_next_char();
             if (last_char == '.') {
                 is_float = true;
@@ -243,13 +243,13 @@ namespace Kepler::Lexer {
         } while (isdigit(last_char) || last_char == '.');
 
         if (is_float) {
-            float_value = std::stod(value_string);
-            log("{ TokenType: floating point value: ", float_value, " }");
+            floating_point_literal = std::stod(literal_string);
+            log("{ TokenType: floating point value: ", floating_point_literal, " }");
             return Token::FloatValue;
         }
         else {
-            int_value = std::stoll(value_string);
-            log("{ TokenType: integer value: ", int_value, " }");
+            integer_literal = std::stoll(literal_string);
+            log("{ TokenType: integer value: ", integer_literal, " }");
             return Token::IntValue;
         }
     }

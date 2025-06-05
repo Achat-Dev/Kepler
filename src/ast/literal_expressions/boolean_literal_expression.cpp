@@ -1,7 +1,7 @@
 #include <llvm/IR/Constants.h>
 #include <memory>
 
-#include "boolean_value_expression.hpp"
+#include "boolean_literal_expression.hpp"
 #include "../expression_result.hpp"
 #include "../../compiler.hpp"
 #include "../../log.hpp"
@@ -10,7 +10,7 @@
 
 namespace Kepler::AST {
 
-    std::unique_ptr<ExpressionResult> BooleanValueExpression::codegen() {
+    std::unique_ptr<ExpressionResult> BooleanLiteralExpression::codegen() {
         const Type::TypeToken type = Type::TargetTypeStack::top();
         if (type != Type::TypeToken::Bool && type != Type::TypeToken::None) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from a boolean value");

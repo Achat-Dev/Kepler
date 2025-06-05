@@ -22,9 +22,9 @@ set(AST_SRC
     "src/ast/return_expression.cpp"
     "src/ast/variable_expression.cpp"
     "src/ast/variable_definition_expression.cpp"
-    "src/ast/value_expressions/boolean_value_expression.cpp"
-    "src/ast/value_expressions/floating_point_value_expression.cpp"
-    "src/ast/value_expressions/integer_value_expression.cpp")
+    "src/ast/literal_expressions/boolean_literal_expression.cpp"
+    "src/ast/literal_expressions/floating_point_literal_expression.cpp"
+    "src/ast/literal_expressions/integer_literal_expression.cpp")
 
 set(FUNCTION_REGISTRY_SRC
     "src/function_registry/function_registry.cpp")

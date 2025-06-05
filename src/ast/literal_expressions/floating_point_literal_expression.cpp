@@ -3,7 +3,7 @@
 #include <llvm/IR/Type.h>
 #include <memory>
 
-#include "floating_point_value_expression.hpp"
+#include "floating_point_literal_expression.hpp"
 #include "../expression_result.hpp"
 #include "../../log.hpp"
 #include "../../types/type.hpp"
@@ -11,7 +11,7 @@
 
 namespace Kepler::AST {
 
-    std::unique_ptr<ExpressionResult> FloatingPointValueExpression::codegen() {
+    std::unique_ptr<ExpressionResult> FloatingPointLiteralExpression::codegen() {
         Type::TypeToken type = Type::TargetTypeStack::top();
 
         if (Type::is_floating_point_type(type)) {
@@ -28,7 +28,7 @@ namespace Kepler::AST {
         return ExpressionResult::create_invalid();
     }
 
-    double FloatingPointValueExpression::get_value() const {
+    double FloatingPointLiteralExpression::get_value() const {
         return value;
     }
 

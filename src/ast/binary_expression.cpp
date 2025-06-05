@@ -145,12 +145,32 @@ namespace Kepler::AST {
             return std::move(rhs_er);
         }
 
+        // Check if the current target type is TypeToken::Bool
+        // If so, push TypeToken::None onto the TargetTypeStack to let the lhs expression choose its default type
+        // This is needed because some binary operations can create a boolean, but the lhs expression has to evaluate to something other than boolean
+        bool should_target_default_type = Type::TargetTypeStack::top() == Type::TypeToken::Bool;
+        if (should_target_default_type) {
+            Type::TargetTypeStack::push(Type::TypeToken::None);
+        }
+
+        // Codegen lhs
         std::unique_ptr<ExpressionResult> lhs_er = lhs->codegen();
+        if (should_target_default_type) {
+            Type::TargetTypeStack::pop();
+        }
+
+        if (!lhs_er->is_valid()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid left-hand side in binary expression");
+            return ExpressionResult::create_invalid();
+        }
+
+        // Codegen rhs
         Type::TargetTypeStack::push(lhs_er->get_type());
         std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
         Type::TargetTypeStack::pop();
 
-        if (!lhs_er->is_valid() || !rhs_er->is_valid()) {
+        if (!rhs_er->is_valid()) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid right-hand side in binary expression");
             return ExpressionResult::create_invalid();
         }
 
@@ -159,6 +179,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
+        // Create binary operation
         llvm::Value* value;
         unsigned int flags = ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable;
         switch (op) {

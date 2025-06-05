@@ -7,13 +7,14 @@
 
 namespace Kepler::AST {
 
-    class BooleanValueExpression: public Expression {
+    class FloatingPointLiteralExpression: public Expression {
     private:
-        bool value;
+        double value;
 
     public:
-        BooleanValueExpression(bool value): value(value) {}
+        FloatingPointLiteralExpression(double value): value(value) {}
         std::unique_ptr<ExpressionResult> codegen() override;
+        double get_value() const;
     };
 
 }

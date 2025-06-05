@@ -3,7 +3,7 @@
 #include <llvm/IR/Constants.h>
 #include <memory>
 
-#include "integer_value_expression.hpp"
+#include "integer_literal_expression.hpp"
 #include "../expression_result.hpp"
 #include "../../log.hpp"
 #include "../../types/type.hpp"
@@ -11,7 +11,7 @@
 
 namespace Kepler::AST {
 
-    std::unique_ptr<ExpressionResult> IntegerValueExpression::codegen() {
+    std::unique_ptr<ExpressionResult> IntegerLiteralExpression::codegen() {
         Type::TypeToken type = Type::TargetTypeStack::top();
 
         if (Type::is_integer_type(type)) {
@@ -31,7 +31,7 @@ namespace Kepler::AST {
         return ExpressionResult::create_invalid();
     }
 
-    int64_t IntegerValueExpression::get_value() const {
+    int64_t IntegerLiteralExpression::get_value() const {
         return value;
     }
 

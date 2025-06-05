@@ -23,10 +23,6 @@
 
 namespace Kepler::AST {
 
-    /*
-    * This method currently has a bug:
-    * If the FunctionAST::codegen() method finds an existing IR Function, it does not validate its signature against the definition’s own prototype. This means that an earlier ‘extern’ declaration will take precedence over the function definition’s signature, which can cause codegen to fail, for instance if the function arguments are named differently
-    */
     llvm::Function* Function::codegen() {
         llvm::Function* f = Compiler::get_module().getFunction(prototype->get_name());
         if (!f) {
