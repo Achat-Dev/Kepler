@@ -16,6 +16,7 @@
 #include "ast/for_expression.hpp"
 #include "ast/function.hpp"
 #include "ast/if_expression.hpp"
+#include "ast/negation_expression.hpp"
 #include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
@@ -113,8 +114,28 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Expression> parse_negative() {
-        auto lhs = std::make_unique<AST::IntegerLiteralExpression>(0);
-        return parse_binop_rhs(0, std::move(lhs));
+        read_next_token(); // eat '-'
+        std::unique_ptr<AST::Expression> expression;
+
+        switch (current_token) {
+            case Lexer::Token::Identifier:
+                expression = parse_identifier();
+                break;
+            case Lexer::Token::FloatingPointLiteral:
+                expression = parse_floating_point_value();
+                break;
+            case Lexer::Token::IntegerLiteral:
+                expression = parse_integer_value();
+                break;
+            case Lexer::Token::BracketOpen:
+                expression = parse_parenthesis();
+                break;
+            default:
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": mathematical negation of '", current_token, "' is not supported");
+                return nullptr;
+        }
+
+        return std::make_unique<AST::NegationExpression>(std::move(expression));
     }
 
     static std::unique_ptr<AST::Expression> parse_expression() {
@@ -168,8 +189,8 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_primary() {
         switch (current_token) {
             case Lexer::Token::Identifier: return parse_identifier();
-            case Lexer::Token::FloatValue: return parse_floating_point_value();
-            case Lexer::Token::IntValue: return parse_integer_value();
+            case Lexer::Token::FloatingPointLiteral: return parse_floating_point_value();
+            case Lexer::Token::IntegerLiteral: return parse_integer_value();
             case Lexer::Token::True: return parse_boolean_value(true);
             case Lexer::Token::False: return parse_boolean_value(false);
             case Lexer::Token::If: return parse_if();

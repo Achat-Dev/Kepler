@@ -44,8 +44,8 @@ namespace Kepler::Lexer {
             case Token::Elseif: os << "elseif"; break;
             case Token::For: os << "for"; break;
             case Token::Identifier: os << "identifier"; break;
-            case Token::FloatValue: os << "floating point value"; break;
-            case Token::IntValue: os << "integer value"; break;
+            case Token::FloatingPointLiteral: os << "floating point literal"; break;
+            case Token::IntegerLiteral: os << "integer literal"; break;
             case Token::DataType: os << "data type"; break;
             default: break;
         }
@@ -244,13 +244,13 @@ namespace Kepler::Lexer {
 
         if (is_float) {
             floating_point_literal = std::stod(literal_string);
-            log("{ TokenType: floating point value: ", floating_point_literal, " }");
-            return Token::FloatValue;
+            log("{ TokenType: floating point literal: ", floating_point_literal, " }");
+            return Token::FloatingPointLiteral;
         }
         else {
             integer_literal = std::stoll(literal_string);
-            log("{ TokenType: integer value: ", integer_literal, " }");
-            return Token::IntValue;
+            log("{ TokenType: integer literal: ", integer_literal, " }");
+            return Token::IntegerLiteral;
         }
     }
 

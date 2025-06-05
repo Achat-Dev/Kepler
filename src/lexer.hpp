@@ -39,13 +39,13 @@ namespace Kepler::Lexer {
 
         // Primary
         Identifier,
-        FloatValue,
-        IntValue,
+        FloatingPointLiteral,
+        IntegerLiteral,
         DataType,
 
         // Parsing tokens
         // These are necessary for certain parsing operations
-        Parsing_Elseif,
+        Parsing_Elseif
     };
 
     std::ostream& operator<<(std::ostream& os, Token token);

@@ -18,6 +18,7 @@ set(AST_SRC
     "src/ast/for_expression.cpp"
     "src/ast/function.cpp"
     "src/ast/if_expression.cpp"
+    "src/ast/negation_expression.cpp"
     "src/ast/prototype.cpp"
     "src/ast/return_expression.cpp"
     "src/ast/variable_expression.cpp"
