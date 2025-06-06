@@ -26,14 +26,14 @@ cd build
 cmake --build . --target install
 ```
 
-The result of this is the `kepler` executable.
+The result of this is an executable called `kepler`, which is the compiler for the language.
 
 ## 2. Usage
 
 > [!important]
-> This section will change heavily as the development of the project is progressing
+> This section will change heavily as the development of the project progresses
 
-As of now, Kepler only supports the compilation of single files to object code.
+As of now, Kepler only supports the compilation of a single file to object code.
 
 ```bash
 kepler <input> <output>
@@ -41,14 +41,76 @@ kepler <input> <output>
 
 ## 3. Language overview
 
-### Misc
+### 3.1 Types
 
-- Only one statement per line is allowed
-- Blocks are ended with the end statement
+The following table displays the currently supported types.
 
-### 3.1 Variables
+| Name | Meaning | Additional notes |
+| :- | :- | :- |
+| `void` |  | Can only be used as the return type of a function |
+| `bool` | A 1-bit unsigned integer that represents either `true` or `false` | Only the internal value used for operations is a 1-bit unsigned integer. An 8-bit unsigned integer is used in memory. |
+| `i8` | An 8-bit signed integer | |
+| `i16` | A 16-bit signed integer | |
+| `i32` | A 32-bit signed integer | |
+| `i64` | A 64-bit signed integer | |
+| `f32` | A 32-bit floating point value | Uses IEEE 754 semantics |
+| `f64` | A 64-bit floating point value | Uses IEEE 754 semantics |
 
-Variables are defined after the following scheme:
+> [!note] Note
+> The language doesn't support unsigned integers.
+
+#### 3.1.1 Casting
+
+Types can be casted by using the `type constructor`:
+
+```
+i32 foo = i32(4.2)  # casting a literal
+
+f32 x = 1.0
+foo = i32(x)        # casting a the value of a variable
+
+foo = i32(bar())    # casting the return value of a function
+```
+
+##### 3.1.1.1 Casting matrix
+
+The following matrix displays what types can be casted to what types (rows are the type of the value to cast, columns are the target type of the cast):
+
+| | `void` | `bool` | `i8` | `i16` | `i32` | `i64` | `f32` | `f64` |
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| `void` | | | | | | | | |
+| `bool` | | | | | | | | |
+| `i8` | | x | | x | x | x | x | x |
+| `i16` | | x | x | | x | x | x | x |
+| `i32` | | x | x | x | | x | x | x |
+| `i64` | | x | x | x | x | | x | x |
+| `f32` | | x | x | x | x | x | | x |
+| `f64` | | x | x | x | x | x | x | |
+
+> [!note] Note
+> Trying to cast to the same type (e. g.: casting from an i32 to an i32) will result in a compile warning and the cast will be discarded
+
+##### 3.1.1.2 Implicit casting
+
+There is no implicit casting, except for the condition of an `if` expression.
+Mismatching types will always result in a `type mismatch` compile error (even if the types are of the same type category, e. g.: `i16` and `i32`).
+
+#### 3.1.2 Implicit type conversion
+
+Some literals implicitly choose their type when used:
+
+```
+# floating point variable, integer literal -> the integer literal is implicitly converted to a floating point value
+f32 x = 0
+```
+
+For more information and a detailed overview which types can implicitely convert to chich types refer to the [target type stack]().
+
+### 3.2 Variables
+
+#### 3.2.1 Variable definition
+
+Variables are defined after the following pattern:
 
 ```
 <type> <name> = <value>
@@ -76,6 +138,8 @@ if (f32 z = foo())
 end
 ```
 
+#### 3.2.2 Variable uniqueness
+
 Variables have to be unique within the scope they are defined in.
 
 ```
@@ -84,9 +148,9 @@ x = 1         # Ok
 f32 x = -1    # Compile error
 ```
 
-### 3.2 Control flow
+### 3.3 Control flow
 
-#### 3.2.1 `if`
+#### 3.3.1 `if`
 
 ```
 if (<condition>)
@@ -106,9 +170,9 @@ else
 end
 ```
 
-#### 3.2.2 `for`
+#### 3.3.2 `for`
 
-##### 3.2.2.1 Indexed `for` loops
+##### 3.3.2.1 Indexed `for` loops
 
 A basic indexed for loops consists of a variable declaration followed by a colon and three expressions.
 The first expression is the start value of the loop variable, the second is the stop value (exclusive) and the third is the step value which is added to the loop variable after each loop iteration.
@@ -138,10 +202,164 @@ end
 > [!note]
 > Only integer and floating point types are allowed for the type of the loop variable.
 
-### 3.3 Functions
+### 3.4 Functions
 
-### 3.4 Types
+#### 3.4.1 Function definition
 
-#### 3.4.1 Casting
+Functions are defined after the following pattern:
+
+```
+<return_type> <name>(<arguments>)
+  <function_body...>
+end
+```
+
+`<arguments>` are defined after the pattern `<arg_type> <arg_name>` and are separated by a comma (there can be 0-n arguments).
+
+> ![note](Note)
+> A function signature (`<return_type> <name>(<arguments>)`) is called a `prototype`
+
+#### 3.4.2 Function call
+
+Functions are called by using brackets after the function name:
+
+```
+void foo()        # define a function without arguments and no return type
+  ...
+end
+
+i32 bar(i32 a)    # define a function with an argument and a return type
+  return a * a
+end
+
+foo()             # call foo
+i32 x = bar(1)    # call bar
+```
+
+#### 3.4.3 `extern` functions
+
+Prototypes marked with the `extern` keyword are raw prototypes with a function body that use external linkage to retrieve the function body.
+
+```
+extern <return_type> <name>(<arguments>)
+```
+
+#### 3.4.4 Return types and values
+
+In general, a value of the specified return type has to be returned via the `return` keyword.
+If a literal is returned, it tries to convert to the return type of the function
 
 ### 3.5 Operators
+
+<table>
+  <tr>
+    <th rowspan="2" style="text-align: left">Operator</th>
+    <th rowspan="2" style="text-align: left">Usage example</th>
+    <th rowspan="2" style="text-align: left">Usage notes</th>
+    <th colspan="8">Supported types</th>
+  </tr>
+  <tr>
+    <th>`void`</th>
+    <th>`bool`</th>
+    <th>`i8`</th>
+    <th>`i16`</th>
+    <th>`i32`</th>
+    <th>`i64`</th>
+    <th>`f32`</th>
+    <th>`f64`</th>
+  </tr>
+  <tr>
+    <td style="text-align: center">`=`</td>
+    <td>`&lt;variable_name&gt; = &lt;value&gt;`</td>
+    <td>Assigns `&lt;value&gt;` to the variable with `&lt;variable_name&gt;` and returns `&lt;value&gt;`</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">`<`</td>
+    <td>`&lt;value_a&gt; &lt; &lt;value_b&gt;`</td>
+    <td>Evaluates to `true`, if `&lt;value_a&gt;` is less than `&lt;value_b&gt;`, `false` otherwise</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">`<`</td>
+    <td>`&lt;value_a&gt; &gt; &lt;value_b&gt;`</td>
+    <td>Evaluates to `true`, if `&lt;value_a&gt;` is greater than `&lt;value_b&gt;`, `false` otherwise</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">`+`</td>
+    <td>`&lt;value_a&gt; + &lt;value_b&gt;`</td>
+    <td>Adds `&lt;value_a&gt;` and `&lt;value_b&gt;` together and returns the result</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">`-`</td>
+    <td>`&lt;value_a&gt; - &lt;value_b&gt;`</td>
+    <td>Subtracts `&lt;value_b&gt;` from `&lt;value_a&gt;` and returns the result</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">`*`</td>
+    <td>`&lt;value_a&gt; * &lt;value_b&gt;`</td>
+    <td>Multiplies `&lt;value_a&gt;` with `&lt;value_b&gt;` and returns the result</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">`/`</td>
+    <td>`&lt;value_a&gt; / &lt;value_b&gt;`</td>
+    <td>Divides `&lt;value_a&gt;` by `&lt;value_b&gt;` and returns the result</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+</table>
+
+> [!note] Note
+> The following applies to all operators listed here: the values / variables used must be of the same type.
