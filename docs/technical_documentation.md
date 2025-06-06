@@ -2,7 +2,7 @@
 
 The project uses [LLVM](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html) in order to create the compiler for the language.
 
-> [!important] Disclaimer
+> [!important]
 > The general functionality of the compiler was made by following the [official LLVM tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html), which is why their base architecture is the same.
 
 ## 1. Project structure
@@ -134,7 +134,7 @@ Therefore, generating them immediately avoids unnecessarily storing all the AST 
 A prototype is the signature of a function: `<return_type> <name>(<arguments>)`.
 Parsing a prototype just records the `<return_type>`, `<name>` and arguments, which are defined after the pattern `<arg_type> <arg_name>`, into an `AST::Prototype`.
 
-Each parsed prototype is immediately registered in the [`FunctionRegistry`](#6-function-registry-(`src/function_registry/function_registry.cpp`)).
+Each parsed prototype is immediately registered in the [`FunctionRegistry`](#6-function-registry-srcfunction_registryfunction_registrycpp)).
 
 #### 3.2.2 Parsing an expression
 
@@ -168,7 +168,7 @@ All three of these node types have a method called `codegen`, which generates th
 | Node type | Usage |
 | :- | :- |
 | `Expression` | An abstract class from which all other expressions inherit. Inheriting classes override the abstract method `codegen`. |
-| `Prototype` | The signature of a function, see [parsing a prototype](#3-2-1-parsing-a-prototype) |
+| `Prototype` | The signature of a function, see [parsing a prototype](#321-parsing-a-prototype) |
 | `Function` | Consists of a `Prototype` and a list of `Expressions` that form the function body |
 
 ### 3.4 Compiler (`src/compiler`)
@@ -198,7 +198,7 @@ end
 
 #### 3.5.2 Lexer tokens
 
-As mentioned in [3.1.1 Lexing literals](#3-1-1-lexing-literals) and [3.1.2 Lexing data types](#3-1-2-lexing-data-types), the lexer sometimes stores additional data alongside the tokens.
+As mentioned in [3.1.1 Lexing literals](#311-lexing-literals) and [3.1.2 Lexing data types](#312-lexing-data-types), the lexer sometimes stores additional data alongside the tokens.
 This additional data is displayed in brackets after the respective token in the example.
 
 ```
@@ -210,7 +210,7 @@ DataType(TypeToken::Int32) Identifier("max") BracketOpen DataType(TypeToken::Int
 End
 ```
 
-> [!note] Note
+> [!note]
 > The tokens are only indented to make it clearer which part of the source code they belong to.
 > In reality, it's a stream of tokens.
 
@@ -384,7 +384,7 @@ Local variables are only visible within the function in which they are defined i
 The allocation of local variables is always inserted at the beginning of the entry block of the function.
 I don't know the exact reason why this is the case, as the tutorial doesn't go into detail as to why it does this, but my guess is that it has something to do with optimising memory allocation during the analysis passes (e. g. `mem2reg` passes).
 
-> [!note] Note
+> [!note]
 > Function arguments are also treated as local variables
 
 ## 6. Function registry (`src/function_registry/function_registry.cpp`)

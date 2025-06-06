@@ -56,7 +56,7 @@ The following table displays the currently supported types.
 | `f32` | A 32-bit floating point value | Uses IEEE 754 semantics |
 | `f64` | A 64-bit floating point value | Uses IEEE 754 semantics |
 
-> [!note] Note
+> [!note]
 > The language doesn't support unsigned integers.
 
 #### 3.1.1 Casting
@@ -87,7 +87,7 @@ The following matrix displays what types can be casted to what types (rows are t
 | `f32` | | x | x | x | x | x | | x |
 | `f64` | | x | x | x | x | x | x | |
 
-> [!note] Note
+> [!note]
 > Trying to cast to the same type (e. g.: casting from an i32 to an i32) will result in a compile warning and the cast will be discarded
 
 ##### 3.1.1.2 Implicit casting
@@ -104,7 +104,7 @@ Some literals implicitly choose their type when used:
 f32 x = 0
 ```
 
-For more information and a detailed overview which types can implicitely convert to chich types refer to the [target type stack]().
+For more information and a detailed overview which types can implicitely convert to chich types refer to the [`TargetTypeStack`](./technical_documentation.md#422-determining-target-types-during-code-generation).
 
 ### 3.2 Variables
 
@@ -216,7 +216,7 @@ end
 
 `<arguments>` are defined after the pattern `<arg_type> <arg_name>` and are separated by a comma (there can be 0-n arguments).
 
-> ![note](Note)
+> [!note]
 > A function signature (`<return_type> <name>(<arguments>)`) is called a `prototype`
 
 #### 3.4.2 Function call
@@ -361,5 +361,5 @@ If a literal is returned, it tries to convert to the return type of the function
   </tr>
 </table>
 
-> [!note] Note
+> [!note]
 > The following applies to all operators listed here: the values / variables used must be of the same type.
