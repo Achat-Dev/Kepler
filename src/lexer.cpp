@@ -13,12 +13,14 @@ namespace Kepler::Lexer {
 
     static Token read_identifier();
     static Token read_number_literal();
+    static Token read_string_literal();
     static Token read_comment();
 
     static char last_char = ' ';
     static std::string identifier = "";
     static int64_t integer_literal = 0;
     static double floating_point_literal = 0.0;
+    static std::string string_literal = "";
     static Type::TypeToken type_token = Type::TypeToken::None;
 
     std::ostream& operator<<(std::ostream& os, Token token) {
@@ -63,6 +65,10 @@ namespace Kepler::Lexer {
 
     double get_floating_point_literal() {
         return floating_point_literal;
+    }
+
+    std::string get_string_literal() {
+        return string_literal;
     }
 
     Type::TypeToken get_type() {
@@ -121,6 +127,8 @@ namespace Kepler::Lexer {
             case '>':
                 last_char = Compiler::get_file()->read_next_char();
                 return Token::GreaterThan;
+            case '"':
+                return read_string_literal();
         }
 
         log(LogStyle::ERROR, "[ Lexing error ]", LogStyle::DEFAULT, ": unknown character '", last_char, "' while lexing");
@@ -252,6 +260,20 @@ namespace Kepler::Lexer {
             log("{ TokenType: integer literal: ", integer_literal, " }");
             return Token::IntegerLiteral;
         }
+    }
+
+    static Token read_string_literal() {
+        string_literal = "";
+        last_char = Compiler::get_file()->read_next_char();
+
+        while (last_char != '"') {
+            string_literal += last_char;
+            last_char = Compiler::get_file()->read_next_char();
+        }
+
+        Compiler::get_file()->read_next_char(); // eat closing '"'
+        last_char = Compiler::get_file()->read_next_char(); // save actual next character for reading next token
+        return Token::StringLiteral;
     }
 
     static Token read_comment() {

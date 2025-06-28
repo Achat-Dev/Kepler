@@ -27,7 +27,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(llvm::ConstantInt::getSigned(Type::get_by_token(Type::TypeToken::Int32), value), Type::TypeToken::Int32, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from an integer value");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from an integer literal");
         return ExpressionResult::create_invalid();
     }
 

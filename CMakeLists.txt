@@ -25,7 +25,8 @@ set(AST_SRC
     "src/ast/variable_definition_expression.cpp"
     "src/ast/literal_expressions/boolean_literal_expression.cpp"
     "src/ast/literal_expressions/floating_point_literal_expression.cpp"
-    "src/ast/literal_expressions/integer_literal_expression.cpp")
+    "src/ast/literal_expressions/integer_literal_expression.cpp"
+    "src/ast/literal_expressions/string_literal_expression.cpp")
 
 set(FUNCTION_REGISTRY_SRC
     "src/function_registry/function_registry.cpp")

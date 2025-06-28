@@ -16,6 +16,7 @@
 #include "ast/for_expression.hpp"
 #include "ast/function.hpp"
 #include "ast/if_expression.hpp"
+#include "ast/literal_expressions/string_literal_expression.hpp"
 #include "ast/negation_expression.hpp"
 #include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
@@ -35,9 +36,10 @@ namespace Kepler::Parser {
 
     static int get_token_precedence();
 
-    static std::unique_ptr<AST::Expression> parse_floating_point_value();
-    static std::unique_ptr<AST::Expression> parse_integer_value();
-    static std::unique_ptr<AST::Expression> parse_boolean_value(bool value);
+    static std::unique_ptr<AST::Expression> parse_floating_point_literal();
+    static std::unique_ptr<AST::Expression> parse_integer_literal();
+    static std::unique_ptr<AST::Expression> parse_boolean_literal(bool value);
+    static std::unique_ptr<AST::Expression> parse_string_literal();
     static std::unique_ptr<AST::Expression> parse_parenthesis();
     static std::unique_ptr<AST::Expression> parse_negative();
     static std::unique_ptr<AST::Expression> parse_expression();
@@ -79,21 +81,27 @@ namespace Kepler::Parser {
         return precedence;
     }
 
-    static std::unique_ptr<AST::Expression> parse_floating_point_value() {
+    static std::unique_ptr<AST::Expression> parse_floating_point_literal() {
         double value = Lexer::get_floating_point_literal();
         read_next_token(); // eat the number
         return std::make_unique<AST::FloatingPointLiteralExpression>(value);
     }
 
-    static std::unique_ptr<AST::Expression> parse_integer_value() {
+    static std::unique_ptr<AST::Expression> parse_integer_literal() {
         int64_t value = Lexer::get_integer_literal();
         read_next_token(); // eat the number
         return std::make_unique<AST::IntegerLiteralExpression>(value);
     }
 
-    static std::unique_ptr<AST::Expression> parse_boolean_value(bool value) {
+    static std::unique_ptr<AST::Expression> parse_boolean_literal(bool value) {
         read_next_token(); // eat 'true' or 'false'
         return std::make_unique<AST::BooleanLiteralExpression>(value);
+    }
+
+    static std::unique_ptr<AST::Expression> parse_string_literal() {
+        std::string value = Lexer::get_string_literal();
+        read_next_token();  // eat the string
+        return std::make_unique<AST::StringLiteralExpression>(std::move(value));
     }
 
     static std::unique_ptr<AST::Expression> parse_parenthesis() {
@@ -122,10 +130,10 @@ namespace Kepler::Parser {
                 expression = parse_identifier();
                 break;
             case Lexer::Token::FloatingPointLiteral:
-                expression = parse_floating_point_value();
+                expression = parse_floating_point_literal();
                 break;
             case Lexer::Token::IntegerLiteral:
-                expression = parse_integer_value();
+                expression = parse_integer_literal();
                 break;
             case Lexer::Token::BracketOpen:
                 expression = parse_parenthesis();
@@ -189,10 +197,11 @@ namespace Kepler::Parser {
     static std::unique_ptr<AST::Expression> parse_primary() {
         switch (current_token) {
             case Lexer::Token::Identifier: return parse_identifier();
-            case Lexer::Token::FloatingPointLiteral: return parse_floating_point_value();
-            case Lexer::Token::IntegerLiteral: return parse_integer_value();
-            case Lexer::Token::True: return parse_boolean_value(true);
-            case Lexer::Token::False: return parse_boolean_value(false);
+            case Lexer::Token::FloatingPointLiteral: return parse_floating_point_literal();
+            case Lexer::Token::IntegerLiteral: return parse_integer_literal();
+            case Lexer::Token::True: return parse_boolean_literal(true);
+            case Lexer::Token::False: return parse_boolean_literal(false);
+            case Lexer::Token::StringLiteral: return parse_string_literal();
             case Lexer::Token::If: return parse_if();
             case Lexer::Token::Parsing_Elseif: return parse_if();
             case Lexer::Token::For: return parse_for();

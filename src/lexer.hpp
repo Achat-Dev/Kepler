@@ -41,6 +41,7 @@ namespace Kepler::Lexer {
         Identifier,
         FloatingPointLiteral,
         IntegerLiteral,
+        StringLiteral,
         DataType,
 
         // Parsing tokens
@@ -54,6 +55,7 @@ namespace Kepler::Lexer {
     std::string get_identifier();
     int64_t get_integer_literal();
     double get_floating_point_literal();
+    std::string get_string_literal();
     Type::TypeToken get_type();
 
 }

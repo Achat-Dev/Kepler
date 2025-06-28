@@ -13,7 +13,7 @@ namespace Kepler::AST {
     std::unique_ptr<ExpressionResult> BooleanLiteralExpression::codegen() {
         const Type::TypeToken type = Type::TargetTypeStack::top();
         if (type != Type::TypeToken::Bool && type != Type::TypeToken::None) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from a boolean value");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from a boolean literal");
             return ExpressionResult::create_invalid();
         }
 

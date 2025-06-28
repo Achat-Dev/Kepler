@@ -3,6 +3,7 @@
 #include <exception>
 #include <limits>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
@@ -34,9 +35,10 @@ namespace Kepler::Type {
                 std::terminate();
                 return nullptr;
             case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'string' is not supported yet");
-                std::terminate();
-                return nullptr;
+                // A string is internally represented as an immutable array of i8
+                // However, to get the llvm::Type* of that, the length of the array is needed
+                // Furthermore, the actual variable is a pointer to that array
+                return llvm::PointerType::getInt8Ty(Compiler::get_context());
             case TypeToken::Int8: return llvm::Type::getInt8Ty(Compiler::get_context());
             case TypeToken::Int16: return llvm::Type::getInt16Ty(Compiler::get_context());
             case TypeToken::Int32: return llvm::Type::getInt32Ty(Compiler::get_context());

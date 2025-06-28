@@ -31,7 +31,6 @@ namespace Kepler::LocalVariables {
         VariableData& local_variable = local_variables[name];
         local_variable.type = data.type;
         local_variable.variable = data.variable;
-
     }
 
     void erase(const std::string& name) {

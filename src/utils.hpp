@@ -2,6 +2,7 @@
 
 #include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 
