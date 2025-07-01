@@ -71,7 +71,7 @@ namespace Kepler::AST {
 
         llvm::EliminateUnreachableBlocks(*f);
 
-        if (f->back().getTerminator() == nullptr) {
+        if (Compiler::get_builder().GetInsertBlock()->getTerminator() == nullptr) {
             if (prototype->get_type() != Type::TypeToken::Void) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": function is missing a 'return' expression");
                 f->print(llvm::errs());
