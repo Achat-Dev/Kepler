@@ -24,8 +24,8 @@ namespace Kepler::AST {
     static llvm::Value* codegen_end_condition(llvm::Value* select_condition, llvm::AllocaInst* alloca, llvm::Value* endv, const char* variable_name, bool use_integer_operations) {
         if (use_integer_operations) {
             return Compiler::get_builder().CreateSelect(select_condition,
-                Compiler::get_builder().CreateICmpULT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
-                Compiler::get_builder().CreateICmpUGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
+                Compiler::get_builder().CreateICmpSLT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
+                Compiler::get_builder().CreateICmpSGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
             );
         }
         else {
@@ -65,7 +65,7 @@ namespace Kepler::AST {
 
         llvm::Value* end_select_condition;
         if (use_integer_operations) {
-            end_select_condition = Compiler::get_builder().CreateICmpULE(start_er->get_value(), end_er->get_value());
+            end_select_condition = Compiler::get_builder().CreateICmpSLE(start_er->get_value(), end_er->get_value());
         }
         else {
             end_select_condition = Compiler::get_builder().CreateFCmpULE(start_er->get_value(), end_er->get_value());

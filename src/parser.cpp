@@ -1,6 +1,4 @@
-#include <cctype>
 #include <cstdint>
-#include <cstdio>
 #include <llvm/Support/raw_ostream.h>
 #include <map>
 #include <memory>
