@@ -267,8 +267,25 @@ namespace Kepler::Lexer {
         last_char = Compiler::get_file()->read_next_char();
 
         while (last_char != '"') {
-            string_literal += last_char;
-            last_char = Compiler::get_file()->read_next_char();
+            if (last_char == '\\') {
+                last_char = Compiler::get_file()->read_next_char(); // read the character to escape
+
+                switch (last_char) {
+                    case 'n': string_literal += '\n'; break;
+                    case 't': string_literal += '\t'; break;
+                    case '\\': string_literal += '\\'; break;
+                    case '"': string_literal += '"'; break;
+                    default:
+                        log(LogStyle::ERROR, "[ Lexing error ]", LogStyle::DEFAULT, ": unknown escape character '\\", last_char, "' in string");
+                        return Token::Unknown;
+                }
+
+                last_char = Compiler::get_file()->read_next_char(); // read the next character for the next loop interation
+            }
+            else {
+                string_literal += last_char;
+                last_char = Compiler::get_file()->read_next_char();
+            }
         }
 
         last_char = Compiler::get_file()->read_next_char(); // eat closing '"'
