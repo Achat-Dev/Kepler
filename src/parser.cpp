@@ -61,6 +61,10 @@ namespace Kepler::Parser {
         { Lexer::Token::Assignment, 2 },
         { Lexer::Token::LessThan, 10 },
         { Lexer::Token::GreaterThan, 10 },
+        { Lexer::Token::Equals, 10 },
+        { Lexer::Token::NotEquals, 10 },
+        { Lexer::Token::LessEquals, 10 },
+        { Lexer::Token::GreaterEquals, 10 },
         { Lexer::Token::Plus, 20 },
         { Lexer::Token::Minus, 20 },
         { Lexer::Token::Multiplication, 40 },
@@ -207,6 +211,7 @@ namespace Kepler::Parser {
             case Lexer::Token::DataType: return parse_local_data_type();
             case Lexer::Token::BracketOpen: return parse_parenthesis();
             case Lexer::Token::Minus: return parse_negative();
+            case Lexer::Token::LogicalNegation: log("TODO: Implement logical negation"); return nullptr;
             default:
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", current_token, "' when expected expression");
                 return nullptr;

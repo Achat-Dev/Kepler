@@ -25,6 +25,11 @@ namespace Kepler::Lexer {
         Division,
         LessThan,
         GreaterThan,
+        Equals,
+        NotEquals,
+        LessEquals,
+        GreaterEquals,
+        LogicalNegation,
 
         // Keywords
         Extern,

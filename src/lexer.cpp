@@ -37,6 +37,10 @@ namespace Kepler::Lexer {
             case Token::Division: os << '/'; break;
             case Token::LessThan: os << '<'; break;
             case Token::GreaterThan: os << '>'; break;
+            case Token::Equals: os << "=="; break;
+            case Token::NotEquals: os << "!="; break;
+            case Token::LessEquals: os << "<="; break;
+            case Token::GreaterEquals: os << ">="; break;
             case Token::Extern: os << "extern"; break;
             case Token::Return: os << "return"; break;
             case Token::End: os << "end"; break;
@@ -108,7 +112,13 @@ namespace Kepler::Lexer {
                 return Token::BracketClose;
             case '=':
                 last_char = Compiler::get_file()->read_next_char();
-                return Token::Assignment;
+                if (last_char == '=') {
+                    last_char = Compiler::get_file()->read_next_char();
+                    return Token::Equals;
+                }
+                else {
+                    return Token::Assignment;
+                }
             case '+':
                 last_char = Compiler::get_file()->read_next_char();
                 return Token::Plus;
@@ -123,10 +133,31 @@ namespace Kepler::Lexer {
                 return Token::Division;
             case '<':
                 last_char = Compiler::get_file()->read_next_char();
-                return Token::LessThan;
+                if (last_char == '=') {
+                    last_char = Compiler::get_file()->read_next_char();
+                    return Token::LessEquals;
+                }
+                else {
+                    return Token::LessThan;
+                }
             case '>':
                 last_char = Compiler::get_file()->read_next_char();
-                return Token::GreaterThan;
+                if (last_char == '=') {
+                    last_char = Compiler::get_file()->read_next_char();
+                    return Token::GreaterEquals;
+                }
+                else {
+                    return Token::GreaterThan;
+                }
+            case '!':
+                last_char = Compiler::get_file()->read_next_char();
+                if (last_char == '=') {
+                    last_char = Compiler::get_file()->read_next_char();
+                    return Token::NotEquals;
+                }
+                else {
+                    return Token::LogicalNegation;
+                }
             case '"':
                 return read_string_literal();
         }
