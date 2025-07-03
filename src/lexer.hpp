@@ -29,7 +29,6 @@ namespace Kepler::Lexer {
         NotEquals,
         LessEquals,
         GreaterEquals,
-        LogicalNegation,
 
         // Keywords
         Extern,

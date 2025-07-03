@@ -156,7 +156,9 @@ namespace Kepler::Lexer {
                     return Token::NotEquals;
                 }
                 else {
-                    return Token::LogicalNegation;
+                    log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": logical negation with '!' is not supported yet");
+                    last_char = '!';
+                    break;
                 }
             case '"':
                 return read_string_literal();

@@ -211,7 +211,6 @@ namespace Kepler::Parser {
             case Lexer::Token::DataType: return parse_local_data_type();
             case Lexer::Token::BracketOpen: return parse_parenthesis();
             case Lexer::Token::Minus: return parse_negative();
-            case Lexer::Token::LogicalNegation: log("TODO: Implement logical negation"); return nullptr;
             default:
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", current_token, "' when expected expression");
                 return nullptr;
