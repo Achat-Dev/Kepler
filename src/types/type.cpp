@@ -37,8 +37,8 @@ namespace Kepler::Type {
             case TypeToken::String:
                 // A string is internally represented as an immutable array of i8
                 // However, to get the llvm::Type* of that, the length of the array is needed
-                // Furthermore, the actual variable is a pointer to that array
-                return llvm::PointerType::getInt8Ty(Compiler::get_context());
+                // That's why the type of a string an i8* (since llvm uses opaque pointer, the pointer is not explicitly typed)
+                return llvm::PointerType::get(Compiler::get_context(), 0);
             case TypeToken::Int8: return llvm::Type::getInt8Ty(Compiler::get_context());
             case TypeToken::Int16: return llvm::Type::getInt16Ty(Compiler::get_context());
             case TypeToken::Int32: return llvm::Type::getInt32Ty(Compiler::get_context());

@@ -47,8 +47,9 @@ namespace Kepler::Lexer {
             case Token::Identifier: os << "identifier"; break;
             case Token::FloatingPointLiteral: os << "floating point literal"; break;
             case Token::IntegerLiteral: os << "integer literal"; break;
+            case Token::StringLiteral: os << "string literal"; break;
             case Token::DataType: os << "data type"; break;
-            default: break;
+            default: log(LogStyle::WARNING, "[ Lexing warning ]", LogStyle::DEFAULT, ": missing implementation of operator '<<' for token '", (int)token, '\''); break;
         }
 
         return os;
@@ -270,8 +271,7 @@ namespace Kepler::Lexer {
             last_char = Compiler::get_file()->read_next_char();
         }
 
-        Compiler::get_file()->read_next_char(); // eat closing '"'
-        last_char = Compiler::get_file()->read_next_char(); // save actual next character for reading next token
+        last_char = Compiler::get_file()->read_next_char(); // eat closing '"'
         return Token::StringLiteral;
     }
 

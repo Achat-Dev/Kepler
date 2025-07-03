@@ -33,7 +33,7 @@ namespace Kepler::AST {
         assert(prototype != nullptr && "[ Assertion ]: protoype called from CallExpression not registered as known prototype");
 
         const std::vector<ParameterData>& parameters = prototype->get_parameters();
-        assert(args.size() == parameters.size() && "[ Assertion ]: argument count of CallExpression and respective prototype doesn't match");
+        assert(args.size() == parameters.size() && "[ Assertion ]: argument count of CallExpression and respective prototype don't match");
 
         std::vector<llvm::Value*> args_v;
         for (unsigned i = 0, e = args.size(); i != e; i++) {

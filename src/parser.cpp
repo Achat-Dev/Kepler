@@ -171,7 +171,7 @@ namespace Kepler::Parser {
                     args.push_back(std::move(arg));
                 }
                 else {
-                    return  nullptr;
+                    return nullptr;
                 }
 
                 if (current_token == Lexer::Token::BracketClose) {
