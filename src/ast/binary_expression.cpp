@@ -56,8 +56,12 @@ namespace Kepler::AST {
             llvm::Value* value = Compiler::get_builder().CreateFCmpUEQ(lhs->get_value(), rhs->get_value(), "eq");
             return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
+        else if (type == Type::TypeToken::Bool) {
+            llvm::Value* value = Compiler::get_builder().CreateICmpEQ(lhs->get_value(), rhs->get_value(), "eq");
+            return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '==' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -71,8 +75,12 @@ namespace Kepler::AST {
             llvm::Value* value = Compiler::get_builder().CreateFCmpUNE(lhs->get_value(), rhs->get_value(), "neq");
             return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
+        else if (type == Type::TypeToken::Bool) {
+            llvm::Value* value = Compiler::get_builder().CreateICmpNE(lhs->get_value(), rhs->get_value(), "neq");
+            return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '!=' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -87,7 +95,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '<=' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
@@ -102,7 +110,7 @@ namespace Kepler::AST {
             return ExpressionResult::create(value, Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
+        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>=' operation between type '", type, "' and type '", rhs->get_type(), "' is not supported");
         return ExpressionResult::create_invalid();
     }
 
