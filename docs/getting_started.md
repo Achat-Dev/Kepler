@@ -49,6 +49,7 @@ The following table displays the currently supported types.
 | :- | :- | :- |
 | `void` |  | Can only be used as the return type of a function |
 | `bool` | A 1-bit unsigned integer that represents either `true` or `false` | Only the internal value used for operations is a 1-bit unsigned integer. An 8-bit unsigned integer is used in memory. |
+| `string` | A pointer to a constant array of 8-bit signed integers | Strings are null terminated. They also currently don't support any operations. |
 | `i8` | An 8-bit signed integer | |
 | `i16` | A 16-bit signed integer | |
 | `i32` | A 32-bit signed integer | |
@@ -80,6 +81,7 @@ The following matrix displays what types can be casted to what types (rows are t
 | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
 | `void` | | | | | | | | |
 | `bool` | | | | | | | | |
+| `string` | | | | | | | | |
 | `i8` | | x | | x | x | x | x | x |
 | `i16` | | x | x | | x | x | x | x |
 | `i32` | | x | x | x | | x | x | x |
