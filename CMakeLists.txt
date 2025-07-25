@@ -31,6 +31,9 @@ set(AST_SRC
 set(FUNCTION_REGISTRY_SRC
     "src/function_registry/function_registry.cpp")
 
+set(OPERATORS_SRC
+    "src/operators/operators.cpp")
+
 set(TYPES_SRC
     "src/types/bool_type.cpp"
     "src/types/float32_type.cpp"
@@ -57,6 +60,7 @@ add_executable (${CMAKE_PROJECT_NAME}
     "src/utils.cpp"
     ${AST_SRC}
     ${FUNCTION_REGISTRY_SRC}
+    ${OPERATORS_SRC}
     ${TYPES_SRC}
     ${VARIABLES_SRC})
 
