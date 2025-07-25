@@ -217,9 +217,9 @@ namespace Kepler::Lexer {
             type_token = Type::TypeToken::Void;
             return Token::DataType;
         }
-        else if (identifier == "var") {
-            log("{ TokenType: var }");
-            type_token = Type::TypeToken::Var;
+        else if (identifier == "tmap") {
+            log("{ TokenType: tmap }");
+            type_token = Type::TypeToken::TMap;
             return Token::DataType;
         }
         else if (identifier == "bool") {

@@ -1,7 +1,5 @@
 #include <cassert>
-#include <cstdint>
 #include <exception>
-#include <limits>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Intrinsics.h>
@@ -9,6 +7,14 @@
 #include <llvm/IR/Value.h>
 #include <string>
 
+#include "bool_type.hpp"
+#include "float32_type.hpp"
+#include "float64_type.hpp"
+#include "int16_type.hpp"
+#include "int32_type.hpp"
+#include "int64_type.hpp"
+#include "int8_type.hpp"
+#include "string_type.hpp"
 #include "type.hpp"
 #include "../compiler.hpp"
 #include "../log.hpp"
@@ -17,186 +23,38 @@
 namespace Kepler::Type {
 
     std::ostream& operator<<(std::ostream& os, TypeToken type) {
-        os << to_string(type);
+        os << get_type_name(type);
         return os;
     }
 
     llvm::Type* get_by_token(TypeToken type) {
         switch (type) {
-            //case TypeToken::None: return llvm::Type::getVoidTy(Compiler::get_context());
             case TypeToken::Void: return llvm::Type::getVoidTy(Compiler::get_context());
-            case TypeToken::Var:
+            case TypeToken::TMap:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'var' is not supported yet");
                 std::terminate();
                 return nullptr;
-            case TypeToken::Bool: return llvm::Type::getInt1Ty(Compiler::get_context());
+            case TypeToken::Bool: return BoolType::get_llvm_type();
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'char' is not supported yet");
                 std::terminate();
                 return nullptr;
-            case TypeToken::String:
-                // A string is internally represented as an immutable array of i8
-                // However, to get the llvm::Type* of that, the length of the array is needed
-                // That's why the type of a string an i8* (since llvm uses opaque pointer, the pointer is not explicitly typed)
-                return llvm::PointerType::get(Compiler::get_context(), 0);
-            case TypeToken::Int8: return llvm::Type::getInt8Ty(Compiler::get_context());
-            case TypeToken::Int16: return llvm::Type::getInt16Ty(Compiler::get_context());
-            case TypeToken::Int32: return llvm::Type::getInt32Ty(Compiler::get_context());
-            case TypeToken::Int64: return llvm::Type::getInt64Ty(Compiler::get_context());
-            case TypeToken::Float32: return llvm::Type::getFloatTy(Compiler::get_context());
-            case TypeToken::Float64: return llvm::Type::getDoubleTy(Compiler::get_context());
+            case TypeToken::String: return StringType::get_llvm_type();
+            case TypeToken::Int8: return Int8Type::get_llvm_type();
+            case TypeToken::Int16: return Int16Type::get_llvm_type();
+            case TypeToken::Int32: return Int32Type::get_llvm_type();
+            case TypeToken::Int64: return Int64Type::get_llvm_type();
+            case TypeToken::Float32: return Float32Type::get_llvm_type();
+            case TypeToken::Float64: return Float64Type::get_llvm_type();
             default:
-                emergency_exit("type '" + to_string(type) + "' does not map to an llvm type");
+                emergency_exit("type '" + get_type_name(type) + "' does not map to an llvm type");
                 return nullptr; // Needed to avoid compile warnings
         }
     }
 
-    static llvm::Value* cast_bool(llvm::Value* value, TypeToken to) {
-        switch (to) {
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'bool' to 'string' is not supported yet");
-                return nullptr;
-            default: return nullptr;
-        }
-    }
-
-    static llvm::Value* cast_i8(llvm::Value* value, TypeToken to) {
-        switch (to) {
-            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int8), 0));
-            case TypeToken::Char:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'char' is not supported yet");
-                return nullptr;
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'string' is not supported yet");
-                return nullptr;
-            case TypeToken::Int16: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
-            case TypeToken::Int32: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
-            case TypeToken::Int64: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
-            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            default: return nullptr;
-        }
-    }
-
-    static llvm::Value* cast_i16(llvm::Value* value, TypeToken to) {
-        switch (to) {
-            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int16), 0));
-            case TypeToken::Char:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'char' is not supported yet");
-                return nullptr;
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i16' to 'string' is not supported yet");
-                return nullptr;
-            case TypeToken::Int8: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
-            case TypeToken::Int32: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
-            case TypeToken::Int64: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
-            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            default: return nullptr;
-        }
-    }
-
-    static llvm::Value* cast_i32(llvm::Value* value, TypeToken to) {
-        switch (to) {
-            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0));
-            case TypeToken::Char:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'char' is not supported yet");
-                return nullptr;
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i32' to 'string' is not supported yet");
-                return nullptr;
-            case TypeToken::Int8: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
-            case TypeToken::Int16: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
-            case TypeToken::Int64: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
-            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            default: return nullptr;
-        }
-    }
-
-    static llvm::Value* cast_i64(llvm::Value* value, TypeToken to) {
-        switch (to) {
-            case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int64), 0));
-            case TypeToken::Char:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'char' is not supported yet");
-                return nullptr;
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i64' to 'string' is not supported yet");
-                return nullptr;
-            case TypeToken::Int8: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
-            case TypeToken::Int16: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
-            case TypeToken::Int32: return Compiler::get_builder().CreateTrunc(value, get_by_token(to));
-            case TypeToken::Float32: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            case TypeToken::Float64: return Compiler::get_builder().CreateSIToFP(value, get_by_token(to));
-            default: return nullptr;
-        }
-    }
-
-    static llvm::Value* cast_float_to_int(llvm::Value* value, TypeToken from, TypeToken to) {
-        assert((is_floating_point_type(from) && is_integer_type(to)) && "[ Assertion ]: TypeTokens given to 'cast_float_to_int' are not of types floating point and integer");
-
-        llvm::Value* min;
-        llvm::Value* max;
-
-        switch (to) {
-            case TypeToken::Int8:
-                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int8_t>::lowest());
-                max = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int8_t>::max());
-                break;
-            case TypeToken::Int16:
-                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int16_t>::lowest());
-                max = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int16_t>::max());
-                break;
-            case TypeToken::Int32:
-                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int32_t>::lowest());
-                max = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int32_t>::max());
-                break;
-            case TypeToken::Int64:
-                min = llvm::ConstantFP::get(get_by_token(from), std::numeric_limits<int64_t>::lowest());
-                max = llvm::ConstantFP::get(get_by_token(from), static_cast<double>(std::numeric_limits<int64_t>::max()));
-                break;
-            default: break;
-        }
-
-        llvm::Value* clamped = Compiler::get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
-        clamped = Compiler::get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
-
-        return Compiler::get_builder().CreateFPToSI(clamped, get_by_token(to));
-    }
-
-    static llvm::Value* cast_f32(llvm::Value* value, TypeToken to) {
-        switch (to) {
-            case TypeToken::Bool: return Compiler::get_builder().CreateFCmpONE(value, llvm::ConstantFP::get(get_by_token(TypeToken::Float32), 0));
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f32' to 'string' is not supported yet");
-                return nullptr;
-            case TypeToken::Int8: return cast_float_to_int(value, TypeToken::Float32, to);
-            case TypeToken::Int16: return cast_float_to_int(value, TypeToken::Float32, to);
-            case TypeToken::Int32: return cast_float_to_int(value, TypeToken::Float32, to);
-            case TypeToken::Int64: return cast_float_to_int(value, TypeToken::Float32, to);
-            case TypeToken::Float64: return Compiler::get_builder().CreateFPExt(value, get_by_token(to));
-            default: return nullptr;
-        }
-    }
-
-    static llvm::Value* cast_f64(llvm::Value* value, TypeToken to) {
-        switch (to) {
-            case TypeToken::Bool: return Compiler::get_builder().CreateFCmpONE(value, llvm::ConstantFP::get(get_by_token(TypeToken::Float64), 0));
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'f64' to 'string' is not supported yet");
-                return nullptr;
-            case TypeToken::Int8: return cast_float_to_int(value, TypeToken::Float64, to);
-            case TypeToken::Int16: return cast_float_to_int(value, TypeToken::Float64, to);
-            case TypeToken::Int32: return cast_float_to_int(value, TypeToken::Float64, to);
-            case TypeToken::Int64: return cast_float_to_int(value, TypeToken::Float64, to);
-            case TypeToken::Float32: return Compiler::get_builder().CreateFPTrunc(value, get_by_token(to));
-            default: return nullptr;
-        }
-    }
-
     llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to) {
-        assert((from != Type::TypeToken::None && from != Type::TypeToken::Var) && "[ Assertion ]: trying to cast from an invalid type");
-        assert((to != Type::TypeToken::None && to != Type::TypeToken::Var) && "[ Assertion ]: trying to cast to an invalid type");
+        assert((from != Type::TypeToken::None && from != Type::TypeToken::TMap) && "[ Assertion ]: trying to cast from an invalid type");
+        assert((to != Type::TypeToken::None && to != Type::TypeToken::TMap) && "[ Assertion ]: trying to cast to an invalid type");
 
         if (from == to) {
             log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": casting a value of type '", from, "' to the same type, which is redundant");
@@ -205,7 +63,7 @@ namespace Kepler::Type {
 
         switch (from) {
             case TypeToken::Bool:
-                if ((value = cast_bool(value, to))) {
+                if ((value = BoolType::cast(value, to))) {
                     return value;
                 }
                 break;
@@ -213,35 +71,37 @@ namespace Kepler::Type {
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'char' is not supported yet");
                 return nullptr;
             case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'string' is not supported yet");
-                return nullptr;
+                if ((value = StringType::cast(value, to))) {
+                    return value;
+                }
+                break;
             case TypeToken::Int8:
-                if ((value = cast_i8(value, to))) {
+                if ((value = Int8Type::cast(value, to))) {
                     return value;
                 }
                 break;
             case TypeToken::Int16:
-                if ((value = cast_i16(value, to))) {
+                if ((value = Int16Type::cast(value, to))) {
                     return value;
                 }
                 break;
             case TypeToken::Int32:
-                if ((value = cast_i32(value, to))) {
+                if ((value = Int32Type::cast(value, to))) {
                     return value;
                 }
                 break;
             case TypeToken::Int64:
-                if ((value = cast_i64(value, to))) {
+                if ((value = Int64Type::cast(value, to))) {
                     return value;
                 }
                 break;
             case TypeToken::Float32:
-                if ((value = cast_f32(value, to))) {
+                if ((value = Float32Type::cast(value, to))) {
                     return value;
                 }
                 break;
             case TypeToken::Float64:
-                if ((value = cast_f64(value, to))) {
+                if ((value = Float64Type::cast(value, to))) {
                     return value;
                 }
                 break;
@@ -253,20 +113,20 @@ namespace Kepler::Type {
         return nullptr;
     }
 
-    std::string to_string(TypeToken type) {
+    std::string get_type_name(TypeToken type) {
         switch (type) {
             case TypeToken::None: return "none";
             case TypeToken::Void: return "void";
-            case TypeToken::Var: return "var";
-            case TypeToken::Bool: return "bool";
+            case TypeToken::TMap: return "tmap";
+            case TypeToken::Bool: return BoolType::get_name();
             case TypeToken::Char: return "char";
-            case TypeToken::String: return "String";
-            case TypeToken::Int8: return "i8";
-            case TypeToken::Int16: return "i16";
-            case TypeToken::Int32: return "i32";
-            case TypeToken::Int64: return "i64";
-            case TypeToken::Float32: return "f32";
-            case TypeToken::Float64: return "f64";
+            case TypeToken::String: return StringType::get_name();
+            case TypeToken::Int8: return Int8Type::get_name();
+            case TypeToken::Int16: return Int16Type::get_name();
+            case TypeToken::Int32: return Int32Type::get_name();
+            case TypeToken::Int64: return Int64Type::get_name();
+            case TypeToken::Float32: return Float32Type::get_name();
+            case TypeToken::Float64: return Float64Type::get_name();
             default: return "unknown type";
         }
     }

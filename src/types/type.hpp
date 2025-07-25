@@ -9,7 +9,7 @@ namespace Kepler::Type {
     enum class TypeToken {
         None,
         Void,
-        Var,
+        TMap,
         Bool,
         Char,
         String,
@@ -25,7 +25,7 @@ namespace Kepler::Type {
 
     llvm::Type* get_by_token(TypeToken type);
     llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to);
-    std::string to_string(TypeToken type);
+    std::string get_type_name(TypeToken type);
     bool is_floating_point_type(TypeToken type);
     bool is_integer_type(TypeToken type);
 

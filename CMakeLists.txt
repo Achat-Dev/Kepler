@@ -32,8 +32,17 @@ set(FUNCTION_REGISTRY_SRC
     "src/function_registry/function_registry.cpp")
 
 set(TYPES_SRC
+    "src/types/bool_type.cpp"
+    "src/types/float32_type.cpp"
+    "src/types/float64_type.cpp"
+    "src/types/int8_type.cpp"
+    "src/types/int16_type.cpp"
+    "src/types/int32_type.cpp"
+    "src/types/int64_type.cpp"
+    "src/types/string_type.cpp"
     "src/types/target_type_stack.cpp"
-    "src/types/type.cpp")
+    "src/types/type.cpp"
+    "src/types/type_helper.cpp")
 
 set(VARIABLES_SRC
     "src/variables/local_variables.cpp")
