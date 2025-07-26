@@ -23,6 +23,9 @@
 #include "tmap_type.hpp"
 #include "void_type.hpp"
 
+#define ASSERT_NONE(type, message) assert((type != Type::TypeToken::None) && "[ Assertion ]: trying to " #message " type 'None', which is only used for internal processing and doesn't represent an actual type");
+#define ASSERT_TYPE(type) assert((type_map.find(type) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
+
 namespace Kepler::Type {
 
     static std::unordered_map<TypeToken, std::shared_ptr<DataType>> type_map = {
@@ -44,130 +47,152 @@ namespace Kepler::Type {
         return os;
     }
 
-    llvm::Type* get_by_token(TypeToken type) {
-        assert((type_map.find(type) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
-        return type_map[type]->get_llvm_type();
-
-        /*switch (type) {
-            case TypeToken::Void: return llvm::Type::getVoidTy(Compiler::get_context());
-            case TypeToken::TMap:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'var' is not supported yet");
-                std::terminate();
-                return nullptr;
-            case TypeToken::Bool: return BoolType::get_llvm_type();
-            case TypeToken::Char:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'char' is not supported yet");
-                std::terminate();
-                return nullptr;
-            case TypeToken::String: return StringType::get_llvm_type();
-            case TypeToken::Int8: return Int8Type::get_llvm_type();
-            case TypeToken::Int16: return Int16Type::get_llvm_type();
-            case TypeToken::Int32: return Int32Type::get_llvm_type();
-            case TypeToken::Int64: return Int64Type::get_llvm_type();
-            case TypeToken::Float32: return Float32Type::get_llvm_type();
-            case TypeToken::Float64: return Float64Type::get_llvm_type();
-            default:
-                emergency_exit("type '" + get_type_name(type) + "' does not map to an llvm type");
-                return nullptr; // Needed to avoid compile warnings
-        }*/
-    }
-
-    llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to) {
-        assert((from != Type::TypeToken::None && from != Type::TypeToken::TMap) && "[ Assertion ]: trying to cast from an invalid type");
-        assert((to != Type::TypeToken::None && to != Type::TypeToken::TMap) && "[ Assertion ]: trying to cast to an invalid type");
-
-        if (from == to) {
-            log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": casting a value of type '", from, "' to the same type, which is redundant");
-            return value;
-        }
-
-        assert((type_map.find(from) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
-        value = type_map[from]->cast(value, to);
-        if (value == nullptr) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": casting from type '", from, "' to type '", to, "' is not supported");
-            return nullptr;
-        }
-        return value;
-
-        /*switch (from) {
-            case TypeToken::Bool:
-                if ((value = BoolType::cast(value, to))) {
-                    return value;
-                }
-                break;
-            case TypeToken::Char:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'char' is not supported yet");
-                return nullptr;
-            case TypeToken::String:
-                if ((value = StringType::cast(value, to))) {
-                    return value;
-                }
-                break;
-            case TypeToken::Int8:
-                if ((value = Int8Type::cast(value, to))) {
-                    return value;
-                }
-                break;
-            case TypeToken::Int16:
-                if ((value = Int16Type::cast(value, to))) {
-                    return value;
-                }
-                break;
-            case TypeToken::Int32:
-                if ((value = Int32Type::cast(value, to))) {
-                    return value;
-                }
-                break;
-            case TypeToken::Int64:
-                if ((value = Int64Type::cast(value, to))) {
-                    return value;
-                }
-                break;
-            case TypeToken::Float32:
-                if ((value = Float32Type::cast(value, to))) {
-                    return value;
-                }
-                break;
-            case TypeToken::Float64:
-                if ((value = Float64Type::cast(value, to))) {
-                    return value;
-                }
-                break;
-            default: break;
-        }
-
-        // Don't make this a default because of the nested switch
-        log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": casting from type '", from, "' to type '", to, "' is not supported");
-        return nullptr;*/
-    }
-
-    std::string get_type_name(TypeToken type) {
-        assert((type_map.find(type) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
-        return type_map[type]->get_name();
-
-        /*switch (type) {
-            case TypeToken::None: return "none";
-            case TypeToken::Void: return "void";
-            case TypeToken::TMap: return "tmap";
-            case TypeToken::Bool: return BoolType::get_name();
-            case TypeToken::Char: return "char";
-            case TypeToken::String: return StringType::get_name();
-            case TypeToken::Int8: return Int8Type::get_name();
-            case TypeToken::Int16: return Int16Type::get_name();
-            case TypeToken::Int32: return Int32Type::get_name();
-            case TypeToken::Int64: return Int64Type::get_name();
-            case TypeToken::Float32: return Float32Type::get_name();
-            case TypeToken::Float64: return Float64Type::get_name();
-            default: return "unknown type";
-        }*/
-    }
-
     bool is_floating_point_type(TypeToken type) {
         return type == TypeToken::Float32 || type == TypeToken::Float64;
     }
 
     bool is_integer_type(TypeToken type) {
         return type == TypeToken::Int8 || type == TypeToken::Int16 || type == TypeToken::Int32 || type == TypeToken::Int64;
+    }
+
+    std::string get_type_name(TypeToken type) {
+        ASSERT_NONE(type, "get the name of");
+        ASSERT_TYPE(type);
+        return type_map[type]->get_name();
+    }
+
+    llvm::Type* get_by_token(TypeToken type) {
+        ASSERT_NONE(type, "get the llvm type of");
+        ASSERT_TYPE(type);
+        return type_map[type]->get_llvm_type();
+    }
+
+    llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to) {
+        ASSERT_NONE(from, "cast from");
+        ASSERT_NONE(to, "cast to");
+        ASSERT_TYPE(from);
+
+        if (from == to) {
+            log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": casting a value of type '", from, "' to the same type, which is redundant");
+            return value;
+        }
+
+        value = type_map[from]->cast(value, to);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": casting from type '", from, "' to type '", to, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '+' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_add(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '+' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '-' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_sub(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '-' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_mul(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '*' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_mul(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '*' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_div(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '/' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_div(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '/' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_less_than(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '<' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_less_than(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '<' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_greater_than(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '>' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_greater_than(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_equals(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '==' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_equals(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '==' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_not_equals(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '!=' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_not_equals(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '!=' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_less_equals(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '<=' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_less_equals(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '<=' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
+    }
+
+    llvm::Value* create_greater_equals(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {
+        ASSERT_NONE(type, "create a '>=' operation with");
+        ASSERT_TYPE(type);
+        llvm::Value* value = type_map[type]->create_greater_equals(lhs, rhs);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": '>=' operation between type '", type, "' is not supported");
+            return nullptr;
+        }
+        return value;
     }
 
 }

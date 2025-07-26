@@ -10,8 +10,8 @@
 #include "variable_expression.hpp"
 #include "../compiler.hpp"
 #include "../log.hpp"
-#include "../operators/operators.hpp"
 #include "../types/target_type_stack.hpp"
+#include "../types/type.hpp"
 #include "../variables/local_variables.hpp"
 #include "../variables/variable_data.hpp"
 
@@ -76,7 +76,8 @@ namespace Kepler::AST {
         }
 
         // Codegen rhs
-        Type::TargetTypeStack::push(lhs_er->get_type());
+        Type::TypeToken lhs_type = lhs_er->get_type();
+        Type::TargetTypeStack::push(lhs_type);
         std::unique_ptr<ExpressionResult> rhs_er = rhs->codegen();
         Type::TargetTypeStack::pop();
 
@@ -85,29 +86,63 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        if (lhs_er->get_type() != rhs_er->get_type()) {
+        if (lhs_type != rhs_er->get_type()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to create binary operation with types '", lhs_er->get_type(), "' and '", rhs_er->get_type(), '\'');
             return ExpressionResult::create_invalid();
         }
 
         // Create binary operation
         llvm::Value* value;
-        unsigned int flags = ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable;
+        Type::TypeToken return_type = lhs_type;
+
         switch (op) {
-            case Lexer::Token::Plus: return Operators::create_add(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::Minus: return Operators::create_sub(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::Multiplication: return Operators::create_mul(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::Division: return Operators::create_div(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::LessThan: return Operators::create_less_than(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::GreaterThan: return Operators::create_greater_than(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::Equals: return Operators::create_equals(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::NotEquals: return Operators::create_not_equals(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::LessEquals: return Operators::create_less_equals(std::move(lhs_er), std::move(rhs_er));
-            case Lexer::Token::GreaterEquals: return Operators::create_greater_equals(std::move(lhs_er), std::move(rhs_er));
+            case Lexer::Token::Plus:
+                value = Type::create_add(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                break;
+            case Lexer::Token::Minus:
+                value = Type::create_sub(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                break;
+            case Lexer::Token::Multiplication:
+                value = Type::create_mul(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                break;
+            case Lexer::Token::Division:
+                value = Type::create_div(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                break;
+            case Lexer::Token::LessThan:
+                value = Type::create_less_than(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                return_type = Type::TypeToken::Bool;
+                break;
+            case Lexer::Token::GreaterThan:
+                value = Type::create_greater_than(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                return_type = Type::TypeToken::Bool;
+                break;
+            case Lexer::Token::Equals:
+                value = Type::create_equals(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                return_type = Type::TypeToken::Bool;
+                break;
+            case Lexer::Token::NotEquals:
+                value = Type::create_not_equals(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                return_type = Type::TypeToken::Bool;
+                break;
+            case Lexer::Token::LessEquals:
+                value = Type::create_less_equals(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                return_type = Type::TypeToken::Bool;
+                break;
+            case Lexer::Token::GreaterEquals:
+                value = Type::create_greater_equals(lhs_er->get_value(), rhs_er->get_value(), lhs_type);
+                return_type = Type::TypeToken::Bool;
+                break;
             default:
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown binary operator '", op, '\'');
                 return ExpressionResult::create_invalid();
         }
+
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to create binary operation between type '", lhs_type, '\'');
+            return ExpressionResult::create_invalid();
+        }
+
+        return ExpressionResult::create(value, return_type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
     Lexer::Token BinaryExpression::get_operator() const {

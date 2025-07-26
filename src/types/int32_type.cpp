@@ -10,6 +10,10 @@
 
 namespace Kepler::Type {
 
+    std::string Int32Type::get_name() const {
+        return "i32";
+    }
+
     llvm::Type* Int32Type::get_llvm_type() const {
         return llvm::Type::getInt32Ty(Compiler::get_context());
     }
@@ -32,8 +36,44 @@ namespace Kepler::Type {
         }
     }
 
-    std::string Int32Type::get_name() const {
-        return "i32";
+    llvm::Value* Int32Type::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateAdd(lhs, rhs, "i32_add");
+    }
+
+    llvm::Value* Int32Type::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSub(lhs, rhs, "i32_sub");
+    }
+
+    llvm::Value* Int32Type::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateMul(lhs, rhs, "i32_mul");
+    }
+
+    llvm::Value* Int32Type::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSDiv(lhs, rhs, "i32_div");
+    }
+
+    llvm::Value* Int32Type::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLT(lhs, rhs, "i32_lt");
+    }
+
+    llvm::Value* Int32Type::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGT(lhs, rhs, "i32_gt");
+    }
+
+    llvm::Value* Int32Type::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpEQ(lhs, rhs, "i32_eq");
+    }
+
+    llvm::Value* Int32Type::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpNE(lhs, rhs, "i32_neq");
+    }
+
+    llvm::Value* Int32Type::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLE(lhs, rhs, "i32_leq");
+    }
+
+    llvm::Value* Int32Type::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGE(lhs, rhs, "i32_geq");
     }
 
 }

@@ -10,6 +10,10 @@
 
 namespace Kepler::Type {
 
+    std::string Int16Type::get_name() const {
+        return "i16";
+    }
+
     llvm::Type* Int16Type::get_llvm_type() const {
         return llvm::Type::getInt16Ty(Compiler::get_context());
     }
@@ -32,8 +36,44 @@ namespace Kepler::Type {
         }
     }
 
-    std::string Int16Type::get_name() const {
-        return "i16";
+    llvm::Value* Int16Type::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateAdd(lhs, rhs, "i16_add");
+    }
+
+    llvm::Value* Int16Type::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSub(lhs, rhs, "i16_sub");
+    }
+
+    llvm::Value* Int16Type::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateMul(lhs, rhs, "i16_mul");
+    }
+
+    llvm::Value* Int16Type::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSDiv(lhs, rhs, "i16_div");
+    }
+
+    llvm::Value* Int16Type::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLT(lhs, rhs, "i16_lt");
+    }
+
+    llvm::Value* Int16Type::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGT(lhs, rhs, "i16_gt");
+    }
+
+    llvm::Value* Int16Type::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpEQ(lhs, rhs, "i16_eq");
+    }
+
+    llvm::Value* Int16Type::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpNE(lhs, rhs, "i16_neq");
+    }
+
+    llvm::Value* Int16Type::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLE(lhs, rhs, "i16_leq");
+    }
+
+    llvm::Value* Int16Type::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGE(lhs, rhs, "i16_geq");
     }
 
 }

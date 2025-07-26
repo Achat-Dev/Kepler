@@ -10,6 +10,10 @@
 
 namespace Kepler::Type {
 
+    std::string Int64Type::get_name() const {
+        return "i64";
+    }
+
     llvm::Type* Int64Type::get_llvm_type() const {
         return llvm::Type::getInt64Ty(Compiler::get_context());
     }
@@ -32,8 +36,44 @@ namespace Kepler::Type {
         }
     }
 
-    std::string Int64Type::get_name() const {
-        return "i64";
+    llvm::Value* Int64Type::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateAdd(lhs, rhs, "i64_add");
+    }
+
+    llvm::Value* Int64Type::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSub(lhs, rhs, "i64_sub");
+    }
+
+    llvm::Value* Int64Type::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateMul(lhs, rhs, "i64_mul");
+    }
+
+    llvm::Value* Int64Type::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSDiv(lhs, rhs, "i64_div");
+    }
+
+    llvm::Value* Int64Type::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLT(lhs, rhs, "i64_lt");
+    }
+
+    llvm::Value* Int64Type::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGT(lhs, rhs, "i64_gt");
+    }
+
+    llvm::Value* Int64Type::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpEQ(lhs, rhs, "i64_eq");
+    }
+
+    llvm::Value* Int64Type::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpNE(lhs, rhs, "i64_neq");
+    }
+
+    llvm::Value* Int64Type::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLE(lhs, rhs, "i64_leq");
+    }
+
+    llvm::Value* Int64Type::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGE(lhs, rhs, "i64_geq");
     }
 
 }

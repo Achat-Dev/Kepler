@@ -10,6 +10,10 @@
 
 namespace Kepler::Type {
 
+    std::string Int8Type::get_name() const {
+        return "i8";
+    }
+
     llvm::Type* Int8Type::get_llvm_type() const {
         return llvm::Type::getInt8Ty(Compiler::get_context());
     }
@@ -32,8 +36,44 @@ namespace Kepler::Type {
         }
     }
 
-    std::string Int8Type::get_name() const {
-        return "i8";
+    llvm::Value* Int8Type::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateAdd(lhs, rhs, "i8_add");
+    }
+
+    llvm::Value* Int8Type::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSub(lhs, rhs, "i8_sub");
+    }
+
+    llvm::Value* Int8Type::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateMul(lhs, rhs, "i8_mul");
+    }
+
+    llvm::Value* Int8Type::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateSDiv(lhs, rhs, "i8_div");
+    }
+
+    llvm::Value* Int8Type::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLT(lhs, rhs, "i8_lt");
+    }
+
+    llvm::Value* Int8Type::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGT(lhs, rhs, "i8_gt");
+    }
+
+    llvm::Value* Int8Type::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpEQ(lhs, rhs, "i8_eq");
+    }
+
+    llvm::Value* Int8Type::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpNE(lhs, rhs, "i8_neq");
+    }
+
+    llvm::Value* Int8Type::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSLE(lhs, rhs, "i8_leq");
+    }
+
+    llvm::Value* Int8Type::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateICmpSGE(lhs, rhs, "i8_geq");
     }
 
 }

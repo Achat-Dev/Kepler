@@ -9,6 +9,10 @@
 
 namespace Kepler::Type {
 
+    std::string Float32Type::get_name() const {
+        return "f32";
+    }
+
     llvm::Type* Float32Type::get_llvm_type() const {
         return llvm::Type::getFloatTy(Compiler::get_context());
     }
@@ -28,8 +32,44 @@ namespace Kepler::Type {
         }
     }
 
-    std::string Float32Type::get_name() const {
-        return "f32";
+    llvm::Value* Float32Type::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFAdd(lhs, rhs, "f32_add");
+    }
+
+    llvm::Value* Float32Type::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFSub(lhs, rhs, "f32_sub");
+    }
+
+    llvm::Value* Float32Type::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFMul(lhs, rhs, "f32_mul");
+    }
+
+    llvm::Value* Float32Type::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFDiv(lhs, rhs, "f32_div");
+    }
+
+    llvm::Value* Float32Type::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFCmpULT(lhs, rhs, "f32_lt");
+    }
+
+    llvm::Value* Float32Type::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFCmpUGT(lhs, rhs, "f32_gt");
+    }
+
+    llvm::Value* Float32Type::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFCmpUEQ(lhs, rhs, "f32_eq");
+    }
+
+    llvm::Value* Float32Type::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFCmpUNE(lhs, rhs, "f32_neq");
+    }
+
+    llvm::Value* Float32Type::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFCmpULE(lhs, rhs, "f32_leq");
+    }
+
+    llvm::Value* Float32Type::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return Compiler::get_builder().CreateFCmpUGE(lhs, rhs, "f32_geq");
     }
 
 }
