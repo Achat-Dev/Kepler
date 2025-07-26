@@ -1,15 +1,10 @@
 #pragma once
 
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Value.h>
-#include <string>
-
 #include "data_type.hpp"
-#include "type.hpp"
 
 namespace Kepler::Type {
 
-    class Int64Type: public DataType {
+    class CharType: public DataType {
     public:
         llvm::Type* get_llvm_type() const override;
         llvm::Value* cast(llvm::Value* value, TypeToken to) const override;

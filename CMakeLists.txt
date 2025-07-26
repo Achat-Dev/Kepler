@@ -36,16 +36,19 @@ set(OPERATORS_SRC
 
 set(TYPES_SRC
     "src/types/bool_type.cpp"
+    "src/types/char_type.cpp"
     "src/types/float32_type.cpp"
     "src/types/float64_type.cpp"
+    "src/types/floating_point_type.cpp"
     "src/types/int8_type.cpp"
     "src/types/int16_type.cpp"
     "src/types/int32_type.cpp"
     "src/types/int64_type.cpp"
     "src/types/string_type.cpp"
     "src/types/target_type_stack.cpp"
+    "src/types/tmap_type.cpp"
     "src/types/type.cpp"
-    "src/types/type_helper.cpp")
+    "src/types/void_type.cpp")
 
 set(VARIABLES_SRC
     "src/variables/local_variables.cpp")

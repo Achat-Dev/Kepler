@@ -9,7 +9,7 @@
 
 namespace Kepler::Type {
 
-    class Int64Type: public DataType {
+    class VoidType: public DataType {
     public:
         llvm::Type* get_llvm_type() const override;
         llvm::Value* cast(llvm::Value* value, TypeToken to) const override;

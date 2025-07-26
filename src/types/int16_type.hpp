@@ -4,12 +4,16 @@
 #include <llvm/IR/Value.h>
 #include <string>
 
+#include "data_type.hpp"
 #include "type.hpp"
 
-namespace Kepler::Type::Int16Type {
+namespace Kepler::Type {
 
-    llvm::Type* get_llvm_type();
-    llvm::Value* cast(llvm::Value* value, TypeToken to);
-    std::string get_name();
+    class Int16Type: public DataType {
+    public:
+        llvm::Type* get_llvm_type() const override ;
+        llvm::Value* cast(llvm::Value* value, TypeToken to) const override;
+        std::string get_name() const override;
+    };
 
 }

@@ -1,13 +1,16 @@
 #include <cassert>
-#include <exception>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "bool_type.hpp"
+#include "char_type.hpp"
+#include "data_type.hpp"
 #include "float32_type.hpp"
 #include "float64_type.hpp"
 #include "int16_type.hpp"
@@ -16,11 +19,25 @@
 #include "int8_type.hpp"
 #include "string_type.hpp"
 #include "type.hpp"
-#include "../compiler.hpp"
 #include "../log.hpp"
-#include "../utils.hpp"
+#include "tmap_type.hpp"
+#include "void_type.hpp"
 
 namespace Kepler::Type {
+
+    static std::unordered_map<TypeToken, std::shared_ptr<DataType>> type_map = {
+        { TypeToken::Void, std::make_shared<VoidType>() },
+        { TypeToken::TMap, std::make_shared<TMapType>() },
+        { TypeToken::Bool, std::make_shared<BoolType>() },
+        { TypeToken::Char, std::make_shared<CharType>() },
+        { TypeToken::String, std::make_shared<StringType>() },
+        { TypeToken::Int8, std::make_shared<Int8Type>() },
+        { TypeToken::Int16, std::make_shared<Int16Type>() },
+        { TypeToken::Int32, std::make_shared<Int32Type>() },
+        { TypeToken::Int64, std::make_shared<Int64Type>() },
+        { TypeToken::Float32, std::make_shared<Float32Type>() },
+        { TypeToken::Float64, std::make_shared<Float64Type>() },
+    };
 
     std::ostream& operator<<(std::ostream& os, TypeToken type) {
         os << get_type_name(type);
@@ -28,7 +45,10 @@ namespace Kepler::Type {
     }
 
     llvm::Type* get_by_token(TypeToken type) {
-        switch (type) {
+        assert((type_map.find(type) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
+        return type_map[type]->get_llvm_type();
+
+        /*switch (type) {
             case TypeToken::Void: return llvm::Type::getVoidTy(Compiler::get_context());
             case TypeToken::TMap:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": data type 'var' is not supported yet");
@@ -49,7 +69,7 @@ namespace Kepler::Type {
             default:
                 emergency_exit("type '" + get_type_name(type) + "' does not map to an llvm type");
                 return nullptr; // Needed to avoid compile warnings
-        }
+        }*/
     }
 
     llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to) {
@@ -61,7 +81,15 @@ namespace Kepler::Type {
             return value;
         }
 
-        switch (from) {
+        assert((type_map.find(from) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
+        value = type_map[from]->cast(value, to);
+        if (value == nullptr) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": casting from type '", from, "' to type '", to, "' is not supported");
+            return nullptr;
+        }
+        return value;
+
+        /*switch (from) {
             case TypeToken::Bool:
                 if ((value = BoolType::cast(value, to))) {
                     return value;
@@ -110,11 +138,14 @@ namespace Kepler::Type {
 
         // Don't make this a default because of the nested switch
         log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": casting from type '", from, "' to type '", to, "' is not supported");
-        return nullptr;
+        return nullptr;*/
     }
 
     std::string get_type_name(TypeToken type) {
-        switch (type) {
+        assert((type_map.find(type) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
+        return type_map[type]->get_name();
+
+        /*switch (type) {
             case TypeToken::None: return "none";
             case TypeToken::Void: return "void";
             case TypeToken::TMap: return "tmap";
@@ -128,7 +159,7 @@ namespace Kepler::Type {
             case TypeToken::Float32: return Float32Type::get_name();
             case TypeToken::Float64: return Float64Type::get_name();
             default: return "unknown type";
-        }
+        }*/
     }
 
     bool is_floating_point_type(TypeToken type) {

@@ -7,13 +7,13 @@
 #include "../compiler.hpp"
 #include "../log.hpp"
 
-namespace Kepler::Type::BoolType {
+namespace Kepler::Type {
 
-    llvm::Type* get_llvm_type() {
+    llvm::Type* BoolType::get_llvm_type() const {
         return llvm::Type::getInt1Ty(Compiler::get_context());
     }
 
-    llvm::Value* cast(llvm::Value* value, TypeToken to) {
+    llvm::Value* BoolType::cast(llvm::Value* value, TypeToken to) const {
         switch (to) {
             case TypeToken::String:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'bool' to 'string' is not supported yet");
@@ -22,7 +22,7 @@ namespace Kepler::Type::BoolType {
         }
     }
 
-    std::string get_name() {
+    std::string BoolType::get_name() const {
         return "bool";
     }
 

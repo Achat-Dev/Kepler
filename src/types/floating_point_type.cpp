@@ -3,13 +3,13 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Value.h>
 
-#include "type_helper.hpp"
-#include "type.hpp"
+#include "floating_point_type.hpp"
 #include "../compiler.hpp"
+#include "type.hpp"
 
-namespace Kepler::Type::Helper {
+namespace Kepler::Type {
 
-    llvm::Value* float_to_int_inbounds(llvm::Value* value, TypeToken from, TypeToken to) {
+    llvm::Value* FloatingPointType::float_to_int_inbounds(llvm::Value* value, TypeToken from, TypeToken to) const {
         assert((Type::is_floating_point_type(from) && Type::is_integer_type(to)) && "[ Assertion ]: TypeTokens given to 'float_to_int' are not of types floating point and integer");
 
         llvm::Value* min;

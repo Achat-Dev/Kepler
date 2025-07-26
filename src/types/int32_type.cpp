@@ -8,13 +8,13 @@
 #include "../compiler.hpp"
 #include "../log.hpp"
 
-namespace Kepler::Type::Int32Type {
+namespace Kepler::Type {
 
-    llvm::Type* get_llvm_type() {
+    llvm::Type* Int32Type::get_llvm_type() const {
         return llvm::Type::getInt32Ty(Compiler::get_context());
     }
 
-    llvm::Value* cast(llvm::Value* value, TypeToken to) {
+    llvm::Value* Int32Type::cast(llvm::Value* value, TypeToken to) const {
         switch (to) {
             case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0));
             case TypeToken::Char:
@@ -32,7 +32,7 @@ namespace Kepler::Type::Int32Type {
         }
     }
 
-    std::string get_name() {
+    std::string Int32Type::get_name() const {
         return "i32";
     }
 

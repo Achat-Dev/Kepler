@@ -8,13 +8,13 @@
 #include "../compiler.hpp"
 #include "../log.hpp"
 
-namespace Kepler::Type::Int16Type {
+namespace Kepler::Type {
 
-    llvm::Type* get_llvm_type() {
+    llvm::Type* Int16Type::get_llvm_type() const {
         return llvm::Type::getInt16Ty(Compiler::get_context());
     }
 
-    llvm::Value* cast(llvm::Value* value, TypeToken to) {
+    llvm::Value* Int16Type::cast(llvm::Value* value, TypeToken to) const {
         switch (to) {
             case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int16), 0));
             case TypeToken::Char:
@@ -32,7 +32,7 @@ namespace Kepler::Type::Int16Type {
         }
     }
 
-    std::string get_name() {
+    std::string Int16Type::get_name() const {
         return "i16";
     }
 

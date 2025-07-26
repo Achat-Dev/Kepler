@@ -8,13 +8,13 @@
 #include "../compiler.hpp"
 #include "../log.hpp"
 
-namespace Kepler::Type::Int64Type {
+namespace Kepler::Type {
 
-    llvm::Type* get_llvm_type() {
+    llvm::Type* Int64Type::get_llvm_type() const {
         return llvm::Type::getInt64Ty(Compiler::get_context());
     }
 
-    llvm::Value* cast(llvm::Value* value, TypeToken to) {
+    llvm::Value* Int64Type::cast(llvm::Value* value, TypeToken to) const {
         switch (to) {
             case TypeToken::Bool: return Compiler::get_builder().CreateICmpNE(value, llvm::ConstantInt::get(get_by_token(TypeToken::Int64), 0));
             case TypeToken::Char:
@@ -32,7 +32,7 @@ namespace Kepler::Type::Int64Type {
         }
     }
 
-    std::string get_name() {
+    std::string Int64Type::get_name() const {
         return "i64";
     }
 
