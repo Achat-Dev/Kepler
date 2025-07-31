@@ -20,7 +20,7 @@ namespace Kepler::AST {
     std::unique_ptr<ExpressionResult> CallExpression::codegen() {
         llvm::Function* callee_f = Compiler::get_module().getFunction(callee);
         if (!callee_f) {
-            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown function called");
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown function '", callee, "' called");
             return ExpressionResult::create_invalid();
         }
 

@@ -3,29 +3,32 @@
 ## Installation guide
 
 1. Install [CMake](https://cmake.org/download/) (the minimum required version is 3.8)
-```bash
-sudo apt install cmake
-```
 2. Install a valid [CMake generator](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#id9) (I used [Ninja](https://ninja-build.org/))
-```bash
-sudo apt install ninja-build
-```
-3. Install [LLVM](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
+3. Install [LLVM and Clang](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
 ```bash
 git clone --depth 1 https://github.com/llvm/llvm-project.git
 cd llvm-project
-cmake -S llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake -S llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS="clang" # Only use this last option if you don't already have a working installation of clang
 cd build
 cmake --build . --target install
 ```
-4. Clone this repository
+4. Install [bdwgc](https://github.com/bdwgc/bdwgc?tab=readme-ov-file#building-and-installing) (also known as `libgc`)
+```bash
+git clone https://github.com/bdwgc/bdwgc.git
+cd bdwgc
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cd build
+cmake --build . --target install
+```
+5. Install [xxd](https://github.com/ckormanyos/xxd)
+6. Clone this repository
 ```bash
 git clone https://github.com/Achat-Dev/Kepler.git
 ```
-5. Build the project
+7. Build the project
 ```bash
 cd Kepler
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cd build
 cmake --build .
 ```

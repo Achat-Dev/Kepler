@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <memory>
+#include <string>
 
 namespace Kepler {
 
@@ -18,7 +19,7 @@ namespace Kepler {
         void close();
         int get_current_line_number() const;
 
-        static std::unique_ptr<File> create(const char* filename);
+        static std::unique_ptr<File> create(const std::string& filename);
     };
 
 }

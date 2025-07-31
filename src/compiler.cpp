@@ -1,13 +1,16 @@
 #include <cassert>
-#include <cstdio>
+#include <cstdlib>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Linker/Linker.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
@@ -15,14 +18,19 @@
 #include <llvm/TargetParser/Triple.h>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "compiler.hpp"
+#include "ast/call_expression.hpp"
+#include "ast/expression.hpp"
 #include "file.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "parser.hpp"
 #include "optimiser.hpp"
+#include "runtime/runtime.hpp"
 
 namespace Kepler::Compiler {
 
@@ -34,70 +42,19 @@ namespace Kepler::Compiler {
 
     static std::unique_ptr<File> file;
 
-    static bool write_file(const char* outname);
-    static bool initialise();
-
-    llvm::LLVMContext& get_context() {
-        return *context;
-    }
-
-    llvm::IRBuilder<>& get_builder() {
-        return *builder;
-    }
-
-    llvm::Module& get_module() {
-        return *module;
-    }
-
-    std::unique_ptr<File>& get_file() {
-        return file;
-    }
-
-    bool compile_file(const char* filename, const char* outname) {
-        if(!initialise()) {
-            return false;
-        }
-
-        if (!(file = File::create(filename))) {
-            return false;
-        }
-
-        // Read first token to kick things off
-        Parser::read_next_token();
-
-        while (true) {
-            switch (Parser::get_current_token()) {
-                case Lexer::Token::EndOfFile:
-                    file->close();
-                    return write_file(outname);
-                case Lexer::Token::Extern:
-                    if (!Parser::handle_top_level_extern()) {
-                        return false;
-                    }
-                    break;
-                case Lexer::Token::DataType:
-                    if (!Parser::handle_top_level_data_type()) {
-                        return false;
-                    }
-                    break;
-                default:
-                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", Parser::get_current_token(), "' on top level, expected 'extern' or data type");
-                    return false;
-            }
-        }
-    }
-
     static bool initialise() {
         context = std::make_unique<llvm::LLVMContext>();
         builder = std::make_unique<llvm::IRBuilder<>>(*context);
         module = std::make_unique<llvm::Module>("Kepler", *context);
 
+        // Initialise llvm stuff
         llvm::InitializeAllTargetInfos();
         llvm::InitializeAllTargets();
         llvm::InitializeAllTargetMCs();
         llvm::InitializeAllAsmParsers();
         llvm::InitializeAllAsmPrinters();
 
+        // Create target triple to output object code
         std::string target_triple_string = llvm::sys::getDefaultTargetTriple();
         llvm::Triple target_triple(target_triple_string);
         module->setTargetTriple(target_triple);
@@ -117,12 +74,26 @@ namespace Kepler::Compiler {
 
         module->setDataLayout(target_machine->createDataLayout());
 
+        // Read the runtime bytecode
+        std::unique_ptr<llvm::Module> runtime_module = Runtime::create();
+        if (!runtime_module) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to create the runtime");
+            return false;
+        }
+
+        // Link the runtime
+        llvm::Linker linker(*module);
+        if (linker.linkInModule(std::move(runtime_module))) {
+            log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to link the runtime");
+            return false;
+        }
+
         Optimiser::initialise();
 
         return true;
     }
 
-    static bool write_file(const char* outname) {
+    static bool write_object_file(const std::string& outname) {
         log("Writing file '", outname, '\'');
 
         std::error_code ec;
@@ -134,7 +105,7 @@ namespace Kepler::Compiler {
         }
 
         if (llvm::verifyModule(*module, &llvm::errs())) {
-            log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": compiled code is faulty");
+            log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": compiled object code is faulty");
             return false;
         }
 
@@ -149,5 +120,86 @@ namespace Kepler::Compiler {
         log("Successfully wrote '", outname, '\'');
 
         return true;
+    }
+
+    static bool compile_executable(const std::string& outname) {
+        // Create call to __kepler_runtime_init at the beginning of the main function
+        llvm::Function* main_function = module->getFunction("main");
+        llvm::BasicBlock& main_entry_block = main_function->getEntryBlock();
+        builder->SetInsertPoint(main_entry_block.begin());
+        AST::CallExpression gc_init_call_expression = AST::CallExpression("__kepler_runtime_init", std::vector<std::unique_ptr<AST::Expression>>());
+        gc_init_call_expression.codegen();
+
+        // Compile module to object file
+        std::string object_outname = outname + ".o";
+        if (!write_object_file(object_outname)) {
+            log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": failed to write object file");
+            return false;
+        }
+
+        // Call clang to compile the final executable
+        log("Compiling object file into executable");
+        std::stringstream command;
+        command << "clang " << object_outname << " -lgc -o " << outname;
+        int clang_result = std::system(command.str().c_str());
+
+        if (clang_result == 0) {
+            log("Successfully wrote '", outname, "\'\nHoly shit it actually worked o.o");
+            return true;
+        }
+        else {
+            log(LogStyle::ERROR, "[ Writing Error ]", LogStyle::DEFAULT, ": failed to compile final executable");
+            return false;
+        }
+    }
+
+    llvm::LLVMContext& get_context() {
+        return *context;
+    }
+
+    llvm::IRBuilder<>& get_builder() {
+        return *builder;
+    }
+
+    llvm::Module& get_module() {
+        return *module;
+    }
+
+    std::unique_ptr<File>& get_file() {
+        return file;
+    }
+
+    bool compile_file(const std::string& filename, const std::string& outname) {
+        if(!initialise()) {
+            return false;
+        }
+
+        if (!(file = File::create(filename))) {
+            return false;
+        }
+
+        // Read first token to kick things off
+        Parser::read_next_token();
+
+        while (true) {
+            switch (Parser::get_current_token()) {
+                case Lexer::Token::EndOfFile:
+                    file->close();
+                    return compile_executable(outname);
+                case Lexer::Token::Extern:
+                    if (!Parser::handle_top_level_extern()) {
+                        return false;
+                    }
+                    break;
+                case Lexer::Token::DataType:
+                    if (!Parser::handle_top_level_data_type()) {
+                        return false;
+                    }
+                    break;
+                default:
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", Parser::get_current_token(), "' on top level, expected 'extern' or data type");
+                    return false;
+            }
+        }
     }
 }

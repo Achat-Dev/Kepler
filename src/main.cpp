@@ -1,5 +1,3 @@
-#include <cstdio>
-
 #include "compiler.hpp"
 #include "log.hpp"
 

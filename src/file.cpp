@@ -1,4 +1,5 @@
 #include <memory>
+#include <string>
 
 #include "file.hpp"
 
@@ -25,7 +26,7 @@ namespace Kepler {
         return current_line_number;
     }
 
-    std::unique_ptr<File> File::create(const char *filename) {
+    std::unique_ptr<File> File::create(const std::string& filename) {
         std::unique_ptr<File> file = std::unique_ptr<File>(new File());
         file->stream.open(filename);
         if (file->stream.is_open()) {
