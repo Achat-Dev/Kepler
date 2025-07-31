@@ -25,36 +25,47 @@ extern unsigned int __kepler_runtime_bc_len;
 
 namespace Kepler::Runtime {
 
-    static void register_runtime_functions() {
-        // __kepler_runtime_init
+    static void register_print() {
+        std::vector<AST::ParameterData> print_args = {
+            { Type::TypeToken::String, "message" },
+        };
+        std::shared_ptr<AST::Prototype> print_prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "print", std::move(print_args));
+        FunctionRegistry::register_prototype(print_prototype);
+    }
+
+    static void register_pause() {
+        std::shared_ptr<AST::Prototype> pause_prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "pause", std::vector<AST::ParameterData>());
+        FunctionRegistry::register_prototype(pause_prototype);
+    }
+
+    static void register_kepler_runtime_init() {
         std::shared_ptr<AST::Prototype> runtime_init_prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "__kepler_runtime_init", std::vector<AST::ParameterData>());
         FunctionRegistry::register_prototype(runtime_init_prototype);
+    }
 
-        // __kepler_string_length
+    static void register_kepler_string_length() {
         std::vector<AST::ParameterData> string_length_args = {
             { Type::TypeToken::String, "a" },
         };
         std::shared_ptr<AST::Prototype> string_length_prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Int64, "__kepler_string_length", std::move(string_length_args));
         FunctionRegistry::register_prototype(string_length_prototype);
+    }
 
-        // __kepler_string_concat
+    static void register_kepler_string_concat() {
         std::vector<AST::ParameterData> string_concat_args = {
             { Type::TypeToken::String, "a" },
             { Type::TypeToken::String, "b" }
         };
         std::shared_ptr<AST::Prototype> string_concat_prototype = std::make_shared<AST::Prototype>(Type::TypeToken::String, "__kepler_string_concat", std::move(string_concat_args));
         FunctionRegistry::register_prototype(string_concat_prototype);
+    }
 
-        // print
-        std::vector<AST::ParameterData> print_args = {
-            { Type::TypeToken::String, "message" },
-        };
-        std::shared_ptr<AST::Prototype> print_prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "print", std::move(print_args));
-        FunctionRegistry::register_prototype(print_prototype);
-
-        // pause
-        std::shared_ptr<AST::Prototype> pause_prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "pause", std::vector<AST::ParameterData>());
-        FunctionRegistry::register_prototype(pause_prototype);
+    static void register_runtime_functions() {
+        register_print();
+        register_pause();
+        register_kepler_runtime_init();
+        register_kepler_string_length();
+        register_kepler_string_concat();
     }
 
     std::unique_ptr<llvm::Module> create() {

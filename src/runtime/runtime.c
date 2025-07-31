@@ -5,7 +5,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Internal functions, only callable from the compiler
+// ----------------------------------------
+// Library functions
+// ----------------------------------------
+
+void print(const char* message) {
+    printf("%s\n", message);
+}
+
+void pause() {
+    printf("\nPress enter to continue...\n");
+    getchar();
+}
+
+// ----------------------------------------
+// Internal functions
+// ----------------------------------------
+
 void __kepler_runtime_init() {
     GC_INIT();
 }
@@ -26,14 +42,4 @@ char* __kepler_string_concat(const char* a, const char* b) {
     memcpy(result + length_a, b, length_b);
     result[length_a + length_b] = '\0';
     return result;
-}
-
-// Library functions for the user
-void print(const char* message) {
-    printf("%s\n", message);
-}
-
-void pause() {
-    printf("\nPress enter to continue...\n");
-    getchar();
 }
