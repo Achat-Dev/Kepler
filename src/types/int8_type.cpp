@@ -24,9 +24,7 @@ namespace Kepler::Type {
             case TypeToken::Char:
                 log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'char' is not supported yet");
                 return nullptr;
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'i8' to 'string' is not supported yet");
-                return nullptr;
+            case TypeToken::String: return cast_to_string(value, TypeToken::Int8);
             case TypeToken::Int16: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
             case TypeToken::Int32: return Compiler::get_builder().CreateSExt(value, get_by_token(to));
             case TypeToken::Int64: return Compiler::get_builder().CreateSExt(value, get_by_token(to));

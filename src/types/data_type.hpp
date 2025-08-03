@@ -1,9 +1,11 @@
 #pragma once
 
-#include "type.hpp"
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
+
+#include "type.hpp"
+
 namespace Kepler::Type {
 
     class DataType {
@@ -23,6 +25,9 @@ namespace Kepler::Type {
         virtual llvm::Value* create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const = 0;
         virtual llvm::Value* create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const = 0;
         virtual llvm::Value* create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const = 0;
+
+    protected:
+        llvm::Value* cast_to_string(llvm::Value* value, TypeToken from) const;
     };
 
 }

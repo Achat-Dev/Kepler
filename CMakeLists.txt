@@ -62,6 +62,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/runtime/runtime.cpp
     src/types/bool_type.cpp
     src/types/char_type.cpp
+    src/types/data_type.cpp
     src/types/float32_type.cpp
     src/types/float64_type.cpp
     src/types/floating_point_type.cpp

@@ -5,7 +5,6 @@
 #include "bool_type.hpp"
 #include "type.hpp"
 #include "../compiler.hpp"
-#include "../log.hpp"
 
 namespace Kepler::Type {
 
@@ -18,12 +17,10 @@ namespace Kepler::Type {
     }
 
     llvm::Value* BoolType::cast(llvm::Value* value, TypeToken to) const {
-        switch (to) {
-            case TypeToken::String:
-                log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": casting from 'bool' to 'string' is not supported yet");
-                return nullptr;
-            default: return nullptr;
+        if (to == TypeToken::String) {
+            return cast_to_string(value, TypeToken::Bool);
         }
+        return nullptr;
     }
 
     llvm::Value* BoolType::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
