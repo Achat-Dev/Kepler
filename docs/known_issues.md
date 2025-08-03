@@ -49,3 +49,8 @@ bool z = 0 < b    # compile error, 0 evaluates to its default type (i32), which 
 At the beginning of `Kepler::AST::Function::codegen()`, the function checks whether a function with the same name already exists in LLVM's IR.
 However, the function only checks for an existing LLVM IR and does not validate the actual signature of the AST node against the signature of the existing LLVM IR.
 This means that a previous ‘extern’ declaration takes precedence over signature of the current function, which can cause `codegen` to fail (e.g. if the function arguments are named differently).
+
+## 3. Possible calls to "unsupported" C functions
+
+Since the compiled executable is linked against `libgc`, the user can theoretically use all functions defined in `libgc` by defining them as `extern` in the `.kpl` file (e.g. `extern void GC_malloc(i64 size)`).
+Most of these functions will execute without issues, but they are not officially supported and may result in undefined behaviour (by "not supported," I mean that many return values of these functions cannot be used because the language doesn’t provide pointer types. So if you try to store them in any of the data types provided by Kepler, the program will most likely not compile, and if by some miracle it does compile, it will either crash during the assignment or lead to undefined behaviour).

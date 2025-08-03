@@ -19,12 +19,17 @@ src
 │  └─ ... all of the expressions        # Rest of the ast nodes, all inheriting from "expression.hpp"
 ├─ function_registry
 │  └─ function_registry.cpp             # Contains a map of all registered prototypes
+├─ runtime
+│  ├─ runtime.cpp                       # Reads the embedded runtime back into an "llvm::Module" and registers the runtime functions in the function registry
+│  └─ runtime.c                         # Contains the runtime functions, which are embedded into the compiler
 ├─ types
 │  ├─ target_type_stack.cpp             # Contains the type a current expression should generate
-│  └─ type.cpp                          # Contains a mapping of internal types to llvm::Type* and the casting system
+│  ├─ type.cpp                          # Contains a mapping of internal types to llvm::Type* and the casting system
+│  ├─ data_type.hpp                     # Base class of every data type (has virtual functions for creating all of the supported operations to override)
+│  └─ ... all if the types              # Rest of the data types, all inheriting from "data_type.hpp"
 ├─ variables
 │  └─ local_variables.cpp               # Contains a map of all local variables inside the current function
-├─ compiler.cpp                         # Initialises llvm, reads the input file and handles the compilation process
+├─ compiler.cpp                         # Initialises llvm, links the runtime, reads the input file and handles the compilation process
 ├─ lexer.cpp                            # Maps text to internal tokens
 ├─ main.cpp                             # Entry point of the application
 ├─ parser.cpp                           # Creates the AST nodes based on the lexer's tokens
@@ -47,12 +52,13 @@ flowchart TD
     M -- Failure --> D
     N -- Failure --> D
     subgraph compiler.cpp
-      C{Initialise llvm}
+      C{Initialise llvm and link runtime}
       C -- Success --> E{Read file}
-      E-- Success --> F[Lex next token]
+      E -- Success --> F[Lex next token]
       F --> G{Is token 'Kepler::Lexer::Token::EndOfFile'?}
-      G -- Yes --> H[Close file and write output]
+      G -- Yes --> H[Close file and write output as object code]
       G -- No --> I{Is function or extern?}
+      H --> P[Call clang to compile the object code into an executable and link it with libgc]
       I -- Yes --> J
       N -- Success --> F
       subgraph parser.cpp
@@ -75,7 +81,8 @@ flowchart TD
 ## 3. Core architecture
 
 The core architecture revolves around streaming an input file character by character while lexing, parsing and generating LLVM IR as the file is streamed.
-Once this process is complete, the resulting LLVM IR is compiled into native machine code and written to the specified output file.
+Once this process is complete, the resulting LLVM IR is compiled into native machine code and written to the specified output file, ending it with the `.o` file extension.
+After that, the compiler calls `clang` to compile the object file into an executable and to link it with `libgc`.
 
 The four components that enable this behaviour are described in the following sections.
 
@@ -174,7 +181,7 @@ All three of these node types have a method called `codegen`, which generates th
 ### 3.4 Compiler (`src/compiler`)
 
 The compiler is the main interface of the application that handles the entire compilation process.
-After the application arguments (the input file name and the output file name) have been verified, the compiler initialises LLVM and opens the input file.
+After the application arguments (the input file name and the output file name) have been verified, the compiler initialises LLVM, links the runtime and opens the input file.
 It then reads the first token from the lexer and decides which top-level handling method from the parser should be called.
 
 This process is repeated until the next token is `Token::EndOfFile`.
@@ -376,7 +383,37 @@ switch(from) {
 
 If the check fails, the cast is aborted, which will result in the safe termination of the program.
 
-## 5. Local (stack allocated) variables (`src/variables/local_variables.cpp`)
+## 5. The runtime (`src/runtime/runtime.c`)
+
+The language has a small runtime library that is written in C and provides both internal functions and functions that are available to the user.
+
+The way the runtime library works is as follows:\
+During compilation of the compiler, the runtime library is compiled with `clang` into LLVM bytecode.
+This bytecode is then converted back into a `.c` file using `xxd`, which converts the LLVM bytecode into a global `unsigned char[]`.
+The resulting `.c` file is then compiled into a static library and linked with the compiler.
+Finally, when the compiler is used to compile a `.kpl` file, it accesses the `unsigned char[]` by declaring an `extern` variable, converts it into an `llvm::Module` and links the resulting module with the main module.
+
+### 5.1 Why is the runtime library written in C?
+
+Manually emitting all of the LLVM instructions for the runtime library sounded like a hassle and not really scalable.
+Since this is a university project, I wanted to be able to quickly modify the runtime library.
+
+### 5.2 Why is the compilation process of the runtime library so complicated?
+
+This is the result of a combination of technical limitations and design choices.
+As far as technical limitations are concerned, every function you call in Kepler has to be defined before it can be used.
+Since there are no forward declarations and I didn't want the user to have to define the runtime functions as `extern` before using them, the LLVM IR has to be inserted somehow before lexing the target `.kpl` file can begin.
+So I developed the process described above, in which the bytecode is embedded in the compiler and converted into a `llvm:Module`.
+
+> ![note]
+> Yes, I could have simply inserted the `externs` at the beginning of the main module myself before lexing the target `.kpl` file and then link the result with an object file of the runtime library, but I only came up with that idea after the entire process had already been implemented.
+
+### 5.3 How do internal functions work?
+
+Internal functions begin with the prefix `__kepler`.
+Since the language doesn't allow identifiers to start with an underscore, the user cannot call these function - only the compiler can emit call instructions to them.
+
+## 6. Local (stack allocated) variables (`src/variables/local_variables.cpp`)
 
 All local variables are allocated on the stack and stored in a map in `src/variables/local_variables.cpp`, which maps the name of a variable to its type and `llvm::AllocaInst*`.
 Local variables are only visible within the function in which they are defined in, which is why the map is always cleared when starting the code generation of a function.
@@ -387,7 +424,7 @@ I don't know the exact reason why this is the case, as the tutorial doesn't go i
 > [!note]
 > Function arguments are also treated as local variables
 
-## 6. Function registry (`src/function_registry/function_registry.cpp`)
+## 7. Function registry (`src/function_registry/function_registry.cpp`)
 
 Similar to local variables, all parsed prototypes are stored in a map in `src/function_registry/function_registry.cpp`, which maps the names of the prototypes to the prototypes themselves.
 The `FunctionRegistry` is needed because `CallExpressions` have to know which types their parameters should generate.
@@ -398,9 +435,9 @@ This is needed for two reasons:
 1. When parsing the `return` keyword, the parser needs to know if the return type of the currently parsed function is `void`, because in that case no expression is allowed after `return`
 2. When codegening a `ReturnExpression`, the expression needs to know the return type that it should try to create
 
-## 7. Program termination
+## 8. Program termination
 
-### 7.1 Error termintaion
+### 8.1 Error termintaion
 
 In most cases, the program doesn't terminate immediately if an error is encountered.
 Instead, the error is bubbled up to `compiler.cpp`, which then safely stops the compilation process and returns `false` to the main process, which then terminates the program with an exit code of `1`.
@@ -440,12 +477,12 @@ sequenceDiagram
   end
 ```
 
-### 7.2 Unreachable code termination
+### 8.2 Unreachable code termination
 
 There are some instances where code is logically unreachable but technically reachable (e.g. a `switch`-statement that covers all cases still needs a `default`-case with a `return`-statement, because the C++ compiler wants it).
 Since the behaviour of the program is undefined if these pieces of code (e.g. the `default` case) were ever reached, a method called `emergency_exit` is called in these cases, which safely terminates the program (with a corresponding error message) by calling `std::terminate`.
 
-## 8. Unique pointers
+## 9. Unique pointers
 
 The project makes extensie use of `std::unique_ptr` and `std::shared_ptr`.
 

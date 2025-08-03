@@ -2,38 +2,47 @@
 
 ## 1. Installation
 
-The compiler for Kepler has to be installed from source.
+The compiler has to be installed from source.
 
 1. Install [CMake](https://cmake.org/download/) (the minimum required version is 3.8)
-2. Install a valid [CMake generator](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#id9) (e. g. [Ninja](https://ninja-build.org/))
-3. Install [LLVM](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
+2. Install a valid [CMake generator](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#id9) (I used [Ninja](https://ninja-build.org/))
+3. Install [LLVM and Clang](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
 ```bash
 git clone --depth 1 https://github.com/llvm/llvm-project.git
 cd llvm-project
-cmake -S llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake -S llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS="clang" # Only use this last option if you don't already have a working installation of clang
 cd build
 cmake --build . --target install
 ```
-4. Clone this repository
+4. Install [bdwgc](https://github.com/bdwgc/bdwgc?tab=readme-ov-file#building-and-installing) (also known as `libgc`)
+```bash
+git clone https://github.com/bdwgc/bdwgc.git
+cd bdwgc
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cd build
+cmake --build . --target install
+```
+5. Install [xxd](https://github.com/ckormanyos/xxd)
+6. Clone this repository
 ```bash
 git clone https://github.com/Achat-Dev/Kepler.git
 ```
-5. Build the project
+7. Build the project
 ```bash
 cd Kepler
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cd build
-cmake --build . --target install
+cmake --build .
 ```
 
-The result of this is an executable called `kepler`, which is the compiler for the language.
+The result of this is the `kepler` executable.
 
 ## 2. Usage
 
 > [!important]
 > This section will change heavily as the development of the project progresses
 
-As of now, Kepler only supports the compilation of a single file to object code.
+As of now, Kepler only supports the compilation of a single file to an executable.
 
 ```bash
 kepler <input> <output>
@@ -49,7 +58,7 @@ The following table displays the currently supported types.
 | :- | :- | :- |
 | `void` |  | Can only be used as the return type of a function |
 | `bool` | A 1-bit unsigned integer that represents either `true` or `false` | Only the internal value used for operations is a 1-bit unsigned integer. An 8-bit unsigned integer is used in memory. |
-| `string` | A pointer to a constant array of 8-bit signed integers | Strings are null terminated. They also currently don't support any operations. |
+| `string` | A pointer to a constant array of 8-bit signed integers | Strings are null terminated |
 | `i8` | An 8-bit signed integer | |
 | `i16` | A 16-bit signed integer | |
 | `i32` | A 32-bit signed integer | |
@@ -77,17 +86,17 @@ foo = i32(bar())    # casting the return value of a function
 
 The following matrix displays what types can be casted to what types (rows are the type of the value to cast, columns are the target type of the cast):
 
-| | `void` | `bool` | `i8` | `i16` | `i32` | `i64` | `f32` | `f64` |
-| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
-| `void` | | | | | | | | |
-| `bool` | | | | | | | | |
-| `string` | | | | | | | | |
-| `i8` | | x | | x | x | x | x | x |
-| `i16` | | x | x | | x | x | x | x |
-| `i32` | | x | x | x | | x | x | x |
-| `i64` | | x | x | x | x | | x | x |
-| `f32` | | x | x | x | x | x | | x |
-| `f64` | | x | x | x | x | x | x | |
+| | `void` | `bool` | `string` | `i8` | `i16` | `i32` | `i64` | `f32` | `f64` |
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| `void` | | | | | | | | | |
+| `bool` | | | x | | | | | | |
+| `string` | | | | | | | | | |
+| `i8` | | x | x | | x | x | x | x | x |
+| `i16` | | x | x | x | | x | x | x | x |
+| `i32` | | x | x | x | x | | x | x | x |
+| `i64` | | x | x | x | x | x | | x | x |
+| `f32` | | x | x | x | x | x | x | | x |
+| `f64` | | x | x | x | x | x | x | x | |
 
 > [!note]
 > Trying to cast to the same type (e. g.: casting from an i32 to an i32) will result in a compile warning and the cast will be discarded
@@ -249,9 +258,18 @@ extern <return_type> <name>(<arguments>)
 #### 3.4.4 Return types and values
 
 In general, a value of the specified return type has to be returned via the `return` keyword.
-If a literal is returned, it tries to convert to the return type of the function
+If a literal is returned, it tries to convert to the return type of the function.
 
-### 3.5 Operators
+### 3.5 Available runtime functions
+
+The runtime provides the following functions.
+
+| Function signature | Description |
+| :- | :- |
+| `print(string message)` | Prints `message` to the standard output with a newline character inserted after it |
+| `pause()` | Pauses the application until an input is read |
+
+### 3.6 Operators
 
 <table>
   <tr>
