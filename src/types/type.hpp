@@ -15,7 +15,8 @@ namespace Kepler::Type {
     llvm::Type* get_by_token(TypeToken type);
 
     llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to);
-    void create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data);
+    bool create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data);
+    bool create_assign(llvm::Value* value, TypeToken value_type, const LocalVariables::VariableData& variable_data);
     llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, TypeToken type);
     llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs, TypeToken type);
     llvm::Value* create_mul(llvm::Value* lhs, llvm::Value* rhs, TypeToken type);

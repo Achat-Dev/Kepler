@@ -19,8 +19,13 @@ namespace Kepler::Type {
         return nullptr;
     }
 
-    void DataType::create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) const {
+    bool DataType::create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) const {
         Compiler::get_builder().CreateStore(value, variable_data.variable);
+        return true;
+    }
+
+    bool DataType::create_assign(llvm::Value* value, TypeToken value_type, const LocalVariables::VariableData& variable_data) const {
+        return false;
     }
 
     llvm::Value* DataType::create_add(llvm::Value* lhs, llvm::Value* rhs) const {

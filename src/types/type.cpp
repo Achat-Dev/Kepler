@@ -82,10 +82,16 @@ namespace Kepler::Type {
         return value;
     }
 
-    void create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) {
-        ASSERT_NONE(variable_data.type, "create a '+' operation with");
+    bool create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) {
+        ASSERT_NONE(variable_data.type, "create a '=' operation with");
         ASSERT_TYPE(variable_data.type);
+        return type_map[variable_data.type]->create_assign(value, variable_data);
+    }
 
+    bool create_assign(llvm::Value* value, TypeToken value_type, const LocalVariables::VariableData& variable_data) {
+        ASSERT_NONE(variable_data.type, "create a '=' operation with");
+        ASSERT_TYPE(variable_data.type);
+        return type_map[variable_data.type]->create_assign(value, value_type, variable_data);
     }
 
     llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {

@@ -4,6 +4,7 @@
 #include "log.hpp"
 #include "types/target_type_stack.hpp"
 #include "types/type.hpp"
+#include "types/type_token.hpp"
 
 #include <limits>
 #include <llvm/IR/Constants.h>
@@ -18,7 +19,7 @@ namespace Kepler::AST {
         if (Type::is_floating_point_type(type)) {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
-        if (type == Type::TypeToken::None) {
+        if (type == Type::TypeToken::None || type == Type::TypeToken::TMap) {
             if (value > std::numeric_limits<float>::max()) {
                 return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(Type::TypeToken::Float64), value), Type::TypeToken::Float64, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
             }

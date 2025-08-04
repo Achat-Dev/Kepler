@@ -16,7 +16,8 @@ namespace Kepler::Type {
         virtual llvm::Type* get_llvm_type() const = 0;
 
         virtual llvm::Value* cast(llvm::Value* value, TypeToken to) const;
-        virtual void create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) const;
+        virtual bool create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) const;
+        virtual bool create_assign(llvm::Value* value, TypeToken value_type, const LocalVariables::VariableData& variable_data) const;
         virtual llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs) const;
         virtual llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs) const;
         virtual llvm::Value* create_mul(llvm::Value* lhs, llvm::Value* rhs) const;

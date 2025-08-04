@@ -19,7 +19,7 @@ namespace Kepler::AST {
     std::unique_ptr<ExpressionResult> StringLiteralExpression::codegen() {
         Type::TypeToken type = Type::TargetTypeStack::top();
 
-        if (type != Type::TypeToken::String && type != Type::TypeToken::None) {
+        if (type != Type::TypeToken::String && type != Type::TypeToken::None && type != Type::TypeToken::TMap) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: can't create a value of type '", type, "' from a string literal");
             return ExpressionResult::create_invalid();
         }

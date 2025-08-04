@@ -21,7 +21,7 @@ namespace Kepler::AST {
         if (Type::is_floating_point_type(type)) {
             return ExpressionResult::create(llvm::ConstantFP::get(Type::get_by_token(type), value), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
-        if (type == Type::TypeToken::None) {
+        if (type == Type::TypeToken::None || type == Type::TypeToken::TMap) {
             if (value > std::numeric_limits<int32_t>::max()) {
                 return ExpressionResult::create(llvm::ConstantInt::getSigned(Type::get_by_token(Type::TypeToken::Int64), value), Type::TypeToken::Int64, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
             }

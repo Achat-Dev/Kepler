@@ -23,7 +23,7 @@ namespace Kepler::AST {
         }
 
         Type::TypeToken target_type = Type::TargetTypeStack::top();
-        if (target_type != Type::TypeToken::None && target_type != variable_data->type) {
+        if (target_type != Type::TypeToken::None && target_type != Type::TypeToken::TMap && target_type != variable_data->type) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: accessed variable is of type '", variable_data->type, "', but expected type is '", target_type, '\'');
             return ExpressionResult::create_invalid();
         }

@@ -33,6 +33,11 @@ void __kepler_runtime_init() {
     GC_INIT();
 }
 
+void __kepler_runtime_error(const char* message) {
+    printf("%s\n", message);
+    exit(1);
+}
+
 int64_t __kepler_strlen(const char* a) {
     int64_t result = 0;
     while (a[result] != '\0') {

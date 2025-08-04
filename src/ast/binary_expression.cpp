@@ -1,7 +1,6 @@
 #include "ast/binary_expression.hpp"
 
 #include "ast/expression_result.hpp"
-#include "compiler.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
 #include "types/target_type_stack.hpp"
@@ -48,14 +47,26 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
 
-            if (rhs_er->get_type() != variable_data->type) {
+            if (rhs_er->get_type() != variable_data->type && variable_data->type != Type::TypeToken::TMap) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: trying to assign a value of type '", rhs_er->get_type(), "' to a variable of type '", variable_data->type, '\'');
                 return ExpressionResult::create_invalid();
             }
 
             Type::TargetTypeStack::pop();
 
-            Compiler::get_builder().CreateStore(rhs_er->get_value(), variable_data->variable);
+            bool was_assignment_successful;
+            if (variable_data->type == Type::TypeToken::TMap) {
+                was_assignment_successful = Type::create_assign(rhs_er->get_value(), rhs_er->get_type(), variable_data.value());
+            }
+            else {
+                was_assignment_successful = Type::create_assign(rhs_er->get_value(), variable_data.value());
+            }
+
+            if (!was_assignment_successful) {
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to create assignment to variable of type '", variable_data->type, '\'');
+                return nullptr;
+            }
+
             return std::move(rhs_er);
         }
 

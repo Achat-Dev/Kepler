@@ -44,6 +44,14 @@ namespace Kepler::Runtime {
         FunctionRegistry::register_prototype(prototype);
     }
 
+    static void register_kepler_runtime_error() {
+        std::vector<AST::ParameterData> args = {
+            { Type::TypeToken::String, "message" },
+        };
+        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "__kepler_runtime_error", std::move(args));
+        FunctionRegistry::register_prototype(prototype);
+    }
+
     static void register_kepler_bool_to_string() {
         std::vector<AST::ParameterData> args = {
             { Type::TypeToken::Bool, "value" },
@@ -121,6 +129,7 @@ namespace Kepler::Runtime {
         register_print();
         register_pause();
         register_kepler_runtime_init();
+        register_kepler_runtime_error();
         register_kepler_bool_to_string();
         register_kepler_i8_to_string();
         register_kepler_i16_to_string();

@@ -47,9 +47,9 @@ namespace Kepler::AST {
         // record function arguments
         LocalVariables::clear();
         for (llvm::Argument& arg : f->args()) {
-            llvm::AllocaInst* alloca = create_entry_block_alloca(f, arg.getType(), arg.getName());
-            Compiler::get_builder().CreateStore(&arg, alloca);
             const ParameterData& parameter_data = prototype->get_parameter(arg.getName().str());
+            llvm::AllocaInst* alloca = create_entry_block_alloca(f, parameter_data.type, arg.getName());
+            Compiler::get_builder().CreateStore(&arg, alloca);
             LocalVariables::set(std::string(arg.getName()), { parameter_data.type, alloca });
         }
 
