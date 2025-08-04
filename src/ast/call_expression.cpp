@@ -1,18 +1,20 @@
+#include "ast/call_expression.hpp"
+
+#include "ast/expression_result.hpp"
+#include "ast/parameter_data.hpp"
+#include "ast/prototype.hpp"
+#include "compiler.hpp"
+#include "function_registry/function_registry.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+#include "types/type_token.hpp"
+
 #include <cassert>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <vector>
-
-#include "call_expression.hpp"
-#include "expression_result.hpp"
-#include "parameter_data.hpp"
-#include "prototype.hpp"
-#include "../compiler.hpp"
-#include "../function_registry/function_registry.hpp"
-#include "../log.hpp"
-#include "../types/target_type_stack.hpp"
 
 namespace Kepler::AST {
 

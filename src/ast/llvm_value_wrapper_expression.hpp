@@ -1,11 +1,11 @@
 #pragma once
 
+#include "ast/expression.hpp"
+#include "ast/expression_result.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Value.h>
 #include <memory>
-
-#include "expression.hpp"
-#include "expression_result.hpp"
-#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

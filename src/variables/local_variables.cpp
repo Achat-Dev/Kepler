@@ -1,10 +1,11 @@
+#include "variables/local_variables.hpp"
+
+#include "log.hpp"
+#include "variables/variable_data.hpp"
+
 #include <llvm/IR/Instructions.h>
 #include <map>
 #include <optional>
-
-#include "local_variables.hpp"
-#include "variable_data.hpp"
-#include "../log.hpp"
 
 namespace Kepler::LocalVariables {
 

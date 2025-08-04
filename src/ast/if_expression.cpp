@@ -1,3 +1,12 @@
+#include "ast/if_expression.hpp"
+
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
@@ -5,13 +14,6 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <memory>
-
-#include "expression_result.hpp"
-#include "if_expression.hpp"
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../types/target_type_stack.hpp"
-#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

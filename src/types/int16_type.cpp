@@ -1,12 +1,14 @@
+#include "types/int16_type.hpp"
+
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
-
-#include "int16_type.hpp"
-#include "type.hpp"
-#include "../compiler.hpp"
-#include "../log.hpp"
 
 namespace Kepler::Type {
 

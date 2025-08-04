@@ -1,9 +1,9 @@
 #pragma once
 
+#include "variables/variable_data.hpp"
+
 #include <optional>
 #include <string>
-
-#include "variable_data.hpp"
 
 namespace Kepler::LocalVariables {
 

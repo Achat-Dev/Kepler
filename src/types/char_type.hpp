@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data_type.hpp"
+#include "types/data_type.hpp"
 
 namespace Kepler::Type {
 

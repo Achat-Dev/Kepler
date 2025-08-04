@@ -1,10 +1,10 @@
 #pragma once
 
-#include <memory>
-
 #include "expression.hpp"
 #include "expression_result.hpp"
-#include "../lexer.hpp"
+#include "lexer.hpp"
+
+#include <memory>
 
 namespace Kepler::AST {
 

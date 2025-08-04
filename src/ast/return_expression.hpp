@@ -1,9 +1,9 @@
 #pragma once
 
+#include "ast/expression.hpp"
+
 #include <memory>
 #include <utility>
-
-#include "expression.hpp"
 
 namespace Kepler::AST {
 

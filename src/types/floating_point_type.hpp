@@ -1,9 +1,9 @@
 #pragma once
 
-#include <llvm/IR/Value.h>
+#include "types/data_type.hpp"
+#include "types/type_token.hpp"
 
-#include "data_type.hpp"
-#include "type.hpp"
+#include <llvm/IR/Value.h>
 
 namespace Kepler::Type {
 

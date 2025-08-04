@@ -1,16 +1,18 @@
+#include "ast/literal_expressions/string_literal_expression.hpp"
+
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
-
-#include "string_literal_expression.hpp"
-#include "../expression_result.hpp"
-#include "../../compiler.hpp"
-#include "../../log.hpp"
-#include "../../types/target_type_stack.hpp"
-#include "../../types/type.hpp"
 
 namespace Kepler::AST {
 

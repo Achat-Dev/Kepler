@@ -1,17 +1,18 @@
+#include "ast/variable_definition_expression.hpp"
+
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/type.hpp"
+#include "utils.hpp"
+#include "variables/local_variables.hpp"
+
 #include <cassert>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <memory>
 #include <string>
-
-#include "expression_result.hpp"
-#include "variable_definition_expression.hpp"
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../types/type.hpp"
-#include "../utils.hpp"
-#include "../variables/local_variables.hpp"
 
 namespace Kepler::AST {
 

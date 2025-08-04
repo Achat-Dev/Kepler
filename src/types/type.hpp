@@ -1,27 +1,13 @@
 #pragma once
 
+#include "types/type_token.hpp"
+#include "variables/variable_data.hpp"
+
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
 
 namespace Kepler::Type {
-
-    enum class TypeToken {
-        None,
-        Void,
-        TMap,
-        Bool,
-        Char,
-        String,
-        Int8,
-        Int16,
-        Int32,
-        Int64,
-        Float32,
-        Float64
-    };
-
-    std::ostream& operator<<(std::ostream& os, TypeToken type);
 
     bool is_floating_point_type(TypeToken type);
     bool is_integer_type(TypeToken type);
@@ -29,7 +15,7 @@ namespace Kepler::Type {
     llvm::Type* get_by_token(TypeToken type);
 
     llvm::Value* cast(llvm::Value* value, TypeToken from, TypeToken to);
-
+    void create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data);
     llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, TypeToken type);
     llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs, TypeToken type);
     llvm::Value* create_mul(llvm::Value* lhs, llvm::Value* rhs, TypeToken type);

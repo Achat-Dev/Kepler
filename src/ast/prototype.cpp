@@ -1,3 +1,11 @@
+#include "ast/prototype.hpp"
+
+#include "ast/parameter_data.hpp"
+#include "compiler.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+#include "utils.hpp"
+
 #include <cassert>
 #include <llvm/IR/Argument.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -5,12 +13,6 @@
 #include <llvm/IR/Type.h>
 #include <string>
 #include <vector>
-
-#include "parameter_data.hpp"
-#include "prototype.hpp"
-#include "../compiler.hpp"
-#include "../types/type.hpp"
-#include "../utils.hpp"
 
 namespace Kepler::AST {
 
@@ -22,9 +24,9 @@ namespace Kepler::AST {
         llvm::FunctionType* ft = llvm::FunctionType::get(Type::get_by_token(type), types, false);
         llvm::Function* f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, name, Compiler::get_module());
 
-        unsigned idx = 0;
+        unsigned int index = 0;
         for (llvm::Argument& arg : f->args()) {
-            arg.setName(parameters[idx++].name);
+            arg.setName(parameters[index++].name);
         }
 
         return f;

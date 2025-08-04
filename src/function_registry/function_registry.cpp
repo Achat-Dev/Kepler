@@ -1,13 +1,14 @@
+#include "function_registry/function_registry.hpp"
+
+#include "ast/prototype.hpp"
+#include "log.hpp"
+
 #include <cassert>
 #include <map>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
-
-#include "function_registry.hpp"
-#include "../ast/prototype.hpp"
-#include "../log.hpp"
 
 namespace Kepler::FunctionRegistry {
 

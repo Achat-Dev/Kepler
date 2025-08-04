@@ -1,8 +1,8 @@
 #pragma once
 
-#include <llvm/IR/Instructions.h>
+#include "types/type_token.hpp"
 
-#include "../types/type.hpp"
+#include <llvm/IR/Instructions.h>
 
 namespace Kepler::LocalVariables {
 

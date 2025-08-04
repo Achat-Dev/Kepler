@@ -74,6 +74,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/types/target_type_stack.cpp
     src/types/tmap_type.cpp
     src/types/type.cpp
+    src/types/type_token.cpp
     src/types/void_type.cpp
     src/variables/local_variables.cpp
     src/compiler.cpp
@@ -87,6 +88,7 @@ add_executable(${CMAKE_PROJECT_NAME}
 add_dependencies(${CMAKE_PROJECT_NAME} kepler-runtime)
 
 llvm_map_components_to_libnames(llvm_libs ${LLVM_TARGETS_TO_BUILD})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE kepler-runtime ${llvm_libs})
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)

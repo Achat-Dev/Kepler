@@ -1,9 +1,9 @@
 #pragma once
 
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Value.h>
 #include <memory>
-
-#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

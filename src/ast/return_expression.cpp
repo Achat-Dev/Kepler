@@ -1,12 +1,14 @@
+#include "ast/return_expression.hpp"
+
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "function_registry/function_registry.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Value.h>
 #include <memory>
-
-#include "expression_result.hpp"
-#include "return_expression.hpp"
-#include "../compiler.hpp"
-#include "../function_registry/function_registry.hpp"
-#include "../log.hpp"
-#include "../types/target_type_stack.hpp"
 
 namespace Kepler::AST {
 

@@ -1,3 +1,15 @@
+#include "ast/for_expression.hpp"
+
+#include "ast/expression.hpp"
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+#include "variables/local_variables.hpp"
+#include "variables/variable_data.hpp"
+
 #include <llvm/ADT/APFloat.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
@@ -9,15 +21,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-
-#include "expression.hpp"
-#include "expression_result.hpp"
-#include "for_expression.hpp"
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../types/target_type_stack.hpp"
-#include "../variables/local_variables.hpp"
-#include "../variables/variable_data.hpp"
 
 namespace Kepler::AST {
 

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "types/type_token.hpp"
+
 #include <cstdint>
 #include <ostream>
 #include <string>
-
-#include "types/type.hpp"
 
 namespace Kepler::Lexer {
 

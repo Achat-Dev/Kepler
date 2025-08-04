@@ -1,8 +1,8 @@
 #pragma once
 
-#include <string>
+#include "types/type_token.hpp"
 
-#include "../types/type.hpp"
+#include <string>
 
 namespace Kepler::AST {
 

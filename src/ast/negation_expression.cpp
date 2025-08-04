@@ -1,13 +1,14 @@
-#include <cmath>
-#include <memory>
+#include "ast/negation_expression.hpp"
 
-#include "expression.hpp"
-#include "expression_result.hpp"
-#include "negation_expression.hpp"
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../types/target_type_stack.hpp"
-#include "../types/type.hpp"
+#include "ast/expression.hpp"
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+
+#include <memory>
 
 namespace Kepler::AST {
 

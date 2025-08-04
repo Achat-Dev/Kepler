@@ -1,11 +1,11 @@
 #pragma once
 
+#include "types/floating_point_type.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
-
-#include "floating_point_type.hpp"
-#include "type.hpp"
 
 namespace Kepler::Type {
 

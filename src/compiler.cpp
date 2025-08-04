@@ -1,3 +1,15 @@
+#include "compiler.hpp"
+
+#include "ast/call_expression.hpp"
+#include "ast/expression.hpp"
+#include "file.hpp"
+#include "lexer.hpp"
+#include "log.hpp"
+#include "parser.hpp"
+#include "optimiser.hpp"
+#include "runtime/runtime.hpp"
+#include "types/tmap_type.hpp"
+
 #include <cassert>
 #include <cstdlib>
 #include <llvm/IR/BasicBlock.h>
@@ -21,16 +33,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-#include "compiler.hpp"
-#include "ast/call_expression.hpp"
-#include "ast/expression.hpp"
-#include "file.hpp"
-#include "lexer.hpp"
-#include "log.hpp"
-#include "parser.hpp"
-#include "optimiser.hpp"
-#include "runtime/runtime.hpp"
 
 namespace Kepler::Compiler {
 
@@ -73,6 +75,9 @@ namespace Kepler::Compiler {
         target_machine = target->createTargetMachine(target_triple, cpu, features, target_options, llvm::Reloc::PIC_);
 
         module->setDataLayout(target_machine->createDataLayout());
+
+        // Initalise internal stuff
+        Type::TMapType::create_type();
 
         // Read the runtime bytecode
         std::unique_ptr<llvm::Module> runtime_module = Runtime::create();

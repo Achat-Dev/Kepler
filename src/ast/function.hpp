@@ -1,11 +1,11 @@
 #pragma once
 
+#include "ast/expression.hpp"
+#include "ast/prototype.hpp"
+
 #include <llvm/IR/Function.h>
 #include <memory>
 #include <vector>
-
-#include "expression.hpp"
-#include "prototype.hpp"
 
 namespace Kepler::AST {
 

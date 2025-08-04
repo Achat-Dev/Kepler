@@ -1,11 +1,11 @@
 #pragma once
 
+#include "file.hpp"
+
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <memory>
-
-#include "file.hpp"
 
 namespace Kepler::Compiler {
 

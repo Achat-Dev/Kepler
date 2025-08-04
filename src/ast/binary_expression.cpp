@@ -1,19 +1,22 @@
+#include "ast/binary_expression.hpp"
+
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "lexer.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+#include "variable_expression.hpp"
+#include "variables/local_variables.hpp"
+#include "variables/variable_data.hpp"
+
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <optional>
 #include <utility>
-
-#include "binary_expression.hpp"
-#include "expression_result.hpp"
-#include "variable_expression.hpp"
-#include "../compiler.hpp"
-#include "../log.hpp"
-#include "../types/target_type_stack.hpp"
-#include "../types/type.hpp"
-#include "../variables/local_variables.hpp"
-#include "../variables/variable_data.hpp"
 
 namespace Kepler::AST {
 

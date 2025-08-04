@@ -1,8 +1,9 @@
+#include "ast/expression_result.hpp"
+
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Value.h>
 #include <memory>
-
-#include "expression_result.hpp"
-#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

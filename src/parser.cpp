@@ -1,11 +1,4 @@
-#include <cstdint>
-#include <llvm/Support/raw_ostream.h>
-#include <map>
-#include <memory>
-#include <optional>
-#include <string>
-#include <utility>
-#include <vector>
+#include "parser.hpp"
 
 #include "ast/binary_expression.hpp"
 #include "ast/call_expression.hpp"
@@ -27,8 +20,17 @@
 #include "function_registry/function_registry.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
-#include "parser.hpp"
 #include "types/type.hpp"
+#include "types/type_token.hpp"
+
+#include <cstdint>
+#include <llvm/Support/raw_ostream.h>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace Kepler::Parser {
 

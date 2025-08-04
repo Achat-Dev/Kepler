@@ -1,3 +1,7 @@
+#include "optimiser.hpp"
+
+#include "compiler.hpp"
+
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/StandardInstrumentations.h>
@@ -7,9 +11,6 @@
 #include <llvm/Transforms/Scalar/SimplifyCFG.h>
 #include <llvm/Transforms/Utils/Mem2Reg.h>
 #include <memory>
-
-#include "compiler.hpp"
-#include "optimiser.hpp"
 
 namespace Kepler::Optimiser {
 

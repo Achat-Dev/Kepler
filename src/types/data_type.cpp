@@ -1,15 +1,67 @@
+#include "types/data_type.hpp"
+
+#include "ast/call_expression.hpp"
+#include "ast/expression_result.hpp"
+#include "ast/llvm_value_wrapper_expression.hpp"
+#include "compiler.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+#include "variables/variable_data.hpp"
+
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "data_type.hpp"
-#include "type.hpp"
-#include "../ast/call_expression.hpp"
-#include "../ast/expression_result.hpp"
-#include "../ast/llvm_value_wrapper_expression.hpp"
-
 namespace Kepler::Type {
+
+    llvm::Value* DataType::cast(llvm::Value* value, TypeToken to) const {
+        return nullptr;
+    }
+
+    void DataType::create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) const {
+        Compiler::get_builder().CreateStore(value, variable_data.variable);
+    }
+
+    llvm::Value* DataType::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
+
+    llvm::Value* DataType::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        return nullptr;
+    }
 
     llvm::Value* DataType::cast_to_string(llvm::Value* value, TypeToken from) const {
         const unsigned int flags = AST::ExpressionResultFlags::Valid | AST::ExpressionResultFlags::Returnable;

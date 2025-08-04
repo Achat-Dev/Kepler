@@ -1,11 +1,11 @@
 #pragma once
 
+#include "ast/expression.hpp"
+#include "ast/expression_result.hpp"
+#include "ast/variable_definition_expression.hpp"
+
 #include <memory>
 #include <vector>
-
-#include "expression.hpp"
-#include "expression_result.hpp"
-#include "variable_definition_expression.hpp"
 
 namespace Kepler::AST {
 

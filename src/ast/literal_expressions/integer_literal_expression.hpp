@@ -1,10 +1,10 @@
 #pragma once
 
+#include "ast/expression.hpp"
+#include "ast/expression_result.hpp"
+
 #include <cstdint>
 #include <memory>
-
-#include "../expression.hpp"
-#include "../expression_result.hpp"
 
 namespace Kepler::AST {
 

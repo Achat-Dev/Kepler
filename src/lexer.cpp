@@ -1,12 +1,12 @@
+#include "compiler.hpp"
+#include "lexer.hpp"
+#include "log.hpp"
+#include "types/type_token.hpp"
+
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <string>
-
-#include "compiler.hpp"
-#include "lexer.hpp"
-#include "types/type.hpp"
-#include "log.hpp"
 
 namespace Kepler::Lexer {
 

@@ -1,3 +1,11 @@
+#include "runtime/runtime.hpp"
+
+#include "ast/prototype.hpp"
+#include "compiler.hpp"
+#include "function_registry/function_registry.hpp"
+#include "log.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -12,13 +20,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "runtime.hpp"
-#include "../ast/prototype.hpp"
-#include "../compiler.hpp"
-#include "../function_registry/function_registry.hpp"
-#include "../log.hpp"
-#include "../types/type.hpp"
 
 extern unsigned char __kepler_runtime_bc[];
 extern unsigned int __kepler_runtime_bc_len;

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "ast/prototype.hpp"
+
 #include <memory>
 #include <string>
-
-#include "../ast/prototype.hpp"
 
 namespace Kepler::FunctionRegistry {
 

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "ast/binary_expression.hpp"
+#include "ast/expression.hpp"
+#include "ast/expression_result.hpp"
+#include "types/type_token.hpp"
+
 #include <memory>
 #include <string>
-
-#include "binary_expression.hpp"
-#include "expression.hpp"
-#include "expression_result.hpp"
-#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

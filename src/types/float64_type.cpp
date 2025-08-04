@@ -1,10 +1,12 @@
+#include "types/float64_type.hpp"
+
+#include "compiler.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
-
-#include "float64_type.hpp"
-#include "type.hpp"
-#include "../compiler.hpp"
 
 namespace Kepler::Type {
 

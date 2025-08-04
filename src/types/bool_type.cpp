@@ -1,10 +1,11 @@
+#include "types/bool_type.hpp"
+
+#include "compiler.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
-
-#include "bool_type.hpp"
-#include "type.hpp"
-#include "../compiler.hpp"
 
 namespace Kepler::Type {
 
@@ -23,44 +24,12 @@ namespace Kepler::Type {
         return nullptr;
     }
 
-    llvm::Value* BoolType::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
-    }
-
-    llvm::Value* BoolType::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
-    }
-
-    llvm::Value* BoolType::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
-    }
-
-    llvm::Value* BoolType::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
-    }
-
-    llvm::Value* BoolType::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
-    }
-
-    llvm::Value* BoolType::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
-    }
-
     llvm::Value* BoolType::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
         return Compiler::get_builder().CreateICmpEQ(lhs, rhs, "bool_eq");
     }
 
     llvm::Value* BoolType::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
         return Compiler::get_builder().CreateICmpNE(lhs, rhs, "bool_neq");
-    }
-
-    llvm::Value* BoolType::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
-    }
-
-    llvm::Value* BoolType::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        return nullptr;
     }
 
 }

@@ -1,8 +1,9 @@
+#include "types/target_type_stack.hpp"
+
+#include "types/type_token.hpp"
+
 #include <cassert>
 #include <stack>
-
-#include "target_type_stack.hpp"
-#include "type.hpp"
 
 namespace Kepler::Type::TargetTypeStack {
 

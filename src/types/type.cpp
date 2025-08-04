@@ -1,3 +1,20 @@
+#include "types/type.hpp"
+
+#include "log.hpp"
+#include "types/bool_type.hpp"
+#include "types/char_type.hpp"
+#include "types/data_type.hpp"
+#include "types/float32_type.hpp"
+#include "types/float64_type.hpp"
+#include "types/int16_type.hpp"
+#include "types/int32_type.hpp"
+#include "types/int64_type.hpp"
+#include "types/int8_type.hpp"
+#include "types/string_type.hpp"
+#include "types/tmap_type.hpp"
+#include "types/type_token.hpp"
+#include "types/void_type.hpp"
+
 #include <cassert>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -8,22 +25,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "bool_type.hpp"
-#include "char_type.hpp"
-#include "data_type.hpp"
-#include "float32_type.hpp"
-#include "float64_type.hpp"
-#include "int16_type.hpp"
-#include "int32_type.hpp"
-#include "int64_type.hpp"
-#include "int8_type.hpp"
-#include "string_type.hpp"
-#include "type.hpp"
-#include "../log.hpp"
-#include "tmap_type.hpp"
-#include "void_type.hpp"
-
-#define ASSERT_NONE(type, message) assert((type != Type::TypeToken::None) && "[ Assertion ]: trying to " #message " type 'None', which is only used for internal processing and doesn't represent an actual type");
+#define ASSERT_NONE(type, message) assert((type != TypeToken::None) && "[ Assertion ]: trying to " #message " type 'None', which is only used for internal processing and doesn't represent an actual type");
 #define ASSERT_TYPE(type) assert((type_map.find(type) != type_map.end()) && "[ Assertion ]: type does not exist in type map");
 
 namespace Kepler::Type {
@@ -41,11 +43,6 @@ namespace Kepler::Type {
         { TypeToken::Float32, std::make_shared<Float32Type>() },
         { TypeToken::Float64, std::make_shared<Float64Type>() },
     };
-
-    std::ostream& operator<<(std::ostream& os, TypeToken type) {
-        os << get_type_name(type);
-        return os;
-    }
 
     bool is_floating_point_type(TypeToken type) {
         return type == TypeToken::Float32 || type == TypeToken::Float64;
@@ -83,6 +80,12 @@ namespace Kepler::Type {
             return nullptr;
         }
         return value;
+    }
+
+    void create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) {
+        ASSERT_NONE(variable_data.type, "create a '+' operation with");
+        ASSERT_TYPE(variable_data.type);
+
     }
 
     llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, TypeToken type) {

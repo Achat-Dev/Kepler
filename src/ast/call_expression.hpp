@@ -1,10 +1,10 @@
 #pragma once
 
+#include "ast/expression.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "expression.hpp"
 
 namespace Kepler::AST {
 

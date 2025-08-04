@@ -1,11 +1,11 @@
 #pragma once
 
+#include "ast/parameter_data.hpp"
+#include "types/type_token.hpp"
+
 #include <llvm/IR/Function.h>
 #include <string>
 #include <vector>
-
-#include "parameter_data.hpp"
-#include "../types/type.hpp"
 
 namespace Kepler::AST {
 

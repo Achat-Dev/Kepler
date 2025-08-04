@@ -1,11 +1,13 @@
+#include "types/floating_point_type.hpp"
+
+#include "compiler.hpp"
+#include "types/type.hpp"
+#include "types/type_token.hpp"
+
 #include <cassert>
 #include <limits>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Value.h>
-
-#include "floating_point_type.hpp"
-#include "../compiler.hpp"
-#include "type.hpp"
 
 namespace Kepler::Type {
 

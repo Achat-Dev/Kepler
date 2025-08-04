@@ -1,3 +1,7 @@
+#include "utils.hpp"
+
+#include "log.hpp"
+
 #include <exception>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Function.h>
@@ -5,9 +9,6 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <string>
-
-#include "log.hpp"
-#include "utils.hpp"
 
 namespace Kepler {
 

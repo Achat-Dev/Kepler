@@ -1,3 +1,16 @@
+#include "ast/function.hpp"
+
+#include "ast/expression.hpp"
+#include "ast/expression_result.hpp"
+#include "ast/parameter_data.hpp"
+#include "compiler.hpp"
+#include "function_registry/function_registry.hpp"
+#include "log.hpp"
+#include "optimiser.hpp"
+#include "types/type_token.hpp"
+#include "utils.hpp"
+#include "variables/local_variables.hpp"
+
 #include <llvm/IR/Argument.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
@@ -9,17 +22,6 @@
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 #include <memory>
 #include <string>
-
-#include "expression.hpp"
-#include "expression_result.hpp"
-#include "parameter_data.hpp"
-#include "function.hpp"
-#include "../compiler.hpp"
-#include "../function_registry/function_registry.hpp"
-#include "../log.hpp"
-#include "../optimiser.hpp"
-#include "../utils.hpp"
-#include "../variables/local_variables.hpp"
 
 namespace Kepler::AST {
 

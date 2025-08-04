@@ -1,6 +1,6 @@
 #pragma once
 
-#include "type.hpp"
+#include "types/type_token.hpp"
 
 namespace Kepler::Type::TargetTypeStack {
 

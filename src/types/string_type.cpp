@@ -1,3 +1,11 @@
+#include "types/string_type.hpp"
+
+#include "ast/call_expression.hpp"
+#include "ast/llvm_value_wrapper_expression.hpp"
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/type_token.hpp"
+
 #include <cassert>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Type.h>
@@ -6,13 +14,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "string_type.hpp"
-#include "type.hpp"
-#include "../ast/call_expression.hpp"
-#include "../ast/llvm_value_wrapper_expression.hpp"
-#include "../compiler.hpp"
-#include "../log.hpp"
 
 namespace Kepler::Type {
 
@@ -50,31 +51,6 @@ namespace Kepler::Type {
         return string_concat_er->get_value();
     }
 
-    llvm::Value* StringType::create_sub(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '-' operation bewteen type 'string' is not supported yet");
-        return nullptr;
-    }
-
-    llvm::Value* StringType::create_mul(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '*' operation bewteen type 'string' is not supported yet");
-        return nullptr;
-    }
-
-    llvm::Value* StringType::create_div(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '/' operation bewteen type 'string' is not supported yet");
-        return nullptr;
-    }
-
-    llvm::Value* StringType::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '<' operation bewteen type 'string' is not supported yet");
-        return nullptr;
-    }
-
-    llvm::Value* StringType::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '>' operation bewteen type 'string' is not supported yet");
-        return nullptr;
-    }
-
     llvm::Value* StringType::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
         log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '==' operation bewteen type 'string' is not supported yet");
         return nullptr;
@@ -82,16 +58,6 @@ namespace Kepler::Type {
 
     llvm::Value* StringType::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
         log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '!=' operation bewteen type 'string' is not supported yet");
-        return nullptr;
-    }
-
-    llvm::Value* StringType::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '<=' operation bewteen type 'string' is not supported yet");
-        return nullptr;
-    }
-
-    llvm::Value* StringType::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '>=' operation bewteen type 'string' is not supported yet");
         return nullptr;
     }
 

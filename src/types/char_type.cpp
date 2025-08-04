@@ -1,11 +1,12 @@
+#include "types/char_type.hpp"
+
+#include "log.hpp"
+#include "types/type_token.hpp"
+
 #include <exception>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
-
-#include "char_type.hpp"
-#include "type.hpp"
-#include "../log.hpp"
 
 namespace Kepler::Type {
 

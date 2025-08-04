@@ -1,12 +1,12 @@
+#include "ast/literal_expressions/boolean_literal_expression.hpp"
+
+#include "ast/expression_result.hpp"
+#include "compiler.hpp"
+#include "log.hpp"
+#include "types/target_type_stack.hpp"
+
 #include <llvm/IR/Constants.h>
 #include <memory>
-
-#include "boolean_literal_expression.hpp"
-#include "../expression_result.hpp"
-#include "../../compiler.hpp"
-#include "../../log.hpp"
-#include "../../types/target_type_stack.hpp"
-#include "../../types/type.hpp"
 
 namespace Kepler::AST {
 
