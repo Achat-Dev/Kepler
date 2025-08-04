@@ -18,7 +18,6 @@
 
 namespace Kepler::AST {
 
-    // TODO: error message when type of argument doesn't match expected type
     std::unique_ptr<ExpressionResult> CallExpression::codegen() {
         llvm::Function* callee_f = Compiler::get_module().getFunction(callee);
         if (!callee_f) {
@@ -43,6 +42,10 @@ namespace Kepler::AST {
             std::unique_ptr<ExpressionResult> arg_er = args[i]->codegen();
             if (!arg_er->is_valid()) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": invalid expression in function argument");
+                return ExpressionResult::create_invalid();
+            }
+            if (arg_er->get_type() != parameters[i].type) {
+                log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": type mismatch: function argument expected value of type '", parameters[i].type, "', but was given value of type '", arg_er->get_type(), '\'');
                 return ExpressionResult::create_invalid();
             }
 
