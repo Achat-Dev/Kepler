@@ -424,6 +424,15 @@ I don't know the exact reason why this is the case, as the tutorial doesn't go i
 > [!note]
 > Function arguments are also treated as local variables
 
+### 6.1 Strings and heap allocations
+
+As mentioned above, all local variables are allocated on the stack.
+However, since a string is a pointer to an array of `i8`, only this pointer is allocated on the stack.
+The actual data of the string is either:
+
+- stored as a global constant that the pointer points to if the string is a literal
+- dynamically allocated on the heap if the string is created at runtime, e.g. by concatenation
+
 ## 7. Function registry (`src/function_registry/function_registry.cpp`)
 
 Similar to local variables, all parsed prototypes are stored in a map in `src/function_registry/function_registry.cpp`, which maps the names of the prototypes to the prototypes themselves.
@@ -435,9 +444,14 @@ This is needed for two reasons:
 1. When parsing the `return` keyword, the parser needs to know if the return type of the currently parsed function is `void`, because in that case no expression is allowed after `return`
 2. When codegening a `ReturnExpression`, the expression needs to know the return type that it should try to create
 
-## 8. Program termination
+## 8. Garbage Collection
 
-### 8.1 Error termintaion
+The language includes [bdwgc](https://github.com/bdwgc/bdwgc), also known as `libgc`, which is a conservative C/C++ Gargabe Collector.
+The memory allocation functions are not explicitly exposed to the user (see the [known issues](./known_issues.md#3-possible-calls-to-unsupported-c-functions) for the issue with "not explicitly"), but are instead handled via internal functions within the runtime library.
+
+## 9. Program termination
+
+### 9.1 Error termintaion
 
 In most cases, the program doesn't terminate immediately if an error is encountered.
 Instead, the error is bubbled up to `compiler.cpp`, which then safely stops the compilation process and returns `false` to the main process, which then terminates the program with an exit code of `1`.
@@ -477,12 +491,12 @@ sequenceDiagram
   end
 ```
 
-### 8.2 Unreachable code termination
+### 9.2 Unreachable code termination
 
 There are some instances where code is logically unreachable but technically reachable (e.g. a `switch`-statement that covers all cases still needs a `default`-case with a `return`-statement, because the C++ compiler wants it).
 Since the behaviour of the program is undefined if these pieces of code (e.g. the `default` case) were ever reached, a method called `emergency_exit` is called in these cases, which safely terminates the program (with a corresponding error message) by calling `std::terminate`.
 
-## 9. Unique pointers
+## 10. Unique pointers
 
 The project makes extensie use of `std::unique_ptr` and `std::shared_ptr`.
 
