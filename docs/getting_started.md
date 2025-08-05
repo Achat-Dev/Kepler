@@ -276,22 +276,41 @@ The runtime provides the following functions.
     <th rowspan="2" style="text-align: left">Operator</th>
     <th rowspan="2" style="text-align: left">Usage example</th>
     <th rowspan="2" style="text-align: left">Usage notes</th>
-    <th colspan="8">Supported types</th>
+    <th colspan="10">Supported types</th>
   </tr>
   <tr>
-    <th>`void`</th>
-    <th>`bool`</th>
-    <th>`i8`</th>
-    <th>`i16`</th>
-    <th>`i32`</th>
-    <th>`i64`</th>
-    <th>`f32`</th>
-    <th>`f64`</th>
+    <th>void</th>
+    <th>tmap</th>
+    <th>bool</th>
+    <th>string</th>
+    <th>i8</th>
+    <th>i16</th>
+    <th>i32</th>
+    <th>i64</th>
+    <th>f32</th>
+    <th>f64</th>
   </tr>
   <tr>
-    <td style="text-align: center">`=`</td>
-    <td>`&lt;variable_name&gt; = &lt;value&gt;`</td>
-    <td>Assigns `&lt;value&gt;` to the variable with `&lt;variable_name&gt;` and returns `&lt;value&gt;`</td>
+    <td style="text-align: center">=</td>
+    <td>&lt;variable_name&gt; = &lt;value&gt;</td>
+    <td>Assigns &lt;value&gt; to the variable with &lt;variable_name&gt; and returns &lt;value&gt;</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">+</td>
+    <td>&lt;value_a&gt; + &lt;value_b&gt;</td>
+    <td>Adds &lt;value_a&gt; and &lt;value_b&gt; together and returns the result</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
     <td style="text-align: center"></td>
     <td style="text-align: center">x</td>
     <td style="text-align: center">x</td>
@@ -302,35 +321,11 @@ The runtime provides the following functions.
     <td style="text-align: center">x</td>
   </tr>
   <tr>
-    <td style="text-align: center">`<`</td>
-    <td>`&lt;value_a&gt; &lt; &lt;value_b&gt;`</td>
-    <td>Evaluates to `true`, if `&lt;value_a&gt;` is less than `&lt;value_b&gt;`, `false` otherwise</td>
+    <td style="text-align: center">-</td>
+    <td>&lt;value_a&gt; - &lt;value_b&gt;</td>
+    <td>Subtracts &lt;value_b&gt; from &lt;value_a&gt; and returns the result</td>
     <td style="text-align: center"></td>
     <td style="text-align: center"></td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-  </tr>
-  <tr>
-    <td style="text-align: center">`<`</td>
-    <td>`&lt;value_a&gt; &gt; &lt;value_b&gt;`</td>
-    <td>Evaluates to `true`, if `&lt;value_a&gt;` is greater than `&lt;value_b&gt;`, `false` otherwise</td>
-    <td style="text-align: center"></td>
-    <td style="text-align: center"></td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-    <td style="text-align: center">x</td>
-  </tr>
-  <tr>
-    <td style="text-align: center">`+`</td>
-    <td>`&lt;value_a&gt; + &lt;value_b&gt;`</td>
-    <td>Adds `&lt;value_a&gt;` and `&lt;value_b&gt;` together and returns the result</td>
     <td style="text-align: center"></td>
     <td style="text-align: center"></td>
     <td style="text-align: center">x</td>
@@ -341,9 +336,11 @@ The runtime provides the following functions.
     <td style="text-align: center">x</td>
   </tr>
   <tr>
-    <td style="text-align: center">`-`</td>
-    <td>`&lt;value_a&gt; - &lt;value_b&gt;`</td>
-    <td>Subtracts `&lt;value_b&gt;` from `&lt;value_a&gt;` and returns the result</td>
+    <td style="text-align: center">*</td>
+    <td>&lt;value_a&gt; * &lt;value_b&gt;</td>
+    <td>Multiplies &lt;value_a&gt; with &lt;value_b&gt; and returns the result</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
     <td style="text-align: center"></td>
     <td style="text-align: center"></td>
     <td style="text-align: center">x</td>
@@ -354,9 +351,11 @@ The runtime provides the following functions.
     <td style="text-align: center">x</td>
   </tr>
   <tr>
-    <td style="text-align: center">`*`</td>
-    <td>`&lt;value_a&gt; * &lt;value_b&gt;`</td>
-    <td>Multiplies `&lt;value_a&gt;` with `&lt;value_b&gt;` and returns the result</td>
+    <td style="text-align: center">/</td>
+    <td>&lt;value_a&gt; / &lt;value_b&gt;</td>
+    <td>Divides &lt;value_a&gt; by &lt;value_b&gt; and returns the result</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
     <td style="text-align: center"></td>
     <td style="text-align: center"></td>
     <td style="text-align: center">x</td>
@@ -367,11 +366,88 @@ The runtime provides the following functions.
     <td style="text-align: center">x</td>
   </tr>
   <tr>
-    <td style="text-align: center">`/`</td>
-    <td>`&lt;value_a&gt; / &lt;value_b&gt;`</td>
-    <td>Divides `&lt;value_a&gt;` by `&lt;value_b&gt;` and returns the result</td>
+    <td style="text-align: center">&lt;</td>
+    <td>&lt;value_a&gt; &lt; &lt;value_b&gt;</td>
+    <td>Evaluates to true, if &lt;value_a&gt; is less than &lt;value_b&gt;, false otherwise</td>
     <td style="text-align: center"></td>
     <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">&gt;</td>
+    <td>&lt;value_a&gt; &gt; &lt;value_b&gt;</td>
+    <td>Evaluates to true, if &lt;value_a&gt; is greater than &lt;value_b&gt;, false otherwise</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">==</td>
+    <td>&lt;value_a&gt; == &lt;value_b&gt;</td>
+    <td>Evaluates to true, if &lt;value_a&gt; is equal to &lt;value_b&gt;, false otherwise</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">!=</td>
+    <td>&lt;value_a&gt; != &lt;value_b&gt;</td>
+    <td>Evaluates to true, if &lt;value_a&gt; is not equal to &lt;value_b&gt;, false otherwise</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">&lt;=</td>
+    <td>&lt;value_a&gt; &lt;= &lt;value_b&gt;</td>
+    <td>Evaluates to true, if &lt;value_a&gt; is less than or equal to &lt;value_b&gt;, false otherwise</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+    <td style="text-align: center">x</td>
+  </tr>
+  <tr>
+    <td style="text-align: center">&gt;</td>
+    <td>&lt;value_a&gt; &gt;= &lt;value_b&gt;</td>
+    <td>Evaluates to true, if &lt;value_a&gt; is greater than or equal to &lt;value_b&gt;, false otherwise</td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center"></td>
+    <td style="text-align: center">x</td>
     <td style="text-align: center">x</td>
     <td style="text-align: center">x</td>
     <td style="text-align: center">x</td>
