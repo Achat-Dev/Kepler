@@ -4,9 +4,11 @@
 #include "ast/llvm_value_wrapper_expression.hpp"
 #include "compiler.hpp"
 #include "log.hpp"
+#include "types/type.hpp"
 #include "types/type_token.hpp"
 
 #include <cassert>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
@@ -16,6 +18,24 @@
 #include <vector>
 
 namespace Kepler::Type {
+
+    static llvm::Value* create_call_to(const std::string& function_name, llvm::Value* lhs, llvm::Value* rhs) {
+        const unsigned int flags = AST::ExpressionResultFlags::Valid | AST::ExpressionResultFlags::Returnable;
+        std::unique_ptr<AST::LLVMValueWrapperExpression> lhs_expression = std::make_unique<AST::LLVMValueWrapperExpression>(lhs, TypeToken::String, flags);
+        std::unique_ptr<AST::LLVMValueWrapperExpression> rhs_expression = std::make_unique<AST::LLVMValueWrapperExpression>(rhs, TypeToken::String, flags);
+
+        std::vector<std::unique_ptr<AST::Expression>> args;
+        args.push_back(std::move(lhs_expression));
+        args.push_back(std::move(rhs_expression));
+
+        AST::CallExpression call_expression = AST::CallExpression(function_name, std::move(args));
+        std::unique_ptr<AST::ExpressionResult> call_er = call_expression.codegen();
+
+        assert(call_er->is_valid() && "[ Assertion ]: failed to create concatenation of strings, the expression result is invalid");
+        assert(call_er->is_assignable() && "[ Assertion ]: failed to create concatenation of strings, the expression result is not assignable");
+
+        return call_er->get_value();
+    }
 
     std::string StringType::get_name() const {
         return "string";
@@ -34,31 +54,43 @@ namespace Kepler::Type {
     }
 
     llvm::Value* StringType::create_add(llvm::Value* lhs, llvm::Value* rhs) const {
-        const unsigned int flags = AST::ExpressionResultFlags::Valid | AST::ExpressionResultFlags::Returnable;
-        std::unique_ptr<AST::LLVMValueWrapperExpression> lhs_expression = std::make_unique<AST::LLVMValueWrapperExpression>(lhs, TypeToken::String, flags);
-        std::unique_ptr<AST::LLVMValueWrapperExpression> rhs_expression = std::make_unique<AST::LLVMValueWrapperExpression>(rhs, TypeToken::String, flags);
+        return create_call_to("__kepler_string_concat", lhs, rhs);
+    }
 
-        std::vector<std::unique_ptr<AST::Expression>> args;
-        args.push_back(std::move(lhs_expression));
-        args.push_back(std::move(rhs_expression));
+    llvm::Value* StringType::create_less_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        llvm::Value* comapre_value = create_call_to("__kepler_string_compare", lhs, rhs);
+        llvm::Value* zero = llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0);
+        return Type::create_less_than(comapre_value, zero, TypeToken::Int32);
+    }
 
-        AST::CallExpression string_concat_call_expression = AST::CallExpression("__kepler_string_concat", std::move(args));
-        std::unique_ptr<AST::ExpressionResult> string_concat_er = string_concat_call_expression.codegen();
-
-        assert(string_concat_er->is_valid() && "[ Assertion ]: failed to create concatenation of strings, the expression result is invalid");
-        assert(string_concat_er->is_assignable() && "[ Assertion ]: failed to create concatenation of strings, the expression result is not assignable");
-
-        return string_concat_er->get_value();
+    llvm::Value* StringType::create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const {
+        llvm::Value* comapre_value = create_call_to("__kepler_string_compare", lhs, rhs);
+        llvm::Value* zero = llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0);
+        return Type::create_greater_than(comapre_value, zero, TypeToken::Int32);
     }
 
     llvm::Value* StringType::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '==' operation bewteen type 'string' is not supported yet");
-        return nullptr;
+        llvm::Value* comapre_value = create_call_to("__kepler_string_compare", lhs, rhs);
+        llvm::Value* zero = llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0);
+        return Type::create_equals(comapre_value, zero, TypeToken::Int32);
     }
 
     llvm::Value* StringType::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        log(LogStyle::UNSUPPORTED, "[ Unpaid developer error ]", LogStyle::DEFAULT, ": '!=' operation bewteen type 'string' is not supported yet");
-        return nullptr;
+        llvm::Value* comapre_value = create_call_to("__kepler_string_compare", lhs, rhs);
+        llvm::Value* zero = llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0);
+        return Type::create_not_equals(comapre_value, zero, TypeToken::Int32);
+    }
+
+    llvm::Value* StringType::create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        llvm::Value* comapre_value = create_call_to("__kepler_string_compare", lhs, rhs);
+        llvm::Value* zero = llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0);
+        return Type::create_less_equals(comapre_value, zero, TypeToken::Int32);
+    }
+
+    llvm::Value* StringType::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const {
+        llvm::Value* comapre_value = create_call_to("__kepler_string_compare", lhs, rhs);
+        llvm::Value* zero = llvm::ConstantInt::get(get_by_token(TypeToken::Int32), 0);
+        return Type::create_greater_equals(comapre_value, zero, TypeToken::Int32);
     }
 
 }

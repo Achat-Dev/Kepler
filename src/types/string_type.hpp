@@ -16,8 +16,12 @@ namespace Kepler::Type {
 
         llvm::Value* cast(llvm::Value* value, TypeToken to) const override;
         llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs) const override;
+        llvm::Value* create_less_than(llvm::Value* lhs, llvm::Value* rhs) const override;
+        llvm::Value* create_greater_than(llvm::Value* lhs, llvm::Value* rhs) const override;
         llvm::Value* create_equals(llvm::Value* lhs, llvm::Value* rhs) const override;
         llvm::Value* create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const override;
+        llvm::Value* create_less_equals(llvm::Value* lhs, llvm::Value* rhs) const override;
+        llvm::Value* create_greater_equals(llvm::Value* lhs, llvm::Value* rhs) const override;
     };
 
 }

@@ -52,6 +52,32 @@ namespace Kepler::Runtime {
         FunctionRegistry::register_prototype(prototype);
     }
 
+    static void register_kepler_string_length() {
+        std::vector<AST::ParameterData> args = {
+            { Type::TypeToken::String, "a" },
+        };
+        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Int64, "__kepler_string_length", std::move(args));
+        FunctionRegistry::register_prototype(prototype);
+    }
+
+    static void register_kepler_string_concat() {
+        std::vector<AST::ParameterData> args = {
+            { Type::TypeToken::String, "a" },
+            { Type::TypeToken::String, "b" }
+        };
+        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::String, "__kepler_string_concat", std::move(args));
+        FunctionRegistry::register_prototype(prototype);
+    }
+
+    static void register_kepler_string_compare() {
+        std::vector<AST::ParameterData> args = {
+            { Type::TypeToken::String, "a" },
+            { Type::TypeToken::String, "b" }
+        };
+        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::String, "__kepler_string_compare", std::move(args));
+        FunctionRegistry::register_prototype(prototype);
+    }
+
     static void register_kepler_bool_to_string() {
         std::vector<AST::ParameterData> args = {
             { Type::TypeToken::Bool, "value" },
@@ -108,28 +134,14 @@ namespace Kepler::Runtime {
         FunctionRegistry::register_prototype(prototype);
     }
 
-    static void register_kepler_string_length() {
-        std::vector<AST::ParameterData> args = {
-            { Type::TypeToken::String, "a" },
-        };
-        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Int64, "__kepler_string_length", std::move(args));
-        FunctionRegistry::register_prototype(prototype);
-    }
-
-    static void register_kepler_string_concat() {
-        std::vector<AST::ParameterData> args = {
-            { Type::TypeToken::String, "a" },
-            { Type::TypeToken::String, "b" }
-        };
-        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::String, "__kepler_string_concat", std::move(args));
-        FunctionRegistry::register_prototype(prototype);
-    }
-
     static void register_runtime_functions() {
         register_print();
         register_pause();
         register_kepler_runtime_init();
         register_kepler_runtime_error();
+        register_kepler_string_length();
+        register_kepler_string_concat();
+        register_kepler_string_compare();
         register_kepler_bool_to_string();
         register_kepler_i8_to_string();
         register_kepler_i16_to_string();
@@ -137,8 +149,6 @@ namespace Kepler::Runtime {
         register_kepler_i64_to_string();
         register_kepler_f32_to_string();
         register_kepler_f64_to_string();
-        register_kepler_string_length();
-        register_kepler_string_concat();
     }
 
     std::unique_ptr<llvm::Module> create() {

@@ -46,6 +46,10 @@ int64_t __kepler_strlen(const char* a) {
     return result;
 }
 
+int32_t __kepler_string_compare(const char* a, const char* b) {
+    return strcmp(a, b);
+}
+
 char* __kepler_bool_to_string(bool value) {
     const char* s = value ? "true" : "false";
     size_t length = __kepler_strlen(s);
