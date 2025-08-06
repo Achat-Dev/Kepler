@@ -1,5 +1,6 @@
 #include "file.hpp"
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -27,6 +28,10 @@ namespace Kepler {
     }
 
     std::unique_ptr<File> File::create(const std::string& filename) {
+        if (!std::filesystem::exists(filename)) {
+            return nullptr;
+        }
+
         std::unique_ptr<File> file = std::unique_ptr<File>(new File());
         file->stream.open(filename);
         if (file->stream.is_open()) {

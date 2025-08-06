@@ -1,20 +1,18 @@
+#include "arguments.hpp"
 #include "compiler.hpp"
 #include "log.hpp"
 
 int main(int argc, char* argv[]) {
-    if (argc <= 1) {
-        Kepler::log(Kepler::LogStyle::ERROR, "[ Error ]", Kepler::LogStyle::DEFAULT, ": no filename given");
+    const Kepler::Arguments::ArgumentParseResult argument_parse_result = Kepler::Arguments::parse(argc, argv);
+    if (argument_parse_result == Kepler::Arguments::ArgumentParseResult::ERROR) {
         return 1;
     }
-    if (argc <= 2) {
-        Kepler::log(Kepler::LogStyle::ERROR, "[ Error ]", Kepler::LogStyle::DEFAULT, ": no output name given");
-        return 1;
+    if (argument_parse_result == Kepler::Arguments::ArgumentParseResult::HELP) {
+        return 0;
     }
 
-    const char* filename = argv[1];
-    const char* outname = argv[2];
-    if (!Kepler::Compiler::compile_file(filename, outname)) {
-        Kepler::log(Kepler::LogStyle::ERROR, "Failed to compile file '", filename, "' and write it to '", outname, '\'');
+    if (!Kepler::Compiler::compile_file()) {
+        Kepler::log(Kepler::LogStyle::ERROR, "Failed to compile file '", Kepler::Arguments::get_input_file(), "' and write it to '", Kepler::Arguments::get_output_file(), '\'');
         return 1;
     }
 

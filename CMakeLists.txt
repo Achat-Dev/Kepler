@@ -8,9 +8,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Build the runtime
 # Check the dependencies and fail if one of them isn't found
-find_program(CLANG clang)
+find_program(CLANG clang++)
 if(NOT CLANG)
-    message(FATAL_ERROR "'clang' not found, which is a dependency of 'kepler'")
+    message(FATAL_ERROR "'clang++' not found, which is a dependency of 'kepler'")
 endif()
 
 find_program(XXD xxd)
@@ -21,23 +21,22 @@ endif()
 # Compile the runtime to llvm bytecode
 add_custom_command(
     OUTPUT runtime.bc
-    COMMAND ${CLANG} -emit-llvm -O2 -c ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/runtime.c -o ${CMAKE_CURRENT_BINARY_DIR}/runtime.bc
+    COMMAND ${CLANG} -emit-llvm -O2 -c ${CMAKE_SOURCE_DIR}/src/runtime/runtime.c -o ${CMAKE_BINARY_DIR}/runtime.bc
     DEPENDS src/runtime/runtime.c
     COMMENT "Compiling the runtime")
 
 # Create a .c file from that bytecode
 add_custom_command(
     OUTPUT runtime.bc.c
-    COMMAND ${XXD} -n __kepler_runtime_bc -i ${CMAKE_CURRENT_BINARY_DIR}/runtime.bc > ${CMAKE_CURRENT_BINARY_DIR}/runtime.bc.c
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/runtime.bc
+    COMMAND ${XXD} -n __kepler_runtime_bc -i ${CMAKE_BINARY_DIR}/runtime.bc > ${CMAKE_BINARY_DIR}/runtime.bc.c
+    DEPENDS ${CMAKE_BINARY_DIR}/runtime.bc
     COMMENT "Embedding the runtime")
 
 # Create a static library for the runtime
-add_library(kepler-runtime STATIC ${CMAKE_CURRENT_BINARY_DIR}/runtime.bc.c)
+add_library(kepler-runtime STATIC ${CMAKE_BINARY_DIR}/runtime.bc.c)
 
 # Import LLVM
 find_package(LLVM REQUIRED CONFIG)
-include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 add_executable(${CMAKE_PROJECT_NAME}
@@ -77,6 +76,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/types/type_token.cpp
     src/types/void_type.cpp
     src/variables/local_variables.cpp
+    src/arguments.cpp
     src/compiler.cpp
     src/file.cpp
     src/lexer.cpp
@@ -88,7 +88,10 @@ add_executable(${CMAKE_PROJECT_NAME}
 add_dependencies(${CMAKE_PROJECT_NAME} kepler-runtime)
 
 llvm_map_components_to_libnames(llvm_libs ${LLVM_TARGETS_TO_BUILD})
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/external/cxxopts/include
+    ${LLVM_INCLUDE_DIRS})
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE kepler-runtime ${llvm_libs})
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)

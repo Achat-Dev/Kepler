@@ -6,7 +6,7 @@ The compiler has to be installed from source.
 
 1. Install [CMake](https://cmake.org/download/) (the minimum required version is 3.8)
 2. Install a valid [CMake generator](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#id9) (I used [Ninja](https://ninja-build.org/))
-3. Install [LLVM and Clang](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
+3. Install [LLVM and Clang++](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
 ```bash
 git clone --depth 1 https://github.com/llvm/llvm-project.git
 cd llvm-project
@@ -23,13 +23,14 @@ cd build
 cmake --build . --target install
 ```
 5. Install [xxd](https://github.com/ckormanyos/xxd)
-6. Clone this repository
+6. Clone this repository and initialise the submodules
 ```bash
-git clone https://github.com/Achat-Dev/Kepler.git
+git clone --recurse-submodules https://github.com/Achat-Dev/Kepler.git
+cd Kepler
+git submodule update --init --recursive
 ```
 7. Build the project
 ```bash
-cd Kepler
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cd build
 cmake --build .

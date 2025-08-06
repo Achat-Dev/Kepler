@@ -1,5 +1,6 @@
 #include "compiler.hpp"
 
+#include "arguments.hpp"
 #include "ast/call_expression.hpp"
 #include "ast/expression.hpp"
 #include "file.hpp"
@@ -12,6 +13,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <filesystem>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
@@ -98,11 +100,11 @@ namespace Kepler::Compiler {
         return true;
     }
 
-    static bool write_object_file(const std::string& outname) {
-        log("Writing file '", outname, '\'');
+    static bool write_object_file(const std::string& output_name) {
+        log("Writing file '", output_name, '\'');
 
         std::error_code ec;
-        llvm::raw_fd_ostream out(outname, ec, llvm::sys::fs::OF_None);
+        llvm::raw_fd_ostream out(output_name, ec, llvm::sys::fs::OF_None);
 
         if (ec) {
             log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": failed to open output file: ", ec.message());
@@ -122,7 +124,7 @@ namespace Kepler::Compiler {
 
         pass_manager.run(*module);
         out.flush();
-        log("Successfully wrote '", outname, '\'');
+        log("Successfully wrote '", output_name, '\'');
 
         return true;
     }
@@ -145,8 +147,18 @@ namespace Kepler::Compiler {
         // Call clang to compile the final executable
         log("Compiling object file into executable");
         std::stringstream command;
-        command << "clang " << object_outname << " -lgc -o " << outname;
-        int clang_result = std::system(command.str().c_str());
+        command << "clang++ " << object_outname;
+        const std::vector<std::string>& additional_files = Arguments::get_additional_files();
+        for (const std::string& additional_file : additional_files) {
+            log(additional_file);
+            if (!std::filesystem::exists(additional_file)) {
+                log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": addtional file '", additional_file, "' doesn't exist");
+                return false;
+            }
+            command << " " << additional_file;
+        }
+        command << " -lgc -o " << outname;
+        const int clang_result = std::system(command.str().c_str());
 
         if (clang_result == 0) {
             log("Successfully wrote '", outname, "\'\nHoly shit it actually worked o.o");
@@ -174,12 +186,13 @@ namespace Kepler::Compiler {
         return file;
     }
 
-    bool compile_file(const std::string& filename, const std::string& outname) {
+    bool compile_file() {
         if(!initialise()) {
             return false;
         }
 
-        if (!(file = File::create(filename))) {
+        if (!(file = File::create(Arguments::get_input_file()))) {
+            log(LogStyle::ERROR, "[ Reading error ]", LogStyle::DEFAULT, ": input file '", Arguments::get_input_file(), "' doesn't exist");
             return false;
         }
 
@@ -190,7 +203,7 @@ namespace Kepler::Compiler {
             switch (Parser::get_current_token()) {
                 case Lexer::Token::EndOfFile:
                     file->close();
-                    return compile_executable(outname);
+                    return compile_executable(Arguments::get_output_file());
                 case Lexer::Token::Extern:
                     if (!Parser::handle_top_level_extern()) {
                         return false;

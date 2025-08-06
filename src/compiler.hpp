@@ -14,6 +14,6 @@ namespace Kepler::Compiler {
     llvm::Module& get_module();
     std::unique_ptr<File>& get_file();
 
-    bool compile_file(const std::string& filename, const std::string& outname);
+    bool compile_file();
 
 }
