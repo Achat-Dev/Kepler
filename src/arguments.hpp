@@ -15,5 +15,6 @@ namespace Kepler::Arguments {
     const std::string& get_input_file();
     const std::string& get_output_file();
     const std::vector<std::string>& get_additional_files();
+    const bool should_log_verbose();
 
 }

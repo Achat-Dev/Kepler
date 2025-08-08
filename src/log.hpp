@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arguments.hpp"
 #include <iostream>
 #include <llvm/IR/Value.h>
 #include <string>
@@ -35,6 +36,7 @@ namespace Kepler {
         const std::string WARNING = BG_YELLOW + BLACK + BOLD;
         const std::string ERROR = BG_RED + BLACK + BOLD;
         const std::string UNSUPPORTED = BG_MAGENTA + BLACK + BOLD;
+        const std::string SUCCESS = BG_GREEN + BLACK + BOLD;
 
     }
 
@@ -47,6 +49,13 @@ namespace Kepler {
     void log(T t, Args... args) {
         std::cout << t;
         log(args...);
+    }
+
+    template<typename... Args>
+    void log_verbose(Args... args) {
+        if (Arguments::should_log_verbose()) {
+            log(args...);
+        }
     }
 
 }

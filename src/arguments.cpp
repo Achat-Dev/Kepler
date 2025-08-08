@@ -10,6 +10,7 @@ namespace Kepler::Arguments {
     static std::string input_name;
     static std::string output_name;
     static std::vector<std::string> additional_files;
+    static bool verbose;
 
     ArgumentParseResult parse(int argc, char* argv[]) {
         try {
@@ -18,6 +19,7 @@ namespace Kepler::Arguments {
                 ("i,input", "The .kpl input files", cxxopts::value<std::string>())
                 ("o,output", "The output file", cxxopts::value<std::string>())
                 ("a,additional", "Additional C++ or object files, separated by ','", cxxopts::value<std::vector<std::string>>())
+                ("v,verbose", "Enable verbose logging", cxxopts::value<bool>())
                 ("h,help", "Print help")
             ;
 
@@ -62,6 +64,8 @@ namespace Kepler::Arguments {
             if (result.count("additional")) {
                 additional_files = result["additional"].as<std::vector<std::string>>();
             }
+
+            verbose = result.contains("verbose");
         }
         catch (const cxxopts::exceptions::exception& e) {
             log(LogStyle::ERROR, "[ Argument error ]", LogStyle::DEFAULT, ": ", e.what());
@@ -81,6 +85,10 @@ namespace Kepler::Arguments {
 
     const std::vector<std::string>& get_additional_files() {
         return additional_files;
+    }
+
+    const bool should_log_verbose() {
+        return verbose;
     }
 
 }

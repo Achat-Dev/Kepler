@@ -1,5 +1,6 @@
 #include "parser.hpp"
 
+#include "arguments.hpp"
 #include "ast/binary_expression.hpp"
 #include "ast/call_expression.hpp"
 #include "ast/cast_expression.hpp"
@@ -311,6 +312,7 @@ namespace Kepler::Parser {
     }
 
     static std::unique_ptr<AST::Function> parse_function(Type::TypeToken type, std::string identifier) {
+        log_verbose(LogStyle::BOLD, "< Starting to parse a function definition >", LogStyle::DEFAULT);
         auto prototype = parse_prototype(type, std::move(identifier));
         if (!prototype) {
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid function prototype");
@@ -335,6 +337,7 @@ namespace Kepler::Parser {
     }
 
     static std::shared_ptr<AST::Prototype> parse_extern() {
+        log_verbose(LogStyle::BOLD, "< Starting to parse an extern >", LogStyle::DEFAULT);
         read_next_token(); // eat 'extern' keyword
 
         if (current_token != Lexer::Token::DataType) {
@@ -645,8 +648,11 @@ namespace Kepler::Parser {
     static bool handle_function(Type::TypeToken type, std::string identifier) {
         if (auto ast = parse_function(type, std::move(identifier))) {
             if (auto ir = ast->codegen()) {
-                log("> parsed a function definition <");
-                ir->print(llvm::errs());
+                if (Arguments::should_log_verbose()) {
+                    log("\n", LogStyle::BOLD, "< Parsed a function definition >", LogStyle::DEFAULT, "\n(emitting LLVM IR, the previous TokenType decides what the parser is doing next)");
+                    ir->print(llvm::outs());
+                    log("");
+                }
                 return true;
             }
         }
@@ -694,8 +700,11 @@ namespace Kepler::Parser {
     bool handle_top_level_extern() {
         if (auto ast = parse_extern()) {
             if (auto ir = ast->codegen()) {
-                log("> parsed an extern <");
-                ir->print(llvm::errs());
+                if (Arguments::should_log_verbose()) {
+                    log("\n", LogStyle::BOLD, "< Parsed an extern >", LogStyle::DEFAULT, "\n(emitting LLVM IR, the previous TokenType decides what the parser is doing next)");
+                    ir->print(llvm::outs());
+                    log("");
+                }
                 return true;
             }
         }

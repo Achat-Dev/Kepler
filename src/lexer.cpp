@@ -81,7 +81,7 @@ namespace Kepler::Lexer {
 
     Token read_token() {
         if (Compiler::get_file()->peek() == EOF) {
-            log("{ TokenType: EndOfFile }");
+            log_verbose("\tTokenType: EndOfFile");
             return Token::EndOfFile;
         }
 
@@ -177,98 +177,98 @@ namespace Kepler::Lexer {
         }
 
         if (identifier == "extern") {
-            log("{ TokenType: extern }");
+            log_verbose("\tTokenType: extern");
             return Token::Extern;
         }
         else if (identifier == "return") {
-            log("{ TokenType: return }");
+            log_verbose("\tTokenType: return");
             return Token::Return;
         }
         else if (identifier == "end") {
-            log("{ TokenType: end }");
+            log_verbose("\tTokenType: end");
             return Token::End;
         }
         else if (identifier == "if") {
-            log("{ TokenType: if }");
+            log_verbose("\tTokenType: if");
             return Token::If;
         }
         else if (identifier == "else") {
-            log("{ TokenType: else }");
+            log_verbose("\tTokenType: else");
             return Token::Else;
         }
         else if (identifier == "elseif") {
-            log("{ TokenType: elseif }");
+            log_verbose("\tTokenType: elseif");
             return Token::Elseif;
         }
         else if (identifier == "for") {
-            log("{ TokenType: for }");
+            log_verbose("\tTokenType: for");
             return Token::For;
         }
         else if (identifier == "true") {
-            log("{ TokenType: true }");
+            log_verbose("\tTokenType: true");
             return Token::True;
         }
         else if (identifier == "false") {
-            log("{ TokenType: false }");
+            log_verbose("\tTokenType: false");
             return Token::False;
         }
         else if (identifier == "void") {
-            log("{ TokenType: void }");
+            log_verbose("\tTokenType: void");
             type_token = Type::TypeToken::Void;
             return Token::DataType;
         }
         else if (identifier == "tmap") {
-            log("{ TokenType: tmap }");
+            log_verbose("\tTokenType: tmap");
             type_token = Type::TypeToken::TMap;
             return Token::DataType;
         }
         else if (identifier == "bool") {
-            log("{ TokenType: bool }");
+            log_verbose("\tTokenType: bool");
             type_token = Type::TypeToken::Bool;
             return Token::DataType;
         }
         else if (identifier == "char") {
-            log("{ TokenType: char }");
+            log_verbose("\tTokenType: char");
             type_token = Type::TypeToken::Char;
             return Token::DataType;
         }
         else if (identifier == "string") {
-            log("{ TokenType: string }");
+            log_verbose("\tTokenType: string");
             type_token = Type::TypeToken::String;
             return Token::DataType;
         }
         else if (identifier == "i8") {
-            log("{ TokenType: i8 }");
+            log_verbose("\tTokenType: i8");
             type_token = Type::TypeToken::Int8;
             return Token::DataType;
         }
         else if (identifier == "i16") {
-            log("{ TokenType: i16 }");
+            log_verbose("\tTokenType: i16");
             type_token = Type::TypeToken::Int16;
             return Token::DataType;
         }
         else if (identifier == "i32") {
-            log("{ TokenType: i32 }");
+            log_verbose("\tTokenType: i32");
             type_token = Type::TypeToken::Int32;
             return Token::DataType;
         }
         else if (identifier == "i64") {
-            log("{ TokenType: i64 }");
+            log_verbose("\tTokenType: i64");
             type_token = Type::TypeToken::Int64;
             return Token::DataType;
         }
         else if (identifier == "f32") {
-            log("{ TokenType: f32 }");
+            log_verbose("\tTokenType: f32");
             type_token = Type::TypeToken::Float32;
             return Token::DataType;
         }
         else if (identifier == "f64") {
-            log("{ TokenType: f64 }");
+            log_verbose("\tTokenType: f64");
             type_token = Type::TypeToken::Float64;
             return Token::DataType;
         }
 
-        log("{ TokenType: identifier: '", identifier, "' }");
+        log_verbose("\tTokenType: identifier: '", identifier, '\'');
         return Token::Identifier;
     }
 
@@ -285,12 +285,12 @@ namespace Kepler::Lexer {
 
         if (is_float) {
             floating_point_literal = std::stod(literal_string);
-            log("{ TokenType: floating point literal: ", floating_point_literal, " }");
+            log_verbose("\tTokenType: floating point literal: ", floating_point_literal);
             return Token::FloatingPointLiteral;
         }
         else {
             integer_literal = std::stoll(literal_string);
-            log("{ TokenType: integer literal: ", integer_literal, " }");
+            log_verbose("\tTokenType: integer literal: ", integer_literal);
             return Token::IntegerLiteral;
         }
     }
@@ -333,7 +333,7 @@ namespace Kepler::Lexer {
             while (!(last_char == '#' && Compiler::get_file()->peek() == '#')) {
                 if (Compiler::get_file()->peek() == EOF) {
                     log(LogStyle::WARNING, "[ Lexing warning ]", LogStyle::DEFAULT, ": multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
-                    log("{ TokenType: EndOfFile }");
+                    log_verbose("\tTokenType: EndOfFile");
                     return Token::EndOfFile;
                 }
 
@@ -347,7 +347,7 @@ namespace Kepler::Lexer {
         else {
             while (last_char != '\n' && last_char != '\r') {
                 if (Compiler::get_file()->peek() == EOF) {
-                    log("{ TokenType: EndOfFile }");
+                    log_verbose("\tTokenType: EndOfFile");
                     return Token::EndOfFile;
                 }
 

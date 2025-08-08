@@ -47,6 +47,8 @@ namespace Kepler::Compiler {
     static std::unique_ptr<File> file;
 
     static bool initialise() {
+        log_verbose("Initialising LLVM");
+
         context = std::make_unique<llvm::LLVMContext>();
         builder = std::make_unique<llvm::IRBuilder<>>(*context);
         module = std::make_unique<llvm::Module>("Kepler", *context);
@@ -81,6 +83,8 @@ namespace Kepler::Compiler {
         // Initalise internal stuff
         Type::TMapType::create_type();
 
+        log(LogStyle::BOLD, "[2/3]", LogStyle::DEFAULT, ": creating and linking the runtime");
+
         // Read the runtime bytecode
         std::unique_ptr<llvm::Module> runtime_module = Runtime::create();
         if (!runtime_module) {
@@ -101,7 +105,7 @@ namespace Kepler::Compiler {
     }
 
     static bool write_object_file(const std::string& output_name) {
-        log("Writing file '", output_name, '\'');
+        log_verbose("Writing file '", output_name, '\'');
 
         std::error_code ec;
         llvm::raw_fd_ostream out(output_name, ec, llvm::sys::fs::OF_None);
@@ -124,7 +128,7 @@ namespace Kepler::Compiler {
 
         pass_manager.run(*module);
         out.flush();
-        log("Successfully wrote '", output_name, '\'');
+        log_verbose("Successfully wrote '", output_name, '\'');
 
         return true;
     }
@@ -145,12 +149,11 @@ namespace Kepler::Compiler {
         }
 
         // Call clang to compile the final executable
-        log("Compiling object file into executable");
+        log(LogStyle::BOLD, "[3/3]", LogStyle::DEFAULT, ": compiling everything into an executable");
         std::stringstream command;
         command << "clang++ " << object_outname;
         const std::vector<std::string>& additional_files = Arguments::get_additional_files();
         for (const std::string& additional_file : additional_files) {
-            log(additional_file);
             if (!std::filesystem::exists(additional_file)) {
                 log(LogStyle::ERROR, "[ Writing error ]", LogStyle::DEFAULT, ": addtional file '", additional_file, "' doesn't exist");
                 return false;
@@ -161,7 +164,7 @@ namespace Kepler::Compiler {
         const int clang_result = std::system(command.str().c_str());
 
         if (clang_result == 0) {
-            log("Successfully wrote '", outname, "\'\nHoly shit it actually worked o.o");
+            log(LogStyle::SUCCESS, "[ I did it! ]", LogStyle::DEFAULT, ": successfully wrote '", outname, '\'');
             return true;
         }
         else {
@@ -187,6 +190,8 @@ namespace Kepler::Compiler {
     }
 
     bool compile_file() {
+        log(LogStyle::BOLD, "[1/3]", LogStyle::DEFAULT, ": compiling '", Arguments::get_input_file(), '\'');
+
         if(!initialise()) {
             return false;
         }
