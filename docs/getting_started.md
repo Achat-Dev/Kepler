@@ -57,7 +57,8 @@ The following table displays the currently supported types.
 
 | Name | Meaning | Additional notes |
 | :- | :- | :- |
-| `void` |  | Can only be used as the return type of a function |
+| `void` | Indicates a function with no return type | Can only be used as the return type of a function |
+| `tmap` | A 48-bit struct containing each of the following types, as well as a flag for each field indicating whether a value has been assigned to that field | This is a value type |
 | `bool` | A 1-bit unsigned integer that represents either `true` or `false` | Only the internal value used for operations is a 1-bit unsigned integer. An 8-bit unsigned integer is used in memory. |
 | `string` | A pointer to an array of 8-bit signed integers | Strings are null terminated. String literals are stored as global constants, while all other strings, such as strings created through concatenation, are dynamically allocated on the heap. |
 | `i8` | An 8-bit signed integer | |
@@ -83,21 +84,33 @@ foo = i32(x)        # casting a the value of a variable
 foo = i32(bar())    # casting the return value of a function
 ```
 
+Casting is the method used to access the fields of a `tmap`:
+
+```
+tmap x = foo()
+
+i32 y = i32(x)
+bool z = bool(x)
+```
+
+If no value is assigned to the field being accessed, a runtime error is thrown and the program terminates.
+
 ##### 3.1.1.1 Casting matrix
 
 The following matrix displays what types can be casted to what types (rows are the type of the value to cast, columns are the target type of the cast):
 
-| | `void` | `bool` | `string` | `i8` | `i16` | `i32` | `i64` | `f32` | `f64` |
-| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
-| `void` | | | | | | | | | |
-| `bool` | | | x | | | | | | |
-| `string` | | | | | | | | | |
-| `i8` | | x | x | | x | x | x | x | x |
-| `i16` | | x | x | x | | x | x | x | x |
-| `i32` | | x | x | x | x | | x | x | x |
-| `i64` | | x | x | x | x | x | | x | x |
-| `f32` | | x | x | x | x | x | x | | x |
-| `f64` | | x | x | x | x | x | x | x | |
+| | `void` | `tmap` | `bool` | `string` | `i8` | `i16` | `i32` | `i64` | `f32` | `f64` |
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| `void` | | | | | | | | | | |
+| `tmap` | | | x | x | x | x | x | x | x | x |
+| `bool` | | | | x | | | | | | |
+| `string` | | | | | | | | | | |
+| `i8` | | | x | x | | x | x | x | x | x |
+| `i16` | | | x | x | x | | x | x | x | x |
+| `i32` | | | x | x | x | x | | x | x | x |
+| `i64` | | | x | x | x | x | x | | x | x |
+| `f32` | | | x | x | x | x | x | x | | x |
+| `f64` | | | x | x | x | x | x | x | x | |
 
 > [!note]
 > Trying to cast to the same type (e. g.: casting from an i32 to an i32) will result in a compile warning and the cast will be discarded
@@ -149,6 +162,20 @@ if (f32 z = foo())
   bar(z)
 end
 ```
+
+##### 3.2.1.1 `tmap`
+
+`tmaps` do not need to be defined in any special way.
+By simply assigning a value to a `tmap`, this value is written to the field of the corresponding type within the `tmap`.
+
+```
+tmap x = false  # Creates a variable of type `tmap` and assigns 'false' to the bool field of 'x'
+x = "Hello"     # Assigns 'Hello' to the string field of 'x'
+x = 1337        # Assigns '1337' to the i32 field of 'x'
+```
+
+The fields of a `tmap` are not initialised by default.
+As already mentioned, this leads to a runtime error when trying to access a field that hasn't been assigned a value yet.
 
 #### 3.2.2 Variable uniqueness
 
