@@ -4,13 +4,13 @@
 
 The compiler has to be installed from source.
 
-1. Install [CMake](https://cmake.org/download/) (the minimum required version is 3.8)
+1. Install [CMake](https://cmake.org/download/) (the minimum required version is 3.16)
 2. Install a valid [CMake generator](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#id9) (I used [Ninja](https://ninja-build.org/))
-3. Install [LLVM and Clang++](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
+3. Install [LLVM version 21 and Clang++](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
 ```bash
 git clone --depth 1 https://github.com/llvm/llvm-project.git
 cd llvm-project
-cmake -S llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS="clang" # Only use this last option if you don't already have a working installation of clang
+cmake -S llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS="clang" # Only use this last option if you don't already have a working installation of clang++
 cd build
 cmake --build . --target install
 ```
@@ -38,16 +38,38 @@ cmake --build .
 
 The result of this is the `kepler` executable.
 
+> *(Disclaimer: the installation process as well as the given commands have only been tested on Ubuntu 24.4.2 LTS and Fedora Workstation 42)*
+
 ## 2. Usage
 
-> [!important]
-> This section will change heavily as the development of the project progresses
-
-As of now, Kepler only supports the compilation of a single file to an executable.
+As of now, `kepler` only supports compiling a single `.kpl` file into an executable.
 
 ```bash
-kepler <input> <output>
+kepler -i <input.kpl> -o <output>
 ```
+
+Additional `C++` or object files can be passed to the compiler using the `-a` option.
+
+```bash
+kepler -i <input.kpl> -o <output> -a foo.cpp,bar.cpp,baz.o
+```
+
+The `-v` option enables verbose logging, which outputs the generated LLVM IR.
+
+Complete overview of the options (same as using `kepler -h`):
+
+```bash
+kepler [OPTION...]
+
+-i, --input arg       The .kpl input files
+-o, --output arg      The output file
+-a, --additional arg  Additional C++ or object files, separated by ','
+-v, --verbose         Enable verbose logging
+-h, --help            Print help
+```
+
+> [!note]
+> The order of the options doesn't matter, however, if `-h` is used, only the help is output and the program then terminates.
 
 ## 3. Language overview
 

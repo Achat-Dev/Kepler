@@ -10,7 +10,9 @@ The project uses [LLVM](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/i
 The following graph displays the project structure, showing the most important files and folders.
 
 ```
-src
+external                                # Contains included third party libraries
+└─ cxxopts                              # Used for handling the command line arguments
+src                                     # Contains the source code of the project
 ├─ ast
 │  ├─ expression.hpp                    # Base class of every expression (has a virtual method called "codegen" to override)
 │  ├─ expression_result.cpp             # Contains the result of "codegen" alongside flags that indicate the status of the result
