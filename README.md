@@ -4,7 +4,7 @@ This language was developed as part of a university project and is inspired by [
 
 It will probably not be developed any further.
 
-## Quick links
+## Documentation
 
 - [Getting started (contains installation and usage)](./docs/getting_started.md)
 - [Known issues](./docs/known_issues.md)
