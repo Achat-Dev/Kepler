@@ -339,6 +339,21 @@ extern <return_type> <name>(<arguments>)
 In general, a value of the specified return type has to be returned via the `return` keyword.
 If a literal is returned, it tries to convert to the return type of the function.
 
+#### 3.4.5 Function uniqueness
+
+Function names have to be unique.
+Trying to redefine a function leads to a parsing error, even if the return type and / or arguments of the function are different.
+
+```
+void foo()
+  ...
+end
+
+i32 foo(i32 a)    # Parsing error: trying to redefine a function
+  ...
+end
+```
+
 ### 3.5 Available runtime functions
 
 The runtime provides the following functions.
@@ -539,3 +554,7 @@ The runtime provides the following functions.
 
 > [!note]
 > The following applies to all operators listed here: the values / variables used must be of the same type.
+
+### 3.7 A note about variable and function names
+
+Variable
