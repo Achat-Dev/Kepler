@@ -204,9 +204,38 @@ As already mentioned, this leads to a runtime error when trying to access a fiel
 Variables have to be unique within the scope they are defined in.
 
 ```
-f32 x = 0
-x = 1         # Ok
-f32 x = -1    # Compile error
+void foo()
+  f32 x = 0
+  x = 1         # Ok
+  f32 x = -1    # Compile error
+end
+```
+
+Furthermore, there is no block scope.
+Defining a variable within a block, e. g. an if block, renders the variable valid for use outside of the block.
+
+```
+void foo(bool x)
+  if (x)
+    f32 y = 0.0
+    ...
+  end
+
+  y = 10        # No 'f32' before 'y' needed
+  ...
+end
+```
+
+However, note that only the definition is visible - no value is assigned to the variable itself if the block in which it is defined is never reached.
+Although the following code is valid, the function always returns 0.
+
+```
+f32 foo()
+  if (false)
+    f32 y = 10.0
+  end
+  return y
+end
 ```
 
 ### 3.3 Control flow
