@@ -328,11 +328,13 @@ i32 x = bar(1)    # call bar
 
 #### 3.4.3 `extern` functions
 
-Prototypes marked with the `extern` keyword are raw prototypes with a function body that use external linkage to retrieve the function body.
+Prototypes marked with the `extern` keyword are raw prototypes without a function body that use external linkage to retrieve the function body.
 
 ```
 extern <return_type> <name>(<arguments>)
 ```
+
+Since the program is linked with `libc`, all `C` functions can be used by declaring them as `extern` (although not all of them are supported, see the [known issues](./known_issues.md#3-possible-calls-to-unsupported-c-functions)).
 
 #### 3.4.4 Return types and values
 
@@ -557,4 +559,5 @@ The runtime provides the following functions.
 
 ### 3.7 A note about variable and function names
 
-Variable
+Variable and functions names cannot start with an underscore.
+This is because underscores are reserved for internal functions.
