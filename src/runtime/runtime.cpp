@@ -26,6 +26,14 @@ extern unsigned int __kepler_runtime_bc_len;
 
 namespace Kepler::Runtime {
 
+    static void register_error() {
+        std::vector<AST::ParameterData> args = {
+            { Type::TypeToken::String, "message" },
+        };
+        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "error", std::move(args));
+        FunctionRegistry::register_prototype(prototype);
+    }
+
     static void register_print() {
         std::vector<AST::ParameterData> args = {
             { Type::TypeToken::String, "message" },
@@ -41,14 +49,6 @@ namespace Kepler::Runtime {
 
     static void register_kepler_runtime_init() {
         std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "__kepler_runtime_init", std::vector<AST::ParameterData>());
-        FunctionRegistry::register_prototype(prototype);
-    }
-
-    static void register_kepler_runtime_error() {
-        std::vector<AST::ParameterData> args = {
-            { Type::TypeToken::String, "message" },
-        };
-        std::shared_ptr<AST::Prototype> prototype = std::make_shared<AST::Prototype>(Type::TypeToken::Void, "__kepler_runtime_error", std::move(args));
         FunctionRegistry::register_prototype(prototype);
     }
 
@@ -138,7 +138,7 @@ namespace Kepler::Runtime {
         register_print();
         register_pause();
         register_kepler_runtime_init();
-        register_kepler_runtime_error();
+        register_error();
         register_kepler_string_length();
         register_kepler_string_concat();
         register_kepler_string_compare();

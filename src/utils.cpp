@@ -46,7 +46,7 @@ namespace Kepler {
         std::vector<std::unique_ptr<AST::Expression>> args;
         args.push_back(std::move(arg_expression));
 
-        AST::CallExpression call_expression = AST::CallExpression("__kepler_runtime_error", std::move(args));
+        AST::CallExpression call_expression = AST::CallExpression("error", std::move(args));
         std::unique_ptr<AST::ExpressionResult> call_er = call_expression.codegen();
 
         assert(call_er->is_valid() && "[ Assertion ]: failed to throw runtime error, the expression result is invalid");

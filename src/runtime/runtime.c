@@ -16,6 +16,11 @@
 // Library functions
 // ----------------------------------------
 
+void error(const char* message) {
+    fprintf(stderr, "%s\n", message);
+    exit(1);
+}
+
 void print(const char* message) {
     printf("%s\n", message);
 }
@@ -31,11 +36,6 @@ void pause() {
 
 void __kepler_runtime_init() {
     GC_INIT();
-}
-
-void __kepler_runtime_error(const char* message) {
-    printf("%s\n", message);
-    exit(1);
 }
 
 int64_t __kepler_strlen(const char* a) {

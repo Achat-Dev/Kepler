@@ -345,6 +345,7 @@ The runtime provides the following functions.
 
 | Function signature | Description |
 | :- | :- |
+| `error(string message)` | Prints `message` to the standard error output with a newline character inserted after it and terminates the program with an exit code of 1 |
 | `print(string message)` | Prints `message` to the standard output with a newline character inserted after it |
 | `pause()` | Pauses the application until an input is read |
 
