@@ -356,6 +356,24 @@ i32 foo(i32 a)    # Parsing error: trying to redefine a function
 end
 ```
 
+#### 3.4.6 External linkage
+
+All functions use external linkage, which means that functions defined in `Kepler` can be used in e. g. `C++` code by defining them as `extern "C"` there.
+
+```
+# lib.kpl
+i32 foo(i32 a, i32 b)
+  return a + b
+end
+
+// main.cpp
+extern "C" int32_t foo(int32_t a, int32_b);
+
+int main() {
+  return foo(0, 1);
+}
+```
+
 ### 3.5 Available runtime functions
 
 The runtime provides the following functions.
