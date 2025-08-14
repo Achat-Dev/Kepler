@@ -35,28 +35,6 @@
 
 namespace Kepler::Parser {
 
-    static int get_token_precedence();
-
-    static std::unique_ptr<AST::Expression> parse_floating_point_literal();
-    static std::unique_ptr<AST::Expression> parse_integer_literal();
-    static std::unique_ptr<AST::Expression> parse_boolean_literal(bool value);
-    static std::unique_ptr<AST::Expression> parse_string_literal();
-    static std::unique_ptr<AST::Expression> parse_parenthesis();
-    static std::unique_ptr<AST::Expression> parse_negative();
-    static std::unique_ptr<AST::Expression> parse_expression();
-    static std::unique_ptr<AST::Expression> parse_identifier();
-    static std::unique_ptr<AST::Expression> parse_primary();
-    static std::unique_ptr<AST::Expression> parse_binop_rhs(int expression_precedence, std::unique_ptr<AST::Expression> lhs);
-    static std::shared_ptr<AST::Prototype> parse_prototype(Type::TypeToken type, std::string identifier);
-    static std::unique_ptr<AST::Function> parse_function(Type::TypeToken type, std::string identifier);
-    static std::shared_ptr<AST::Prototype> parse_extern();
-    static std::unique_ptr<AST::Expression> parse_if();
-    static std::unique_ptr<AST::Expression> parse_for();
-    static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body();
-    static std::unique_ptr<AST::Expression> parse_return();
-    static std::unique_ptr<AST::Expression> parse_local_data_type();
-    static bool handle_function(Type::TypeToken type, std::string identifier);
-
     static Lexer::Token current_token;
 
     // Higher values mean higher precedence
@@ -73,6 +51,9 @@ namespace Kepler::Parser {
         { Lexer::Token::Multiplication, 40 },
         { Lexer::Token::Division, 40 }
     };
+
+    // This has to be forward declared
+    static std::unique_ptr<AST::Expression> parse_primary();
 
     static int get_token_precedence() {
         if (binop_precedence_map.find(current_token) == binop_precedence_map.end()) {
@@ -109,6 +90,44 @@ namespace Kepler::Parser {
         return std::make_unique<AST::StringLiteralExpression>(std::move(value));
     }
 
+    static std::unique_ptr<AST::Expression> parse_binop_rhs(int expression_precedence, std::unique_ptr<AST::Expression> lhs) {
+        while (true) {
+            int token_precedence = get_token_precedence();
+            if (token_precedence < expression_precedence) {
+                return lhs;
+            }
+
+            Lexer::Token binop = current_token;
+            read_next_token(); // eat binary operator
+
+            auto rhs = parse_primary();
+            if (!rhs) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": no right hand side value when parsing binary operator '", (char)binop, "'");
+                return nullptr;
+            }
+
+            int next_precedence = get_token_precedence();
+            if (token_precedence < next_precedence) {
+                rhs = parse_binop_rhs(token_precedence + 1, std::move(rhs));
+                if (!rhs) {
+                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": no right hand side value when parsing binary operator '", (char)binop, "'");
+                    return nullptr;
+                }
+            }
+
+            lhs = std::make_unique<AST::BinaryExpression>(binop, std::move(lhs), std::move(rhs));
+        }
+    }
+
+    static std::unique_ptr<AST::Expression> parse_expression() {
+        auto lhs = parse_primary();
+        if (!lhs) {
+            return nullptr;
+        }
+
+        return parse_binop_rhs(0, std::move(lhs));
+    }
+
     static std::unique_ptr<AST::Expression> parse_parenthesis() {
         read_next_token(); // eat '('
 
@@ -124,40 +143,6 @@ namespace Kepler::Parser {
 
         read_next_token(); // eat ')'
         return expression;
-    }
-
-    static std::unique_ptr<AST::Expression> parse_negative() {
-        read_next_token(); // eat '-'
-        std::unique_ptr<AST::Expression> expression;
-
-        switch (current_token) {
-            case Lexer::Token::Identifier:
-                expression = parse_identifier();
-                break;
-            case Lexer::Token::FloatingPointLiteral:
-                expression = parse_floating_point_literal();
-                break;
-            case Lexer::Token::IntegerLiteral:
-                expression = parse_integer_literal();
-                break;
-            case Lexer::Token::BracketOpen:
-                expression = parse_parenthesis();
-                break;
-            default:
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": mathematical negation of '", current_token, "' is not supported");
-                return nullptr;
-        }
-
-        return std::make_unique<AST::NegationExpression>(std::move(expression));
-    }
-
-    static std::unique_ptr<AST::Expression> parse_expression() {
-        auto lhs = parse_primary();
-        if (!lhs) {
-            return nullptr;
-        }
-
-        return parse_binop_rhs(0, std::move(lhs));
     }
 
     static std::unique_ptr<AST::Expression> parse_identifier() {
@@ -199,54 +184,29 @@ namespace Kepler::Parser {
         return std::make_unique<AST::CallExpression>(identifier, std::move(args));
     }
 
-    static std::unique_ptr<AST::Expression> parse_primary() {
+    static std::unique_ptr<AST::Expression> parse_negative() {
+        read_next_token(); // eat '-'
+        std::unique_ptr<AST::Expression> expression;
+
         switch (current_token) {
-            case Lexer::Token::Identifier: return parse_identifier();
-            case Lexer::Token::FloatingPointLiteral: return parse_floating_point_literal();
-            case Lexer::Token::IntegerLiteral: return parse_integer_literal();
-            case Lexer::Token::True: return parse_boolean_literal(true);
-            case Lexer::Token::False: return parse_boolean_literal(false);
-            case Lexer::Token::StringLiteral: return parse_string_literal();
-            case Lexer::Token::If: return parse_if();
-            case Lexer::Token::Parsing_Elseif: return parse_if();
-            case Lexer::Token::For: return parse_for();
-            case Lexer::Token::Return: return parse_return();
-            case Lexer::Token::DataType: return parse_local_data_type();
-            case Lexer::Token::BracketOpen: return parse_parenthesis();
-            case Lexer::Token::Minus: return parse_negative();
+            case Lexer::Token::Identifier:
+                expression = parse_identifier();
+                break;
+            case Lexer::Token::FloatingPointLiteral:
+                expression = parse_floating_point_literal();
+                break;
+            case Lexer::Token::IntegerLiteral:
+                expression = parse_integer_literal();
+                break;
+            case Lexer::Token::BracketOpen:
+                expression = parse_parenthesis();
+                break;
             default:
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", current_token, "' when expected expression");
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": mathematical negation of '", current_token, "' is not supported");
                 return nullptr;
         }
-    }
 
-    static std::unique_ptr<AST::Expression> parse_binop_rhs(int expression_precedence, std::unique_ptr<AST::Expression> lhs) {
-        while (true) {
-            int token_precedence = get_token_precedence();
-            if (token_precedence < expression_precedence) {
-                return lhs;
-            }
-
-            Lexer::Token binop = current_token;
-            read_next_token(); // eat binary operator
-
-            auto rhs = parse_primary();
-            if (!rhs) {
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": no right hand side value when parsing binary operator '", (char)binop, "'");
-                return nullptr;
-            }
-
-            int next_precedence = get_token_precedence();
-            if (token_precedence < next_precedence) {
-                rhs = parse_binop_rhs(token_precedence + 1, std::move(rhs));
-                if (!rhs) {
-                    log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": no right hand side value when parsing binary operator '", (char)binop, "'");
-                    return nullptr;
-                }
-            }
-
-            lhs = std::make_unique<AST::BinaryExpression>(binop, std::move(lhs), std::move(rhs));
-        }
+        return std::make_unique<AST::NegationExpression>(std::move(expression));
     }
 
     static std::shared_ptr<AST::Prototype> parse_prototype(Type::TypeToken type, std::string identifier) {
@@ -447,6 +407,25 @@ namespace Kepler::Parser {
         return std::make_unique<AST::IfExpression>(std::move(condition), std::move(if_body), std::move(else_body));
     }
 
+    static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body() {
+        std::vector<std::unique_ptr<AST::Expression>> body;
+        while (current_token != Lexer::Token::End) {
+            std::unique_ptr<AST::Expression> expression = parse_expression();
+            if (!expression) {
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'for' body");
+                return std::nullopt;
+            }
+            body.push_back(std::move(expression));
+        }
+
+        if (body.size() == 0) {
+            log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty loop body detected");
+        }
+
+        read_next_token(); // eat 'end'
+        return std::move(body);
+    }
+
     static std::unique_ptr<AST::Expression> parse_for() {
         read_next_token(); // eat 'for'
         if (current_token != Lexer::Token::BracketOpen) {
@@ -558,25 +537,6 @@ namespace Kepler::Parser {
         return std::make_unique<AST::ForExpression>(std::move(variable), std::move(end), std::move(step), std::move(*body));
     }
 
-    static std::optional<std::vector<std::unique_ptr<AST::Expression>>> parse_for_body() {
-        std::vector<std::unique_ptr<AST::Expression>> body;
-        while (current_token != Lexer::Token::End) {
-            std::unique_ptr<AST::Expression> expression = parse_expression();
-            if (!expression) {
-                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'for' body");
-                return std::nullopt;
-            }
-            body.push_back(std::move(expression));
-        }
-
-        if (body.size() == 0) {
-            log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty loop body detected");
-        }
-
-        read_next_token(); // eat 'end'
-        return std::move(body);
-    }
-
     static std::unique_ptr<AST::Expression> parse_return() {
         read_next_token(); // eat 'return' keyword
 
@@ -643,6 +603,27 @@ namespace Kepler::Parser {
 
         log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected identifier or '(' after data type in function");
         return nullptr;
+    }
+
+    static std::unique_ptr<AST::Expression> parse_primary() {
+        switch (current_token) {
+            case Lexer::Token::Identifier: return parse_identifier();
+            case Lexer::Token::FloatingPointLiteral: return parse_floating_point_literal();
+            case Lexer::Token::IntegerLiteral: return parse_integer_literal();
+            case Lexer::Token::True: return parse_boolean_literal(true);
+            case Lexer::Token::False: return parse_boolean_literal(false);
+            case Lexer::Token::StringLiteral: return parse_string_literal();
+            case Lexer::Token::If: return parse_if();
+            case Lexer::Token::Parsing_Elseif: return parse_if();
+            case Lexer::Token::For: return parse_for();
+            case Lexer::Token::Return: return parse_return();
+            case Lexer::Token::DataType: return parse_local_data_type();
+            case Lexer::Token::BracketOpen: return parse_parenthesis();
+            case Lexer::Token::Minus: return parse_negative();
+            default:
+                log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid token '", current_token, "' when expected expression");
+                return nullptr;
+        }
     }
 
     static bool handle_function(Type::TypeToken type, std::string identifier) {
