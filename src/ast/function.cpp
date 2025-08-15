@@ -1,3 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+/*
+ * Copyright (c) 2025 Lion Schulz
+ *
+ * This file is part of the Kepler programming language, which is licensed under the GNU Affero General Public License version 3 or later.
+ * You should have received a copy of the license along with this program.
+ * If not, see <https://www.gnu.org/licenses/>
+ */
+
 #include "ast/function.hpp"
 
 #include "ast/expression.hpp"
@@ -44,7 +53,7 @@ namespace Kepler::AST {
         llvm::BasicBlock* entry_block = llvm::BasicBlock::Create(Compiler::get_context(), "entry", f);
         Compiler::get_builder().SetInsertPoint(entry_block);
 
-        // record function arguments
+        // Record function arguments
         LocalVariables::clear();
         for (llvm::Argument& arg : f->args()) {
             const ParameterData& parameter_data = prototype->get_parameter(arg.getName().str());
