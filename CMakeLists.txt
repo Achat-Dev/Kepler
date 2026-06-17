@@ -37,7 +37,6 @@ add_library(kepler-runtime STATIC ${CMAKE_BINARY_DIR}/runtime.bc.c)
 
 # Import LLVM
 find_package(LLVM REQUIRED CONFIG)
-add_definitions(${LLVM_DEFINITIONS})
 
 add_executable(${CMAKE_PROJECT_NAME}
     src/ast/literal_expressions/boolean_literal_expression.cpp
@@ -87,11 +86,9 @@ add_executable(${CMAKE_PROJECT_NAME}
 
 add_dependencies(${CMAKE_PROJECT_NAME} kepler-runtime)
 
-llvm_map_components_to_libnames(llvm_libs ${LLVM_TARGETS_TO_BUILD})
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/vendor/cxxopts/include
-    ${LLVM_INCLUDE_DIRS})
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE kepler-runtime ${llvm_libs})
+    ${CMAKE_SOURCE_DIR}/vendor/cxxopts/include)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE kepler-runtime LLVM)
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
