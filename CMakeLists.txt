@@ -90,7 +90,7 @@ add_dependencies(${CMAKE_PROJECT_NAME} kepler-runtime)
 llvm_map_components_to_libnames(llvm_libs ${LLVM_TARGETS_TO_BUILD})
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/external/cxxopts/include
+    ${CMAKE_SOURCE_DIR}/vendor/cxxopts/include
     ${LLVM_INCLUDE_DIRS})
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE kepler-runtime ${llvm_libs})
 
