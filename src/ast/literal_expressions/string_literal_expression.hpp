@@ -17,12 +17,12 @@
 
 namespace Kepler::AST {
 
-    class StringLiteralExpression: public Expression {
+    class StringLiteralExpression : public Expression {
     private:
         std::string value;
 
     public:
-        StringLiteralExpression(std::string value): value(std::move(value)) {}
+        StringLiteralExpression(std::string value) : value(std::move(value)) {}
         std::unique_ptr<ExpressionResult> codegen() override;
     };
 

@@ -71,5 +71,4 @@ namespace Kepler::AST {
         return ExpressionResult::create(Compiler::get().get_builder().CreateCall(callee_f, args_v, "calltmp"), prototype->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
-
 }

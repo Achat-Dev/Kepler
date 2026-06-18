@@ -10,15 +10,16 @@
 #include <gc/gc.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define KEPLER_TO_STRING(format, value) int length = snprintf(NULL, 0, format, value);\
-    char* result = (char*)GC_MALLOC_ATOMIC(length + 1);\
-    snprintf(result, length + 1, format, value);\
+#define KEPLER_TO_STRING(format, value)                 \
+    int length = snprintf(NULL, 0, format, value);      \
+    char* result = (char*)GC_MALLOC_ATOMIC(length + 1); \
+    snprintf(result, length + 1, format, value);        \
     return result;
 
 // ----------------------------------------

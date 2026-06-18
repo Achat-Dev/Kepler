@@ -18,7 +18,7 @@
 
 namespace Kepler::AST {
 
-    class ForExpression: public Expression {
+    class ForExpression : public Expression {
     private:
         std::unique_ptr<VariableDefinitionExpression> start;
         std::unique_ptr<Expression> end;

@@ -29,5 +29,4 @@ namespace Kepler::AST {
         llvm::Function* codegen();
     };
 
-
 }

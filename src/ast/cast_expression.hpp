@@ -18,7 +18,7 @@
 
 namespace Kepler::AST {
 
-    class CastExpression: public Expression {
+    class CastExpression : public Expression {
     private:
         std::unique_ptr<Expression> value;
         Type::TypeToken type;

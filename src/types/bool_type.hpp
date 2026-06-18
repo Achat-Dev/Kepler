@@ -18,7 +18,7 @@
 
 namespace Kepler::Type {
 
-    class BoolType: public DataType {
+    class BoolType : public DataType {
     public:
         std::string get_name() const override;
         llvm::Type* get_llvm_type() const override;

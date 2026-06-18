@@ -18,10 +18,10 @@
 
 namespace Kepler::Type {
 
-    class Int16Type: public DataType {
+    class Int16Type : public DataType {
     public:
         std::string get_name() const override;
-        llvm::Type* get_llvm_type() const override ;
+        llvm::Type* get_llvm_type() const override;
 
         llvm::Value* cast(llvm::Value* value, TypeToken to) const override;
         llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs) const override;

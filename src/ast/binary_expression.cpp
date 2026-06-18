@@ -66,8 +66,7 @@ namespace Kepler::AST {
             bool was_assignment_successful;
             if (variable_data->type == Type::TypeToken::TMap) {
                 was_assignment_successful = Type::create_assign(rhs_er->get_value(), rhs_er->get_type(), variable_data.value());
-            }
-            else {
+            } else {
                 was_assignment_successful = Type::create_assign(rhs_er->get_value(), variable_data.value());
             }
 

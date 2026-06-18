@@ -18,7 +18,7 @@
 
 namespace Kepler::AST {
 
-    class LLVMValueWrapperExpression: public Expression {
+    class LLVMValueWrapperExpression : public Expression {
     private:
         llvm::Value* value;
         const Type::TypeToken type;

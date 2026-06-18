@@ -23,16 +23,16 @@ namespace Kepler::LocalVariables {
     std::optional<VariableData> get(const std::string& name) {
         if (local_variables.find(name) != local_variables.end()) {
             VariableData& local_variable = local_variables[name];
-            return VariableData{ local_variable.type, local_variable.variable };
+            return VariableData{local_variable.type, local_variable.variable};
         }
         return std::nullopt;
     }
 
-    void set(const std::string& name, const VariableData& data){
-        local_variables[name] = VariableData{ data.type, data.variable };
+    void set(const std::string& name, const VariableData& data) {
+        local_variables[name] = VariableData{data.type, data.variable};
     }
 
-    void update(const std::string& name, const VariableData& data){
+    void update(const std::string& name, const VariableData& data) {
         if (local_variables.find(name) == local_variables.end()) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to update local variable '", name, '\'');
             return;

@@ -40,8 +40,7 @@ namespace Kepler::AST {
         const Type::TypeToken type = value_er->get_type();
         if (Type::is_integer_type(type)) {
             return ExpressionResult::create(Compiler::get().get_builder().CreateNeg(value_er->get_value(), "neg"), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
-        }
-        else if (Type::is_floating_point_type(type)) {
+        } else if (Type::is_floating_point_type(type)) {
             return ExpressionResult::create(Compiler::get().get_builder().CreateFNeg(value_er->get_value(), "neg"), type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
         }
 

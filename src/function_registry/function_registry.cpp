@@ -38,7 +38,6 @@ namespace Kepler::FunctionRegistry {
             }
             parameter_signature << ')';
 
-
             log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": prototype signature '", prototype->get_type(), " ", prototype->get_name(), parameter_signature.str(), "' is already registered");
             return false;
         }
@@ -46,7 +45,7 @@ namespace Kepler::FunctionRegistry {
         return true;
     }
 
-    std::shared_ptr<AST::Prototype> get_registered_prototype(const std::string& name){
+    std::shared_ptr<AST::Prototype> get_registered_prototype(const std::string& name) {
         if (prototypes.find(name) == prototypes.end()) {
             log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": prototype '", name, "' not registered");
             return nullptr;

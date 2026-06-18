@@ -20,7 +20,7 @@ namespace Kepler::LocalVariables {
         llvm::AllocaInst* variable;
 
         VariableData() = default;
-        VariableData(Type::TypeToken type, llvm::AllocaInst* alloca): type(type), variable(alloca) {}
+        VariableData(Type::TypeToken type, llvm::AllocaInst* alloca) : type(type), variable(alloca) {}
     };
 
 }

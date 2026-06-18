@@ -16,7 +16,7 @@
 
 namespace Kepler::AST {
 
-    class IfExpression: public Expression {
+    class IfExpression : public Expression {
     private:
         std::unique_ptr<Expression> condition;
         std::vector<std::unique_ptr<Expression>> if_body;

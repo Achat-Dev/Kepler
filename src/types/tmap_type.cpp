@@ -38,7 +38,7 @@ namespace Kepler::Type {
         TypeToken::Float32,
         TypeToken::Int16,
         TypeToken::Int8,
-        //TypeToken::Char,
+        // TypeToken::Char,
         TypeToken::Bool,
     };
     static const int field_count = sizeof(tmap_member_order) / sizeof(tmap_member_order[0]);
@@ -121,8 +121,7 @@ namespace Kepler::Type {
         if (value_type == TypeToken::TMap) {
             Compiler::get().get_builder().CreateStore(value, variable_data.variable);
             return true;
-        }
-        else {
+        } else {
             for (size_t i = 0; i < field_count; i++) {
                 if (tmap_member_order[i] == value_type) {
                     // Assign the value to the field

@@ -29,8 +29,7 @@ namespace Kepler::Arguments {
                 ("o,output", "The output file", cxxopts::value<std::string>())
                 ("a,additional", "Additional C++ or object files, separated by ','", cxxopts::value<std::vector<std::string>>())
                 ("v,verbose", "Enable verbose logging", cxxopts::value<bool>())
-                ("h,help", "Print help")
-            ;
+                ("h,help", "Print help");
 
             cxxopts::ParseResult result = options.parse(argc, argv);
 
@@ -43,12 +42,10 @@ namespace Kepler::Arguments {
             const int count_input = result.count("input");
             if (count_input == 1) {
                 input_name = result["input"].as<std::string>();
-            }
-            else {
+            } else {
                 if (count_input > 1) {
                     log(LogStyle::ERROR, "[ Argument error ]", LogStyle::DEFAULT, ": input can only be specified once");
-                }
-                else {
+                } else {
                     log(LogStyle::ERROR, "[ Argument error ]", LogStyle::DEFAULT, ": no input file given");
                 }
                 return ArgumentParseResult::ERROR;
@@ -58,12 +55,10 @@ namespace Kepler::Arguments {
             const int count_output = result.count("output");
             if (count_output == 1) {
                 output_name = result["output"].as<std::string>();
-            }
-            else {
+            } else {
                 if (count_output > 1) {
                     log(LogStyle::ERROR, "[ Argument error ]", LogStyle::DEFAULT, ": output can only be specified once");
-                }
-                else {
+                } else {
                     log(LogStyle::ERROR, "[ Argument error ]", LogStyle::DEFAULT, ": no output file given");
                 }
                 return ArgumentParseResult::ERROR;
@@ -75,8 +70,7 @@ namespace Kepler::Arguments {
             }
 
             verbose = result.contains("verbose");
-        }
-        catch (const cxxopts::exceptions::exception& e) {
+        } catch (const cxxopts::exceptions::exception& e) {
             log(LogStyle::ERROR, "[ Argument error ]", LogStyle::DEFAULT, ": ", e.what());
             return ArgumentParseResult::ERROR;
         }

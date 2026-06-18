@@ -37,14 +37,11 @@ namespace Kepler::AST {
         if (use_integer_operations) {
             return Compiler::get().get_builder().CreateSelect(select_condition,
                 Compiler::get().get_builder().CreateICmpSLT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
-                Compiler::get().get_builder().CreateICmpSGT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
-            );
-        }
-        else {
+                Compiler::get().get_builder().CreateICmpSGT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt"));
+        } else {
             return Compiler::get().get_builder().CreateSelect(select_condition,
                 Compiler::get().get_builder().CreateFCmpULT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
-                Compiler::get().get_builder().CreateFCmpUGT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
-            );
+                Compiler::get().get_builder().CreateFCmpUGT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt"));
         }
     }
 
@@ -78,8 +75,7 @@ namespace Kepler::AST {
         llvm::Value* end_select_condition;
         if (use_integer_operations) {
             end_select_condition = Compiler::get().get_builder().CreateICmpSLE(start_er->get_value(), end_er->get_value());
-        }
-        else {
+        } else {
             end_select_condition = Compiler::get().get_builder().CreateFCmpULE(start_er->get_value(), end_er->get_value());
         }
         llvm::Value* start_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str(), use_integer_operations);
@@ -122,20 +118,16 @@ namespace Kepler::AST {
                 return ExpressionResult::create_invalid();
             }
             step_v = step_er->get_value();
-        }
-        else {
+        } else {
             // Step is implicit, so we need to dynamically decide if it should be 1 or -1
             if (use_integer_operations) {
                 step_v = Compiler::get().get_builder().CreateSelect(end_select_condition,
                     llvm::ConstantInt::getSigned(Type::get_by_token(start_er->get_type()), 1),
-                    llvm::ConstantInt::getSigned(Type::get_by_token(start_er->get_type()), -1)
-                );
-            }
-            else {
+                    llvm::ConstantInt::getSigned(Type::get_by_token(start_er->get_type()), -1));
+            } else {
                 step_v = Compiler::get().get_builder().CreateSelect(end_select_condition,
                     llvm::ConstantFP::get(Type::get_by_token(start_er->get_type()), 1),
-                    llvm::ConstantFP::get(Type::get_by_token(start_er->get_type()), -1)
-                );
+                    llvm::ConstantFP::get(Type::get_by_token(start_er->get_type()), -1));
             }
         }
 
@@ -146,8 +138,7 @@ namespace Kepler::AST {
         llvm::Value* next_variable;
         if (use_integer_operations) {
             next_variable = Compiler::get().get_builder().CreateAdd(current_variable, step_v, "nextvariable");
-        }
-        else {
+        } else {
             next_variable = Compiler::get().get_builder().CreateFAdd(current_variable, step_v, "nextvariable");
         }
         Compiler::get().get_builder().CreateStore(next_variable, alloca);
@@ -155,7 +146,7 @@ namespace Kepler::AST {
         // Codegen loop end condition in the body to check if the loop should be exited
         llvm::Value* end_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str(), use_integer_operations);
 
-        //Evaluate if loop should exit
+        // Evaluate if loop should exit
         llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "afterloop", f);
         Compiler::get().get_builder().CreateCondBr(end_condition, loop_block, after_loop_block);
 
@@ -168,8 +159,7 @@ namespace Kepler::AST {
         // Restore old variable if necessary
         if (old_variable) {
             LocalVariables::update(variable_name, *old_variable);
-        }
-        else {
+        } else {
             LocalVariables::erase(variable_name);
         }
 

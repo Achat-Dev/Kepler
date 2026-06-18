@@ -13,7 +13,7 @@
 
 namespace Kepler::Type {
 
-    class CharType: public DataType {
+    class CharType : public DataType {
     public:
         std::string get_name() const override;
         llvm::Type* get_llvm_type() const override;

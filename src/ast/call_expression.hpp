@@ -17,7 +17,7 @@
 
 namespace Kepler::AST {
 
-    class CallExpression: public Expression {
+    class CallExpression : public Expression {
     private:
         std::string callee;
         std::vector<std::unique_ptr<Expression>> args;
@@ -27,6 +27,5 @@ namespace Kepler::AST {
             : callee(callee), args(std::move(args)) {}
         std::unique_ptr<ExpressionResult> codegen() override;
     };
-
 
 }

@@ -59,7 +59,7 @@ namespace Kepler::AST {
             const ParameterData& parameter_data = prototype->get_parameter(arg.getName().str());
             llvm::AllocaInst* alloca = create_entry_block_alloca(f, parameter_data.type, arg.getName());
             Compiler::get().get_builder().CreateStore(&arg, alloca);
-            LocalVariables::set(std::string(arg.getName()), { parameter_data.type, alloca });
+            LocalVariables::set(std::string(arg.getName()), {parameter_data.type, alloca});
         }
 
         // Codegen function body

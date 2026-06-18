@@ -35,5 +35,4 @@ namespace Kepler::AST {
         const std::vector<ParameterData>& get_parameters() const;
     };
 
-
 }

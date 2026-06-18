@@ -17,7 +17,7 @@
 
 namespace Kepler::Type {
 
-    class VoidType: public DataType {
+    class VoidType : public DataType {
     public:
         std::string get_name() const override;
         llvm::Type* get_llvm_type() const override;

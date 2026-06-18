@@ -47,7 +47,7 @@ namespace Kepler {
         return alloca;
     }
 
-    void throw_runtime_error(const std::string &message) {
+    void throw_runtime_error(const std::string& message) {
         std::stringstream error_message;
         error_message << LogStyle::ERROR << "[ Runtime error ]" << LogStyle::DEFAULT << ": " << message;
 

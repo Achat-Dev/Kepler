@@ -18,7 +18,7 @@
 
 namespace Kepler::Type {
 
-    class Float32Type: public FloatingPointType {
+    class Float32Type : public FloatingPointType {
     public:
         std::string get_name() const override;
         llvm::Type* get_llvm_type() const override;

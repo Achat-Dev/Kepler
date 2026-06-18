@@ -18,7 +18,7 @@
 
 namespace Kepler::Type {
 
-    class Int64Type: public DataType {
+    class Int64Type : public DataType {
     public:
         std::string get_name() const override;
         llvm::Type* get_llvm_type() const override;

@@ -16,7 +16,7 @@
 
 namespace Kepler::AST {
 
-    class VariableExpression: public Expression {
+    class VariableExpression : public Expression {
     private:
         const std::string name;
 
@@ -25,6 +25,5 @@ namespace Kepler::AST {
         std::unique_ptr<ExpressionResult> codegen() override;
         const std::string& get_name() const;
     };
-
 
 }

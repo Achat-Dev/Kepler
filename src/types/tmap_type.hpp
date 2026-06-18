@@ -19,7 +19,7 @@
 
 namespace Kepler::Type {
 
-    class TMapType: public DataType {
+    class TMapType : public DataType {
     public:
         std::string get_name() const override;
         llvm::Type* get_llvm_type() const override;

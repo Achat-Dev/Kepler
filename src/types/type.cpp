@@ -40,17 +40,17 @@
 namespace Kepler::Type {
 
     static std::unordered_map<TypeToken, std::shared_ptr<DataType>> type_map = {
-        { TypeToken::Void, std::make_shared<VoidType>() },
-        { TypeToken::TMap, std::make_shared<TMapType>() },
-        { TypeToken::Bool, std::make_shared<BoolType>() },
-        { TypeToken::Char, std::make_shared<CharType>() },
-        { TypeToken::String, std::make_shared<StringType>() },
-        { TypeToken::Int8, std::make_shared<Int8Type>() },
-        { TypeToken::Int16, std::make_shared<Int16Type>() },
-        { TypeToken::Int32, std::make_shared<Int32Type>() },
-        { TypeToken::Int64, std::make_shared<Int64Type>() },
-        { TypeToken::Float32, std::make_shared<Float32Type>() },
-        { TypeToken::Float64, std::make_shared<Float64Type>() },
+        {TypeToken::Void, std::make_shared<VoidType>()},
+        {TypeToken::TMap, std::make_shared<TMapType>()},
+        {TypeToken::Bool, std::make_shared<BoolType>()},
+        {TypeToken::Char, std::make_shared<CharType>()},
+        {TypeToken::String, std::make_shared<StringType>()},
+        {TypeToken::Int8, std::make_shared<Int8Type>()},
+        {TypeToken::Int16, std::make_shared<Int16Type>()},
+        {TypeToken::Int32, std::make_shared<Int32Type>()},
+        {TypeToken::Int64, std::make_shared<Int64Type>()},
+        {TypeToken::Float32, std::make_shared<Float32Type>()},
+        {TypeToken::Float64, std::make_shared<Float64Type>()},
     };
 
     bool is_floating_point_type(TypeToken type) {

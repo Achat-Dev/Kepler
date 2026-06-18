@@ -19,7 +19,7 @@
 
 namespace Kepler::AST {
 
-    class VariableDefinitionExpression: public Expression {
+    class VariableDefinitionExpression : public Expression {
     private:
         const Type::TypeToken type;
         const std::string name;

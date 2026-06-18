@@ -45,7 +45,7 @@ namespace Kepler::AST {
 
         // Create i8* to the first element of the constant array
         llvm::Constant* zero = llvm::ConstantInt::get(Type::get_by_token(Type::TypeToken::Int32), 0);
-        llvm::Constant* indices[] = { zero, zero };
+        llvm::Constant* indices[] = {zero, zero};
         llvm::Constant* value = llvm::ConstantExpr::getInBoundsGetElementPtr(data->getType(), variable, indices);
 
         return ExpressionResult::create(value, Type::TypeToken::String, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);

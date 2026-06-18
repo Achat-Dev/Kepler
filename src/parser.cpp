@@ -17,16 +17,16 @@
 #include "ast/for_expression.hpp"
 #include "ast/function.hpp"
 #include "ast/if_expression.hpp"
+#include "ast/literal_expressions/boolean_literal_expression.hpp"
+#include "ast/literal_expressions/floating_point_literal_expression.hpp"
+#include "ast/literal_expressions/integer_literal_expression.hpp"
 #include "ast/literal_expressions/string_literal_expression.hpp"
 #include "ast/negation_expression.hpp"
 #include "ast/parameter_data.hpp"
 #include "ast/prototype.hpp"
 #include "ast/return_expression.hpp"
-#include "ast/literal_expressions/boolean_literal_expression.hpp"
-#include "ast/literal_expressions/floating_point_literal_expression.hpp"
-#include "ast/literal_expressions/integer_literal_expression.hpp"
-#include "ast/variable_expression.hpp"
 #include "ast/variable_definition_expression.hpp"
+#include "ast/variable_expression.hpp"
 #include "function_registry/function_registry.hpp"
 #include "lexer.hpp"
 #include "log.hpp"
@@ -48,18 +48,17 @@ namespace Kepler::Parser {
 
     // Higher values mean higher precedence
     static std::map<Lexer::Token, int> binop_precedence_map = {
-        { Lexer::Token::Assignment, 2 },
-        { Lexer::Token::LessThan, 10 },
-        { Lexer::Token::GreaterThan, 10 },
-        { Lexer::Token::Equals, 10 },
-        { Lexer::Token::NotEquals, 10 },
-        { Lexer::Token::LessEquals, 10 },
-        { Lexer::Token::GreaterEquals, 10 },
-        { Lexer::Token::Plus, 20 },
-        { Lexer::Token::Minus, 20 },
-        { Lexer::Token::Multiplication, 40 },
-        { Lexer::Token::Division, 40 }
-    };
+        {Lexer::Token::Assignment, 2},
+        {Lexer::Token::LessThan, 10},
+        {Lexer::Token::GreaterThan, 10},
+        {Lexer::Token::Equals, 10},
+        {Lexer::Token::NotEquals, 10},
+        {Lexer::Token::LessEquals, 10},
+        {Lexer::Token::GreaterEquals, 10},
+        {Lexer::Token::Plus, 20},
+        {Lexer::Token::Minus, 20},
+        {Lexer::Token::Multiplication, 40},
+        {Lexer::Token::Division, 40}};
 
     // This has to be forward declared
     static std::unique_ptr<AST::Expression> parse_primary();
@@ -95,7 +94,7 @@ namespace Kepler::Parser {
 
     static std::unique_ptr<AST::Expression> parse_string_literal() {
         std::string value = Lexer::get_string_literal();
-        read_next_token();  // eat the string
+        read_next_token(); // eat the string
         return std::make_unique<AST::StringLiteralExpression>(std::move(value));
     }
 
@@ -170,8 +169,7 @@ namespace Kepler::Parser {
             while (true) {
                 if (auto arg = parse_expression()) {
                     args.push_back(std::move(arg));
-                }
-                else {
+                } else {
                     return nullptr;
                 }
 
@@ -251,7 +249,7 @@ namespace Kepler::Parser {
                 return nullptr;
             }
 
-            parameters.push_back({ type, std::move(Lexer::get_identifier()) });
+            parameters.push_back({type, std::move(Lexer::get_identifier())});
 
             read_next_token(); // eat identifier
             if (current_token == Lexer::Token::Comma) {
@@ -324,8 +322,7 @@ namespace Kepler::Parser {
         if (current_token != Lexer::Token::BracketOpen) {
             if (is_elseif) {
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after 'elseif'");
-            }
-            else {
+            } else {
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected '(' after 'if'");
             }
             return nullptr;
@@ -337,8 +334,7 @@ namespace Kepler::Parser {
         if (!condition) {
             if (is_elseif) {
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after '(' in 'elseif'");
-            }
-            else {
+            } else {
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected condition after '(' in 'if'");
             }
             return nullptr;
@@ -347,8 +343,7 @@ namespace Kepler::Parser {
         if (current_token != Lexer::Token::BracketClose) {
             if (is_elseif) {
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after condition in 'elseif'");
-            }
-            else {
+            } else {
                 log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": expected ')' after condition in 'if'");
             }
             return nullptr;
@@ -362,8 +357,7 @@ namespace Kepler::Parser {
             if (!expression) {
                 if (is_elseif) {
                     log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'elseif' body");
-                }
-                else {
+                } else {
                     log(LogStyle::ERROR, "[ Parsing error ]", LogStyle::DEFAULT, ": invalid expression in 'if' body");
                 }
                 return nullptr;
@@ -374,20 +368,17 @@ namespace Kepler::Parser {
         if (if_body.size() == 0) {
             if (is_elseif) {
                 log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty 'elseif' body detected");
-            }
-            else {
-             log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty 'if' body detected");
+            } else {
+                log(LogStyle::WARNING, "[ Parsing warning ]", LogStyle::DEFAULT, ": empty 'if' body detected");
             }
         }
 
         // Setup behaviour for different 'if' ending cases
         if (current_token == Lexer::Token::Else) {
             read_next_token(); // eat 'else'
-        }
-        else if (current_token == Lexer::Token::Elseif) {
+        } else if (current_token == Lexer::Token::Elseif) {
             current_token = Lexer::Token::Parsing_Elseif;
-        }
-        else if (current_token == Lexer::Token::End) {
+        } else if (current_token == Lexer::Token::End) {
             if (!is_elseif) {
                 read_next_token(); // eat 'end'
             }
