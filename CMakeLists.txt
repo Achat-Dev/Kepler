@@ -8,9 +8,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Build the runtime
 # Check the dependencies and fail if one of them isn't found
-find_program(CLANG clang++)
+find_program(CLANG clang)
 if(NOT CLANG)
-    message(FATAL_ERROR "'clang++' not found, which is a dependency of 'kepler'")
+    message(FATAL_ERROR "'clang' not found, which is a dependency of 'kepler'")
 endif()
 
 find_program(XXD xxd)
