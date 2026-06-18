@@ -27,7 +27,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        return ExpressionResult::create(llvm::ConstantInt::getBool(Compiler::get_context(), value), Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        return ExpressionResult::create(llvm::ConstantInt::getBool(Compiler::get().get_context(), value), Type::TypeToken::Bool, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
 }

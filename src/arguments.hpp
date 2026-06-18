@@ -11,6 +11,7 @@
 
 #include <string>
 #include <vector>
+
 namespace Kepler::Arguments {
 
     enum class ArgumentParseResult {

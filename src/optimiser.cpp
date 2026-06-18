@@ -38,7 +38,7 @@ namespace Kepler::Optimiser {
         cgam = std::make_unique<llvm::CGSCCAnalysisManager>();
         mam = std::make_unique<llvm::ModuleAnalysisManager>();
         pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
-        si = std::make_unique<llvm::StandardInstrumentations>(Compiler::get_context(), true);
+        si = std::make_unique<llvm::StandardInstrumentations>(Compiler::get().get_context(), true);
         si->registerCallbacks(*pic, mam.get());
 
         fpm->addPass(llvm::InstCombinePass());

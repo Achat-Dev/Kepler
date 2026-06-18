@@ -25,7 +25,7 @@ namespace Kepler::AST {
         Type::TypeToken target_return_type = FunctionRegistry::get_current_prototype()->get_type();
 
         if (target_return_type == Type::TypeToken::Void) {
-            return ExpressionResult::create(Compiler::get_builder().CreateRetVoid(), Type::TypeToken::Void, ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
+            return ExpressionResult::create(Compiler::get().get_builder().CreateRetVoid(), Type::TypeToken::Void, ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
         }
 
         Type::TargetTypeStack::push(target_return_type);
@@ -47,7 +47,7 @@ namespace Kepler::AST {
 
         Type::TargetTypeStack::pop();
 
-        return ExpressionResult::create(Compiler::get_builder().CreateRet(expression_er->get_value()), expression_er->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
+        return ExpressionResult::create(Compiler::get().get_builder().CreateRet(expression_er->get_value()), expression_er->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Return);
     }
 
 }

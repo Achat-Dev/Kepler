@@ -34,10 +34,10 @@ namespace Kepler::AST {
         }
 
         // Constant array that holds the string data (null terminated)
-        llvm::Constant* data = llvm::ConstantDataArray::getString(Compiler::get_context(), value, true);
+        llvm::Constant* data = llvm::ConstantDataArray::getString(Compiler::get().get_context(), value, true);
 
         // Pointer that points to the constant array
-        llvm::GlobalVariable* variable = new llvm::GlobalVariable(Compiler::get_module(), data->getType(), true, llvm::GlobalValue::PrivateLinkage, data);
+        llvm::GlobalVariable* variable = new llvm::GlobalVariable(Compiler::get().get_module(), data->getType(), true, llvm::GlobalValue::PrivateLinkage, data);
 
         // Optimisation: tell llvm that the pointer is never going to be compared
         // (only the value of the string is going to be compared, never the reference to the string)

@@ -28,7 +28,7 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> CallExpression::codegen() {
-        llvm::Function* callee_f = Compiler::get_module().getFunction(callee);
+        llvm::Function* callee_f = Compiler::get().get_module().getFunction(callee);
         if (!callee_f) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": unknown function '", callee, "' called");
             return ExpressionResult::create_invalid();
@@ -66,9 +66,9 @@ namespace Kepler::AST {
         }
 
         if (prototype->get_type() == Type::TypeToken::Void) {
-            return ExpressionResult::create(Compiler::get_builder().CreateCall(callee_f, args_v), prototype->get_type(), ExpressionResultFlags::Valid);
+            return ExpressionResult::create(Compiler::get().get_builder().CreateCall(callee_f, args_v), prototype->get_type(), ExpressionResultFlags::Valid);
         }
-        return ExpressionResult::create(Compiler::get_builder().CreateCall(callee_f, args_v, "calltmp"), prototype->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        return ExpressionResult::create(Compiler::get().get_builder().CreateCall(callee_f, args_v, "calltmp"), prototype->get_type(), ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
 

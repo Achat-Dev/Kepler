@@ -29,7 +29,7 @@ namespace Kepler::Type {
     }
 
     bool DataType::create_assign(llvm::Value* value, const LocalVariables::VariableData& variable_data) const {
-        Compiler::get_builder().CreateStore(value, variable_data.variable);
+        Compiler::get().get_builder().CreateStore(value, variable_data.variable);
         return true;
     }
 

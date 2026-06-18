@@ -35,21 +35,21 @@ namespace Kepler::AST {
 
     static llvm::Value* codegen_end_condition(llvm::Value* select_condition, llvm::AllocaInst* alloca, llvm::Value* endv, const char* variable_name, bool use_integer_operations) {
         if (use_integer_operations) {
-            return Compiler::get_builder().CreateSelect(select_condition,
-                Compiler::get_builder().CreateICmpSLT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
-                Compiler::get_builder().CreateICmpSGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
+            return Compiler::get().get_builder().CreateSelect(select_condition,
+                Compiler::get().get_builder().CreateICmpSLT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
+                Compiler::get().get_builder().CreateICmpSGT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
             );
         }
         else {
-            return Compiler::get_builder().CreateSelect(select_condition,
-                Compiler::get_builder().CreateFCmpULT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
-                Compiler::get_builder().CreateFCmpUGT(Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
+            return Compiler::get().get_builder().CreateSelect(select_condition,
+                Compiler::get().get_builder().CreateFCmpULT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditionlt"),
+                Compiler::get().get_builder().CreateFCmpUGT(Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name), endv, "loopconditiongt")
             );
         }
     }
 
     std::unique_ptr<ExpressionResult> ForExpression::codegen() {
-        llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
+        llvm::Function* f = Compiler::get().get_builder().GetInsertBlock()->getParent();
 
         // Save old variable if the loop variable overrides it
         std::string variable_name = start->get_name();
@@ -77,17 +77,17 @@ namespace Kepler::AST {
 
         llvm::Value* end_select_condition;
         if (use_integer_operations) {
-            end_select_condition = Compiler::get_builder().CreateICmpSLE(start_er->get_value(), end_er->get_value());
+            end_select_condition = Compiler::get().get_builder().CreateICmpSLE(start_er->get_value(), end_er->get_value());
         }
         else {
-            end_select_condition = Compiler::get_builder().CreateFCmpULE(start_er->get_value(), end_er->get_value());
+            end_select_condition = Compiler::get().get_builder().CreateFCmpULE(start_er->get_value(), end_er->get_value());
         }
         llvm::Value* start_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str(), use_integer_operations);
 
         // Don't create a terminator for the entry block yet because that depends on if the body is a qualified return
-        llvm::BasicBlock* entry_block = Compiler::get_builder().GetInsertBlock();
-        llvm::BasicBlock* loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "loop", f);
-        Compiler::get_builder().SetInsertPoint(loop_block);
+        llvm::BasicBlock* entry_block = Compiler::get().get_builder().GetInsertBlock();
+        llvm::BasicBlock* loop_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "loop", f);
+        Compiler::get().get_builder().SetInsertPoint(loop_block);
 
         // Pop target type before codegening body
         Type::TargetTypeStack::pop();
@@ -103,9 +103,9 @@ namespace Kepler::AST {
                 log(LogStyle::WARNING, "[ Compile warning ]", LogStyle::DEFAULT, ": return in 'for' body detected. This will always be executed even if the loop condition is false at start. Consider removing the for loop");
 
                 // Create the terminator for the entry block -> branch to the loop_block
-                Compiler::get_builder().SetInsertPoint(entry_block);
-                Compiler::get_builder().CreateBr(loop_block);
-                Compiler::get_builder().SetInsertPoint(loop_block);
+                Compiler::get().get_builder().SetInsertPoint(entry_block);
+                Compiler::get().get_builder().CreateBr(loop_block);
+                Compiler::get().get_builder().SetInsertPoint(loop_block);
 
                 return ExpressionResult::create(nullptr, Type::TypeToken::None, ExpressionResultFlags::Valid | ExpressionResultFlags::QualifiedReturn);
             }
@@ -126,13 +126,13 @@ namespace Kepler::AST {
         else {
             // Step is implicit, so we need to dynamically decide if it should be 1 or -1
             if (use_integer_operations) {
-                step_v = Compiler::get_builder().CreateSelect(end_select_condition,
+                step_v = Compiler::get().get_builder().CreateSelect(end_select_condition,
                     llvm::ConstantInt::getSigned(Type::get_by_token(start_er->get_type()), 1),
                     llvm::ConstantInt::getSigned(Type::get_by_token(start_er->get_type()), -1)
                 );
             }
             else {
-                step_v = Compiler::get_builder().CreateSelect(end_select_condition,
+                step_v = Compiler::get().get_builder().CreateSelect(end_select_condition,
                     llvm::ConstantFP::get(Type::get_by_token(start_er->get_type()), 1),
                     llvm::ConstantFP::get(Type::get_by_token(start_er->get_type()), -1)
                 );
@@ -142,28 +142,28 @@ namespace Kepler::AST {
         Type::TargetTypeStack::pop();
 
         // Calculate loop variable for next iteration
-        llvm::Value* current_variable = Compiler::get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());
+        llvm::Value* current_variable = Compiler::get().get_builder().CreateLoad(alloca->getAllocatedType(), alloca, variable_name.c_str());
         llvm::Value* next_variable;
         if (use_integer_operations) {
-            next_variable = Compiler::get_builder().CreateAdd(current_variable, step_v, "nextvariable");
+            next_variable = Compiler::get().get_builder().CreateAdd(current_variable, step_v, "nextvariable");
         }
         else {
-            next_variable = Compiler::get_builder().CreateFAdd(current_variable, step_v, "nextvariable");
+            next_variable = Compiler::get().get_builder().CreateFAdd(current_variable, step_v, "nextvariable");
         }
-        Compiler::get_builder().CreateStore(next_variable, alloca);
+        Compiler::get().get_builder().CreateStore(next_variable, alloca);
 
         // Codegen loop end condition in the body to check if the loop should be exited
         llvm::Value* end_condition = codegen_end_condition(end_select_condition, alloca, end_er->get_value(), variable_name.c_str(), use_integer_operations);
 
         //Evaluate if loop should exit
-        llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterloop", f);
-        Compiler::get_builder().CreateCondBr(end_condition, loop_block, after_loop_block);
+        llvm::BasicBlock* after_loop_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "afterloop", f);
+        Compiler::get().get_builder().CreateCondBr(end_condition, loop_block, after_loop_block);
 
         // Create the terminator for the entry block -> conditional branch to either the loop_block or after_loop_block
-        Compiler::get_builder().SetInsertPoint(entry_block);
-        Compiler::get_builder().CreateCondBr(start_condition, loop_block, after_loop_block);
+        Compiler::get().get_builder().SetInsertPoint(entry_block);
+        Compiler::get().get_builder().CreateCondBr(start_condition, loop_block, after_loop_block);
 
-        Compiler::get_builder().SetInsertPoint(after_loop_block);
+        Compiler::get().get_builder().SetInsertPoint(after_loop_block);
 
         // Restore old variable if necessary
         if (old_variable) {

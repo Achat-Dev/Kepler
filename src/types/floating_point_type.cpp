@@ -46,10 +46,10 @@ namespace Kepler::Type {
             default: break;
         }
 
-        llvm::Value* clamped = Compiler::get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
-        clamped = Compiler::get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
+        llvm::Value* clamped = Compiler::get().get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
+        clamped = Compiler::get().get_builder().CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
 
-        return Compiler::get_builder().CreateFPToSI(clamped, Type::get_by_token(to));
+        return Compiler::get().get_builder().CreateFPToSI(clamped, Type::get_by_token(to));
     }
 
 }

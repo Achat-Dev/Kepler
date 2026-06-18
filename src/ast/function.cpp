@@ -35,7 +35,7 @@
 namespace Kepler::AST {
 
     llvm::Function* Function::codegen() {
-        llvm::Function* f = Compiler::get_module().getFunction(prototype->get_name());
+        llvm::Function* f = Compiler::get().get_module().getFunction(prototype->get_name());
         if (!f) {
             f = prototype->codegen();
         }
@@ -50,15 +50,15 @@ namespace Kepler::AST {
             return nullptr;
         }
 
-        llvm::BasicBlock* entry_block = llvm::BasicBlock::Create(Compiler::get_context(), "entry", f);
-        Compiler::get_builder().SetInsertPoint(entry_block);
+        llvm::BasicBlock* entry_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "entry", f);
+        Compiler::get().get_builder().SetInsertPoint(entry_block);
 
         // Record function arguments
         LocalVariables::clear();
         for (llvm::Argument& arg : f->args()) {
             const ParameterData& parameter_data = prototype->get_parameter(arg.getName().str());
             llvm::AllocaInst* alloca = create_entry_block_alloca(f, parameter_data.type, arg.getName());
-            Compiler::get_builder().CreateStore(&arg, alloca);
+            Compiler::get().get_builder().CreateStore(&arg, alloca);
             LocalVariables::set(std::string(arg.getName()), { parameter_data.type, alloca });
         }
 
@@ -82,7 +82,7 @@ namespace Kepler::AST {
 
         llvm::EliminateUnreachableBlocks(*f);
 
-        if (Compiler::get_builder().GetInsertBlock()->getTerminator() == nullptr) {
+        if (Compiler::get().get_builder().GetInsertBlock()->getTerminator() == nullptr) {
             if (prototype->get_type() != Type::TypeToken::Void) {
                 log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": function is missing a 'return' expression");
                 f->print(llvm::errs());
@@ -90,7 +90,7 @@ namespace Kepler::AST {
                 return nullptr;
             }
 
-            Compiler::get_builder().CreateRetVoid();
+            Compiler::get().get_builder().CreateRetVoid();
         }
 
         if (llvm::verifyFunction(*f, &llvm::errs())) {

@@ -46,7 +46,7 @@ namespace Kepler::Type {
     static llvm::StructType* llvm_type = nullptr;
 
     void TMapType::create_type() {
-        llvm::StructType* struct_type = llvm::StructType::create(Compiler::get_context(), "tmap_type");
+        llvm::StructType* struct_type = llvm::StructType::create(Compiler::get().get_context(), "tmap_type");
 
         // Create the struct body
         llvm::Type* struct_body[field_count * 2];
@@ -88,23 +88,23 @@ namespace Kepler::Type {
                 }
 
                 // Check if a value has been assigned to the field
-                llvm::Value* field_flag_ptr = Compiler::get_builder().CreateStructGEP(llvm_type, alloca, i + field_count, "tmap_field_flag_ptr");
-                llvm::Value* field_flag_value = Compiler::get_builder().CreateLoad(get_by_token(TypeToken::Bool), field_flag_ptr, "tmap_field_flag");
-                llvm::Value* condition = Type::create_equals(field_flag_value, llvm::ConstantInt::getFalse(Compiler::get_context()), TypeToken::Bool);
+                llvm::Value* field_flag_ptr = Compiler::get().get_builder().CreateStructGEP(llvm_type, alloca, i + field_count, "tmap_field_flag_ptr");
+                llvm::Value* field_flag_value = Compiler::get().get_builder().CreateLoad(get_by_token(TypeToken::Bool), field_flag_ptr, "tmap_field_flag");
+                llvm::Value* condition = Type::create_equals(field_flag_value, llvm::ConstantInt::getFalse(Compiler::get().get_context()), TypeToken::Bool);
 
-                llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
-                llvm::BasicBlock* if_block = llvm::BasicBlock::Create(Compiler::get_context(), "ifbranch", f);
-                llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get_context(), "elsebranch", f);
-                Compiler::get_builder().CreateCondBr(condition, if_block, else_block);
-                Compiler::get_builder().SetInsertPoint(if_block);
+                llvm::Function* f = Compiler::get().get_builder().GetInsertBlock()->getParent();
+                llvm::BasicBlock* if_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "ifbranch", f);
+                llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "elsebranch", f);
+                Compiler::get().get_builder().CreateCondBr(condition, if_block, else_block);
+                Compiler::get().get_builder().SetInsertPoint(if_block);
 
                 throw_runtime_error("trying to read field of type '" + get_type_name(to) + "' from a 'tmap', which hasn't been assigned yet");
-                Compiler::get_builder().CreateUnreachable();
+                Compiler::get().get_builder().CreateUnreachable();
 
                 // Load the actual field
-                Compiler::get_builder().SetInsertPoint(else_block);
-                llvm::Value* field_ptr = Compiler::get_builder().CreateStructGEP(llvm_type, alloca, i, "tmap_field_ptr");
-                llvm::Value* field_value = Compiler::get_builder().CreateLoad(get_by_token(to), field_ptr, "tmap_field");
+                Compiler::get().get_builder().SetInsertPoint(else_block);
+                llvm::Value* field_ptr = Compiler::get().get_builder().CreateStructGEP(llvm_type, alloca, i, "tmap_field_ptr");
+                llvm::Value* field_value = Compiler::get().get_builder().CreateLoad(get_by_token(to), field_ptr, "tmap_field");
                 return field_value;
             }
         }
@@ -119,19 +119,19 @@ namespace Kepler::Type {
 
     bool TMapType::create_assign(llvm::Value* value, TypeToken value_type, const LocalVariables::VariableData& variable_data) const {
         if (value_type == TypeToken::TMap) {
-            Compiler::get_builder().CreateStore(value, variable_data.variable);
+            Compiler::get().get_builder().CreateStore(value, variable_data.variable);
             return true;
         }
         else {
             for (size_t i = 0; i < field_count; i++) {
                 if (tmap_member_order[i] == value_type) {
                     // Assign the value to the field
-                    llvm::Value* field_ptr = Compiler::get_builder().CreateStructGEP(llvm_type, variable_data.variable, i, "tmap_field_ptr");
-                    Compiler::get_builder().CreateStore(value, field_ptr);
+                    llvm::Value* field_ptr = Compiler::get().get_builder().CreateStructGEP(llvm_type, variable_data.variable, i, "tmap_field_ptr");
+                    Compiler::get().get_builder().CreateStore(value, field_ptr);
 
                     // Set the flag to indicate that the field has a value assigned to it
-                    llvm::Value* field_flag_ptr = Compiler::get_builder().CreateStructGEP(llvm_type, variable_data.variable, i + field_count, "tmap_field_flag_ptr");
-                    Compiler::get_builder().CreateStore(llvm::ConstantInt::getTrue(Compiler::get_context()), field_flag_ptr);
+                    llvm::Value* field_flag_ptr = Compiler::get().get_builder().CreateStructGEP(llvm_type, variable_data.variable, i + field_count, "tmap_field_flag_ptr");
+                    Compiler::get().get_builder().CreateStore(llvm::ConstantInt::getTrue(Compiler::get().get_context()), field_flag_ptr);
                     return true;
                 }
             }

@@ -41,7 +41,7 @@ namespace Kepler {
 
         if (type == Type::TypeToken::TMap) {
             llvm::Constant* default_tmap = llvm::ConstantAggregateZero::get(llvm_type);
-            Compiler::get_builder().CreateStore(default_tmap, alloca);
+            Compiler::get().get_builder().CreateStore(default_tmap, alloca);
         }
 
         return alloca;

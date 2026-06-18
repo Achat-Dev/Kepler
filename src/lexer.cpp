@@ -89,13 +89,13 @@ namespace Kepler::Lexer {
     }
 
     Token read_token() {
-        if (Compiler::get_file()->peek() == EOF) {
+        if (Compiler::get().get_file()->peek() == EOF) {
             log_verbose("\tTokenType: EndOfFile");
             return Token::EndOfFile;
         }
 
         while (isspace(last_char)) {
-            last_char = Compiler::get_file()->read_next_char();
+            last_char = Compiler::get().get_file()->read_next_char();
         }
 
         if (isalpha(last_char)) {
@@ -108,60 +108,60 @@ namespace Kepler::Lexer {
         switch (last_char) {
             case '#': return read_comment();
             case ',':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::Comma;
             case ':':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::Colon;
             case '(':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::BracketOpen;
             case ')':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::BracketClose;
             case '=':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 if (last_char == '=') {
-                    last_char = Compiler::get_file()->read_next_char();
+                    last_char = Compiler::get().get_file()->read_next_char();
                     return Token::Equals;
                 }
                 else {
                     return Token::Assignment;
                 }
             case '+':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::Plus;
             case '-':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::Minus;
             case '*':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::Multiplication;
             case '/':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 return Token::Division;
             case '<':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 if (last_char == '=') {
-                    last_char = Compiler::get_file()->read_next_char();
+                    last_char = Compiler::get().get_file()->read_next_char();
                     return Token::LessEquals;
                 }
                 else {
                     return Token::LessThan;
                 }
             case '>':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 if (last_char == '=') {
-                    last_char = Compiler::get_file()->read_next_char();
+                    last_char = Compiler::get().get_file()->read_next_char();
                     return Token::GreaterEquals;
                 }
                 else {
                     return Token::GreaterThan;
                 }
             case '!':
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
                 if (last_char == '=') {
-                    last_char = Compiler::get_file()->read_next_char();
+                    last_char = Compiler::get().get_file()->read_next_char();
                     return Token::NotEquals;
                 }
                 else {
@@ -179,10 +179,10 @@ namespace Kepler::Lexer {
 
     static Token read_identifier() {
         identifier = last_char;
-        last_char = Compiler::get_file()->read_next_char();
+        last_char = Compiler::get().get_file()->read_next_char();
         while (isalnum(last_char) || last_char == '_') {
             identifier += last_char;
-            last_char = Compiler::get_file()->read_next_char();
+            last_char = Compiler::get().get_file()->read_next_char();
         }
 
         if (identifier == "extern") {
@@ -286,7 +286,7 @@ namespace Kepler::Lexer {
         std::string literal_string;
         do {
             literal_string += last_char;
-            last_char = Compiler::get_file()->read_next_char();
+            last_char = Compiler::get().get_file()->read_next_char();
             if (last_char == '.') {
                 is_float = true;
             }
@@ -306,11 +306,11 @@ namespace Kepler::Lexer {
 
     static Token read_string_literal() {
         string_literal = "";
-        last_char = Compiler::get_file()->read_next_char();
+        last_char = Compiler::get().get_file()->read_next_char();
 
         while (last_char != '"') {
             if (last_char == '\\') {
-                last_char = Compiler::get_file()->read_next_char(); // read the character to escape
+                last_char = Compiler::get().get_file()->read_next_char(); // read the character to escape
 
                 switch (last_char) {
                     case 'n': string_literal += '\n'; break;
@@ -322,45 +322,45 @@ namespace Kepler::Lexer {
                         return Token::Unknown;
                 }
 
-                last_char = Compiler::get_file()->read_next_char(); // read the next character for the next loop interation
+                last_char = Compiler::get().get_file()->read_next_char(); // read the next character for the next loop interation
             }
             else {
                 string_literal += last_char;
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
             }
         }
 
-        last_char = Compiler::get_file()->read_next_char(); // eat closing '"'
+        last_char = Compiler::get().get_file()->read_next_char(); // eat closing '"'
         return Token::StringLiteral;
     }
 
     static Token read_comment() {
-        last_char = Compiler::get_file()->read_next_char();
+        last_char = Compiler::get().get_file()->read_next_char();
 
         // Two # after each other -> multiline comment
         if (last_char == '#') {
-            while (!(last_char == '#' && Compiler::get_file()->peek() == '#')) {
-                if (Compiler::get_file()->peek() == EOF) {
+            while (!(last_char == '#' && Compiler::get().get_file()->peek() == '#')) {
+                if (Compiler::get().get_file()->peek() == EOF) {
                     log(LogStyle::WARNING, "[ Lexing warning ]", LogStyle::DEFAULT, ": multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
                     log_verbose("\tTokenType: EndOfFile");
                     return Token::EndOfFile;
                 }
 
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
             }
 
-            Compiler::get_file()->read_next_char(); // eat second '#'
-            last_char = Compiler::get_file()->read_next_char(); // save actual next character for reading next token
+            Compiler::get().get_file()->read_next_char(); // eat second '#'
+            last_char = Compiler::get().get_file()->read_next_char(); // save actual next character for reading next token
         }
         // Single line comment
         else {
             while (last_char != '\n' && last_char != '\r') {
-                if (Compiler::get_file()->peek() == EOF) {
+                if (Compiler::get().get_file()->peek() == EOF) {
                     log_verbose("\tTokenType: EndOfFile");
                     return Token::EndOfFile;
                 }
 
-                last_char = Compiler::get_file()->read_next_char();
+                last_char = Compiler::get().get_file()->read_next_char();
             }
         }
 

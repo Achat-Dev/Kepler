@@ -43,16 +43,16 @@ namespace Kepler::AST {
             condition_er->set_value(Type::cast(condition_er->get_value(), condition_er->get_type(), Type::TypeToken::Bool));
         }
 
-        llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
+        llvm::Function* f = Compiler::get().get_builder().GetInsertBlock()->getParent();
 
-        llvm::BasicBlock* if_block = llvm::BasicBlock::Create(Compiler::get_context(), "ifbranch", f);
-        llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get_context(), "elsebranch", f);
-        llvm::BasicBlock* after_block = llvm::BasicBlock::Create(Compiler::get_context(), "afterbranch", f);
+        llvm::BasicBlock* if_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "ifbranch", f);
+        llvm::BasicBlock* else_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "elsebranch", f);
+        llvm::BasicBlock* after_block = llvm::BasicBlock::Create(Compiler::get().get_context(), "afterbranch", f);
 
-        Compiler::get_builder().CreateCondBr(condition_er->get_value(), if_block, else_block);
+        Compiler::get().get_builder().CreateCondBr(condition_er->get_value(), if_block, else_block);
 
         // Codegen if body
-        Compiler::get_builder().SetInsertPoint(if_block);
+        Compiler::get().get_builder().SetInsertPoint(if_block);
 
         bool if_body_has_return = false;
         for (int i = 0; i < if_body.size(); i++) {
@@ -71,11 +71,11 @@ namespace Kepler::AST {
         }
 
         if (!if_body_has_return) {
-            Compiler::get_builder().CreateBr(after_block);
+            Compiler::get().get_builder().CreateBr(after_block);
         }
 
         // Codegen else body
-        Compiler::get_builder().SetInsertPoint(else_block);
+        Compiler::get().get_builder().SetInsertPoint(else_block);
 
         bool else_body_has_return = false;
         for (int i = 0; i < else_body.size(); i++) {
@@ -94,10 +94,10 @@ namespace Kepler::AST {
         }
 
         if (!else_body_has_return) {
-            Compiler::get_builder().CreateBr(after_block);
+            Compiler::get().get_builder().CreateBr(after_block);
         }
 
-        Compiler::get_builder().SetInsertPoint(after_block);
+        Compiler::get().get_builder().SetInsertPoint(after_block);
 
         unsigned int flags = ExpressionResultFlags::Valid;
         if (if_body_has_return && else_body_has_return) {

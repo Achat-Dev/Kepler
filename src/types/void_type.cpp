@@ -22,7 +22,7 @@ namespace Kepler::Type {
     }
 
     llvm::Type* VoidType::get_llvm_type() const {
-        return llvm::Type::getVoidTy(Compiler::get_context());
+        return llvm::Type::getVoidTy(Compiler::get().get_context());
     }
 
 }

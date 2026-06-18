@@ -168,7 +168,7 @@ namespace Kepler::Runtime {
             return nullptr;
         }
 
-        llvm::Expected<std::unique_ptr<llvm::Module>> runtime_module = llvm::parseBitcodeFile(*memory_buffer.get(), Compiler::get_context());
+        llvm::Expected<std::unique_ptr<llvm::Module>> runtime_module = llvm::parseBitcodeFile(*memory_buffer.get(), Compiler::get().get_context());
         if (!runtime_module) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": failed to parse runtime bytecode into llvm module");
             return nullptr;

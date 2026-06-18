@@ -23,7 +23,7 @@ namespace Kepler::Type {
     }
 
     llvm::Type* BoolType::get_llvm_type() const {
-        return llvm::Type::getInt1Ty(Compiler::get_context());
+        return llvm::Type::getInt1Ty(Compiler::get().get_context());
     }
 
     llvm::Value* BoolType::cast(llvm::Value* value, TypeToken to) const {
@@ -34,11 +34,11 @@ namespace Kepler::Type {
     }
 
     llvm::Value* BoolType::create_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        return Compiler::get_builder().CreateICmpEQ(lhs, rhs, "bool_eq");
+        return Compiler::get().get_builder().CreateICmpEQ(lhs, rhs, "bool_eq");
     }
 
     llvm::Value* BoolType::create_not_equals(llvm::Value* lhs, llvm::Value* rhs) const {
-        return Compiler::get_builder().CreateICmpNE(lhs, rhs, "bool_neq");
+        return Compiler::get().get_builder().CreateICmpNE(lhs, rhs, "bool_neq");
     }
 
 }

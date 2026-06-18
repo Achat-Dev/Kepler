@@ -25,7 +25,7 @@
 namespace Kepler::AST {
 
     std::unique_ptr<ExpressionResult> VariableDefinitionExpression::codegen() {
-        llvm::Function* f = Compiler::get_builder().GetInsertBlock()->getParent();
+        llvm::Function* f = Compiler::get().get_builder().GetInsertBlock()->getParent();
         if (!f) {
             log(LogStyle::ERROR, "[ Compile error ]", LogStyle::DEFAULT, ": local variable defined outside of function");
             return ExpressionResult::create_invalid();

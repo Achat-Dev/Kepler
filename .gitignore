@@ -2,4 +2,4 @@
 .cache/
 build/
 examples/
-docs/tmap_paper/
+.clang-format

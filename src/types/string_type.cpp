@@ -54,7 +54,7 @@ namespace Kepler::Type {
         // A string is internally represented as an immutable array of i8
         // However, to get the llvm::Type* of that, the length of the array is needed
         // That's why the type of a string is an i8* (since llvm uses opaque pointers, the pointer is not explicitly typed)
-        return llvm::PointerType::get(Compiler::get_context(), 0);
+        return llvm::PointerType::get(Compiler::get().get_context(), 0);
     }
 
     llvm::Value* StringType::cast(llvm::Value* value, TypeToken to) const {

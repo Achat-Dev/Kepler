@@ -31,7 +31,7 @@ namespace Kepler::AST {
             types.push_back(Type::get_by_token(parameter.type));
         }
         llvm::FunctionType* ft = llvm::FunctionType::get(Type::get_by_token(type), types, false);
-        llvm::Function* f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, name, Compiler::get_module());
+        llvm::Function* f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, name, Compiler::get().get_module());
 
         unsigned int index = 0;
         for (llvm::Argument& arg : f->args()) {

@@ -37,7 +37,7 @@ namespace Kepler::AST {
             return ExpressionResult::create_invalid();
         }
 
-        return ExpressionResult::create(Compiler::get_builder().CreateLoad(Type::get_by_token(variable_data->type), variable_data->variable, name.c_str()), variable_data->type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
+        return ExpressionResult::create(Compiler::get().get_builder().CreateLoad(Type::get_by_token(variable_data->type), variable_data->variable, name.c_str()), variable_data->type, ExpressionResultFlags::Valid | ExpressionResultFlags::Returnable);
     }
 
     const std::string& VariableExpression::get_name() const {
