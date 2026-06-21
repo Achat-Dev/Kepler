@@ -7,13 +7,17 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "command_line_arguments.hpp"
-#include "compiler.hpp"
+#pragma once
 
-using namespace Kepler;
+namespace Kepler {
 
-int main(int argc, char* argv[]) {
-    CommandLineArguments arguments = parse_command_line_arguments(argc, argv);
-    Compiler compiler(arguments);
-    compiler.compile_project();
+    enum class ErrorCode {
+        IOFileNotFound = 101,
+        IOFileIsADirectory = 102,
+        IONotARegularFile = 103,
+        IOFailedToCreateFileStream = 104,
+
+        LexerUnknownCharacter = 201,
+    };
+
 }

@@ -9,61 +9,64 @@
 
 #pragma once
 
-#include "arguments.hpp"
 #include <iostream>
-#include <llvm/IR/Value.h>
-#include <string>
+
+#define ANSI_RESET "\033[0m"
+#define ANSI_VERBOSE "\033[38;5;241m"
+#define ANSI_WARNING "\033[1;30;43m"
+#define ANSI_ERROR "\033[1;30;41m"
+#define ANSI_UNSUPPORTED "\033[1;30;45m"
 
 namespace Kepler {
 
+    struct LogConfig {
+        bool should_log_verbose = false;
+    };
+
+    inline LogConfig log_config;
+
     namespace LogStyle {
+        inline constexpr char RESET[] = ANSI_RESET;
+        inline constexpr char WARNING[] = ANSI_WARNING;
+        inline constexpr char ERROR[] = ANSI_ERROR;
+        inline constexpr char UNSUPPORTED[] = ANSI_UNSUPPORTED;
+    }
 
-        const std::string DEFAULT = "\033[0m";
-        const std::string BOLD = "\033[1m";
+    namespace LogType {
+        inline constexpr char LEXING_WARNING[] = ANSI_WARNING "[ Lexing warning ]" ANSI_RESET ": ";
 
-        // Text colours
-        const std::string BLACK = "\033[30m";
-        const std::string RED = "\033[31m";
-        const std::string GREEN = "\033[32m";
-        const std::string YELLOW = "\033[33m";
-        const std::string BLUE = "\033[34m";
-        const std::string MAGENTA = "\033[35m";
-        const std::string CYAN = "\033[36m";
-        const std::string WHITE = "\033[37m";
+        inline constexpr char USAGE_ERROR[] = ANSI_ERROR "[ Usage error ]" ANSI_RESET ": ";
+        inline constexpr char IO_ERROR[] = ANSI_ERROR "[ I/O error ]" ANSI_RESET ": ";
+        inline constexpr char LEXING_ERROR[] = ANSI_ERROR "[ Lexing error ]" ANSI_RESET ": ";
+        inline constexpr char COMPILE_ERROR[] = ANSI_ERROR "[ Compile error ]" ANSI_RESET ": ";
+        inline constexpr char UNSUPPORTED[] = ANSI_UNSUPPORTED "[ Unpaid developer error ]" ANSI_RESET ": ";
 
-        // Background colours
-        const std::string BG_BLACK = "\033[40m";
-        const std::string BG_RED = "\033[41m";
-        const std::string BG_GREEN = "\033[42m";
-        const std::string BG_YELLOW = "\033[43m";
-        const std::string BG_BLUE = "\033[44m";
-        const std::string BG_MAGENTA = "\033[45m";
-        const std::string BG_CYAN = "\033[46m";
-        const std::string BG_WHITE = "\033[47m";
-
-        // Customs
-        const std::string WARNING = BG_YELLOW + BLACK + BOLD;
-        const std::string ERROR = BG_RED + BLACK + BOLD;
-        const std::string UNSUPPORTED = BG_MAGENTA + BLACK + BOLD;
-        const std::string SUCCESS = BG_GREEN + BLACK + BOLD;
-
+        inline constexpr char INDENTED[] = "\u251C\u2500\u2500\u2500 ";
+        inline constexpr char LAST_INDENTED[] = "\u2514\u2500\u2500\u2500 ";
     }
 
     template <typename T>
-    void log(T t) {
-        std::cout << t << LogStyle::DEFAULT << std::endl;
+    inline void log(T t) {
+        std::cout << t << ANSI_RESET << std::endl;
     }
 
     template <typename T, typename... Args>
-    void log(T t, Args... args) {
+    inline void log(T t, Args... args) {
         std::cout << t;
         log(args...);
     }
 
     template <typename... Args>
-    void log_verbose(Args... args) {
-        if (Arguments::should_log_verbose()) {
-            log(args...);
+    inline void log_verbose(Args... args) {
+        if (log_config.should_log_verbose) {
+            log(ANSI_VERBOSE, "[ Verbose ]: ", args...);
+        }
+    }
+
+    template <typename... Args>
+    inline void log_verbose_no_prefix(Args... args) {
+        if (log_config.should_log_verbose) {
+            log(ANSI_VERBOSE, args...);
         }
     }
 

@@ -1,5 +1,5 @@
 .vs/
 .cache/
+.clang-format
 build/
 examples/
-.clang-format

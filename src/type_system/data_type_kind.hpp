@@ -7,13 +7,27 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "command_line_arguments.hpp"
-#include "compiler.hpp"
+#pragma once
 
-using namespace Kepler;
+#include <ostream>
 
-int main(int argc, char* argv[]) {
-    CommandLineArguments arguments = parse_command_line_arguments(argc, argv);
-    Compiler compiler(arguments);
-    compiler.compile_project();
+namespace Kepler::TypeSystem {
+
+    enum class DataTypeKind {
+        None,
+        Void,
+        TMap,
+        Bool,
+        Char,
+        String,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Float32,
+        Float64
+    };
+
+    std::ostream& operator<<(std::ostream& os, DataTypeKind type);
+
 }

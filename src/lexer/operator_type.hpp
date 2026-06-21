@@ -9,17 +9,24 @@
 
 #pragma once
 
-#include "command_line_arguments.hpp"
+#include <ostream>
 
-namespace Kepler {
+namespace Kepler::Lexer {
 
-    class Compiler {
-    public:
-        Compiler(CommandLineArguments arguments) : arguments(arguments) {}
-        void compile_project() const;
-
-    private:
-        const CommandLineArguments arguments;
+    enum class OperatorType {
+        Assignment,
+        Plus,
+        Minus,
+        Multiplication,
+        Division,
+        LessThan,
+        GreaterThan,
+        Equals,
+        NotEquals,
+        LessEquals,
+        GreaterEquals,
     };
+
+    std::ostream& operator<<(std::ostream& os, OperatorType operator_type);
 
 }

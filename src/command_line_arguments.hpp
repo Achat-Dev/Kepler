@@ -7,13 +7,17 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "command_line_arguments.hpp"
-#include "compiler.hpp"
+#pragma once
 
-using namespace Kepler;
+#include <string>
 
-int main(int argc, char* argv[]) {
-    CommandLineArguments arguments = parse_command_line_arguments(argc, argv);
-    Compiler compiler(arguments);
-    compiler.compile_project();
+namespace Kepler {
+
+    struct CommandLineArguments {
+        std::string input_file_name;
+        std::string output_file_name;
+    };
+
+    CommandLineArguments parse_command_line_arguments(int argc, char* argv[]);
+
 }
