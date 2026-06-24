@@ -11,7 +11,7 @@
 
 #include <ostream>
 
-namespace Kepler::Lexer {
+namespace kepler::lexer {
 
     enum class OperatorType {
         Assignment,

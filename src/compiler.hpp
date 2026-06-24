@@ -11,7 +11,7 @@
 
 #include "command_line_arguments.hpp"
 
-namespace Kepler {
+namespace kepler {
 
     class Compiler {
     public:

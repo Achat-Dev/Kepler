@@ -10,7 +10,7 @@
 #include "command_line_arguments.hpp"
 #include "compiler.hpp"
 
-using namespace Kepler;
+using namespace kepler;
 
 int main(int argc, char* argv[]) {
     CommandLineArguments arguments = parse_command_line_arguments(argc, argv);

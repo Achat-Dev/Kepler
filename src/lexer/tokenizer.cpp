@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Kepler::Lexer {
+namespace kepler::lexer {
 
     std::unordered_map<std::string, Token> Tokenizer::identifier_map = {
         {"extern", Token(TokenType::Extern)},
@@ -34,43 +34,42 @@ namespace Kepler::Lexer {
         {"for", Token(TokenType::For)},
         {"true", Token(TokenType::True)},
         {"false", Token(TokenType::False)},
-        {"void", Token(TokenType::DataType, TypeSystem::DataTypeKind::Void)},
-        {"tmap", Token(TokenType::DataType, TypeSystem::DataTypeKind::TMap)},
-        {"bool", Token(TokenType::DataType, TypeSystem::DataTypeKind::Bool)},
-        {"char", Token(TokenType::DataType, TypeSystem::DataTypeKind::Char)},
-        {"string", Token(TokenType::DataType, TypeSystem::DataTypeKind::String)},
-        {"i8", Token(TokenType::DataType, TypeSystem::DataTypeKind::Int8)},
-        {"i16", Token(TokenType::DataType, TypeSystem::DataTypeKind::Int16)},
-        {"i32", Token(TokenType::DataType, TypeSystem::DataTypeKind::Int32)},
-        {"i64", Token(TokenType::DataType, TypeSystem::DataTypeKind::Int64)},
-        {"f32", Token(TokenType::DataType, TypeSystem::DataTypeKind::Float32)},
-        {"f64", Token(TokenType::DataType, TypeSystem::DataTypeKind::Float64)},
+        {"void", Token(TokenType::DataType, type_system::DataTypeKind::Void)},
+        {"tmap", Token(TokenType::DataType, type_system::DataTypeKind::TMap)},
+        {"bool", Token(TokenType::DataType, type_system::DataTypeKind::Bool)},
+        {"char", Token(TokenType::DataType, type_system::DataTypeKind::Char)},
+        {"string", Token(TokenType::DataType, type_system::DataTypeKind::String)},
+        {"i8", Token(TokenType::DataType, type_system::DataTypeKind::Int8)},
+        {"i16", Token(TokenType::DataType, type_system::DataTypeKind::Int16)},
+        {"i32", Token(TokenType::DataType, type_system::DataTypeKind::Int32)},
+        {"i64", Token(TokenType::DataType, type_system::DataTypeKind::Int64)},
+        {"f32", Token(TokenType::DataType, type_system::DataTypeKind::Float32)},
+        {"f64", Token(TokenType::DataType, type_system::DataTypeKind::Float64)},
     };
 
-    std::expected<std::vector<Token>, ErrorCode>
-    Tokenizer::tokenize() {
+    std::expected<std::vector<Token>, ErrorCode> Tokenizer::tokenize() {
         log_verbose("Tokenizing file '", file_path, "'");
 
         // Check if the file at the given path can be used
         if (!std::filesystem::exists(file_path)) {
-            log(LogType::IO_ERROR, "File '", file_path, "' doesn't exist");
+            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: File doesn't exist");
             return std::unexpected(ErrorCode::IOFileNotFound);
         }
         if (std::filesystem::is_directory(file_path)) {
-            log(LogType::IO_ERROR, "Path '", file_path, "' is a directory");
+            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: Path is a directory");
             return std::unexpected(ErrorCode::IOFileIsADirectory);
         }
         if (!std::filesystem::is_regular_file(file_path)) {
-            log(LogType::IO_ERROR, "Path '", file_path, "' is not a regular file");
+            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: File is not a regular file");
             return std::unexpected(ErrorCode::IONotARegularFile);
         }
 
         // Read file contents into string
         std::ifstream file_stream(file_path);
         if (!file_stream) {
-            log(LogType::IO_ERROR, "Failed to open file '", file_path, "'\n",
-                LogType::INDENTED, "Check the file permissions\n",
-                LogType::LAST_INDENTED, "Check if the file is currently opened by other programs");
+            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: ¯\\_(ツ)_/¯\n",
+                log_type::INDENTED, "Check the file permissions\n",
+                log_type::LAST_INDENTED, "Check if the file is currently locked by other programs");
             return std::unexpected(ErrorCode::IOFailedToCreateFileStream);
         }
         source = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
@@ -85,11 +84,11 @@ namespace Kepler::Lexer {
 
             result.push_back(token);
             if (token.type == TokenType::EndOfFile) {
-                log_verbose_no_prefix(LogType::LAST_INDENTED, "Created token: ", token);
+                log_verbose_no_prefix(log_type::LAST_INDENTED, "Created token: ", token);
                 log_verbose("Successfully tokenized file '", file_path, "'");
                 return result;
             } else {
-                log_verbose_no_prefix(LogType::INDENTED, "Created token: ", token);
+                log_verbose_no_prefix(log_type::INDENTED, "Created token: ", token);
             }
         }
     }
@@ -102,6 +101,7 @@ namespace Kepler::Lexer {
         }
     }
 
+    // TODO: Sometimes this is doubled: last_char is set, but the return also writes to last_char
     char Tokenizer::read_next_char() {
         if (position < source.size()) {
             last_char = source[position];
@@ -184,14 +184,14 @@ namespace Kepler::Lexer {
                     last_char = read_next_char();
                     return Token(TokenType::Operator, OperatorType::NotEquals);
                 } else {
-                    log(LogType::UNSUPPORTED, "Logical negation with '!' is not supported yet");
+                    log(log_type::UNSUPPORTED, "Logical negation with '!' is not supported yet");
                     last_char = '!';
                     break;
                 }
             case '"': return read_string_literal();
         }
 
-        log(LogType::LEXING_ERROR, "Unknown character '", last_char, "' while lexing");
+        log(log_type::LEXING_ERROR, "Unknown character '", last_char, "' while lexing");
         return Token(TokenType::Unknown);
     }
 
@@ -223,7 +223,7 @@ namespace Kepler::Lexer {
                     case '\\': literal += '\\'; break;
                     case '"': literal += '"'; break;
                     default:
-                        log(LogType::LEXING_ERROR, "Unknown escape character '\\", last_char, "' in string");
+                        log(log_type::LEXING_ERROR, "Unknown escape character '\\", last_char, "' in string");
                         return Token(TokenType::Unknown);
                 }
 
@@ -263,10 +263,10 @@ namespace Kepler::Lexer {
 
         // Two # after each other -> multiline comment
         if (last_char == '#') {
-            log_verbose_no_prefix(LogType::INDENTED, "Reading multiline comment");
+            log_verbose_no_prefix(log_type::INDENTED, "Reading multiline comment");
             while (!(last_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
-                    log(LogType::LEXING_WARNING, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
+                    log(log_type::LEXING_WARNING, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
                     // log_verbose("\tTokenType: EndOfFile");
                     return Token(TokenType::EndOfFile);
                 }
@@ -279,7 +279,7 @@ namespace Kepler::Lexer {
         }
         // Single line comment
         else {
-            log_verbose_no_prefix(LogType::INDENTED, "Reading singleline comment");
+            log_verbose_no_prefix(log_type::INDENTED, "Reading singleline comment");
             while (last_char != '\n' && last_char != '\r') {
                 if (peek_next_char() == EOF) {
                     return Token(TokenType::EndOfFile);

@@ -9,9 +9,11 @@
 
 #pragma once
 
-namespace Kepler {
+namespace kepler {
 
     enum class ErrorCode {
+        InternalMalformedTokenStream = 1,
+
         IOFileNotFound = 101,
         IOFileIsADirectory = 102,
         IONotARegularFile = 103,

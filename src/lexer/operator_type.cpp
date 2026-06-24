@@ -11,7 +11,7 @@
 #include "log.hpp"
 #include <ostream>
 
-namespace Kepler::Lexer {
+namespace kepler::lexer {
 
     std::ostream& operator<<(std::ostream& os, OperatorType operator_type) {
         switch (operator_type) {
@@ -26,7 +26,7 @@ namespace Kepler::Lexer {
             case OperatorType::NotEquals: os << "!="; break;
             case OperatorType::LessEquals: os << "<="; break;
             case OperatorType::GreaterEquals: os << ">="; break;
-            default: log(LogType::LEXING_WARNING, "Missing implementation of operator '<<' for operator type '", (int)operator_type, '\''); break;
+            default: log(log_type::INTERNAL_LEXING_WARNING, "Missing implementation of operator '<<' for operator type '", (int)operator_type, '\''); break;
         }
 
         return os;

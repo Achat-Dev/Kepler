@@ -11,7 +11,7 @@
 
 #include <ostream>
 
-namespace Kepler::TypeSystem {
+namespace kepler::type_system {
 
     enum class DataTypeKind {
         None,

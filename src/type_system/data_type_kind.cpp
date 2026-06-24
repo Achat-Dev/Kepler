@@ -12,7 +12,7 @@
 
 #include <ostream>
 
-namespace Kepler::TypeSystem {
+namespace kepler::type_system {
 
     std::ostream& operator<<(std::ostream& os, DataTypeKind type) {
         switch (type) {
@@ -28,7 +28,7 @@ namespace Kepler::TypeSystem {
             case DataTypeKind::Int64: os << "i64"; break;
             case DataTypeKind::Float32: os << "f32"; break;
             case DataTypeKind::Float64: os << "f64"; break;
-            default: log(LogType::LEXING_WARNING, "Missing implementation of operator '<<' for data type kind '", (int)type, '\''); break;
+            default: log(log_type::INTERNAL_LEXING_WARNING, "Missing implementation of operator '<<' for data type kind '", (int)type, '\''); break;
         }
 
         return os;

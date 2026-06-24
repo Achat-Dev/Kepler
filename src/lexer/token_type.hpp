@@ -9,7 +9,9 @@
 
 #pragma once
 
-namespace Kepler::Lexer {
+#include <ostream>
+
+namespace kepler::lexer {
 
     enum class TokenType {
         // Meta
@@ -43,5 +45,7 @@ namespace Kepler::Lexer {
         // These are necessary for certain parsing operations
         Parsing_Elseif
     };
+
+    std::ostream& operator<<(std::ostream& os, TokenType type);
 
 }

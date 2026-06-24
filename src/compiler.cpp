@@ -11,13 +11,13 @@
 #include "lexer/tokenizer.hpp"
 #include "log.hpp"
 
-namespace Kepler {
+namespace kepler {
 
     void Compiler::compile_project() const {
-        Lexer::Tokenizer tokenizer(arguments.input_file_name);
+        lexer::Tokenizer tokenizer(arguments.input_file_name);
         auto tokens = tokenizer.tokenize();
         if (!tokens) {
-            log(LogType::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");
+            log(log_type::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");
             exit((int)tokens.error());
         }
     }

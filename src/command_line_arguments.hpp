@@ -11,7 +11,7 @@
 
 #include <string>
 
-namespace Kepler {
+namespace kepler {
 
     struct CommandLineArguments {
         std::string input_file_name;

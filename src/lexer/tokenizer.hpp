@@ -16,7 +16,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Kepler::Lexer {
+namespace kepler::lexer {
 
     class Tokenizer {
     public:

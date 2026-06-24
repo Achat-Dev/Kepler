@@ -17,13 +17,13 @@
 #include <string>
 #include <variant>
 
-namespace Kepler::Lexer {
+namespace kepler::lexer {
 
     struct Token {
         TokenType type;
 
-        using Data = std::variant<double, int64_t, OperatorType, std::string, TypeSystem::DataTypeKind, std::monostate>;
-        Data data;
+        using TokenData = std::variant<double, int64_t, OperatorType, std::string, type_system::DataTypeKind, std::monostate>;
+        TokenData data;
     };
 
     std::ostream& operator<<(std::ostream& os, Token token);

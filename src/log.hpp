@@ -12,12 +12,12 @@
 #include <iostream>
 
 #define ANSI_RESET "\033[0m"
-#define ANSI_VERBOSE "\033[38;5;241m"
+#define ANSI_VERBOSE "\033[2m"
 #define ANSI_WARNING "\033[1;30;43m"
 #define ANSI_ERROR "\033[1;30;41m"
 #define ANSI_UNSUPPORTED "\033[1;30;45m"
 
-namespace Kepler {
+namespace kepler {
 
     struct LogConfig {
         bool should_log_verbose = false;
@@ -25,20 +25,24 @@ namespace Kepler {
 
     inline LogConfig log_config;
 
-    namespace LogStyle {
+    namespace log_style {
+        inline constexpr char BOLD[] = "\033[1m";
+        inline constexpr char ITALIC[] = "\033[3m";
         inline constexpr char RESET[] = ANSI_RESET;
         inline constexpr char WARNING[] = ANSI_WARNING;
         inline constexpr char ERROR[] = ANSI_ERROR;
         inline constexpr char UNSUPPORTED[] = ANSI_UNSUPPORTED;
     }
 
-    namespace LogType {
+    namespace log_type {
         inline constexpr char LEXING_WARNING[] = ANSI_WARNING "[ Lexing warning ]" ANSI_RESET ": ";
 
         inline constexpr char USAGE_ERROR[] = ANSI_ERROR "[ Usage error ]" ANSI_RESET ": ";
         inline constexpr char IO_ERROR[] = ANSI_ERROR "[ I/O error ]" ANSI_RESET ": ";
         inline constexpr char LEXING_ERROR[] = ANSI_ERROR "[ Lexing error ]" ANSI_RESET ": ";
         inline constexpr char COMPILE_ERROR[] = ANSI_ERROR "[ Compile error ]" ANSI_RESET ": ";
+
+        inline constexpr char INTERNAL_LEXING_WARNING[] = ANSI_WARNING "[ Internal lexing warning ]" ANSI_RESET ": ";
         inline constexpr char UNSUPPORTED[] = ANSI_UNSUPPORTED "[ Unpaid developer error ]" ANSI_RESET ": ";
 
         inline constexpr char INDENTED[] = "\u251C\u2500\u2500\u2500 ";
