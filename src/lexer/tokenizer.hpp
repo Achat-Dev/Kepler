@@ -24,20 +24,20 @@ namespace kepler::lexer {
         std::expected<std::vector<Token>, ErrorCode> tokenize();
 
     private:
-        const std::string file_path;
-        std::string source;
-        char last_char = ' ';
+        const std::string& file_path;
+        std::string file_content;
+        char current_char = ' ';
         size_t position = 0;
 
         char peek_next_char() const;
-        char read_next_char();
+        void next_char();
         Token read_next_token();
         Token read_identifier();
         Token read_string_literal();
         Token read_numeric_literal();
         Token read_comment();
 
-        static std::unordered_map<std::string, Token> identifier_map;
+        static std::unordered_map<std::string, Token> keyword_map;
     };
 
 }

@@ -13,6 +13,7 @@
 #include "lexer/token_type.hpp"
 #include "log.hpp"
 #include "type_system/data_type_kind.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <expected>
@@ -24,7 +25,7 @@
 
 namespace kepler::lexer {
 
-    std::unordered_map<std::string, Token> Tokenizer::identifier_map = {
+    std::unordered_map<std::string, Token> Tokenizer::keyword_map = {
         {"extern", Token(TokenType::Extern)},
         {"return", Token(TokenType::Return)},
         {"end", Token(TokenType::End)},
@@ -72,7 +73,8 @@ namespace kepler::lexer {
                 log_type::LAST_INDENTED, "Check if the file is currently locked by other programs");
             return std::unexpected(ErrorCode::IOFailedToCreateFileStream);
         }
-        source = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
+
+        file_content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
 
         // Tokenize file contents
         std::vector<Token> result;
@@ -94,21 +96,17 @@ namespace kepler::lexer {
     }
 
     char Tokenizer::peek_next_char() const {
-        if (position + 1 < source.size()) {
-            return source[position + 1];
+        if (position + 1 < file_content.size()) {
+            return file_content[position + 1];
         } else {
             return EOF;
         }
     }
 
-    // TODO: Sometimes this is doubled: last_char is set, but the return also writes to last_char
-    char Tokenizer::read_next_char() {
-        if (position < source.size()) {
-            last_char = source[position];
+    void Tokenizer::next_char() {
+        if (position < file_content.size()) {
             position++;
-            return last_char;
-        } else {
-            return EOF;
+            current_char = file_content[position];
         }
     }
 
@@ -117,175 +115,180 @@ namespace kepler::lexer {
             return Token(TokenType::EndOfFile);
         }
 
-        while (isspace(last_char)) {
-            last_char = read_next_char();
+        while (isspace(current_char)) {
+            next_char();
         }
 
-        if (isalpha(last_char)) {
+        if (isalpha(current_char)) {
             return read_identifier();
         }
-        if (isdigit(last_char)) {
+        if (isdigit(current_char)) {
             return read_numeric_literal();
         }
 
-        switch (last_char) {
+        switch (current_char) {
             case '#': return read_comment();
             case ',':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::Comma);
             case ':':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::Colon);
             case '(':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::BracketOpen);
             case ')':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::BracketClose);
             case '=':
-                last_char = read_next_char();
-                if (last_char == '=') {
-                    last_char = read_next_char();
+                next_char();
+                if (current_char == '=') {
+                    next_char();
                     return Token(TokenType::Operator, OperatorType::Equals);
                 } else {
                     return Token(TokenType::Operator, OperatorType::Assignment);
                 }
             case '+':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::Operator, OperatorType::Plus);
             case '-':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::Operator, OperatorType::Minus);
             case '*':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::Operator, OperatorType::Multiplication);
             case '/':
-                last_char = read_next_char();
+                next_char();
                 return Token(TokenType::Operator, OperatorType::Division);
             case '<':
-                last_char = read_next_char();
-                if (last_char == '=') {
-                    last_char = read_next_char();
+                next_char();
+                if (current_char == '=') {
+                    next_char();
                     return Token(TokenType::Operator, OperatorType::LessEquals);
                 } else {
                     return Token(TokenType::Operator, OperatorType::LessThan);
                 }
             case '>':
-                last_char = read_next_char();
-                if (last_char == '=') {
-                    last_char = read_next_char();
+                next_char();
+                if (current_char == '=') {
+                    next_char();
                     return Token(TokenType::Operator, OperatorType::GreaterEquals);
                 } else {
                     return Token(TokenType::Operator, OperatorType::GreaterThan);
                 }
             case '!':
-                last_char = read_next_char();
-                if (last_char == '=') {
-                    last_char = read_next_char();
+                next_char();
+                if (current_char == '=') {
+                    next_char();
                     return Token(TokenType::Operator, OperatorType::NotEquals);
                 } else {
                     log(log_type::UNSUPPORTED, "Logical negation with '!' is not supported yet");
-                    last_char = '!';
+                    current_char = '!';
                     break;
                 }
             case '"': return read_string_literal();
         }
 
-        log(log_type::LEXING_ERROR, "Unknown character '", last_char, "' while lexing");
+        log(log_type::LEXING_ERROR, "Unknown character '", current_char, "' while lexing");
         return Token(TokenType::Unknown);
     }
 
     Token Tokenizer::read_identifier() {
-        std::string identifier(1, last_char);
-        last_char = read_next_char();
-        while (isalnum(last_char) || last_char == '_') {
-            identifier += last_char;
-            last_char = read_next_char();
+        size_t identifier_start_position = position;
+        next_char();
+        while (isalnum(current_char) || current_char == '_') {
+            next_char();
         }
 
-        if (identifier_map.contains(identifier)) {
-            return identifier_map[identifier];
+        size_t identifier_length = position - identifier_start_position;
+        std::string identifier = file_content.substr(identifier_start_position, identifier_length);
+
+        if (keyword_map.contains(identifier)) {
+            return keyword_map[identifier];
         }
-        return Token(TokenType::Identifier, identifier);
+        Token token(TokenType::Identifier, identifier);
+        return token;
     }
 
     Token Tokenizer::read_string_literal() {
+        // String literals can't be string_views because escape characters have to be interpreted
         std::string literal = "";
-        last_char = read_next_char();
+        next_char();
 
-        while (last_char != '"') {
-            if (last_char == '\\') {
-                last_char = read_next_char(); // read the character to escape
+        while (current_char != '"') {
+            if (current_char == '\\') {
+                next_char(); // read the character to escape
 
-                switch (last_char) {
+                switch (current_char) {
                     case 'n': literal += '\n'; break;
                     case 't': literal += '\t'; break;
                     case '\\': literal += '\\'; break;
                     case '"': literal += '"'; break;
                     default:
-                        log(log_type::LEXING_ERROR, "Unknown escape character '\\", last_char, "' in string");
+                        log(log_type::LEXING_ERROR, "Unknown escape character '\\", current_char, "' in string");
                         return Token(TokenType::Unknown);
                 }
 
-                last_char = read_next_char(); // read the next character for the next loop interation
+                next_char(); // read the next character for the next loop interation
             } else {
-                literal += last_char;
-                last_char = read_next_char();
+                literal += current_char;
+                next_char();
             }
         }
 
-        last_char = read_next_char(); // eat closing '"'
+        next_char(); // eat closing '"'
         return Token(TokenType::StringLiteral, literal);
     }
 
     Token Tokenizer::read_numeric_literal() {
-        std::string literal_as_string;
+        size_t literal_start_position = position;
         bool is_float = false;
         do {
-            literal_as_string += last_char;
-            last_char = read_next_char();
-            if (last_char == '.') {
+            next_char();
+            if (current_char == '.') {
                 is_float = true;
             }
-        } while (isdigit(last_char) || last_char == '.');
+        } while (isdigit(current_char) || current_char == '.');
+
+        size_t literal_length = position - literal_start_position;
+        std::string literal = file_content.substr(literal_start_position, literal_length);
 
         if (is_float) {
-            double floating_point_literal = std::stod(literal_as_string);
+            double floating_point_literal = std::stod(literal.data());
             return Token(TokenType::FloatingPointLiteral, floating_point_literal);
         } else {
-            int64_t integer_literal = std::stoll(literal_as_string);
+            int64_t integer_literal = std::stoll(literal.data());
             return Token(TokenType::IntegerLiteral, integer_literal);
         }
     }
 
     Token Tokenizer::read_comment() {
-        last_char = read_next_char();
+        next_char();
 
         // Two # after each other -> multiline comment
-        if (last_char == '#') {
+        if (current_char == '#') {
             log_verbose_no_prefix(log_type::INDENTED, "Reading multiline comment");
-            while (!(last_char == '#' && peek_next_char() == '#')) {
+            while (!(current_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
                     log(log_type::LEXING_WARNING, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
-                    // log_verbose("\tTokenType: EndOfFile");
                     return Token(TokenType::EndOfFile);
                 }
 
-                last_char = read_next_char();
+                next_char();
             }
 
-            read_next_char();             // eat second '#'
-            last_char = read_next_char(); // save actual next character for reading next token
+            next_char(); // eat second '#'
+            next_char(); // prepare reading of next token
         }
         // Single line comment
         else {
             log_verbose_no_prefix(log_type::INDENTED, "Reading singleline comment");
-            while (last_char != '\n' && last_char != '\r') {
+            while (current_char != '\n') {
                 if (peek_next_char() == EOF) {
                     return Token(TokenType::EndOfFile);
                 }
 
-                last_char = read_next_char();
+                next_char();
             }
         }
 
