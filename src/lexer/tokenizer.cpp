@@ -77,6 +77,7 @@ namespace kepler::lexer {
         file_content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
 
         // Tokenize file contents
+        current_char = file_content[0]; // Read first char manually instead of next_char() because that would read file_content[1]
         std::vector<Token> result;
         while (true) {
             Token token = read_next_token();
