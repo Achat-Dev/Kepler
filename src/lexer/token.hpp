@@ -11,10 +11,10 @@
 
 #include "lexer/operator_type.hpp"
 #include "lexer/token_type.hpp"
+#include "semantic_analysis/string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <ostream>
-#include <string>
 #include <variant>
 
 namespace kepler::lexer {
@@ -22,7 +22,12 @@ namespace kepler::lexer {
     struct Token {
         TokenType type;
 
-        using TokenData = std::variant<double, int64_t, OperatorType, std::string, type_system::DataTypeKind, std::monostate>;
+        using TokenData = std::variant<double, // floating point literals
+            int64_t,                           // integer literals
+            semantic_analysis::StringId,       // string literals & identifiers
+            OperatorType,                      // Operators
+            type_system::DataTypeKind,         // Data types
+            std::monostate>;
         TokenData data;
     };
 

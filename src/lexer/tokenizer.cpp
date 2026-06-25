@@ -12,6 +12,7 @@
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
+#include "semantic_analysis/string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -207,7 +208,9 @@ namespace kepler::lexer {
         if (keyword_map.contains(identifier)) {
             return keyword_map[identifier];
         }
-        Token token(TokenType::Identifier, identifier);
+
+        semantic_analysis::StringId identifier_id = semantic_analysis::StringTable::get().store_or_lookup(identifier);
+        Token token(TokenType::Identifier, identifier_id);
         return token;
     }
 
@@ -238,7 +241,9 @@ namespace kepler::lexer {
         }
 
         next_char(); // eat closing '"'
-        return Token(TokenType::StringLiteral, literal);
+
+        semantic_analysis::StringId literal_id = semantic_analysis::StringTable::get().store_or_lookup(literal);
+        return Token(TokenType::StringLiteral, literal_id);
     }
 
     Token Tokenizer::read_numeric_literal() {

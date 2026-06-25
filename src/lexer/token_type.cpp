@@ -30,12 +30,12 @@ namespace kepler::lexer {
             case TokenType::For: os << "for"; break;
             case TokenType::True: os << "true"; break;
             case TokenType::False: os << "false"; break;
-            case TokenType::Operator: os << "operator("; break;
-            case TokenType::Identifier: os << "identifier("; break;
-            case TokenType::FloatingPointLiteral: os << "floating point literal("; break;
-            case TokenType::IntegerLiteral: os << "integer literal("; break;
-            case TokenType::StringLiteral: os << "string literal("; break;
-            case TokenType::DataType: os << "data type("; break;
+            case TokenType::Operator: os << "operator"; break;
+            case TokenType::Identifier: os << "identifier"; break;
+            case TokenType::FloatingPointLiteral: os << "floating point literal"; break;
+            case TokenType::IntegerLiteral: os << "integer literal"; break;
+            case TokenType::StringLiteral: os << "string literal"; break;
+            case TokenType::DataType: os << "data type"; break;
             default: log(log_type::LEXING_WARNING, "Missing implementation of operator '<<' for token type'", (int)type, "'"); break;
         }
 
