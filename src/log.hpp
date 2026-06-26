@@ -50,25 +50,25 @@ namespace kepler {
     }
 
     template <typename T>
-    inline void log(T t) {
+    inline void log(const T& t) {
         std::cout << t << ANSI_RESET << std::endl;
     }
 
     template <typename T, typename... Args>
-    inline void log(T t, Args... args) {
+    inline void log(const T& t, const Args&... args) {
         std::cout << t;
         log(args...);
     }
 
     template <typename... Args>
-    inline void log_verbose(Args... args) {
+    inline void log_verbose(const Args&... args) {
         if (log_config.should_log_verbose) {
             log(ANSI_VERBOSE, "[ Verbose ]: ", args...);
         }
     }
 
     template <typename... Args>
-    inline void log_verbose_no_prefix(Args... args) {
+    inline void log_verbose_no_prefix(const Args&... args) {
         if (log_config.should_log_verbose) {
             log(ANSI_VERBOSE, args...);
         }
