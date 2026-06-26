@@ -44,6 +44,7 @@ namespace kepler {
 
         inline constexpr char INTERNAL_LEXING_WARNING[] = ANSI_WARNING "[ Internal lexing warning ]" ANSI_RESET ": ";
         inline constexpr char UNSUPPORTED[] = ANSI_UNSUPPORTED "[ Unpaid developer error ]" ANSI_RESET ": ";
+        inline constexpr char INTERNAL_ERROR[] = ANSI_UNSUPPORTED "[ Internal error, everybody panic ]" ANSI_RESET ": ";
 
         inline constexpr char INDENTED[] = "\u251C\u2500\u2500\u2500 ";
         inline constexpr char LAST_INDENTED[] = "\u2514\u2500\u2500\u2500 ";

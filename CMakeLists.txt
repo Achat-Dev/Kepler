@@ -14,6 +14,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/lexer/tokenizer.cpp
     src/parser/parser.cpp
     src/semantic_analysis/string_table.cpp
+    src/semantic_analysis/symbol_table.cpp
     src/type_system/data_type_kind.cpp
     src/command_line_arguments.cpp
     src/compiler.cpp

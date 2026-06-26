@@ -20,6 +20,9 @@ namespace kepler {
         IOFailedToCreateFileStream = 104,
 
         LexerUnknownCharacter = 201,
+
+        ParserUnexpectedToken = 301,
+        ParserRedefineSymbol = 302,
     };
 
 }
