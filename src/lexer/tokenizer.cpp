@@ -34,8 +34,8 @@ namespace kepler::lexer {
         {"else", Token(TokenType::Else)},
         {"elseif", Token(TokenType::Elseif)},
         {"for", Token(TokenType::For)},
-        {"true", Token(TokenType::True)},
-        {"false", Token(TokenType::False)},
+        {"true", Token(TokenType::Literal, true)},
+        {"false", Token(TokenType::Literal, false)},
         {"void", Token(TokenType::DataType, type_system::DataTypeKind::Void)},
         {"tmap", Token(TokenType::DataType, type_system::DataTypeKind::TMap)},
         {"bool", Token(TokenType::DataType, type_system::DataTypeKind::Bool)},
@@ -81,7 +81,7 @@ namespace kepler::lexer {
         current_char = file_content[0]; // Read first char manually instead of next_char() because that would read file_content[1]
         std::vector<Token> result;
         while (true) {
-            Token token = read_next_token();
+            const Token token = read_next_token();
             if (token.type == TokenType::Unknown) {
                 return std::unexpected(ErrorCode::LexerUnknownCharacter);
             }
@@ -148,7 +148,7 @@ namespace kepler::lexer {
                     next_char();
                     return Token(TokenType::Operator, OperatorType::Equals);
                 } else {
-                    return Token(TokenType::Operator, OperatorType::Assignment);
+                    return Token(TokenType::Assignment);
                 }
             case '+':
                 next_char();
@@ -196,21 +196,21 @@ namespace kepler::lexer {
     }
 
     Token Tokenizer::read_identifier() {
-        size_t identifier_start_position = position;
+        const size_t identifier_start_position = position;
         next_char();
         while (isalnum(current_char) || current_char == '_') {
             next_char();
         }
 
-        size_t identifier_length = position - identifier_start_position;
-        std::string identifier = file_content.substr(identifier_start_position, identifier_length);
+        const size_t identifier_length = position - identifier_start_position;
+        const std::string identifier = file_content.substr(identifier_start_position, identifier_length);
 
         if (keyword_map.contains(identifier)) {
             return keyword_map[identifier];
         }
 
-        semantic_analysis::StringId identifier_id = semantic_analysis::StringTable::get().store_or_lookup(identifier);
-        Token token(TokenType::Identifier, identifier_id);
+        const semantic_analysis::StringId identifier_id = semantic_analysis::StringTable::get().store_or_lookup(identifier);
+        const Token token(TokenType::Identifier, identifier_id);
         return token;
     }
 
@@ -242,12 +242,12 @@ namespace kepler::lexer {
 
         next_char(); // eat closing '"'
 
-        semantic_analysis::StringId literal_id = semantic_analysis::StringTable::get().store_or_lookup(literal);
-        return Token(TokenType::StringLiteral, literal_id);
+        const semantic_analysis::StringId literal_id = semantic_analysis::StringTable::get().store_or_lookup(literal);
+        return Token(TokenType::Literal, literal_id);
     }
 
     Token Tokenizer::read_numeric_literal() {
-        size_t literal_start_position = position;
+        const size_t literal_start_position = position;
         bool is_float = false;
         do {
             next_char();
@@ -256,15 +256,13 @@ namespace kepler::lexer {
             }
         } while (isdigit(current_char) || current_char == '.');
 
-        size_t literal_length = position - literal_start_position;
-        std::string literal = file_content.substr(literal_start_position, literal_length);
+        const size_t literal_length = position - literal_start_position;
+        const std::string literal = file_content.substr(literal_start_position, literal_length);
 
         if (is_float) {
-            double floating_point_literal = std::stod(literal.data());
-            return Token(TokenType::FloatingPointLiteral, floating_point_literal);
+            return Token(TokenType::Literal, std::stod(literal.data()));
         } else {
-            int64_t integer_literal = std::stoll(literal.data());
-            return Token(TokenType::IntegerLiteral, integer_literal);
+            return Token(TokenType::Literal, std::stoll(literal.data()));
         }
     }
 

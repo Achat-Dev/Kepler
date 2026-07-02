@@ -9,19 +9,10 @@
 
 #pragma once
 
-#include "semantic_analysis/prototype_symbol_data.hpp"
-#include "string_table.hpp"
-#include "type_system/data_type_kind.hpp"
-#include <variant>
+#include <cstdint>
 
 namespace kepler::semantic_analysis {
 
-    struct Symbol {
-        StringId identifier_id;
-        type_system::DataTypeKind data_type;
-
-        using SymbolData = std::variant<PrototypeSymbolData, std::monostate>;
-        SymbolData data;
-    };
+    using SymbolId = uint32_t;
 
 }

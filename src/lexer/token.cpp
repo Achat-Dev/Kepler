@@ -11,8 +11,12 @@
 #include "lexer/token_type.hpp"
 #include "log.hpp"
 #include "semantic_analysis/string_table.hpp"
+#include <cstdint>
+#include <ios>
 #include <ostream>
 #include <string>
+#include <type_traits>
+#include <variant>
 
 namespace kepler::lexer {
 
@@ -24,6 +28,7 @@ namespace kepler::lexer {
             case TokenType::BracketClose:
             case TokenType::Comma:
             case TokenType::Colon:
+            case TokenType::Assignment:
             case TokenType::Extern:
             case TokenType::Return:
             case TokenType::End:
@@ -31,8 +36,8 @@ namespace kepler::lexer {
             case TokenType::Else:
             case TokenType::Elseif:
             case TokenType::For:
-            case TokenType::True:
-            case TokenType::False: os << token.type; break;
+                os << token.type;
+                break;
 
             case TokenType::Operator:
                 os << token.type << "(" << std::get<OperatorType>(token.data) << ")";
@@ -43,23 +48,23 @@ namespace kepler::lexer {
                 os << token.type << "(" << identifier << ")";
                 break;
             }
-            case TokenType::FloatingPointLiteral:
-                os << token.type << "(" << std::get<double>(token.data) << ")";
+            case TokenType::Literal:
+                std::visit([&os, &token](const auto value) {
+                    using ValueType = std::decay_t<decltype(value)>;
+                    if constexpr (std::is_same_v<ValueType, semantic_analysis::StringId>) {
+                        const std::string& identifier = semantic_analysis::StringTable::get().lookup(value);
+                        os << token.type << "(" << identifier << ")";
+                    } else if constexpr (!std::is_same_v<ValueType, std::monostate>) {
+                        os << token.type << "(" << std::boolalpha << value << std::noboolalpha << ")";
+                    }
+                },
+                    token.data);
                 break;
-            case TokenType::IntegerLiteral:
-                os << token.type << "(" << std::get<int64_t>(token.data) << ")";
-                break;
-            case TokenType::StringLiteral: {
-                semantic_analysis::StringId literal_id = std::get<semantic_analysis::StringId>(token.data);
-                const std::string& literal = semantic_analysis::StringTable::get().lookup(literal_id);
-                os << token.type << "(" << literal << ")";
-                break;
-            }
             case TokenType::DataType:
                 os << token.type << "(" << std::get<type_system::DataTypeKind>(token.data) << ")";
                 break;
             default:
-                log(log_type::INTERNAL_LEXING_WARNING, "Missing implementation of operator '<<' for token of type'", (int)token.type, "'");
+                log(log_type::INTERNAL_LEXING_WARNING, "Missing implementation of operator '<<' for token of type '", token.type, "'");
                 break;
         }
 

@@ -28,6 +28,7 @@ namespace kepler::type_system {
         Float64
     };
 
+    bool is_integer_type(DataTypeKind data_type);
     std::ostream& operator<<(std::ostream& os, DataTypeKind type);
 
 }

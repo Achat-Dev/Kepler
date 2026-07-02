@@ -12,8 +12,6 @@
 namespace kepler {
 
     enum class ErrorCode {
-        InternalMalformedTokenStream = 1,
-
         IOFileNotFound = 101,
         IOFileIsADirectory = 102,
         IONotARegularFile = 103,
@@ -22,7 +20,18 @@ namespace kepler {
         LexerUnknownCharacter = 201,
 
         ParserUnexpectedToken = 301,
-        ParserRedefineSymbol = 302,
+        ParserInvalidCast = 302,
+        ParserInvalidReturnExpression = 303,
+        ParserInvalidVariableType = 304,
+        ParserInvalidLoopVariableType = 305,
+        ParserUnsupportedMathematicalNegation = 306,
+        ParserUndefinedSymbol = 308,
+        ParserMissingEndKeyword = 309,
+        ParserUsingStatementAsExpression = 310,
+
+        SymbolTableRedefineSymbol = 401,
+
+        Unsupported = 999,
     };
 
 }

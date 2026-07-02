@@ -21,14 +21,13 @@ namespace kepler::lexer {
         BracketClose,
         Comma,
         Colon,
+        Assignment,
 
         // Primary
         Identifier,
         DataType,
         Operator,
-        FloatingPointLiteral,
-        IntegerLiteral,
-        StringLiteral,
+        Literal,
 
         // Keywords
         Extern,
@@ -38,12 +37,6 @@ namespace kepler::lexer {
         Else,
         Elseif,
         For,
-        True,
-        False,
-
-        // Parsing tokens
-        // These are necessary for certain parsing operations
-        Parsing_Elseif
     };
 
     std::ostream& operator<<(std::ostream& os, TokenType type);

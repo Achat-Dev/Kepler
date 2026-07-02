@@ -9,23 +9,20 @@
 
 #pragma once
 
-#include <ostream>
+#include "ast/codegen_result.hpp"
+#include "ast/expressions/expression.hpp"
 
-namespace kepler::lexer {
+namespace kepler::ast {
 
-    enum class OperatorType {
-        Plus,
-        Minus,
-        Multiplication,
-        Division,
-        LessThan,
-        GreaterThan,
-        Equals,
-        NotEquals,
-        LessEquals,
-        GreaterEquals,
+    class FloatingPointLiteralExpression : public Expression {
+
+    public:
+        FloatingPointLiteralExpression(double value)
+            : value(value) {}
+        CodegenResult codegen() const override;
+
+    private:
+        const double value;
     };
-
-    std::ostream& operator<<(std::ostream& os, OperatorType operator_type);
 
 }

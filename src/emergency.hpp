@@ -15,12 +15,12 @@
 namespace kepler {
 
     inline void emergency_exit() {
-        const char h[] = "\u2500";
-        const char v[] = "\u2502";
-        const char tl[] = "\u250C";
-        const char tr[] = "\u2510";
-        const char bl[] = "\u2514";
-        const char br[] = "\u2518";
+        constexpr char h[] = "\u2500";
+        constexpr char v[] = "\u2502";
+        constexpr char tl[] = "\u250C";
+        constexpr char tr[] = "\u2510";
+        constexpr char bl[] = "\u2514";
+        constexpr char br[] = "\u2518";
 
         // clang-format off
         log(tl, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, "[ Emergency exit ]", h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, tr, "\n",

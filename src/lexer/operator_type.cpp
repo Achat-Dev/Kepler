@@ -15,7 +15,6 @@ namespace kepler::lexer {
 
     std::ostream& operator<<(std::ostream& os, OperatorType operator_type) {
         switch (operator_type) {
-            case OperatorType::Assignment: os << '='; break;
             case OperatorType::Plus: os << '+'; break;
             case OperatorType::Minus: os << '-'; break;
             case OperatorType::Multiplication: os << '*'; break;

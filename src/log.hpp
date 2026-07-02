@@ -40,6 +40,7 @@ namespace kepler {
         inline constexpr char USAGE_ERROR[] = ANSI_ERROR "[ Usage error ]" ANSI_RESET ": ";
         inline constexpr char IO_ERROR[] = ANSI_ERROR "[ I/O error ]" ANSI_RESET ": ";
         inline constexpr char LEXING_ERROR[] = ANSI_ERROR "[ Lexing error ]" ANSI_RESET ": ";
+        inline constexpr char PARSING_ERROR[] = ANSI_ERROR "[ Parsing error ]" ANSI_RESET ": ";
         inline constexpr char COMPILE_ERROR[] = ANSI_ERROR "[ Compile error ]" ANSI_RESET ": ";
 
         inline constexpr char INTERNAL_LEXING_WARNING[] = ANSI_WARNING "[ Internal lexing warning ]" ANSI_RESET ": ";

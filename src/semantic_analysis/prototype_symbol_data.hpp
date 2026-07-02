@@ -9,19 +9,18 @@
 
 #pragma once
 
-#include "semantic_analysis/prototype_symbol_data.hpp"
-#include "string_table.hpp"
-#include "type_system/data_type_kind.hpp"
-#include <variant>
+#include "ast/prototype.hpp"
+#include "semantic_analysis/symbol_id.hpp"
+#include <vector>
 
 namespace kepler::semantic_analysis {
 
-    struct Symbol {
-        StringId identifier_id;
-        type_system::DataTypeKind data_type;
+    struct PrototypeSymbolData {
+        std::vector<SymbolId> parameter_ids;
+        ast::Prototype::LinkageType linkage_type;
 
-        using SymbolData = std::variant<PrototypeSymbolData, std::monostate>;
-        SymbolData data;
+        bool operator==(const PrototypeSymbolData& other) const = default;
+        bool operator!=(const PrototypeSymbolData& other) const = default;
     };
 
 }

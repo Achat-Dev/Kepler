@@ -9,21 +9,20 @@
 
 #pragma once
 
+#include "ast/codegen_result.hpp"
+#include "ast/expressions/expression.hpp"
 #include "semantic_analysis/string_table.hpp"
-#include "semantic_analysis/symbol_id.hpp"
-#include <cstdint>
-#include <memory>
-#include <unordered_map>
 
-namespace kepler::semantic_analysis {
+namespace kepler::ast {
 
-    using ScopeId = uint32_t;
+    class VariableExpression : public Expression {
+    public:
+        VariableExpression(semantic_analysis::StringId identifier_id)
+            : identifier_id(identifier_id) {}
+        CodegenResult codegen() const override;
 
-    struct Scope {
-        std::shared_ptr<Scope> parent;
-        std::unordered_map<StringId, SymbolId> contained_identifiers;
-
-        Scope(std::shared_ptr<Scope> parent) : parent(parent) {}
+    private:
+        const semantic_analysis::StringId identifier_id;
     };
 
 }

@@ -10,8 +10,10 @@
 #pragma once
 
 #include "error_code.hpp"
+#include "semantic_analysis/prototype_symbol_data.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <expected>
@@ -22,12 +24,16 @@ namespace kepler::semantic_analysis {
 
     class SymbolTable {
     public:
-        std::expected<SymbolId, ErrorCode> create_variable(StringId identifier_id, type_system::DataTypeKind type);
-        std::expected<SymbolId, ErrorCode> create_prototype(StringId identifier_id, type_system::DataTypeKind type, PrototypeSymbolData data);
+        SymbolTable(const SymbolTable& string_table) = delete;
+        void operator=(const SymbolTable& string_table) = delete;
+
+        std::expected<SymbolId, ErrorCode> create_variable(StringId identifier_id, type_system::DataTypeKind data_type);
+        std::expected<SymbolId, ErrorCode> create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data);
         const Symbol& lookup(SymbolId id) const;
 
         void open_scope();
         void close_scope();
+        bool does_name_exist_in_scope_stack(StringId identifier_id) const;
 
         static SymbolTable& get();
 

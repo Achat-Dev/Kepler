@@ -19,15 +19,14 @@ namespace kepler::semantic_analysis {
             return string_to_id_map[string];
         }
 
-        StringId id = string_to_id_map.size();
+        const StringId id = string_to_id_map.size();
         log_verbose("[ StringTable ]: Storing string '", string, "' with id '", id, "'");
-        auto [iterator, inserted] = string_to_id_map.emplace(string, id);
+        const auto [iterator, emplaced] = string_to_id_map.emplace(string, id);
         strings.push_back(&iterator->first);
         return id;
     }
 
     const std::string& StringTable::lookup(StringId id) const {
-        log_verbose("[ StringTable ]: Looking up string for id '", id, "'");
         if (id >= strings.size()) {
             log(log_type::INTERNAL_ERROR, "StringId '", id, "' doesnt exist, which is strange, because I am the only one who assigns these ids");
             emergency_exit();

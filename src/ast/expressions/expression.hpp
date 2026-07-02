@@ -9,23 +9,14 @@
 
 #pragma once
 
-#include <ostream>
+#include "ast/ast_node.hpp"
+#include "ast/codegen_result.hpp"
 
-namespace kepler::lexer {
+namespace kepler::ast {
 
-    enum class OperatorType {
-        Plus,
-        Minus,
-        Multiplication,
-        Division,
-        LessThan,
-        GreaterThan,
-        Equals,
-        NotEquals,
-        LessEquals,
-        GreaterEquals,
+    class Expression : public ASTNode {
+    public:
+        virtual CodegenResult codegen() const = 0;
     };
-
-    std::ostream& operator<<(std::ostream& os, OperatorType operator_type);
 
 }

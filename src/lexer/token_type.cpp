@@ -21,6 +21,7 @@ namespace kepler::lexer {
             case TokenType::BracketClose: os << ')'; break;
             case TokenType::Comma: os << ','; break;
             case TokenType::Colon: os << ':'; break;
+            case TokenType::Assignment: os << '='; break;
             case TokenType::Extern: os << "extern"; break;
             case TokenType::Return: os << "return"; break;
             case TokenType::End: os << "end"; break;
@@ -28,15 +29,11 @@ namespace kepler::lexer {
             case TokenType::Else: os << "else"; break;
             case TokenType::Elseif: os << "elseif"; break;
             case TokenType::For: os << "for"; break;
-            case TokenType::True: os << "true"; break;
-            case TokenType::False: os << "false"; break;
+            case TokenType::Literal: os << "literal"; break;
             case TokenType::Operator: os << "operator"; break;
             case TokenType::Identifier: os << "identifier"; break;
-            case TokenType::FloatingPointLiteral: os << "floating point literal"; break;
-            case TokenType::IntegerLiteral: os << "integer literal"; break;
-            case TokenType::StringLiteral: os << "string literal"; break;
             case TokenType::DataType: os << "data type"; break;
-            default: log(log_type::LEXING_WARNING, "Missing implementation of operator '<<' for token type'", (int)type, "'"); break;
+            default: log(log_type::LEXING_WARNING, "Missing implementation of operator '<<' for token type '", (int)type, "'"); break;
         }
 
         return os;

@@ -8,6 +8,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
+    src/ast/expressions/literals/boolean_literal_expression.cpp
+    src/ast/expressions/literals/floating_point_literal_expression.cpp
+    src/ast/expressions/literals/integer_literal_expression.cpp
+    src/ast/expressions/literals/string_literal_expression.cpp
+    src/ast/expressions/binary_expression.cpp
+    src/ast/expressions/call_expression.cpp
+    src/ast/expressions/cast_expression.cpp
+    src/ast/expressions/negation_expression.cpp
+    src/ast/expressions/variable_expression.cpp
+    src/ast/function.cpp
+    src/ast/prototype.cpp
+    src/ast/statements/assignment_statement.cpp
+    src/ast/statements/if_statement.cpp
+    src/ast/statements/for_statement.cpp
+    src/ast/statements/return_statement.cpp
+    src/ast/statements/variable_definition_statement.cpp
     src/lexer/operator_type.cpp
     src/lexer/token.cpp
     src/lexer/token_type.cpp

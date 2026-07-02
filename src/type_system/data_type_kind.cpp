@@ -14,6 +14,10 @@
 
 namespace kepler::type_system {
 
+    bool is_integer_type(DataTypeKind data_type) {
+        return data_type == DataTypeKind::Int8 || data_type == DataTypeKind::Int16 || data_type == DataTypeKind::Int32 || data_type == DataTypeKind::Int64;
+    }
+
     std::ostream& operator<<(std::ostream& os, DataTypeKind type) {
         switch (type) {
             case DataTypeKind::None: os << "none"; break;

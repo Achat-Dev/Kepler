@@ -11,8 +11,10 @@
 #include "emergency.hpp"
 #include "error_code.hpp"
 #include "log.hpp"
+#include "semantic_analysis/prototype_symbol_data.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstdlib>
@@ -26,43 +28,43 @@
 
 namespace kepler::semantic_analysis {
 
-    std::expected<SymbolId, ErrorCode> SymbolTable::create_variable(StringId identifier_id, type_system::DataTypeKind type) {
+    std::expected<SymbolId, ErrorCode> SymbolTable::create_variable(StringId identifier_id, type_system::DataTypeKind data_type) {
         const std::string& identifier = StringTable::get().lookup(identifier_id);
-        log_verbose("[ SymbolTable ]: Creating variable symbol of type '", type, "' with identifier '", identifier, "'");
+        log_verbose("[ SymbolTable ]: Creating variable symbol of type '", data_type, "' with identifier '", identifier, "'");
 
         // Check if variable with that name already exists in the current scope
-        std::shared_ptr<Scope> current_scope = scopes.back();
-        std::unordered_map<StringId, SymbolId>& symbols_in_current_scope = current_scope->contained_identifiers_to_symbol_map;
-        if (symbols_in_current_scope.contains(identifier_id)) {
+        if (does_name_exist_in_scope_stack(identifier_id)) {
             log(log_type::PARSING_ERROR, "Variable with name '", identifier, "' already exists in the current scope");
-            return std::unexpected(ErrorCode::ParserRedefineSymbol);
+            return std::unexpected(ErrorCode::SymbolTableRedefineSymbol);
         }
 
         // Create new symbol
-        SymbolId symbol_id = symbols.size();
-        Symbol symbol{
+        const SymbolId symbol_id = symbols.size();
+        const Symbol symbol{
             .identifier_id = identifier_id,
-            .data_type = type};
+            .data_type = data_type};
         symbols.push_back(std::move(symbol));
-        symbols_in_current_scope.emplace(identifier_id, symbol_id);
+        const std::shared_ptr<Scope> current_scope = scopes.back();
+        current_scope->contained_identifiers.emplace(identifier_id, symbol_id);
         return symbol_id;
     }
 
-    std::expected<SymbolId, ErrorCode> SymbolTable::create_prototype(StringId identifier_id, type_system::DataTypeKind type, PrototypeSymbolData data) {
+    std::expected<SymbolId, ErrorCode> SymbolTable::create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data) {
         const std::string& identifier = StringTable::get().lookup(identifier_id);
-        log_verbose("[ SymbolTable ]: Creating prototype symbol with return type '", type, "' and identifier '", identifier, "'");
+        log_verbose("[ SymbolTable ]: Creating prototype symbol with return type '", data_type, "' and identifier '", identifier, "'");
 
         // Check if prototype with that name already exists in the global scope
         // Use the global scope because functions can only be defined inside the global scope right now
-        if (scopes.size() != 0) {
-            log(log_type::INTERNAL_ERROR, "Trying to create a prototype symbol in a scope other than the global scope. Catching this mistake is not my job, parser, why didn't you catch that?!");
+        const std::shared_ptr<Scope> current_scope = scopes.back()->parent;
+        if (current_scope != scopes[0]) {
+            log(log_type::INTERNAL_ERROR, "Trying to create a prototype symbol in a scope other than the global scope. Current scope is '", scopes.size(), "', expected '1' for the global scope.\n",
+                log_type::LAST_INDENTED, "Catching this mistake is not my job, parser, what are you doing?");
             emergency_exit();
         }
 
-        std::shared_ptr<Scope> current_scope = scopes.back();
-        std::unordered_map<StringId, SymbolId>& symbols_in_current_scope = current_scope->contained_identifiers_to_symbol_map;
-        if (symbols_in_current_scope.contains(identifier_id)) {
-            const SymbolId symbol_id = symbols_in_current_scope[identifier_id];
+        std::unordered_map<StringId, SymbolId>& identifiers_in_current_scope = current_scope->contained_identifiers;
+        if (identifiers_in_current_scope.contains(identifier_id)) {
+            const SymbolId symbol_id = identifiers_in_current_scope[identifier_id];
             const Symbol& symbol = symbols[symbol_id];
 
             if (std::holds_alternative<PrototypeSymbolData>(symbol.data)) {
@@ -75,26 +77,25 @@ namespace kepler::semantic_analysis {
                 log(log_type::PARSING_ERROR, "Trying to define a function with the name '", identifier, "', but a varibale with that name already exists");
             }
 
-            return std::unexpected(ErrorCode::ParserRedefineSymbol);
+            return std::unexpected(ErrorCode::SymbolTableRedefineSymbol);
         }
 
         // Create symbol
-        SymbolId symbol_id = symbols.size();
-        Symbol symbol{
+        const SymbolId symbol_id = symbols.size();
+        const Symbol symbol{
             .identifier_id = identifier_id,
-            .data_type = type,
+            .data_type = data_type,
             .data = std::move(data)};
         symbols.push_back(std::move(symbol));
-        symbols_in_current_scope.emplace(identifier_id, symbol_id);
+        identifiers_in_current_scope.emplace(identifier_id, symbol_id);
         return symbol_id;
     }
 
     const Symbol& SymbolTable::lookup(SymbolId id) const {
         std::shared_ptr<Scope> scope = scopes.back();
-        const std::unordered_map<StringId, SymbolId>& contained_symbols = scope->contained_identifiers_to_symbol_map;
         const Symbol& symbol = symbols[id];
         while (scope != nullptr) {
-            if (contained_symbols.contains(symbol.identifier_id)) {
+            if (scope->contained_identifiers.contains(symbol.identifier_id)) {
                 return symbol;
             }
             scope = scope->parent;
@@ -118,6 +119,18 @@ namespace kepler::semantic_analysis {
             emergency_exit();
         }
         scopes.pop_back();
+    }
+
+    bool SymbolTable::does_name_exist_in_scope_stack(StringId identifier_id) const {
+        std::shared_ptr<Scope> scope = scopes.back();
+        while (scope != nullptr) {
+            if (scope->contained_identifiers.contains(identifier_id)) {
+                return true;
+            }
+            scope = scope->parent;
+        }
+
+        return false;
     }
 
     SymbolTable& SymbolTable::get() {

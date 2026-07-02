@@ -9,23 +9,11 @@
 
 #pragma once
 
-#include <ostream>
+namespace kepler::ast {
 
-namespace kepler::lexer {
-
-    enum class OperatorType {
-        Plus,
-        Minus,
-        Multiplication,
-        Division,
-        LessThan,
-        GreaterThan,
-        Equals,
-        NotEquals,
-        LessEquals,
-        GreaterEquals,
+    class ASTNode {
+    public:
+        virtual ~ASTNode() = default;
     };
-
-    std::ostream& operator<<(std::ostream& os, OperatorType operator_type);
 
 }

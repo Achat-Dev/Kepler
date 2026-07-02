@@ -22,9 +22,10 @@ namespace kepler::lexer {
     struct Token {
         TokenType type;
 
-        using TokenData = std::variant<double, // floating point literals
-            int64_t,                           // integer literals
-            semantic_analysis::StringId,       // string literals & identifiers
+        using TokenData = std::variant<double, // Floating point literals
+            int64_t,                           // Integer literals
+            semantic_analysis::StringId,       // String literals & identifiers
+            bool,                              // Boolean literals
             OperatorType,                      // Operators
             type_system::DataTypeKind,         // Data types
             std::monostate>;

@@ -10,14 +10,22 @@
 #include "compiler.hpp"
 #include "lexer/tokenizer.hpp"
 #include "log.hpp"
+#include "parser/parser.hpp"
 
 namespace kepler {
 
     void Compiler::compile_project() const {
         lexer::Tokenizer tokenizer(arguments.input_file_name);
-        auto tokens = tokenizer.tokenize();
+        const auto tokens = tokenizer.tokenize();
         if (!tokens) {
-            log(log_type::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");
+            // log(log_type::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");
+            exit((int)tokens.error());
+        }
+
+        parser::Parser parser(*tokens);
+        const auto ast_nodes = parser.parse();
+        if (!ast_nodes) {
+            // log(log_type::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");
             exit((int)tokens.error());
         }
     }
