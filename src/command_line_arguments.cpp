@@ -41,9 +41,9 @@ namespace kepler {
                 arguments.input_file_name = result["input"].as<std::string>();
             } else {
                 if (count_input > 1) {
-                    log(log_type::USAGE_ERROR, "Input file can only be specified once");
+                    log(log_type::usage_error, "Input file can only be specified once");
                 } else {
-                    log(log_type::USAGE_ERROR, "No input file given");
+                    log(log_type::usage_error, "No input file given");
                 }
                 exit(1);
             }
@@ -54,9 +54,9 @@ namespace kepler {
                 arguments.output_file_name = result["output"].as<std::string>();
             } else {
                 if (count_output > 1) {
-                    log(log_type::USAGE_ERROR, "Output file can only be specified once");
+                    log(log_type::usage_error, "Output file can only be specified once");
                 } else {
-                    log(log_type::USAGE_ERROR, "No output file given");
+                    log(log_type::usage_error, "No output file given");
                 }
                 exit(1);
             }
@@ -64,12 +64,12 @@ namespace kepler {
             log_config.should_log_verbose = result.contains("verbose");
 
             log_verbose("Successfully parsed command line arguments:\n",
-                log_type::INDENTED, "-i (input file name): '", arguments.input_file_name, "'\n",
-                log_type::LAST_INDENTED, "-o (output file name): '", arguments.output_file_name);
+                log_type::indented, "-i (input file name): '", arguments.input_file_name, "'\n",
+                log_type::last_indented, "-o (output file name): '", arguments.output_file_name);
 
             return arguments;
         } catch (const cxxopts::exceptions::exception& e) {
-            log(log_type::USAGE_ERROR, e.what());
+            log(log_type::usage_error, e.what());
             exit(1);
         }
     }

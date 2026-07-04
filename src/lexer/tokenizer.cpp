@@ -8,14 +8,13 @@
  */
 
 #include "lexer/tokenizer.hpp"
-#include "error_code.hpp"
+#include "diagnostics/diagnostics.hpp"
+#include "diagnostics/error_code.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
 #include "semantic_analysis/string_table.hpp"
-#include "type_system/data_type_kind.hpp"
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <expected>
 #include <filesystem>
@@ -26,53 +25,32 @@
 
 namespace kepler::lexer {
 
-    std::unordered_map<std::string, Token> Tokenizer::keyword_map = {
-        {"extern", Token(TokenType::Extern)},
-        {"return", Token(TokenType::Return)},
-        {"end", Token(TokenType::End)},
-        {"if", Token(TokenType::If)},
-        {"else", Token(TokenType::Else)},
-        {"elseif", Token(TokenType::Elseif)},
-        {"for", Token(TokenType::For)},
-        {"true", Token(TokenType::Literal, true)},
-        {"false", Token(TokenType::Literal, false)},
-        {"void", Token(TokenType::DataType, type_system::DataTypeKind::Void)},
-        {"tmap", Token(TokenType::DataType, type_system::DataTypeKind::TMap)},
-        {"bool", Token(TokenType::DataType, type_system::DataTypeKind::Bool)},
-        {"char", Token(TokenType::DataType, type_system::DataTypeKind::Char)},
-        {"string", Token(TokenType::DataType, type_system::DataTypeKind::String)},
-        {"i8", Token(TokenType::DataType, type_system::DataTypeKind::Int8)},
-        {"i16", Token(TokenType::DataType, type_system::DataTypeKind::Int16)},
-        {"i32", Token(TokenType::DataType, type_system::DataTypeKind::Int32)},
-        {"i64", Token(TokenType::DataType, type_system::DataTypeKind::Int64)},
-        {"f32", Token(TokenType::DataType, type_system::DataTypeKind::Float32)},
-        {"f64", Token(TokenType::DataType, type_system::DataTypeKind::Float64)},
-    };
+    std::unordered_map<std::string, Token> Tokenizer::keyword_map;
 
-    std::expected<std::vector<Token>, ErrorCode> Tokenizer::tokenize() {
+    std::expected<std::vector<Token>, diagnostics::ErrorCode> Tokenizer::tokenize() {
         log_verbose("Tokenizing file '", file_path, "'");
 
         // Check if the file at the given path can be used
         if (!std::filesystem::exists(file_path)) {
-            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: File doesn't exist");
-            return std::unexpected(ErrorCode::IOFileNotFound);
+            log(log_type::io_error, "[ Reading '", file_path, "' ]: File doesn't exist");
+            return std::unexpected(diagnostics::ErrorCode::IOFileNotFound);
         }
         if (std::filesystem::is_directory(file_path)) {
-            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: Path is a directory");
-            return std::unexpected(ErrorCode::IOFileIsADirectory);
+            log(log_type::io_error, "[ Reading '", file_path, "' ]: Path is a directory");
+            return std::unexpected(diagnostics::ErrorCode::IOFileIsADirectory);
         }
         if (!std::filesystem::is_regular_file(file_path)) {
-            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: File is not a regular file");
-            return std::unexpected(ErrorCode::IONotARegularFile);
+            log(log_type::io_error, "[ Reading '", file_path, "' ]: File is not a regular file");
+            return std::unexpected(diagnostics::ErrorCode::IONotARegularFile);
         }
 
         // Read file contents into string
         std::ifstream file_stream(file_path);
         if (!file_stream) {
-            log(log_type::IO_ERROR, "[ Reading '", file_path, "' ]: ¯\\_(ツ)_/¯\n",
-                log_type::INDENTED, "Check the file permissions\n",
-                log_type::LAST_INDENTED, "Check if the file is currently locked by other programs");
-            return std::unexpected(ErrorCode::IOFailedToCreateFileStream);
+            log(log_type::io_error, "[ Reading '", file_path, "' ]: ¯\\_(ツ)_/¯\n",
+                log_type::indented, "Check the file permissions\n",
+                log_type::last_indented, "Check if the file is currently locked by other programs");
+            return std::unexpected(diagnostics::ErrorCode::IOFailedToCreateFileStream);
         }
 
         file_content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
@@ -81,18 +59,15 @@ namespace kepler::lexer {
         current_char = file_content[0]; // Read first char manually instead of next_char() because that would read file_content[1]
         std::vector<Token> result;
         while (true) {
-            const Token token = read_next_token();
-            if (token.type == TokenType::Unknown) {
-                return std::unexpected(ErrorCode::LexerUnknownCharacter);
+            const auto token = read_next_token();
+            if (!token) {
+                return std::unexpected(token.error());
             }
 
-            result.push_back(token);
-            if (token.type == TokenType::EndOfFile) {
-                log_verbose_no_prefix(log_type::LAST_INDENTED, "Created token: ", token);
-                log_verbose("Successfully tokenized file '", file_path, "'");
+            result.push_back(*token);
+            if (token->type == TokenType::EndOfFile) {
+                log_verbose_no_prefix(log_type::last_indented, "Done");
                 return result;
-            } else {
-                log_verbose_no_prefix(log_type::INDENTED, "Created token: ", token);
             }
         }
     }
@@ -112,9 +87,9 @@ namespace kepler::lexer {
         }
     }
 
-    Token Tokenizer::read_next_token() {
+    std::expected<Token, diagnostics::ErrorCode> Tokenizer::read_next_token() {
         if (peek_next_char() == EOF) {
-            return Token(TokenType::EndOfFile);
+            return Token(TokenType::EndOfFile, {});
         }
 
         while (isspace(current_char)) {
@@ -129,70 +104,69 @@ namespace kepler::lexer {
         }
 
         switch (current_char) {
-            case '#': return read_comment();
+            case '#':
+                read_comment();
+                return read_next_token();
             case ',':
                 next_char();
-                return Token(TokenType::Comma);
+                return Token(TokenType::Comma, {position - 1, 1});
             case ':':
                 next_char();
-                return Token(TokenType::Colon);
+                return Token(TokenType::Colon, {position - 1, 1});
             case '(':
                 next_char();
-                return Token(TokenType::BracketOpen);
+                return Token(TokenType::BracketOpen, {position - 1, 1});
             case ')':
                 next_char();
-                return Token(TokenType::BracketClose);
+                return Token(TokenType::BracketClose, {position - 1, 1});
             case '=':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, OperatorType::Equals);
+                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::Equals);
                 } else {
-                    return Token(TokenType::Assignment);
+                    return Token(TokenType::Assignment, {position - 1, 1});
                 }
             case '+':
                 next_char();
-                return Token(TokenType::Operator, OperatorType::Plus);
+                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Plus);
             case '-':
                 next_char();
-                return Token(TokenType::Operator, OperatorType::Minus);
+                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Minus);
             case '*':
                 next_char();
-                return Token(TokenType::Operator, OperatorType::Multiplication);
+                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Multiplication);
             case '/':
                 next_char();
-                return Token(TokenType::Operator, OperatorType::Division);
+                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Division);
             case '<':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, OperatorType::LessEquals);
+                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::LessEquals);
                 } else {
-                    return Token(TokenType::Operator, OperatorType::LessThan);
+                    return Token(TokenType::Operator, {position - 1, 1}, OperatorType::LessThan);
                 }
             case '>':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, OperatorType::GreaterEquals);
+                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::GreaterEquals);
                 } else {
-                    return Token(TokenType::Operator, OperatorType::GreaterThan);
+                    return Token(TokenType::Operator, {position - 1, 1}, OperatorType::GreaterThan);
                 }
             case '!':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, OperatorType::NotEquals);
+                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::NotEquals);
                 } else {
-                    log(log_type::UNSUPPORTED, "Logical negation with '!' is not supported yet");
-                    current_char = '!';
-                    break;
+                    return diagnostics::error(file_path, {position - 1, 1}, diagnostics::ErrorCode::Unsupported, "Logical negation with '!' is not supported yet");
                 }
             case '"': return read_string_literal();
         }
 
-        log(log_type::LEXING_ERROR, "Unknown character '", current_char, "' while lexing");
-        return Token(TokenType::Unknown);
+        return diagnostics::error(file_path, {position, 1}, diagnostics::ErrorCode::LexerUnknownCharacter, "Unknown character '{}'", current_char);
     }
 
     Token Tokenizer::read_identifier() {
@@ -206,15 +180,17 @@ namespace kepler::lexer {
         const std::string identifier = file_content.substr(identifier_start_position, identifier_length);
 
         if (keyword_map.contains(identifier)) {
-            return keyword_map[identifier];
+            Token token = keyword_map.at(identifier);
+            token.source_location.position = identifier_start_position;
+            return token;
         }
 
         const semantic_analysis::StringId identifier_id = semantic_analysis::StringTable::get().store_or_lookup(identifier);
-        const Token token(TokenType::Identifier, identifier_id);
+        const Token token(TokenType::Identifier, {identifier_start_position, identifier_length}, identifier_id);
         return token;
     }
 
-    Token Tokenizer::read_string_literal() {
+    std::expected<Token, diagnostics::ErrorCode> Tokenizer::read_string_literal() {
         // String literals can't be string_views because escape characters have to be interpreted
         std::string literal = "";
         next_char();
@@ -229,8 +205,7 @@ namespace kepler::lexer {
                     case '\\': literal += '\\'; break;
                     case '"': literal += '"'; break;
                     default:
-                        log(log_type::LEXING_ERROR, "Unknown escape character '\\", current_char, "' in string");
-                        return Token(TokenType::Unknown);
+                        return diagnostics::error(file_path, {position - 1, 2}, diagnostics::ErrorCode::LexerUnknownEscapeSequence, "Unknown escape character '\\{}' in string", current_char);
                 }
 
                 next_char(); // read the next character for the next loop interation
@@ -243,7 +218,8 @@ namespace kepler::lexer {
         next_char(); // eat closing '"'
 
         const semantic_analysis::StringId literal_id = semantic_analysis::StringTable::get().store_or_lookup(literal);
-        return Token(TokenType::Literal, literal_id);
+        const size_t literal_length = literal.size();
+        return Token(TokenType::Literal, {position - literal_length, literal_length}, literal_id);
     }
 
     Token Tokenizer::read_numeric_literal() {
@@ -260,22 +236,21 @@ namespace kepler::lexer {
         const std::string literal = file_content.substr(literal_start_position, literal_length);
 
         if (is_float) {
-            return Token(TokenType::Literal, std::stod(literal.data()));
+            return Token(TokenType::Literal, {literal_start_position}, std::stod(literal.data()));
         } else {
-            return Token(TokenType::Literal, std::stoll(literal.data()));
+            return Token(TokenType::Literal, {literal_start_position, literal_length}, std::stoll(literal.data()));
         }
     }
 
-    Token Tokenizer::read_comment() {
+    void Tokenizer::read_comment() {
         next_char();
 
         // Two # after each other -> multiline comment
         if (current_char == '#') {
-            log_verbose_no_prefix(log_type::INDENTED, "Reading multiline comment");
             while (!(current_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
-                    log(log_type::LEXING_WARNING, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
-                    return Token(TokenType::EndOfFile);
+                    log(log_type::lexing_warning, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
+                    return;
                 }
 
                 next_char();
@@ -286,17 +261,18 @@ namespace kepler::lexer {
         }
         // Single line comment
         else {
-            log_verbose_no_prefix(log_type::INDENTED, "Reading singleline comment");
             while (current_char != '\n') {
                 if (peek_next_char() == EOF) {
-                    return Token(TokenType::EndOfFile);
+                    return;
                 }
 
                 next_char();
             }
         }
+    }
 
-        return read_next_token();
+    void Tokenizer::register_keyword(const std::string& keyword, TokenType token_type, TokenData token_data) {
+        keyword_map.emplace(keyword, Token(token_type, {0, keyword.size()}, token_data));
     }
 
 }

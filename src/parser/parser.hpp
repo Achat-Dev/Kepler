@@ -10,11 +10,17 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
+#include "ast/expressions/call_expression.hpp"
+#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
+#include "ast/expressions/negation_expression.hpp"
 #include "ast/function.hpp"
 #include "ast/prototype.hpp"
-#include "ast/statements/statement.hpp"
-#include "error_code.hpp"
+#include "ast/statements/assignment_statement.hpp"
+#include "ast/statements/for_statement.hpp"
+#include "ast/statements/if_statement.hpp"
+#include "ast/statements/return_statement.hpp"
+#include "diagnostics/error_code.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "semantic_analysis/string_table.hpp"
@@ -23,6 +29,7 @@
 #include <cstddef>
 #include <expected>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace kepler::parser {
@@ -30,11 +37,12 @@ namespace kepler::parser {
     // TODO: Replace shared_ptr with raw pointers and an arena allocator once the architecture rework is finished
     class Parser {
     public:
-        Parser(const std::vector<lexer::Token>& tokens)
-            : tokens(tokens), current_token(&tokens[0]) {}
-        std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, ErrorCode> parse();
+        Parser(const std::string& file_path, const std::vector<lexer::Token>& tokens)
+            : file_path(file_path), tokens(tokens), current_token(&tokens[0]) {}
+        std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, diagnostics::ErrorCode> parse();
 
     private:
+        const std::string& file_path;
         const std::vector<lexer::Token>& tokens;
         const lexer::Token* current_token;
         size_t current_token_index = 0;
@@ -45,32 +53,33 @@ namespace kepler::parser {
         void previous_token();
 
         // Top level
-        std::expected<std::shared_ptr<ast::ASTNode>, ErrorCode> parse_extern();
-        std::expected<semantic_analysis::SymbolId, ErrorCode> parse_prototype(ast::Prototype::LinkageType linkage_type);
-        std::expected<std::shared_ptr<ast::ASTNode>, ErrorCode> parse_top_level_data_type();
-        std::expected<std::shared_ptr<ast::Function>, ErrorCode> parse_function(type_system::DataTypeKind return_type, semantic_analysis::StringId identifier_id);
+        std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> parse_extern();
+        std::expected<semantic_analysis::SymbolId, diagnostics::ErrorCode> parse_prototype(ast::Prototype::LinkageType linkage_type);
+        std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> parse_top_level_data_type();
+        std::expected<std::shared_ptr<ast::Function>, diagnostics::ErrorCode> parse_function(type_system::DataTypeKind return_type);
 
         // Main body nodes
-        std::expected<std::shared_ptr<ast::ASTNode>, ErrorCode> parse_statement();
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> parse_expression();
+        std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> parse_statement();
+        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_expression();
 
         // Expressions
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> parse_binary_expression_rhs(std::shared_ptr<ast::Expression> lhs_expression, int expression_precedence);
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> parse_primary();
+        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_binary_expression_rhs(std::shared_ptr<ast::Expression> lhs_expression, int expression_precedence);
+        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_primary();
         std::shared_ptr<ast::Expression> parse_literal();
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> parse_parenthesis();
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> parse_identifier();
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> parse_negative();
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> parse_cast();
+        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_parenthesis();
+        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_identifier();
+        std::expected<std::shared_ptr<ast::CallExpression>, diagnostics::ErrorCode> parse_call(semantic_analysis::StringId identifier_id);
+        std::expected<std::shared_ptr<ast::NegationExpression>, diagnostics::ErrorCode> parse_negative();
+        std::expected<std::shared_ptr<ast::CastExpression>, diagnostics::ErrorCode> parse_cast();
 
         // Statements
-        std::expected<std::shared_ptr<ast::Statement>, ErrorCode> parse_assignment();
-        std::expected<std::shared_ptr<ast::Statement>, ErrorCode> parse_if();
-        std::expected<std::shared_ptr<ast::Statement>, ErrorCode> parse_for();
-        std::expected<std::shared_ptr<ast::Statement>, ErrorCode> create_for_statement(semantic_analysis::StringId variable_identifier_id, type_system::DataTypeKind variable_data_type, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value);
-        std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, ErrorCode> parse_for_body();
-        std::expected<std::shared_ptr<ast::Statement>, ErrorCode> parse_return();
-        std::expected<std::shared_ptr<ast::Statement>, ErrorCode> parse_variable_declaration();
+        std::expected<std::shared_ptr<ast::AssignmentStatement>, diagnostics::ErrorCode> parse_assignment(semantic_analysis::StringId identifier_id);
+        std::expected<std::shared_ptr<ast::IfStatement>, diagnostics::ErrorCode> parse_if();
+        std::expected<std::shared_ptr<ast::ForStatement>, diagnostics::ErrorCode> parse_for();
+        std::expected<std::shared_ptr<ast::ForStatement>, diagnostics::ErrorCode> create_for_statement(semantic_analysis::StringId variable_identifier_id, type_system::DataTypeKind variable_data_type, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value);
+        std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, diagnostics::ErrorCode> parse_for_body();
+        std::expected<std::shared_ptr<ast::ReturnStatement>, diagnostics::ErrorCode> parse_return();
+        std::expected<std::shared_ptr<ast::VariableDefinitionStatement>, diagnostics::ErrorCode> parse_variable_definition();
     };
 
 }

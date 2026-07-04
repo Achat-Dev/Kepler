@@ -25,10 +25,11 @@
 #include "ast/statements/for_statement.hpp"
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
-#include "ast/statements/statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "diagnostics/diagnostics.hpp"
+#include "diagnostics/error_code.hpp"
+#include "diagnostics/source_location.hpp"
 #include "emergency.hpp"
-#include "error_code.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
@@ -47,9 +48,11 @@
 
 namespace kepler::parser {
 
-    std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, ErrorCode> Parser::parse() {
+    std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, diagnostics::ErrorCode> Parser::parse() {
+        log_verbose("Parsing token stream");
+
         if (tokens.back().type != lexer::TokenType::EndOfFile) {
-            log(log_type::INTERNAL_ERROR, "Parser received token stream without EOF token, my tokenizer seems to have fucked up somewhere");
+            log(log_type::internal_error, "Parser received token stream without EOF token, my tokenizer seems to have fucked up somewhere");
             emergency_exit();
         }
 
@@ -64,7 +67,9 @@ namespace kepler::parser {
                     result.push_back(*ast_node);
                     break;
                 }
-                case lexer::TokenType::EndOfFile: return result;
+                case lexer::TokenType::EndOfFile:
+                    log_verbose_no_prefix(log_type::last_indented, "Done");
+                    return result;
                 case lexer::TokenType::Extern: {
                     const auto ast_node = parse_extern();
                     if (!ast_node) {
@@ -74,12 +79,9 @@ namespace kepler::parser {
                     break;
                 }
                 default:
-                    log(log_type::PARSING_ERROR, "Unexpected token of type '", current_token->type, "' on top level, expected 'extern' or data type");
-                    return std::unexpected(ErrorCode::ParserUnexpectedToken);
+                    return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Unexpected token of type '{}' on top level, expected 'extern' or data type", current_token->type);
             }
         }
-
-        return result;
     }
 
     int Parser::get_operator_precedence(lexer::OperatorType operator_type) const {
@@ -97,8 +99,8 @@ namespace kepler::parser {
             case lexer::OperatorType::Multiplication:
             case lexer::OperatorType::Division: return 30;
             default:
-                log(log_type::INTERNAL_ERROR, "Binary operator '", operator_type, "' doesn't have a precedence associated to it\n",
-                    log_type::LAST_INDENTED, "If this was intended, what the fuck where you thinking past me?");
+                log(log_type::internal_error, "Binary operator '", operator_type, "' doesn't have a precedence associated to it\n",
+                    log_type::last_indented, "If this was intended, what the fuck where you thinking past me?");
                 emergency_exit();
                 std::abort();
         }
@@ -118,13 +120,11 @@ namespace kepler::parser {
         }
     }
 
-    std::expected<std::shared_ptr<ast::ASTNode>, ErrorCode> Parser::parse_extern() {
-        log_verbose("Parsing an extern");
+    std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> Parser::parse_extern() {
         next_token(); // eat 'extern' keyword
 
         if (current_token->type != lexer::TokenType::DataType) {
-            log(log_type::PARSING_ERROR, "Expected data type after 'extern'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected data type after 'extern'");
         }
 
         semantic_analysis::SymbolTable::get().open_scope();
@@ -137,25 +137,22 @@ namespace kepler::parser {
         return std::make_shared<ast::Prototype>(*prototype_id);
     }
 
-    std::expected<semantic_analysis::SymbolId, ErrorCode> Parser::parse_prototype(ast::Prototype::LinkageType linkage_type) {
+    std::expected<semantic_analysis::SymbolId, diagnostics::ErrorCode> Parser::parse_prototype(ast::Prototype::LinkageType linkage_type) {
         const type_system::DataTypeKind return_type = std::get<type_system::DataTypeKind>(current_token->data);
         next_token(); // eat data type
         if (current_token->type != lexer::TokenType::Identifier) {
-            log(log_type::PARSING_ERROR, "[ Prototype ]: Expected identifier after return type of prototype");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected identifier after return type of prototype");
         }
         const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
 
         next_token(); // eat identifier
         if (current_token->type != lexer::TokenType::BracketOpen) {
-            log(log_type::PARSING_ERROR, "[ Prototype ]: Expected '(' after prototype name");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected '(' after prototype name");
         }
 
         next_token(); // eat '('
         if (current_token->type != lexer::TokenType::DataType && current_token->type != lexer::TokenType::BracketClose) {
-            log(log_type::PARSING_ERROR, "[ Prototype ]: Expected data type or ')' after '(' in prototype");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected data type or ')' after '(' in prototype");
         }
 
         // Parse parameters
@@ -166,8 +163,7 @@ namespace kepler::parser {
 
             next_token(); // eat data type
             if (current_token->type != lexer::TokenType::Identifier) {
-                log(log_type::PARSING_ERROR, "[ Prototype ]: Expected identifier after parameter data type");
-                return std::unexpected(ErrorCode::ParserUnexpectedToken);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected identifier after parameter data type");
             }
 
             const semantic_analysis::StringId parameter_identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
@@ -182,15 +178,13 @@ namespace kepler::parser {
                 next_token(); // eat ','
 
                 if (current_token->type != lexer::TokenType::DataType) {
-                    log(log_type::PARSING_ERROR, "[ Prototype ]: Expected data type after ',' in prototype parameters");
-                    return std::unexpected(ErrorCode::ParserUnexpectedToken);
+                    return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected data type after ',' in prototype parameters");
                 }
             }
         }
 
         if (current_token->type != lexer::TokenType::BracketClose) {
-            log(log_type::PARSING_ERROR, "[ Prototype ]: Expected ')' after function parameters in prototype");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ')' after function parameters in prototype");
         }
         next_token(); // eat ')'
 
@@ -202,40 +196,34 @@ namespace kepler::parser {
         return *prototype_id;
     }
 
-    std::expected<std::shared_ptr<ast::ASTNode>, ErrorCode> Parser::parse_top_level_data_type() {
+    std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> Parser::parse_top_level_data_type() {
         const type_system::DataTypeKind data_type = std::get<type_system::DataTypeKind>(current_token->data);
         next_token(); // eat data type
         if (current_token->type != lexer::TokenType::Identifier) {
-            log(log_type::PARSING_ERROR, "Expected identifier after data type on top level");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected identifier after data type on top level");
         }
 
-        const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
         next_token(); // eat identifier
-
         // Variable definition
         if (current_token->type == lexer::TokenType::Assignment) {
             if (data_type == type_system::DataTypeKind::Void) {
-                log(log_type::PARSING_ERROR, "Cannot create a global variable of type 'void'");
-                return std::unexpected(ErrorCode::ParserInvalidVariableType);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserInvalidVariableType, "Cannot create a global variable of type 'void'");
             }
-
-            log(log_type::UNSUPPORTED, "Global variables are not supported yet");
-            return std::unexpected(ErrorCode::Unsupported);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::Unsupported, "Global variables are not supported yet");
         }
         // Function definition
         else if (current_token->type == lexer::TokenType::BracketOpen) {
-            // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
-            previous_token();
-            previous_token();
-            return parse_function(data_type, identifier_id);
+            return parse_function(data_type);
         }
 
-        log(log_type::PARSING_ERROR, "Expected either an assignment operator or a '(' after identifier on top level");
-        return std::unexpected(ErrorCode::ParserUnexpectedToken);
+        return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected either an assignment operator or a '(' after identifier on top level");
     }
 
-    std::expected<std::shared_ptr<ast::Function>, ErrorCode> Parser::parse_function(type_system::DataTypeKind return_type, semantic_analysis::StringId identifier_id) {
+    std::expected<std::shared_ptr<ast::Function>, diagnostics::ErrorCode> Parser::parse_function(type_system::DataTypeKind return_type) {
+        // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
+        previous_token();
+        previous_token();
+
         semantic_analysis::SymbolTable::get().open_scope();
 
         const auto prototype_id = parse_prototype(ast::Prototype::LinkageType::Internal);
@@ -248,13 +236,11 @@ namespace kepler::parser {
         std::vector<std::shared_ptr<ast::ASTNode>> body;
         while (current_token->type != lexer::TokenType::End) {
             if (current_token->type == lexer::TokenType::EndOfFile) {
-                log(log_type::PARSING_ERROR, "Function was not closed with an 'end' keyword");
-                return std::unexpected(ErrorCode::ParserMissingEndKeyword);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserMissingEndKeyword, "Function was not closed with an 'end' keyword");
             }
 
             const auto statement = parse_statement();
             if (!statement) {
-                // log(log_type::PARSING_ERROR, "Invalid expression in function body");
                 return std::unexpected(statement.error());
             }
             body.push_back(*statement);
@@ -267,7 +253,7 @@ namespace kepler::parser {
         return std::make_shared<ast::Function>(*prototype_id, std::move(body));
     }
 
-    std::expected<std::shared_ptr<ast::ASTNode>, ErrorCode> Parser::parse_statement() {
+    std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> Parser::parse_statement() {
         switch (current_token->type) {
             case lexer::TokenType::If:
                 return parse_if();
@@ -279,19 +265,23 @@ namespace kepler::parser {
                 next_token(); // eat data type
                 if (current_token->type == lexer::TokenType::Identifier) {
                     previous_token();
-                    return parse_variable_declaration();
+                    return parse_variable_definition();
                 }
                 break;
             }
             case lexer::TokenType::Identifier: {
-                next_token(); // eat identifier
-                const lexer::TokenType next_token_type = current_token->type;
-                previous_token();
-                if (next_token_type == lexer::TokenType::Assignment) {
-                    return parse_assignment();
-                } else if (next_token_type == lexer::TokenType::BracketOpen) {
-                    return parse_identifier();
+                const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
+                if (!semantic_analysis::SymbolTable::get().does_name_exist_in_scope_stack(identifier_id)) {
+                    return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUndefinedSymbol, "Undefined symbol '{}'", semantic_analysis::StringTable::get().lookup(identifier_id));
                 }
+
+                next_token(); // eat identifier
+                if (current_token->type == lexer::TokenType::Assignment) {
+                    return parse_assignment(identifier_id);
+                } else if (current_token->type == lexer::TokenType::BracketOpen) {
+                    return parse_call(identifier_id);
+                }
+                previous_token();
                 break;
             }
 
@@ -299,11 +289,10 @@ namespace kepler::parser {
                 break;
         }
 
-        log(log_type::PARSING_ERROR, "Unexpected token '", *current_token, "'");
-        return std::unexpected(ErrorCode::ParserUnexpectedToken);
+        return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Unexpected token '{}'", *current_token);
     }
 
-    std::expected<std::shared_ptr<ast::Expression>, ErrorCode> Parser::parse_expression() {
+    std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> Parser::parse_expression() {
         const auto expression = parse_primary();
         if (!expression) {
             return std::unexpected(expression.error());
@@ -315,7 +304,7 @@ namespace kepler::parser {
         return expression;
     }
 
-    std::expected<std::shared_ptr<ast::Expression>, ErrorCode> Parser::parse_binary_expression_rhs(std::shared_ptr<ast::Expression> lhs_expression, int expression_precedence) {
+    std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> Parser::parse_binary_expression_rhs(std::shared_ptr<ast::Expression> lhs_expression, int expression_precedence) {
         while (true) {
             if (current_token->type != lexer::TokenType::Operator) {
                 return lhs_expression;
@@ -331,8 +320,6 @@ namespace kepler::parser {
             auto rhs_expression = parse_primary();
             if (!rhs_expression) {
                 return rhs_expression;
-                // log(log_type::PARSING_ERROR, "No right hand side expression when parsing binary operator '", current_operator_type, "'");
-                // return std::unexpected(ErrorCode::ParserNoRhsValueForBinaryOperator);
             }
 
             if (current_token->type != lexer::TokenType::Operator) {
@@ -352,7 +339,7 @@ namespace kepler::parser {
         }
     }
 
-    std::expected<std::shared_ptr<ast::Expression>, ErrorCode> Parser::parse_primary() {
+    std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> Parser::parse_primary() {
         switch (current_token->type) {
             case lexer::TokenType::Identifier:
                 return parse_identifier();
@@ -370,25 +357,23 @@ namespace kepler::parser {
             default: break;
         }
 
-        log(log_type::PARSING_ERROR, "Unexpected token '", *current_token, "'");
-        return std::unexpected(ErrorCode::ParserUnexpectedToken);
+        return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Unexpected token '{}'", *current_token);
     }
 
-    std::expected<std::shared_ptr<ast::Expression>, ErrorCode> Parser::parse_identifier() {
+    std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> Parser::parse_identifier() {
         const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
         if (!semantic_analysis::SymbolTable::get().does_name_exist_in_scope_stack(identifier_id)) {
-            log(log_type::PARSING_ERROR, "Undefined symbol '", semantic_analysis::StringTable::get().lookup(identifier_id), "'");
-            return std::unexpected(ErrorCode::ParserUndefinedSymbol);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUndefinedSymbol, "Undefined symbol '{}'", semantic_analysis::StringTable::get().lookup(identifier_id));
         }
 
         next_token(); // eat identifier
-
-        // No bracket after identifier -> Variable
-        if (current_token->type != lexer::TokenType::BracketOpen) {
-            return std::make_shared<ast::VariableExpression>(identifier_id);
+        if (current_token->type == lexer::TokenType::BracketOpen) {
+            return parse_call(identifier_id);
         }
+        return std::make_shared<ast::VariableExpression>(identifier_id);
+    }
 
-        // Bracket after identifier -> Function call
+    std::expected<std::shared_ptr<ast::CallExpression>, diagnostics::ErrorCode> Parser::parse_call(semantic_analysis::StringId identifier_id) {
         next_token(); // eat '('
         std::vector<std::shared_ptr<ast::Expression>> args;
         if (current_token->type != lexer::TokenType::BracketClose) {
@@ -404,8 +389,7 @@ namespace kepler::parser {
                 }
 
                 if (current_token->type != lexer::TokenType::Comma) {
-                    log(log_type::PARSING_ERROR, "Expected ')' or ',' in function argument list");
-                    return std::unexpected(ErrorCode::ParserUnexpectedToken);
+                    return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ')' or ',' in function argument list");
                 }
 
                 next_token(); // eat ','
@@ -413,7 +397,6 @@ namespace kepler::parser {
         }
 
         next_token(); // eat ')'
-
         return std::make_shared<ast::CallExpression>(identifier_id, std::move(args));
     }
 
@@ -430,37 +413,34 @@ namespace kepler::parser {
         } else if (std::holds_alternative<bool>(literal_data)) {
             return std::make_shared<ast::BooleanLiteralExpression>(std::get<bool>(literal_data));
         } else {
-            log(log_type::INTERNAL_ERROR, "Literal token doesn't contain the literal data? Tokenization, wtf?");
+            log(log_type::internal_error, "Literal token doesn't contain the literal data? Tokenization, wtf?");
             emergency_exit();
             std::abort();
         }
     }
 
-    std::expected<std::shared_ptr<ast::Expression>, ErrorCode> Parser::parse_parenthesis() {
+    std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> Parser::parse_parenthesis() {
         next_token(); // eat '('
-
         const auto expression = parse_expression();
         if (!expression) {
             return expression;
         }
 
         if (current_token->type != lexer::TokenType::BracketClose) {
-            log(log_type::PARSING_ERROR, "Expected ')'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ')'");
         }
 
         next_token(); // eat ')'
         return expression;
     }
 
-    std::expected<std::shared_ptr<ast::Expression>, ErrorCode> Parser::parse_negative() {
+    std::expected<std::shared_ptr<ast::NegationExpression>, diagnostics::ErrorCode> Parser::parse_negative() {
         next_token(); // eat '-'
-
-        std::expected<std::shared_ptr<ast::Expression>, ErrorCode> expression;
+        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> expression;
         switch (current_token->type) {
             case lexer::TokenType::Identifier:
-                expression = parse_identifier();
                 // TODO: Check if the symbol behind the identifier has a type that can be negated
+                expression = parse_identifier();
                 break;
             case lexer::TokenType::BracketOpen:
                 expression = parse_parenthesis();
@@ -472,56 +452,51 @@ namespace kepler::parser {
                     break;
                 }
             default:
-                log(log_type::PARSING_ERROR, "Mathematical negation of '", *current_token, "' is not supported");
-                return std::unexpected(ErrorCode::ParserUnsupportedMathematicalNegation);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnsupportedMathematicalNegation, "Mathematical negation of '{}' is not supported", *current_token);
         }
 
         if (!expression) {
-            return expression;
+            return std::unexpected(expression.error());
         }
         return std::make_shared<ast::NegationExpression>(*expression);
     }
 
-    std::expected<std::shared_ptr<ast::Expression>, ErrorCode> Parser::parse_cast() {
+    std::expected<std::shared_ptr<ast::CastExpression>, diagnostics::ErrorCode> Parser::parse_cast() {
         const type_system::DataTypeKind data_type = std::get<type_system::DataTypeKind>(current_token->data);
         if (data_type == type_system::DataTypeKind::Void) {
-            log(log_type::PARSING_ERROR, "Cannot cast a value to 'void'");
-            return std::unexpected(ErrorCode::ParserInvalidCast);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserInvalidCast, "Cannot cast a value to 'void'");
         }
 
         next_token(); // eat data type
         if (current_token->type != lexer::TokenType::BracketOpen) {
-            log(log_type::PARSING_ERROR, "Expected '(' after data type for cast");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected '(' after data type for cast");
         }
 
         next_token(); // eat '('
         if (current_token->type == lexer::TokenType::BracketClose) {
-            log(log_type::PARSING_ERROR, "Empty cast");
-            return std::unexpected(ErrorCode::ParserInvalidCast);
+            diagnostics::SourceLocation source_location{
+                current_token->source_location.position - 1,
+                2};
+            return diagnostics::error(file_path, source_location, diagnostics::ErrorCode::ParserInvalidCast, "Empty cast");
         }
 
         const auto expression_to_cast = parse_expression();
         if (!expression_to_cast) {
-            return expression_to_cast;
+            return std::unexpected(expression_to_cast.error());
         }
 
         if (current_token->type != lexer::TokenType::BracketClose) {
-            log(log_type::PARSING_ERROR, "Expected ')' after value in cast");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            previous_token();
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ')' after value in cast");
         }
 
         next_token(); // eat ')'
         return std::make_shared<ast::CastExpression>(*expression_to_cast, data_type);
     }
 
-    std::expected<std::shared_ptr<ast::Statement>, ErrorCode> Parser::parse_assignment() {
-        const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
-
-        next_token(); // eat identifier
+    std::expected<std::shared_ptr<ast::AssignmentStatement>, diagnostics::ErrorCode> Parser::parse_assignment(semantic_analysis::StringId identifier_id) {
         if (current_token->type != lexer::TokenType::Assignment) {
-            log(log_type::PARSING_ERROR, "Expected '=' after identifier in assignment");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected '=' after identifier in assignment");
         }
 
         next_token(); // eat '='
@@ -534,13 +509,12 @@ namespace kepler::parser {
         return std::make_shared<ast::AssignmentStatement>(variable, *value_expression);
     }
 
-    std::expected<std::shared_ptr<ast::Statement>, ErrorCode> Parser::parse_if() {
+    std::expected<std::shared_ptr<ast::IfStatement>, diagnostics::ErrorCode> Parser::parse_if() {
         const lexer::TokenType if_type = current_token->type;
 
         next_token(); // eat 'if' or 'elseif'
         if (current_token->type != lexer::TokenType::BracketOpen) {
-            log(log_type::PARSING_ERROR, "Expected '(' after '", if_type, "'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected '(' after '{}'", if_type);
         }
 
         next_token(); // eat '('
@@ -551,8 +525,7 @@ namespace kepler::parser {
         }
 
         if (current_token->type != lexer::TokenType::BracketClose) {
-            log(log_type::PARSING_ERROR, "Expected ')' after condition in '", if_type, "'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ')' after condition in '{}'", if_type);
         }
 
         next_token(); // eat ')'
@@ -560,8 +533,7 @@ namespace kepler::parser {
         std::vector<std::shared_ptr<ast::ASTNode>> if_body;
         while (current_token->type != lexer::TokenType::Elseif && current_token->type != lexer::TokenType::Else && current_token->type != lexer::TokenType::End) {
             if (current_token->type == lexer::TokenType::EndOfFile) {
-                log(log_type::PARSING_ERROR, "'if' statement was not closed with an 'end' keyword");
-                return std::unexpected(ErrorCode::ParserMissingEndKeyword);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserMissingEndKeyword, "'{}' statement was not closed with an 'end' keyword", if_type);
             }
 
             const auto body_element = parse_statement();
@@ -584,8 +556,7 @@ namespace kepler::parser {
             std::vector<std::shared_ptr<ast::ASTNode>> else_body;
             while (current_token->type != lexer::TokenType::End) {
                 if (current_token->type == lexer::TokenType::EndOfFile) {
-                    log(log_type::PARSING_ERROR, "'else' statement was not closed with an 'end' keyword");
-                    return std::unexpected(ErrorCode::ParserMissingEndKeyword);
+                    return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserMissingEndKeyword, "'else' statement was not closed with an 'end' keyword");
                 }
 
                 const auto body_element = parse_statement();
@@ -602,41 +573,36 @@ namespace kepler::parser {
             return std::make_shared<ast::IfStatement>(*condition, std::move(if_body), std::vector<std::shared_ptr<ast::ASTNode>>{});
         }
 
-        log(log_type::INTERNAL_ERROR, "Don't know how, but I managed to reach the end of the file while parsing an if statement without triggering any of the EOF checks");
+        log(log_type::internal_error, "Don't know how, but I managed to reach the end of the file while parsing an if statement without triggering any of the EOF checks");
         emergency_exit();
         std::abort();
     }
 
-    std::expected<std::shared_ptr<ast::Statement>, ErrorCode> Parser::parse_for() {
+    std::expected<std::shared_ptr<ast::ForStatement>, diagnostics::ErrorCode> Parser::parse_for() {
         next_token(); // eat 'for'
         if (current_token->type != lexer::TokenType::BracketOpen) {
-            log(log_type::PARSING_ERROR, "Expected '(' after 'for'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected '(' after 'for'");
         }
 
         next_token(); // eat '('
         if (current_token->type != lexer::TokenType::DataType) {
-            log(log_type::PARSING_ERROR, "Expected data type after '(' in 'for'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected data type after '(' in 'for'");
         }
 
         const type_system::DataTypeKind data_type = std::get<type_system::DataTypeKind>(current_token->data);
         if (!type_system::is_integer_type(data_type)) {
-            log(log_type::PARSING_ERROR, "The loop variable of a 'for' loop has to be an integer, the given type is '", data_type, "'");
-            return std::unexpected(ErrorCode::ParserInvalidLoopVariableType);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserInvalidLoopVariableType, "The loop variable of a 'for' loop has to be an integer, the given type is '{}'", data_type);
         }
 
         next_token(); // eat data type
         if (current_token->type != lexer::TokenType::Identifier) {
-            log(log_type::PARSING_ERROR, "Expected identifier after data type in 'for'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected identifier after data type in 'for'");
         }
 
         const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
         next_token(); // eat identifier
         if (current_token->type != lexer::TokenType::Colon) {
-            log(log_type::PARSING_ERROR, "Expected ':' after identifier in 'for'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ':' after identifier in 'for'");
         }
 
         next_token(); // eat ':'
@@ -651,8 +617,7 @@ namespace kepler::parser {
         }
 
         if (current_token->type != lexer::TokenType::Comma) {
-            log(log_type::PARSING_ERROR, "Expected ',' or ')' after first expression in 'for'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ',' or ')' after first expression in 'for'");
         }
 
         next_token(); // eat ','
@@ -667,8 +632,7 @@ namespace kepler::parser {
         }
 
         if (current_token->type != lexer::TokenType::Comma) {
-            log(log_type::PARSING_ERROR, "Expected ',' or ')' after second expression in 'for'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ',' or ')' after second expression in 'for'");
         }
 
         next_token(); // eat ','
@@ -681,11 +645,10 @@ namespace kepler::parser {
             return create_for_statement(identifier_id, data_type, *first_value, *end_value, *step_value);
         }
 
-        log(log_type::PARSING_ERROR, "Expected ')' after third expression in 'for'");
-        return std::unexpected(ErrorCode::ParserUnexpectedToken);
+        return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected ')' after third expression in 'for'");
     }
 
-    std::expected<std::shared_ptr<ast::Statement>, ErrorCode> Parser::create_for_statement(semantic_analysis::StringId variable_identifier_id, type_system::DataTypeKind variable_data_type, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value) {
+    std::expected<std::shared_ptr<ast::ForStatement>, diagnostics::ErrorCode> Parser::create_for_statement(semantic_analysis::StringId variable_identifier_id, type_system::DataTypeKind variable_data_type, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value) {
         next_token(); // eat ')'
         const auto body = parse_for_body();
         if (!body) {
@@ -704,12 +667,11 @@ namespace kepler::parser {
         return std::make_shared<ast::ForStatement>(variable_definition_statement, end_value, step_value, std::move(*body));
     }
 
-    std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, ErrorCode> Parser::parse_for_body() {
+    std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, diagnostics::ErrorCode> Parser::parse_for_body() {
         std::vector<std::shared_ptr<ast::ASTNode>> body;
         while (current_token->type != lexer::TokenType::End) {
             if (current_token->type == lexer::TokenType::EndOfFile) {
-                log(log_type::PARSING_ERROR, "'for' statement was not closed with an 'end' keyword");
-                return std::unexpected(ErrorCode::ParserMissingEndKeyword);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserMissingEndKeyword, "'for' statement was not closed with an 'end' keyword");
             }
 
             const auto expression = parse_statement();
@@ -723,10 +685,10 @@ namespace kepler::parser {
         return body;
     }
 
-    std::expected<std::shared_ptr<ast::Statement>, ErrorCode> Parser::parse_return() {
+    std::expected<std::shared_ptr<ast::ReturnStatement>, diagnostics::ErrorCode> Parser::parse_return() {
         next_token(); // eat 'return' keyword
         if (current_parsing_function_return_type == type_system::DataTypeKind::None) {
-            log(log_type::INTERNAL_ERROR, "Someone - and I am not going to say who (maybe because it was myself) - forgot to store the return type of the currently parsed function. And maybe, but just maybe, that's the reason why I'm currently shitting myself trying to parse a return statement without knowing the return type of the function.");
+            log(log_type::internal_error, "Someone - and I am not going to say who (maybe because it was myself) - forgot to store the return type of the currently parsed function. And maybe, but just maybe, that's the reason why I'm currently shitting myself trying to parse a return statement without knowing the return type of the function.");
             emergency_exit();
         }
 
@@ -734,30 +696,25 @@ namespace kepler::parser {
             return std::make_shared<ast::ReturnStatement>(nullptr);
         }
 
-        if (current_token->type == lexer::TokenType::End) {
-            log(log_type::PARSING_ERROR, "Expected expression after 'return'");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
-        }
-
         switch (current_token->type) {
             case lexer::TokenType::If:
             case lexer::TokenType::For:
             case lexer::TokenType::Return:
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserInvalidReturnExpression, "Cannot return '{}' statement", current_token->type);
             case lexer::TokenType::DataType: {
-                next_token();
+                next_token(); // eat data type
                 const lexer::TokenType next_token_type = current_token->type;
                 previous_token();
-                if (next_token_type != lexer::TokenType::Identifier) {
+                // If this is true it's a cast, which is allowed here
+                if (next_token_type == lexer::TokenType::BracketOpen) {
                     break;
                 }
 
-                log(log_type::PARSING_ERROR, "Cannot return '", current_token->type, "' statement");
-                return std::unexpected(ErrorCode::ParserInvalidReturnExpression);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Unexpected token '{}'", *current_token);
             }
 
             case lexer::TokenType::End:
-                log(log_type::PARSING_ERROR, "Expected expression after 'return'");
-                return std::unexpected(ErrorCode::ParserUnexpectedToken);
+                return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected expression after 'return'");
 
             default: break;
         }
@@ -770,42 +727,29 @@ namespace kepler::parser {
         return std::make_shared<ast::ReturnStatement>(*expression);
     }
 
-    std::expected<std::shared_ptr<ast::Statement>, ErrorCode> Parser::parse_variable_declaration() {
+    std::expected<std::shared_ptr<ast::VariableDefinitionStatement>, diagnostics::ErrorCode> Parser::parse_variable_definition() {
         const type_system::DataTypeKind data_type = std::get<type_system::DataTypeKind>(current_token->data);
 
         if (data_type == type_system::DataTypeKind::Void) {
-            log(log_type::PARSING_ERROR, "Cannot create a local variable of type 'void'");
-            return std::unexpected(ErrorCode::ParserInvalidVariableType);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserInvalidVariableType, "Cannot create a local variable of type 'void'");
         }
 
         next_token(); // eat data type
-
         if (current_token->type != lexer::TokenType::Identifier) {
-            log(log_type::PARSING_ERROR, "Expected identifier after data type for variable declaration");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
+            return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected identifier after data type for variable declaration");
         }
+
         const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
-
-        next_token(); // eat idetifier
-        if (current_token->type != lexer::TokenType::Assignment) {
-            log(log_type::PARSING_ERROR, "Expected '=' after identifier in variable definition");
-            return std::unexpected(ErrorCode::ParserUnexpectedToken);
-        }
-
-        next_token(); // eat '='
-
-        const auto expression = parse_expression();
-        if (!expression) {
-            return std::unexpected(expression.error());
-        }
-
         const auto variable_id = semantic_analysis::SymbolTable::get().create_variable(identifier_id, data_type);
         if (!variable_id) {
             return std::unexpected(variable_id.error());
         }
 
-        const std::shared_ptr<ast::VariableExpression> variable = std::make_shared<ast::VariableExpression>(identifier_id);
-        const std::shared_ptr<ast::AssignmentStatement> assignment_statement = std::make_shared<ast::AssignmentStatement>(variable, *expression);
-        return std::make_shared<ast::VariableDefinitionStatement>(data_type, identifier_id, assignment_statement);
+        next_token(); // eat identifier
+        const auto assignment_statement = parse_assignment(identifier_id);
+        if (!assignment_statement) {
+            return std::unexpected(assignment_statement.error());
+        }
+        return std::make_shared<ast::VariableDefinitionStatement>(data_type, identifier_id, *assignment_statement);
     }
 }

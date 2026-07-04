@@ -11,6 +11,7 @@
 #include "log.hpp"
 
 #include <ostream>
+#include <string_view>
 
 namespace kepler::type_system {
 
@@ -32,10 +33,30 @@ namespace kepler::type_system {
             case DataTypeKind::Int64: os << "i64"; break;
             case DataTypeKind::Float32: os << "f32"; break;
             case DataTypeKind::Float64: os << "f64"; break;
-            default: log(log_type::INTERNAL_LEXING_WARNING, "Missing implementation of operator '<<' for data type kind '", (int)type, '\''); break;
+            default: log(log_type::internal_lexing_warning, "Missing implementation of operator '<<' for data type kind '", (int)type, '\''); break;
         }
 
         return os;
+    }
+
+    std::string_view to_string(DataTypeKind data_type) {
+        switch (data_type) {
+            case DataTypeKind::None: return "none";
+            case DataTypeKind::Void: return "void";
+            case DataTypeKind::TMap: return "tmap";
+            case DataTypeKind::Bool: return "bool";
+            case DataTypeKind::Char: return "char";
+            case DataTypeKind::String: return "string";
+            case DataTypeKind::Int8: return "i8";
+            case DataTypeKind::Int16: return "i16";
+            case DataTypeKind::Int32: return "i32";
+            case DataTypeKind::Int64: return "i64";
+            case DataTypeKind::Float32: return "f32";
+            case DataTypeKind::Float64: return "f64";
+            default:
+                log(log_type::internal_lexing_warning, "Missing implementation of operator '<<' for data type kind '", (int)data_type, '\'');
+                return "";
+        }
     }
 
 }

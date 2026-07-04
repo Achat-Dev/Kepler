@@ -11,7 +11,6 @@
 #include "lexer/token_type.hpp"
 #include "log.hpp"
 #include "semantic_analysis/string_table.hpp"
-#include <cstdint>
 #include <ios>
 #include <ostream>
 #include <string>
@@ -23,7 +22,6 @@ namespace kepler::lexer {
     std::ostream& operator<<(std::ostream& os, Token token) {
         switch (token.type) {
             case TokenType::EndOfFile:
-            case TokenType::Unknown:
             case TokenType::BracketOpen:
             case TokenType::BracketClose:
             case TokenType::Comma:
@@ -64,7 +62,7 @@ namespace kepler::lexer {
                 os << token.type << "(" << std::get<type_system::DataTypeKind>(token.data) << ")";
                 break;
             default:
-                log(log_type::INTERNAL_LEXING_WARNING, "Missing implementation of operator '<<' for token of type '", token.type, "'");
+                log(log_type::internal_lexing_warning, "Missing implementation of operator '<<' for token of type '", token.type, "'");
                 break;
         }
 

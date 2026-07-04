@@ -9,7 +9,7 @@
 
 #include "semantic_analysis/symbol_table.hpp"
 #include "emergency.hpp"
-#include "error_code.hpp"
+#include "diagnostics/error_code.hpp"
 #include "log.hpp"
 #include "semantic_analysis/prototype_symbol_data.hpp"
 #include "semantic_analysis/scope.hpp"
@@ -28,14 +28,13 @@
 
 namespace kepler::semantic_analysis {
 
-    std::expected<SymbolId, ErrorCode> SymbolTable::create_variable(StringId identifier_id, type_system::DataTypeKind data_type) {
+    std::expected<SymbolId, diagnostics::ErrorCode> SymbolTable::create_variable(StringId identifier_id, type_system::DataTypeKind data_type) {
         const std::string& identifier = StringTable::get().lookup(identifier_id);
-        log_verbose("[ SymbolTable ]: Creating variable symbol of type '", data_type, "' with identifier '", identifier, "'");
 
         // Check if variable with that name already exists in the current scope
         if (does_name_exist_in_scope_stack(identifier_id)) {
-            log(log_type::PARSING_ERROR, "Variable with name '", identifier, "' already exists in the current scope");
-            return std::unexpected(ErrorCode::SymbolTableRedefineSymbol);
+            log(log_type::parsing_error, "Variable with name '", identifier, "' already exists in the current scope");
+            return std::unexpected(diagnostics::ErrorCode::SymbolTableRedefineSymbol);
         }
 
         // Create new symbol
@@ -49,16 +48,15 @@ namespace kepler::semantic_analysis {
         return symbol_id;
     }
 
-    std::expected<SymbolId, ErrorCode> SymbolTable::create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data) {
+    std::expected<SymbolId, diagnostics::ErrorCode> SymbolTable::create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data) {
         const std::string& identifier = StringTable::get().lookup(identifier_id);
-        log_verbose("[ SymbolTable ]: Creating prototype symbol with return type '", data_type, "' and identifier '", identifier, "'");
 
         // Check if prototype with that name already exists in the global scope
         // Use the global scope because functions can only be defined inside the global scope right now
         const std::shared_ptr<Scope> current_scope = scopes.back()->parent;
         if (current_scope != scopes[0]) {
-            log(log_type::INTERNAL_ERROR, "Trying to create a prototype symbol in a scope other than the global scope. Current scope is '", scopes.size(), "', expected '1' for the global scope.\n",
-                log_type::LAST_INDENTED, "Catching this mistake is not my job, parser, what are you doing?");
+            log(log_type::internal_error, "Trying to create a prototype symbol in a scope other than the global scope. Current scope is '", scopes.size(), "', expected '1' for the global scope.\n",
+                log_type::last_indented, "Catching this mistake is not my job, parser, what are you doing?");
             emergency_exit();
         }
 
@@ -68,16 +66,16 @@ namespace kepler::semantic_analysis {
             const Symbol& symbol = symbols[symbol_id];
 
             if (std::holds_alternative<PrototypeSymbolData>(symbol.data)) {
-                log(log_type::PARSING_ERROR, "Function with name '", identifier, "' already exists");
+                log(log_type::parsing_error, "Function with name '", identifier, "' already exists");
 
                 if (std::get<PrototypeSymbolData>(symbol.data) != data) {
-                    log(log_type::LAST_INDENTED, "The function signature is different, but function overloading is not supported yet");
+                    log(log_type::last_indented, "The function signature is different, but function overloading is not supported yet");
                 }
             } else {
-                log(log_type::PARSING_ERROR, "Trying to define a function with the name '", identifier, "', but a varibale with that name already exists");
+                log(log_type::parsing_error, "Trying to define a function with the name '", identifier, "', but a varibale with that name already exists");
             }
 
-            return std::unexpected(ErrorCode::SymbolTableRedefineSymbol);
+            return std::unexpected(diagnostics::ErrorCode::SymbolTableRedefineSymbol);
         }
 
         // Create symbol
@@ -101,21 +99,19 @@ namespace kepler::semantic_analysis {
             scope = scope->parent;
         }
 
-        log(log_type::INTERNAL_ERROR, "Symbol '", id, "' doesn't exist, which is strange, because I am the only one who assigns these ids");
+        log(log_type::internal_error, "Symbol '", id, "' doesn't exist, which is strange, because I am the only one who assigns these ids");
         emergency_exit();
         std::abort();
     }
 
     void SymbolTable::open_scope() {
-        log_verbose("[ SymbolTable ]: Opening new scope with id '", scopes.size(), "'");
         std::shared_ptr<Scope> scope = scopes.empty() ? std::make_shared<Scope>(nullptr) : std::make_shared<Scope>(scopes.back());
         scopes.push_back(std::move(scope));
     }
 
     void SymbolTable::close_scope() {
-        log_verbose("[ SymbolTable ]: Closing scope with id '", scopes.size(), "'");
         if (scopes.empty()) {
-            log(log_type::INTERNAL_ERROR, "Trying to close the global scope, how did I even end up here?");
+            log(log_type::internal_error, "Trying to close the global scope, how did I even end up here?");
             emergency_exit();
         }
         scopes.pop_back();

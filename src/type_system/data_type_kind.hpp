@@ -9,7 +9,10 @@
 
 #pragma once
 
+#include <format>
 #include <ostream>
+#include <string>
+#include <string_view>
 
 namespace kepler::type_system {
 
@@ -31,4 +34,13 @@ namespace kepler::type_system {
     bool is_integer_type(DataTypeKind data_type);
     std::ostream& operator<<(std::ostream& os, DataTypeKind type);
 
+    std::string_view to_string(DataTypeKind data_type);
+
 }
+
+template <>
+struct std::formatter<kepler::type_system::DataTypeKind> : std::formatter<std::string> {
+    auto format(const kepler::type_system::DataTypeKind& data_type_kind, std::format_context& ctx) const {
+        return std::formatter<std::string>::format(std::format("{}", to_string(data_type_kind)), ctx);
+    }
+};

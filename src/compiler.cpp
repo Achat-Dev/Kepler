@@ -22,7 +22,7 @@ namespace kepler {
             exit((int)tokens.error());
         }
 
-        parser::Parser parser(*tokens);
+        parser::Parser parser(arguments.input_file_name, *tokens);
         const auto ast_nodes = parser.parse();
         if (!ast_nodes) {
             // log(log_type::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");

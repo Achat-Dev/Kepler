@@ -16,7 +16,6 @@ namespace kepler::lexer {
     std::ostream& operator<<(std::ostream& os, TokenType type) {
         switch (type) {
             case TokenType::EndOfFile: os << "EOF"; break;
-            case TokenType::Unknown: os << "unknown character"; break;
             case TokenType::BracketOpen: os << '('; break;
             case TokenType::BracketClose: os << ')'; break;
             case TokenType::Comma: os << ','; break;
@@ -33,7 +32,7 @@ namespace kepler::lexer {
             case TokenType::Operator: os << "operator"; break;
             case TokenType::Identifier: os << "identifier"; break;
             case TokenType::DataType: os << "data type"; break;
-            default: log(log_type::LEXING_WARNING, "Missing implementation of operator '<<' for token type '", (int)type, "'"); break;
+            default: log(log_type::lexing_warning, "Missing implementation of operator '<<' for token type '", (int)type, "'"); break;
         }
 
         return os;

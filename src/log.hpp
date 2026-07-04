@@ -26,29 +26,29 @@ namespace kepler {
     inline LogConfig log_config;
 
     namespace log_style {
-        inline constexpr char BOLD[] = "\033[1m";
-        inline constexpr char ITALIC[] = "\033[3m";
-        inline constexpr char RESET[] = ANSI_RESET;
-        inline constexpr char WARNING[] = ANSI_WARNING;
-        inline constexpr char ERROR[] = ANSI_ERROR;
-        inline constexpr char UNSUPPORTED[] = ANSI_UNSUPPORTED;
+        inline constexpr char bold[] = "\033[1m";
+        inline constexpr char italic[] = "\033[3m";
+        inline constexpr char reset[] = ANSI_RESET;
+        inline constexpr char warning[] = ANSI_WARNING;
+        inline constexpr char error[] = ANSI_ERROR;
+        inline constexpr char unsupported[] = ANSI_UNSUPPORTED;
     }
 
     namespace log_type {
-        inline constexpr char LEXING_WARNING[] = ANSI_WARNING "[ Lexing warning ]" ANSI_RESET ": ";
+        inline constexpr char lexing_warning[] = ANSI_WARNING "[ Lexing warning ]" ANSI_RESET ": ";
 
-        inline constexpr char USAGE_ERROR[] = ANSI_ERROR "[ Usage error ]" ANSI_RESET ": ";
-        inline constexpr char IO_ERROR[] = ANSI_ERROR "[ I/O error ]" ANSI_RESET ": ";
-        inline constexpr char LEXING_ERROR[] = ANSI_ERROR "[ Lexing error ]" ANSI_RESET ": ";
-        inline constexpr char PARSING_ERROR[] = ANSI_ERROR "[ Parsing error ]" ANSI_RESET ": ";
-        inline constexpr char COMPILE_ERROR[] = ANSI_ERROR "[ Compile error ]" ANSI_RESET ": ";
+        inline constexpr char usage_error[] = ANSI_ERROR "[ Usage error ]" ANSI_RESET ": ";
+        inline constexpr char io_error[] = ANSI_ERROR "[ I/O error ]" ANSI_RESET ": ";
+        inline constexpr char lexing_error[] = ANSI_ERROR "[ Lexing error ]" ANSI_RESET ": ";
+        inline constexpr char parsing_error[] = ANSI_ERROR "[ Parsing error ]" ANSI_RESET ": ";
+        inline constexpr char compile_error[] = ANSI_ERROR "[ Compile error ]" ANSI_RESET ": ";
 
-        inline constexpr char INTERNAL_LEXING_WARNING[] = ANSI_WARNING "[ Internal lexing warning ]" ANSI_RESET ": ";
-        inline constexpr char UNSUPPORTED[] = ANSI_UNSUPPORTED "[ Unpaid developer error ]" ANSI_RESET ": ";
-        inline constexpr char INTERNAL_ERROR[] = ANSI_UNSUPPORTED "[ Internal error, everybody panic ]" ANSI_RESET ": ";
+        inline constexpr char internal_lexing_warning[] = ANSI_WARNING "[ Internal lexing warning ]" ANSI_RESET ": ";
+        inline constexpr char unsupported[] = ANSI_UNSUPPORTED "[ Unpaid developer error ]" ANSI_RESET ": ";
+        inline constexpr char internal_error[] = ANSI_UNSUPPORTED "[ Internal error, everybody panic ]" ANSI_RESET ": ";
 
-        inline constexpr char INDENTED[] = "\u251C\u2500\u2500\u2500 ";
-        inline constexpr char LAST_INDENTED[] = "\u2514\u2500\u2500\u2500 ";
+        inline constexpr char indented[] = "  \u251C\u2500 ";
+        inline constexpr char last_indented[] = "  \u2514\u2500 ";
     }
 
     template <typename T>

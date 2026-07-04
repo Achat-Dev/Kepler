@@ -25,7 +25,7 @@ namespace kepler::lexer {
             case OperatorType::NotEquals: os << "!="; break;
             case OperatorType::LessEquals: os << "<="; break;
             case OperatorType::GreaterEquals: os << ">="; break;
-            default: log(log_type::INTERNAL_LEXING_WARNING, "Missing implementation of operator '<<' for operator type '", (int)operator_type, '\''); break;
+            default: log(log_type::internal_lexing_warning, "Missing implementation of operator '<<' for operator type '", (int)operator_type, '\''); break;
         }
 
         return os;
