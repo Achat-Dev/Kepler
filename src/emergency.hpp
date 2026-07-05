@@ -10,11 +10,19 @@
 #pragma once
 
 #include "log.hpp"
+#include <cstddef>
 #include <cstdlib>
+#include <format>
+#include <print>
+#include <utility>
 
 namespace kepler {
 
-    inline void emergency_exit() {
+    template <typename... Args>
+    [[noreturn]]
+    void emergency_exit(std::format_string<Args...> format, Args&&... args) {
+        std::println("{}{}[ Internal emergency, everybody panic ]{}: {}", log::styling::bold, log::styling::bg_magenta, log::styling::reset, std::format(format, std::forward<Args>(args)...));
+
         constexpr char h[] = "\u2500";
         constexpr char v[] = "\u2502";
         constexpr char tl[] = "\u250C";
@@ -22,14 +30,21 @@ namespace kepler {
         constexpr char bl[] = "\u2514";
         constexpr char br[] = "\u2518";
 
-        // clang-format off
-        log(tl, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, "[ Emergency exit ]", h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, tr, "\n",
-            v, "         Roses are red, violets are blue,        ", v, "\n",
-            v, "   I reached some code that I never should do.   ", v, "\n",
-            v, "       Now here I am, with no helping hand,      ", v, "\n",
-            v, " And a crash and stack trace I don’t understand. ", v, "\n",
-            bl, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, h, br);
-        // clang-format on
+        std::string header;
+        for (size_t i = 0; i < 16; i++) {
+            header += h;
+        }
+        std::string footer;
+        for (size_t i = 0; i < 50; i++) {
+            footer += h;
+        }
+        std::println("{}{}[ Emergency exit ]{}{}", tl, header, header, tr);
+        std::println("{}         Roses are red, violets are blue,         {}", v, v);
+        std::println("{}    I reached some code that I never should do.   {}", v, v);
+        std::println("{}       Now here I am, with no helping hand,       {}", v, v);
+        std::println("{}  And a crash and stack trace I don’t understand. {}", v, v);
+        std::println("{}{}{}", bl, footer, br);
+
         std::abort();
     }
 

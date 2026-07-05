@@ -8,55 +8,11 @@
  */
 
 #include "type_system/data_type_kind.hpp"
-#include "log.hpp"
-
-#include <ostream>
-#include <string_view>
 
 namespace kepler::type_system {
 
     bool is_integer_type(DataTypeKind data_type) {
         return data_type == DataTypeKind::Int8 || data_type == DataTypeKind::Int16 || data_type == DataTypeKind::Int32 || data_type == DataTypeKind::Int64;
-    }
-
-    std::ostream& operator<<(std::ostream& os, DataTypeKind type) {
-        switch (type) {
-            case DataTypeKind::None: os << "none"; break;
-            case DataTypeKind::Void: os << "void"; break;
-            case DataTypeKind::TMap: os << "tmap"; break;
-            case DataTypeKind::Bool: os << "bool"; break;
-            case DataTypeKind::Char: os << "char"; break;
-            case DataTypeKind::String: os << "string"; break;
-            case DataTypeKind::Int8: os << "i8"; break;
-            case DataTypeKind::Int16: os << "i16"; break;
-            case DataTypeKind::Int32: os << "i32"; break;
-            case DataTypeKind::Int64: os << "i64"; break;
-            case DataTypeKind::Float32: os << "f32"; break;
-            case DataTypeKind::Float64: os << "f64"; break;
-            default: log(log_type::internal_lexing_warning, "Missing implementation of operator '<<' for data type kind '", (int)type, '\''); break;
-        }
-
-        return os;
-    }
-
-    std::string_view to_string(DataTypeKind data_type) {
-        switch (data_type) {
-            case DataTypeKind::None: return "none";
-            case DataTypeKind::Void: return "void";
-            case DataTypeKind::TMap: return "tmap";
-            case DataTypeKind::Bool: return "bool";
-            case DataTypeKind::Char: return "char";
-            case DataTypeKind::String: return "string";
-            case DataTypeKind::Int8: return "i8";
-            case DataTypeKind::Int16: return "i16";
-            case DataTypeKind::Int32: return "i32";
-            case DataTypeKind::Int64: return "i64";
-            case DataTypeKind::Float32: return "f32";
-            case DataTypeKind::Float64: return "f64";
-            default:
-                log(log_type::internal_lexing_warning, "Missing implementation of operator '<<' for data type kind '", (int)data_type, '\'');
-                return "";
-        }
     }
 
 }

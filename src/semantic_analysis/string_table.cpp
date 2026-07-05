@@ -9,7 +9,6 @@
 
 #include "semantic_analysis/string_table.hpp"
 #include "emergency.hpp"
-#include "log.hpp"
 #include <string>
 
 namespace kepler::semantic_analysis {
@@ -27,8 +26,7 @@ namespace kepler::semantic_analysis {
 
     const std::string& StringTable::lookup(StringId id) const {
         if (id >= strings.size()) {
-            log(log_type::internal_error, "StringId '", id, "' doesnt exist, which is strange, because I am the only one who assigns these ids");
-            emergency_exit();
+            emergency_exit("StringId '{}' doesnt exist, which is strange, because I am the only one who assigns these ids", id);
         }
         return *strings[id];
     }

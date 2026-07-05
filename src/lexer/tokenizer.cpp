@@ -10,6 +10,7 @@
 #include "lexer/tokenizer.hpp"
 #include "diagnostics/diagnostics.hpp"
 #include "diagnostics/error_code.hpp"
+#include "diagnostics/warning_code.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
@@ -28,29 +29,23 @@ namespace kepler::lexer {
     std::unordered_map<std::string, Token> Tokenizer::keyword_map;
 
     std::expected<std::vector<Token>, diagnostics::ErrorCode> Tokenizer::tokenize() {
-        log_verbose("Tokenizing file '", file_path, "'");
+        log::verbose("Tokenizing file '{}'", file_path);
 
         // Check if the file at the given path can be used
         if (!std::filesystem::exists(file_path)) {
-            log(log_type::io_error, "[ Reading '", file_path, "' ]: File doesn't exist");
-            return std::unexpected(diagnostics::ErrorCode::IOFileNotFound);
+            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IOFileNotFound, "File '{}' doesn't exist", file_path);
         }
         if (std::filesystem::is_directory(file_path)) {
-            log(log_type::io_error, "[ Reading '", file_path, "' ]: Path is a directory");
-            return std::unexpected(diagnostics::ErrorCode::IOFileIsADirectory);
+            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IOFileIsADirectory, "Path '{}' is a directory", file_path);
         }
         if (!std::filesystem::is_regular_file(file_path)) {
-            log(log_type::io_error, "[ Reading '", file_path, "' ]: File is not a regular file");
-            return std::unexpected(diagnostics::ErrorCode::IONotARegularFile);
+            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IONotARegularFile, "File '{}' is not a regular file", file_path);
         }
 
         // Read file contents into string
         std::ifstream file_stream(file_path);
         if (!file_stream) {
-            log(log_type::io_error, "[ Reading '", file_path, "' ]: ¯\\_(ツ)_/¯\n",
-                log_type::indented, "Check the file permissions\n",
-                log_type::last_indented, "Check if the file is currently locked by other programs");
-            return std::unexpected(diagnostics::ErrorCode::IOFailedToCreateFileStream);
+            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IOFailedToCreateFileStream, "¯\\_(ツ)_/¯\n{}Check the file permission for {}\n{}Check if the file is currently locked by other programs", log::styling::indented, file_path, log::styling::last_indented);
         }
 
         file_content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
@@ -66,7 +61,7 @@ namespace kepler::lexer {
 
             result.push_back(*token);
             if (token->type == TokenType::EndOfFile) {
-                log_verbose_no_prefix(log_type::last_indented, "Done");
+                log::verbose_no_prefix("{}Tokenizing done", log::styling::last_indented);
                 return result;
             }
         }
@@ -247,9 +242,10 @@ namespace kepler::lexer {
 
         // Two # after each other -> multiline comment
         if (current_char == '#') {
+            const size_t comment_start_position = position - 1;
             while (!(current_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
-                    log(log_type::lexing_warning, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
+                    diagnostics::warning(file_path, {comment_start_position, 2}, diagnostics::WarningCode::LexerMultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
                     return;
                 }
 

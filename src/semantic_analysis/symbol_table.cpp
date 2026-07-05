@@ -8,8 +8,9 @@
  */
 
 #include "semantic_analysis/symbol_table.hpp"
-#include "emergency.hpp"
+#include "diagnostics/diagnostics.hpp"
 #include "diagnostics/error_code.hpp"
+#include "emergency.hpp"
 #include "log.hpp"
 #include "semantic_analysis/prototype_symbol_data.hpp"
 #include "semantic_analysis/scope.hpp"
@@ -17,7 +18,6 @@
 #include "semantic_analysis/symbol_id.hpp"
 #include "string_table.hpp"
 #include "type_system/data_type_kind.hpp"
-#include <cstdlib>
 #include <expected>
 #include <memory>
 #include <string>
@@ -33,7 +33,7 @@ namespace kepler::semantic_analysis {
 
         // Check if variable with that name already exists in the current scope
         if (does_name_exist_in_scope_stack(identifier_id)) {
-            log(log_type::parsing_error, "Variable with name '", identifier, "' already exists in the current scope");
+            diagnostics::info("{}Variable with name '{}' already exists in the current scope", diagnostics::ErrorCode::SymbolTableRedefineSymbol, identifier);
             return std::unexpected(diagnostics::ErrorCode::SymbolTableRedefineSymbol);
         }
 
@@ -55,9 +55,7 @@ namespace kepler::semantic_analysis {
         // Use the global scope because functions can only be defined inside the global scope right now
         const std::shared_ptr<Scope> current_scope = scopes.back()->parent;
         if (current_scope != scopes[0]) {
-            log(log_type::internal_error, "Trying to create a prototype symbol in a scope other than the global scope. Current scope is '", scopes.size(), "', expected '1' for the global scope.\n",
-                log_type::last_indented, "Catching this mistake is not my job, parser, what are you doing?");
-            emergency_exit();
+            emergency_exit("Trying to create a prototype symbol in a scope other than the global scope. Current scope is '{}', expected '1' for the global scope.\n{}Catching this mistake is not my job, parser, what are you doing?", scopes.size(), log::styling::last_indented);
         }
 
         std::unordered_map<StringId, SymbolId>& identifiers_in_current_scope = current_scope->contained_identifiers;
@@ -66,13 +64,13 @@ namespace kepler::semantic_analysis {
             const Symbol& symbol = symbols[symbol_id];
 
             if (std::holds_alternative<PrototypeSymbolData>(symbol.data)) {
-                log(log_type::parsing_error, "Function with name '", identifier, "' already exists");
+                diagnostics::info("{}Function with name '{}' already exists", diagnostics::ErrorCode::SymbolTableRedefineSymbol, identifier);
 
                 if (std::get<PrototypeSymbolData>(symbol.data) != data) {
-                    log(log_type::last_indented, "The function signature is different, but function overloading is not supported yet");
+                    diagnostics::info("{}The function signature is different, but function overloading is not supported yet", log::styling::last_indented);
                 }
             } else {
-                log(log_type::parsing_error, "Trying to define a function with the name '", identifier, "', but a varibale with that name already exists");
+                diagnostics::info("{}Trying to define a function with the name '{}', but a variable with that name already exists", log::styling::last_indented, identifier);
             }
 
             return std::unexpected(diagnostics::ErrorCode::SymbolTableRedefineSymbol);
@@ -99,9 +97,7 @@ namespace kepler::semantic_analysis {
             scope = scope->parent;
         }
 
-        log(log_type::internal_error, "Symbol '", id, "' doesn't exist, which is strange, because I am the only one who assigns these ids");
-        emergency_exit();
-        std::abort();
+        emergency_exit("Symbol '{}' doesn't exist, which is strange, because I am the only one who assigns these ids", id);
     }
 
     void SymbolTable::open_scope() {
@@ -111,8 +107,7 @@ namespace kepler::semantic_analysis {
 
     void SymbolTable::close_scope() {
         if (scopes.empty()) {
-            log(log_type::internal_error, "Trying to close the global scope, how did I even end up here?");
-            emergency_exit();
+            emergency_exit("Trying to close the global scope, how did I even end up here?");
         }
         scopes.pop_back();
     }

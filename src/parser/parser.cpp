@@ -39,8 +39,8 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
-#include <cstdlib>
 #include <expected>
+#include <format>
 #include <memory>
 #include <utility>
 #include <variant>
@@ -49,11 +49,10 @@
 namespace kepler::parser {
 
     std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, diagnostics::ErrorCode> Parser::parse() {
-        log_verbose("Parsing token stream");
+        log::verbose("Parsing token stream");
 
         if (tokens.back().type != lexer::TokenType::EndOfFile) {
-            log(log_type::internal_error, "Parser received token stream without EOF token, my tokenizer seems to have fucked up somewhere");
-            emergency_exit();
+            emergency_exit("Parser received token stream without EOF token, my tokenizer seems to have fucked up somewhere");
         }
 
         std::vector<std::shared_ptr<ast::ASTNode>> result;
@@ -68,7 +67,7 @@ namespace kepler::parser {
                     break;
                 }
                 case lexer::TokenType::EndOfFile:
-                    log_verbose_no_prefix(log_type::last_indented, "Done");
+                    log::verbose_no_prefix("{} Parsing done", log::styling::last_indented);
                     return result;
                 case lexer::TokenType::Extern: {
                     const auto ast_node = parse_extern();
@@ -99,10 +98,7 @@ namespace kepler::parser {
             case lexer::OperatorType::Multiplication:
             case lexer::OperatorType::Division: return 30;
             default:
-                log(log_type::internal_error, "Binary operator '", operator_type, "' doesn't have a precedence associated to it\n",
-                    log_type::last_indented, "If this was intended, what the fuck where you thinking past me?");
-                emergency_exit();
-                std::abort();
+                emergency_exit("Binary operator '{}' doesn't have a precedence associated to it\n{}If this was intended, what the fuck where you thinking past me?", operator_type, log::styling::last_indented);
         }
     }
 
@@ -143,6 +139,7 @@ namespace kepler::parser {
         if (current_token->type != lexer::TokenType::Identifier) {
             return diagnostics::error(file_path, current_token->source_location, diagnostics::ErrorCode::ParserUnexpectedToken, "Expected identifier after return type of prototype");
         }
+        const lexer::Token* identifier_token = current_token;
         const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
 
         next_token(); // eat identifier
@@ -169,6 +166,7 @@ namespace kepler::parser {
             const semantic_analysis::StringId parameter_identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
             const auto parameter_id = semantic_analysis::SymbolTable::get().create_variable(parameter_identifier_id, parameter_type);
             if (!parameter_id) {
+                diagnostics::print_source_code_diagnostics(file_path, current_token->source_location, log::styling::combine(log::styling::bold, log::styling::red));
                 return std::unexpected(parameter_id.error());
             }
             prototype_symbol_data.parameter_ids.push_back(*parameter_id);
@@ -190,6 +188,7 @@ namespace kepler::parser {
 
         const auto prototype_id = semantic_analysis::SymbolTable::get().create_prototype(identifier_id, return_type, std::move(prototype_symbol_data));
         if (!prototype_id) {
+            diagnostics::print_source_code_diagnostics(file_path, identifier_token->source_location, log::styling::combine(log::styling::bold, log::styling::red));
             return std::unexpected(prototype_id.error());
         }
 
@@ -413,9 +412,7 @@ namespace kepler::parser {
         } else if (std::holds_alternative<bool>(literal_data)) {
             return std::make_shared<ast::BooleanLiteralExpression>(std::get<bool>(literal_data));
         } else {
-            log(log_type::internal_error, "Literal token doesn't contain the literal data? Tokenization, wtf?");
-            emergency_exit();
-            std::abort();
+            emergency_exit("Literal token doesn't contain the literal data? Tokenization, wtf?");
         }
     }
 
@@ -573,9 +570,7 @@ namespace kepler::parser {
             return std::make_shared<ast::IfStatement>(*condition, std::move(if_body), std::vector<std::shared_ptr<ast::ASTNode>>{});
         }
 
-        log(log_type::internal_error, "Don't know how, but I managed to reach the end of the file while parsing an if statement without triggering any of the EOF checks");
-        emergency_exit();
-        std::abort();
+        emergency_exit("Don't know how, but I managed to reach the end of the file while parsing an if statement without triggering any of the EOF checks");
     }
 
     std::expected<std::shared_ptr<ast::ForStatement>, diagnostics::ErrorCode> Parser::parse_for() {
@@ -657,6 +652,15 @@ namespace kepler::parser {
 
         const auto symbol_id = semantic_analysis::SymbolTable::get().create_variable(variable_identifier_id, variable_data_type);
         if (!symbol_id) {
+            // Backtrack until the for keyword and then go to the variable definition for the diagnostics
+            while (current_token->type != lexer::TokenType::For) {
+                previous_token();
+            }
+            next_token(); // eat 'for'
+            next_token(); // eat '('
+            next_token(); // eat data type
+
+            diagnostics::print_source_code_diagnostics(file_path, current_token->source_location, log::styling::combine(log::styling::bold, log::styling::red));
             return std::unexpected(symbol_id.error());
         }
 
@@ -688,8 +692,7 @@ namespace kepler::parser {
     std::expected<std::shared_ptr<ast::ReturnStatement>, diagnostics::ErrorCode> Parser::parse_return() {
         next_token(); // eat 'return' keyword
         if (current_parsing_function_return_type == type_system::DataTypeKind::None) {
-            log(log_type::internal_error, "Someone - and I am not going to say who (maybe because it was myself) - forgot to store the return type of the currently parsed function. And maybe, but just maybe, that's the reason why I'm currently shitting myself trying to parse a return statement without knowing the return type of the function.");
-            emergency_exit();
+            emergency_exit("Someone - and I am not going to say who (maybe because it was myself) - forgot to store the return type of the currently parsed function. And maybe, but just maybe, that's the reason why I'm currently shitting myself trying to parse a return statement without knowing the return type of the function.");
         }
 
         if (current_parsing_function_return_type == type_system::DataTypeKind::Void) {
@@ -742,6 +745,7 @@ namespace kepler::parser {
         const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
         const auto variable_id = semantic_analysis::SymbolTable::get().create_variable(identifier_id, data_type);
         if (!variable_id) {
+            diagnostics::print_source_code_diagnostics(file_path, current_token->source_location, log::styling::combine(log::styling::bold, log::styling::red));
             return std::unexpected(variable_id.error());
         }
 

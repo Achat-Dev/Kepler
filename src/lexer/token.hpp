@@ -17,7 +17,6 @@
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <format>
-#include <ostream>
 #include <string>
 #include <variant>
 
@@ -41,8 +40,6 @@ namespace kepler::lexer {
         TokenData data;
         diagnostics::SourceLocation source_location;
     };
-
-    std::ostream& operator<<(std::ostream& os, Token token);
 
 }
 
@@ -90,7 +87,7 @@ struct std::formatter<kepler::lexer::Token> : std::formatter<std::string> {
             case kepler::lexer::TokenType::DataType:
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::type_system::DataTypeKind>(token.data)), ctx);
             default:
-                kepler::log(kepler::log_type::internal_lexing_warning, "Missing format implementation for token of type '", token.type, "'");
+                kepler::log::warning("Missing format implementation for token of type '{}'", static_cast<int>(token.type));
                 return std::formatter<std::string>::format(std::format("{}", token.type), ctx);
         }
     }

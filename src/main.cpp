@@ -13,7 +13,11 @@
 using namespace kepler;
 
 int main(int argc, char* argv[]) {
-    CommandLineArguments arguments = parse_command_line_arguments(argc, argv);
-    Compiler compiler(arguments);
+    const auto arguments = parse_command_line_arguments(argc, argv);
+    if (!arguments) {
+        return static_cast<int>(arguments.error());
+    }
+
+    Compiler compiler(*arguments);
     compiler.compile_project();
 }

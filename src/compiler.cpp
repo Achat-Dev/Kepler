@@ -9,7 +9,6 @@
 
 #include "compiler.hpp"
 #include "lexer/tokenizer.hpp"
-#include "log.hpp"
 #include "parser/parser.hpp"
 
 namespace kepler {
@@ -18,15 +17,13 @@ namespace kepler {
         lexer::Tokenizer tokenizer(arguments.input_file_name);
         const auto tokens = tokenizer.tokenize();
         if (!tokens) {
-            // log(log_type::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");
-            exit((int)tokens.error());
+            exit(static_cast<int>(tokens.error()));
         }
 
         parser::Parser parser(arguments.input_file_name, *tokens);
         const auto ast_nodes = parser.parse();
         if (!ast_nodes) {
-            // log(log_type::COMPILE_ERROR, "Failed to compile file '", arguments.input_file_name, "'");
-            exit((int)tokens.error());
+            exit(static_cast<int>(tokens.error()));
         }
     }
 

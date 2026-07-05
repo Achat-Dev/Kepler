@@ -9,71 +9,86 @@
 
 #pragma once
 
-#include <iostream>
+#include <cstddef>
+#include <format>
+#include <print>
+#include <string>
+#include <utility>
 
-#define ANSI_RESET "\033[0m"
-#define ANSI_VERBOSE "\033[2m"
-#define ANSI_WARNING "\033[1;30;43m"
-#define ANSI_ERROR "\033[1;30;41m"
-#define ANSI_UNSUPPORTED "\033[1;30;45m"
+namespace kepler::log {
 
-namespace kepler {
+    namespace styling {
 
-    struct LogConfig {
-        bool should_log_verbose = false;
-    };
-
-    inline LogConfig log_config;
-
-    namespace log_style {
-        inline constexpr char bold[] = "\033[1m";
-        inline constexpr char italic[] = "\033[3m";
-        inline constexpr char reset[] = ANSI_RESET;
-        inline constexpr char warning[] = ANSI_WARNING;
-        inline constexpr char error[] = ANSI_ERROR;
-        inline constexpr char unsupported[] = ANSI_UNSUPPORTED;
-    }
-
-    namespace log_type {
-        inline constexpr char lexing_warning[] = ANSI_WARNING "[ Lexing warning ]" ANSI_RESET ": ";
-
-        inline constexpr char usage_error[] = ANSI_ERROR "[ Usage error ]" ANSI_RESET ": ";
-        inline constexpr char io_error[] = ANSI_ERROR "[ I/O error ]" ANSI_RESET ": ";
-        inline constexpr char lexing_error[] = ANSI_ERROR "[ Lexing error ]" ANSI_RESET ": ";
-        inline constexpr char parsing_error[] = ANSI_ERROR "[ Parsing error ]" ANSI_RESET ": ";
-        inline constexpr char compile_error[] = ANSI_ERROR "[ Compile error ]" ANSI_RESET ": ";
-
-        inline constexpr char internal_lexing_warning[] = ANSI_WARNING "[ Internal lexing warning ]" ANSI_RESET ": ";
-        inline constexpr char unsupported[] = ANSI_UNSUPPORTED "[ Unpaid developer error ]" ANSI_RESET ": ";
-        inline constexpr char internal_error[] = ANSI_UNSUPPORTED "[ Internal error, everybody panic ]" ANSI_RESET ": ";
-
+        inline constexpr char reset[] = "\033[0m";
         inline constexpr char indented[] = "  \u251C\u2500 ";
         inline constexpr char last_indented[] = "  \u2514\u2500 ";
+
+        // Styles
+        inline constexpr char bold[] = "\033[1m";
+        inline constexpr char dim[] = "\033[2m";
+        inline constexpr char italic[] = "\033[3m";
+
+        // Text colours
+        inline constexpr char black[] = "\033[30m";
+        inline constexpr char red[] = "\033[31m";
+        inline constexpr char green[] = "\033[32m";
+        inline constexpr char yellow[] = "\033[33m";
+        inline constexpr char blue[] = "\033[34m";
+        inline constexpr char magenta[] = "\033[35m";
+        inline constexpr char cyan[] = "\033[36m";
+        inline constexpr char white[] = "\033[37m";
+
+        // Background colours
+        inline constexpr char bg_black[] = "\033[40m";
+        inline constexpr char bg_red[] = "\033[41m";
+        inline constexpr char bg_green[] = "\033[42m";
+        inline constexpr char bg_yellow[] = "\033[43m";
+        inline constexpr char bg_blue[] = "\033[44m";
+        inline constexpr char bg_magenta[] = "\033[45m";
+        inline constexpr char by_cyan[] = "\033[46m";
+        inline constexpr char bg_white[] = "\033[47m";
+
+        template <typename... Args>
+        std::string combine(Args&&... args) {
+            constexpr size_t arg_count = sizeof...(args);
+            std::string format;
+            for (size_t i = 0; i < arg_count; i++) {
+                format += "{}";
+            }
+            return std::vformat(format, std::make_format_args(std::forward<Args>(args)...));
+        }
+
     }
 
-    template <typename T>
-    inline void log(const T& t) {
-        std::cout << t << ANSI_RESET << std::endl;
-    }
+    struct LogConfig {
+        bool should_log_verbose;
+    };
 
-    template <typename T, typename... Args>
-    inline void log(const T& t, const Args&... args) {
-        std::cout << t;
-        log(args...);
+    inline LogConfig config;
+
+    template <typename... Args>
+    void verbose(std::format_string<Args...> format, Args&&... args) {
+        std::println("{}[ Verbose ]: {}{}", styling::dim, std::format(format, std::forward<Args>(args)...), styling::reset);
     }
 
     template <typename... Args>
-    inline void log_verbose(const Args&... args) {
-        if (log_config.should_log_verbose) {
-            log(ANSI_VERBOSE, "[ Verbose ]: ", args...);
-        }
+    void verbose_no_prefix(std::format_string<Args...> format, Args&&... args) {
+        std::println("{}{}{}", styling::dim, std::format(format, std::forward<Args>(args)...), styling::reset);
     }
 
     template <typename... Args>
-    inline void log_verbose_no_prefix(const Args&... args) {
-        if (log_config.should_log_verbose) {
-            log(ANSI_VERBOSE, args...);
-        }
+    void info(std::format_string<Args...> format, Args&&... args) {
+        std::println(format, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void warning(std::format_string<Args...> format, Args&&... args) {
+        std::println("{}{}[ Internal warning ]{}: {}", styling::bold, styling::yellow, styling::reset, std::format(format, std::forward<Args>(args)...));
+    }
+
+    template <typename... Args>
+    void error(std::format_string<Args...> format, Args&&... args) {
+        std::println("{}{}[ Internal error ]{}: {}", styling::bold, styling::red, styling::reset, std::format(format, std::forward<Args>(args)...));
     }
 
 }

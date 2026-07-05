@@ -8,13 +8,16 @@
  */
 
 #include "command_line_arguments.hpp"
+#include "diagnostics/diagnostics.hpp"
+#include "diagnostics/error_code.hpp"
 #include "log.hpp"
 #include <cxxopts.hpp>
+#include <expected>
 #include <iostream>
 
 namespace kepler {
 
-    CommandLineArguments parse_command_line_arguments(int argc, char** argv) {
+    std::expected<CommandLineArguments, diagnostics::ErrorCode> parse_command_line_arguments(int argc, char** argv) {
         try {
             cxxopts::Options options("kepler", "The compiler for the kepler programming language");
 
@@ -41,11 +44,10 @@ namespace kepler {
                 arguments.input_file_name = result["input"].as<std::string>();
             } else {
                 if (count_input > 1) {
-                    log(log_type::usage_error, "Input file can only be specified once");
+                    return diagnostics::error(diagnostics::ErrorCode::UsageTooManyInputFiles, "Input file (-i) can only be specified once");
                 } else {
-                    log(log_type::usage_error, "No input file given");
+                    return diagnostics::error(diagnostics::ErrorCode::UsageNoInputFile, "No input file (-i) given");
                 }
-                exit(1);
             }
 
             // Parse output
@@ -53,24 +55,20 @@ namespace kepler {
             if (count_output == 1) {
                 arguments.output_file_name = result["output"].as<std::string>();
             } else {
-                if (count_output > 1) {
-                    log(log_type::usage_error, "Output file can only be specified once");
+                if (count_input > 1) {
+                    return diagnostics::error(diagnostics::ErrorCode::UsageTooManyOutputFiles, "Output file (-o) can only be specified once");
                 } else {
-                    log(log_type::usage_error, "No output file given");
+                    return diagnostics::error(diagnostics::ErrorCode::UsageNoOutputFile, "No output file (-o) given");
                 }
-                exit(1);
             }
 
-            log_config.should_log_verbose = result.contains("verbose");
+            log::config.should_log_verbose = result.contains("verbose");
 
-            log_verbose("Successfully parsed command line arguments:\n",
-                log_type::indented, "-i (input file name): '", arguments.input_file_name, "'\n",
-                log_type::last_indented, "-o (output file name): '", arguments.output_file_name);
+            log::verbose("Successfully parsed command line arguments:\n{}-i (input file name): '{}'\n{}-o (output file name): '{}", log::styling::indented, arguments.input_file_name, log::styling::last_indented, arguments.output_file_name);
 
             return arguments;
         } catch (const cxxopts::exceptions::exception& e) {
-            log(log_type::usage_error, e.what());
-            exit(1);
+            return diagnostics::error(diagnostics::ErrorCode::UsageFrameworkException, "{}", e.what());
         }
     }
 

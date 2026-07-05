@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "diagnostics/error_code.hpp"
+#include <expected>
 #include <string>
 
 namespace kepler {
@@ -18,6 +20,6 @@ namespace kepler {
         std::string output_file_name;
     };
 
-    CommandLineArguments parse_command_line_arguments(int argc, char* argv[]);
+    std::expected<CommandLineArguments, diagnostics::ErrorCode> parse_command_line_arguments(int argc, char* argv[]);
 
 }

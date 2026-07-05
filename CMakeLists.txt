@@ -24,9 +24,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/ast/statements/for_statement.cpp
     src/ast/statements/return_statement.cpp
     src/ast/statements/variable_definition_statement.cpp
-    src/lexer/operator_type.cpp
-    src/lexer/token.cpp
-    src/lexer/token_type.cpp
+    src/diagnostics/diagnostics.cpp
     src/lexer/tokenizer.cpp
     src/parser/parser.cpp
     src/semantic_analysis/string_table.cpp

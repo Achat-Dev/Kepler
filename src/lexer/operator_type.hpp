@@ -11,7 +11,6 @@
 
 #include "log.hpp"
 #include <format>
-#include <ostream>
 #include <string>
 
 namespace kepler::lexer {
@@ -28,8 +27,6 @@ namespace kepler::lexer {
         LessEquals,
         GreaterEquals,
     };
-
-    std::ostream& operator<<(std::ostream& os, OperatorType operator_type);
 
 }
 
@@ -58,8 +55,8 @@ struct std::formatter<kepler::lexer::OperatorType> : std::formatter<std::string>
             case kepler::lexer::OperatorType::GreaterEquals:
                 return std::formatter<std::string>::format(">=", ctx);
             default:
-                kepler::log(kepler::log_type::internal_lexing_warning, "Missing format implementation for operator type '", (int)operator_type, '\'');
-                return std::formatter<std::string>::format(std::format("{}", (int)operator_type), ctx);
+                kepler::log::warning("Missing format implementation for operator type '{}'", static_cast<int>(operator_type));
+                return std::formatter<std::string>::format(std::format("{}", static_cast<int>(operator_type)), ctx);
         }
     }
 };

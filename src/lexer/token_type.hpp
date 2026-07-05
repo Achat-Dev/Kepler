@@ -11,7 +11,6 @@
 
 #include "log.hpp"
 #include <format>
-#include <ostream>
 #include <string>
 
 namespace kepler::lexer {
@@ -40,8 +39,6 @@ namespace kepler::lexer {
         Elseif,
         For,
     };
-
-    std::ostream& operator<<(std::ostream& os, TokenType type);
 
 }
 
@@ -84,8 +81,8 @@ struct std::formatter<kepler::lexer::TokenType> : std::formatter<std::string> {
             case kepler::lexer::TokenType::DataType:
                 return std::formatter<std::string>::format("datatype", ctx);
             default:
-                kepler::log(kepler::log_type::lexing_warning, "Missing format implementation for token type '", (int)token_type, "'");
-                return std::formatter<std::string>::format(std::format("{}", (int)token_type), ctx);
+                kepler::log::warning("Missing format implementation for token type '{}'", static_cast<int>(token_type));
+                return std::formatter<std::string>::format(std::format("{}", static_cast<int>(token_type)), ctx);
         }
     }
 };
