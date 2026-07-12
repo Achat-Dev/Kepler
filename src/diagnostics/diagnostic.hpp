@@ -9,10 +9,17 @@
 
 #pragma once
 
-#include "compilation_context.hpp"
+#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/source_location.hpp"
+#include <string>
 
-namespace kepler {
+namespace kepler::diagnostics {
 
-    void compile_project(const CompilationContext& context);
+    struct Diagnostic {
+        DiagnosticCode code;
+        std::string message;
+        std::string file_path;
+        SourceLocation source_location;
+    };
 
 }

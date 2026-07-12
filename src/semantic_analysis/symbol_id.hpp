@@ -7,6 +7,8 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
+// This can't be in symbol.hpp because of cyclic includes
+
 #pragma once
 
 #include <cstdint>

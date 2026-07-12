@@ -8,18 +8,18 @@
  */
 
 #include "lexer/tokenizer.hpp"
-#include "diagnostics/diagnostics.hpp"
-#include "diagnostics/error_code.hpp"
-#include "diagnostics/warning_code.hpp"
+#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic_sink.hpp"
+#include "io/file.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
 #include "semantic_analysis/string_table.hpp"
+#include <cctype>
 #include <cstddef>
 #include <cstdio>
-#include <expected>
-#include <filesystem>
-#include <fstream>
+#include <format>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -28,66 +28,74 @@ namespace kepler::lexer {
 
     std::unordered_map<std::string, Token> Tokenizer::keyword_map;
 
-    std::expected<std::vector<Token>, diagnostics::ErrorCode> Tokenizer::tokenize() {
-        log::verbose("Tokenizing file '{}'", file_path);
-
-        // Check if the file at the given path can be used
-        if (!std::filesystem::exists(file_path)) {
-            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IOFileNotFound, "File '{}' doesn't exist", file_path);
+    Tokenizer::Tokenizer(const io::File& file, diagnostics::DiagnosticSink& diagnostic_sink) : file(file), diagnostic_sink(diagnostic_sink) {
+        if (keyword_map.empty()) {
+            register_keyword("extern", TokenType::Extern);
+            register_keyword("return", TokenType::Return);
+            register_keyword("end", TokenType::End);
+            register_keyword("if", TokenType::If);
+            register_keyword("else", TokenType::Else);
+            register_keyword("elseif", TokenType::Elseif);
+            register_keyword("for", TokenType::For);
+            register_keyword("true", TokenType::Literal, true);
+            register_keyword("false", TokenType::Literal, false);
+            register_keyword("void", TokenType::DataType, type_system::DataTypeKind::Void);
+            register_keyword("bool", TokenType::DataType, type_system::DataTypeKind::Bool);
+            register_keyword("char", TokenType::DataType, type_system::DataTypeKind::Char);
+            register_keyword("string", TokenType::DataType, type_system::DataTypeKind::String);
+            register_keyword("i8", TokenType::DataType, type_system::DataTypeKind::Int8);
+            register_keyword("i16", TokenType::DataType, type_system::DataTypeKind::Int16);
+            register_keyword("i32", TokenType::DataType, type_system::DataTypeKind::Int32);
+            register_keyword("i64", TokenType::DataType, type_system::DataTypeKind::Int64);
+            register_keyword("f32", TokenType::DataType, type_system::DataTypeKind::Float32);
+            register_keyword("f64", TokenType::DataType, type_system::DataTypeKind::Float64);
         }
-        if (std::filesystem::is_directory(file_path)) {
-            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IOFileIsADirectory, "Path '{}' is a directory", file_path);
-        }
-        if (!std::filesystem::is_regular_file(file_path)) {
-            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IONotARegularFile, "File '{}' is not a regular file", file_path);
-        }
+    }
 
-        // Read file contents into string
-        std::ifstream file_stream(file_path);
-        if (!file_stream) {
-            return diagnostics::error(file_path, {}, diagnostics::ErrorCode::IOFailedToCreateFileStream, "¯\\_(ツ)_/¯\n{}Check the file permission for {}\n{}Check if the file is currently locked by other programs", log::styling::indented, file_path, log::styling::last_indented);
-        }
+    std::vector<Token> Tokenizer::tokenize() {
+        log::verbose("Tokenizing file '{}'", file.path);
 
-        file_content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
-
-        // Tokenize file contents
-        current_char = file_content[0]; // Read first char manually instead of next_char() because that would read file_content[1]
-        std::vector<Token> result;
+        current_char = file.content[0]; // Read first char manually instead of next_char() because that would read file.content[1]
+        std::vector<Token> tokens;
         while (true) {
-            const auto token = read_next_token();
+            const std::optional<Token> token = read_next_token();
             if (!token) {
-                return std::unexpected(token.error());
+                continue;
             }
 
-            result.push_back(*token);
+            tokens.push_back(*token);
             if (token->type == TokenType::EndOfFile) {
                 log::verbose_no_prefix("{}Tokenizing done", log::styling::last_indented);
-                return result;
+                return tokens;
             }
         }
     }
 
     char Tokenizer::peek_next_char() const {
-        if (position + 1 < file_content.size()) {
-            return file_content[position + 1];
+        if (position + 1 < file.content.size()) {
+            return file.content[position + 1];
         } else {
             return EOF;
         }
     }
 
     void Tokenizer::next_char() {
-        if (position < file_content.size()) {
+        if (position < file.content.size()) {
             position++;
-            current_char = file_content[position];
+            current_char = file.content[position];
         }
     }
 
-    std::expected<Token, diagnostics::ErrorCode> Tokenizer::read_next_token() {
+    Token Tokenizer::read_next_token() {
         if (peek_next_char() == EOF) {
             return Token(TokenType::EndOfFile, {});
         }
 
         while (isspace(current_char)) {
+            if (current_char == '\n') {
+                next_char();
+                return Token(TokenType::Newline, {position, 1});
+            }
             next_char();
         }
 
@@ -156,12 +164,16 @@ namespace kepler::lexer {
                     next_char();
                     return Token(TokenType::Operator, {position - 2, 2}, OperatorType::NotEquals);
                 } else {
-                    return diagnostics::error(file_path, {position - 1, 1}, diagnostics::ErrorCode::Unsupported, "Logical negation with '!' is not supported yet");
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::Unsupported, "Logical negation with '!' is not supported yet", file.path, {position - 1, 1});
+                    next_char();
+                    return read_next_token();
                 }
             case '"': return read_string_literal();
         }
 
-        return diagnostics::error(file_path, {position, 1}, diagnostics::ErrorCode::LexerUnknownCharacter, "Unknown character '{}'", current_char);
+        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", current_char), file.path, {position, 1});
+        next_char();
+        return read_next_token();
     }
 
     Token Tokenizer::read_identifier() {
@@ -172,7 +184,7 @@ namespace kepler::lexer {
         }
 
         const size_t identifier_length = position - identifier_start_position;
-        const std::string identifier = file_content.substr(identifier_start_position, identifier_length);
+        const std::string identifier = file.content.substr(identifier_start_position, identifier_length);
 
         if (keyword_map.contains(identifier)) {
             Token token = keyword_map.at(identifier);
@@ -185,8 +197,7 @@ namespace kepler::lexer {
         return token;
     }
 
-    std::expected<Token, diagnostics::ErrorCode> Tokenizer::read_string_literal() {
-        // String literals can't be string_views because escape characters have to be interpreted
+    Token Tokenizer::read_string_literal() {
         std::string literal = "";
         next_char();
 
@@ -200,21 +211,20 @@ namespace kepler::lexer {
                     case '\\': literal += '\\'; break;
                     case '"': literal += '"'; break;
                     default:
-                        return diagnostics::error(file_path, {position - 1, 2}, diagnostics::ErrorCode::LexerUnknownEscapeSequence, "Unknown escape character '\\{}' in string", current_char);
+                        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownEscapeSequence, std::format("Unknown escape sequence '\\{}' in string", current_char), file.path, {position - 1, 2});
+                        break;
                 }
-
-                next_char(); // read the next character for the next loop interation
             } else {
                 literal += current_char;
-                next_char();
             }
+            next_char();
         }
 
         next_char(); // eat closing '"'
 
         const semantic_analysis::StringId literal_id = semantic_analysis::StringTable::get().store_or_lookup(literal);
         const size_t literal_length = literal.size();
-        return Token(TokenType::Literal, {position - literal_length, literal_length}, literal_id);
+        return Token(TokenType::Literal, {position - literal_length - 1, literal_length + 2}, literal_id); // -1 for opening " and +2 for opening and closing "
     }
 
     Token Tokenizer::read_numeric_literal() {
@@ -228,7 +238,7 @@ namespace kepler::lexer {
         } while (isdigit(current_char) || current_char == '.');
 
         const size_t literal_length = position - literal_start_position;
-        const std::string literal = file_content.substr(literal_start_position, literal_length);
+        const std::string literal = file.content.substr(literal_start_position, literal_length);
 
         if (is_float) {
             return Token(TokenType::Literal, {literal_start_position}, std::stod(literal.data()));
@@ -245,7 +255,7 @@ namespace kepler::lexer {
             const size_t comment_start_position = position - 1;
             while (!(current_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
-                    diagnostics::warning(file_path, {comment_start_position, 2}, diagnostics::WarningCode::LexerMultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.");
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::MultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.", file.path, {comment_start_position, 2});
                     return;
                 }
 

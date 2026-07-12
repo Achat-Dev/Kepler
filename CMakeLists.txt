@@ -24,13 +24,15 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/ast/statements/for_statement.cpp
     src/ast/statements/return_statement.cpp
     src/ast/statements/variable_definition_statement.cpp
-    src/diagnostics/diagnostics.cpp
+    src/diagnostics/diagnostic_code.cpp
+    src/diagnostics/diagnostic_sink.cpp
+    src/io/file.cpp
     src/lexer/tokenizer.cpp
     src/parser/parser.cpp
     src/semantic_analysis/string_table.cpp
     src/semantic_analysis/symbol_table.cpp
     src/type_system/data_type_kind.cpp
-    src/command_line_arguments.cpp
+    src/compilation_context.cpp
     src/compiler.cpp
     src/main.cpp)
 

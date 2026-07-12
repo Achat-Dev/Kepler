@@ -7,17 +7,26 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "command_line_arguments.hpp"
+#include "compilation_context.hpp"
 #include "compiler.hpp"
-
-using namespace kepler;
+#include "diagnostics/diagnostic_code.hpp"
+#include <cstdlib>
+#include <print>
 
 int main(int argc, char* argv[]) {
-    const auto arguments = parse_command_line_arguments(argc, argv);
-    if (!arguments) {
-        return static_cast<int>(arguments.error());
+    const auto context = kepler::parse_command_line_arguments(argc, argv);
+
+    if (!context) {
+        const kepler::UsageError error = context.error();
+        
+        if (error.code == kepler::diagnostics::DiagnosticCode::HelpRequested) {
+            std::println("{}", error.message);
+            return EXIT_SUCCESS;
+        } else {
+            std::println("{}{}", kepler::diagnostics::get_severity(error.code), error.message);
+            return EXIT_FAILURE;
+        }
     }
 
-    Compiler compiler(*arguments);
-    compiler.compile_project();
+    kepler::compile_project(*context);
 }

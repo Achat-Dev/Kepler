@@ -17,6 +17,7 @@ namespace kepler::lexer {
 
     enum class TokenType {
         // Meta
+        Newline,
         EndOfFile,
         BracketOpen,
         BracketClose,
@@ -46,6 +47,8 @@ template <>
 struct std::formatter<kepler::lexer::TokenType> : std::formatter<std::string> {
     auto format(const kepler::lexer::TokenType& token_type, std::format_context& ctx) const {
         switch (token_type) {
+            case kepler::lexer::TokenType::Newline:
+                return std::formatter<std::string>::format("Newline", ctx);
             case kepler::lexer::TokenType::EndOfFile:
                 return std::formatter<std::string>::format("EOF", ctx);
             case kepler::lexer::TokenType::BracketOpen:

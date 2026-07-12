@@ -8,23 +8,50 @@
  */
 
 #include "compiler.hpp"
+#include "ast/ast_node.hpp"
+#include "compilation_context.hpp"
+#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic_sink.hpp"
+#include "diagnostics/severity.hpp"
+#include "io/file.hpp"
+#include "lexer/token.hpp"
 #include "lexer/tokenizer.hpp"
+#include "log.hpp"
 #include "parser/parser.hpp"
+#include <memory>
+#include <print>
+#include <vector>
 
 namespace kepler {
 
-    void Compiler::compile_project() const {
-        lexer::Tokenizer tokenizer(arguments.input_file_name);
-        const auto tokens = tokenizer.tokenize();
-        if (!tokens) {
-            exit(static_cast<int>(tokens.error()));
+    void compile_project(const CompilationContext& context) {
+        log::config.should_log_verbose = context.log_verbose;
+        log::verbose("Compiling project with the following context:\n{}-i (input file name): '{}'\n{}-o (output file name): '{}", log::styling::indented, context.input_file_path, log::styling::last_indented, context.input_file_path);
+
+        const auto file = io::File::load(context.input_file_path);
+        if (!file) {
+            diagnostics::Severity severity = diagnostics::get_severity(file.error().code);
+            std::println("{}{}", severity, file.error().message);
+            exit(1);
         }
 
-        parser::Parser parser(arguments.input_file_name, *tokens);
-        const auto ast_nodes = parser.parse();
-        if (!ast_nodes) {
-            exit(static_cast<int>(tokens.error()));
+        diagnostics::DiagnosticSink diagnostic_sink;
+
+        lexer::Tokenizer tokenizer(*file, diagnostic_sink);
+        const std::vector<lexer::Token> tokens = tokenizer.tokenize();
+
+        parser::Parser parser(tokens, (*file).path, diagnostic_sink);
+        const std::vector<std::shared_ptr<ast::ASTNode>> ast_nodes = parser.parse();
+
+        if (diagnostic_sink.get_error_count() > 0) {
+            diagnostic_sink.flush();
+            std::println("{}{}[ This one's on you ]{}{}: Compilation failed with {} error(s) and {} warning(s){}", log::styling::bold, log::styling::bg_red, log::styling::reset, log::styling::bg_red, diagnostic_sink.get_error_count(), diagnostic_sink.get_warning_count(), log::styling::reset);
         }
+
+        /*
+        for (const std::shared_ptr<ast::ASTNode> ast_node : *ast_nodes) {
+            ast_node->codegen();
+        }*/
     }
 
 }

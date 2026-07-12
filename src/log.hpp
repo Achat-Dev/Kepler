@@ -68,12 +68,16 @@ namespace kepler::log {
 
     template <typename... Args>
     void verbose(std::format_string<Args...> format, Args&&... args) {
-        std::println("{}[ Verbose ]: {}{}", styling::dim, std::format(format, std::forward<Args>(args)...), styling::reset);
+        if (config.should_log_verbose) {
+            std::println("{}[ Verbose ]: {}{}", styling::dim, std::format(format, std::forward<Args>(args)...), styling::reset);
+        }
     }
 
     template <typename... Args>
     void verbose_no_prefix(std::format_string<Args...> format, Args&&... args) {
-        std::println("{}{}{}", styling::dim, std::format(format, std::forward<Args>(args)...), styling::reset);
+        if (config.should_log_verbose) {
+            std::println("{}{}{}", styling::dim, std::format(format, std::forward<Args>(args)...), styling::reset);
+        }
     }
 
     template <typename... Args>

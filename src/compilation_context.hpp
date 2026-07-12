@@ -9,17 +9,23 @@
 
 #pragma once
 
-#include "diagnostics/error_code.hpp"
+#include "diagnostics/diagnostic_code.hpp"
 #include <expected>
 #include <string>
 
 namespace kepler {
 
-    struct CommandLineArguments {
-        std::string input_file_name;
-        std::string output_file_name;
+    struct UsageError {
+        diagnostics::DiagnosticCode code;
+        std::string message;
     };
 
-    std::expected<CommandLineArguments, diagnostics::ErrorCode> parse_command_line_arguments(int argc, char* argv[]);
+    struct CompilationContext {
+        std::string input_file_path;
+        std::string output_file_path;
+        bool log_verbose = false;
+    };
+
+    std::expected<CompilationContext, UsageError> parse_command_line_arguments(int argc, char* argv[]);
 
 }

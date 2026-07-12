@@ -20,15 +20,16 @@
 #include "ast/statements/for_statement.hpp"
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
-#include "diagnostics/error_code.hpp"
+#include "diagnostics/diagnostic_sink.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
+#include "lexer/token_type.hpp"
 #include "semantic_analysis/string_table.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
-#include <expected>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,49 +38,62 @@ namespace kepler::parser {
     // TODO: Replace shared_ptr with raw pointers and an arena allocator once the architecture rework is finished
     class Parser {
     public:
-        Parser(const std::string& file_path, const std::vector<lexer::Token>& tokens)
-            : file_path(file_path), tokens(tokens), current_token(&tokens[0]) {}
-        std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, diagnostics::ErrorCode> parse();
+        Parser(const std::vector<lexer::Token>& tokens, const std::string& file_path, diagnostics::DiagnosticSink& diagnostic_sink)
+            : tokens(tokens), file_path(file_path), diagnostic_sink(diagnostic_sink), current_token(&tokens[0]) {}
+        std::vector<std::shared_ptr<ast::ASTNode>> parse();
 
     private:
-        const std::string& file_path;
         const std::vector<lexer::Token>& tokens;
+        const std::string& file_path;
+        diagnostics::DiagnosticSink& diagnostic_sink;
         const lexer::Token* current_token;
         size_t current_token_index = 0;
         type_system::DataTypeKind current_parsing_function_return_type;
 
         int get_operator_precedence(lexer::OperatorType operator_type) const;
-        void next_token();
-        void previous_token();
+        void next_token(bool skip_newline);
+        void previous_token(bool skip_newline);
+
+        template <typename... SynchronisationTokens>
+        void recover(bool eat_synchronisation_token, SynchronisationTokens... synchronisation_tokens) {
+            while (((current_token->type != synchronisation_tokens) && ...) && current_token->type != lexer::TokenType::EndOfFile) {
+                next_token(false);
+            }
+            if (eat_synchronisation_token) {
+                next_token(false);
+            }
+        }
+
+        // TODO: Split in multiple smaller parsers
 
         // Top level
-        std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> parse_extern();
-        std::expected<semantic_analysis::SymbolId, diagnostics::ErrorCode> parse_prototype(ast::Prototype::LinkageType linkage_type);
-        std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> parse_top_level_data_type();
-        std::expected<std::shared_ptr<ast::Function>, diagnostics::ErrorCode> parse_function(type_system::DataTypeKind return_type);
+        std::shared_ptr<ast::ASTNode> parse_extern();
+        std::optional<semantic_analysis::SymbolId> parse_prototype(ast::Prototype::LinkageType linkage_type);
+        std::shared_ptr<ast::ASTNode> parse_top_level_data_type();
+        std::shared_ptr<ast::Function> parse_function(type_system::DataTypeKind return_type);
 
         // Main body nodes
-        std::expected<std::shared_ptr<ast::ASTNode>, diagnostics::ErrorCode> parse_statement();
-        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_expression();
+        std::shared_ptr<ast::ASTNode> parse_statement();
+        std::shared_ptr<ast::Expression> parse_expression();
 
         // Expressions
-        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_binary_expression_rhs(std::shared_ptr<ast::Expression> lhs_expression, int expression_precedence);
-        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_primary();
+        std::shared_ptr<ast::Expression> parse_binary_expression_rhs(std::shared_ptr<ast::Expression> lhs_expression, int expression_precedence);
+        std::shared_ptr<ast::Expression> parse_primary();
         std::shared_ptr<ast::Expression> parse_literal();
-        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_parenthesis();
-        std::expected<std::shared_ptr<ast::Expression>, diagnostics::ErrorCode> parse_identifier();
-        std::expected<std::shared_ptr<ast::CallExpression>, diagnostics::ErrorCode> parse_call(semantic_analysis::StringId identifier_id);
-        std::expected<std::shared_ptr<ast::NegationExpression>, diagnostics::ErrorCode> parse_negative();
-        std::expected<std::shared_ptr<ast::CastExpression>, diagnostics::ErrorCode> parse_cast();
+        std::shared_ptr<ast::Expression> parse_parenthesis();
+        std::shared_ptr<ast::Expression> parse_identifier();
+        std::shared_ptr<ast::CallExpression> parse_call(semantic_analysis::StringId identifier_id);
+        std::shared_ptr<ast::NegationExpression> parse_negative();
+        std::shared_ptr<ast::CastExpression> parse_cast();
 
         // Statements
-        std::expected<std::shared_ptr<ast::AssignmentStatement>, diagnostics::ErrorCode> parse_assignment(semantic_analysis::StringId identifier_id);
-        std::expected<std::shared_ptr<ast::IfStatement>, diagnostics::ErrorCode> parse_if();
-        std::expected<std::shared_ptr<ast::ForStatement>, diagnostics::ErrorCode> parse_for();
-        std::expected<std::shared_ptr<ast::ForStatement>, diagnostics::ErrorCode> create_for_statement(semantic_analysis::StringId variable_identifier_id, type_system::DataTypeKind variable_data_type, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value);
-        std::expected<std::vector<std::shared_ptr<ast::ASTNode>>, diagnostics::ErrorCode> parse_for_body();
-        std::expected<std::shared_ptr<ast::ReturnStatement>, diagnostics::ErrorCode> parse_return();
-        std::expected<std::shared_ptr<ast::VariableDefinitionStatement>, diagnostics::ErrorCode> parse_variable_definition();
+        std::shared_ptr<ast::AssignmentStatement> parse_assignment(semantic_analysis::StringId identifier_id);
+        std::shared_ptr<ast::IfStatement> parse_if();
+        std::shared_ptr<ast::ForStatement> parse_for();
+        std::shared_ptr<ast::ForStatement> create_for_statement(semantic_analysis::StringId variable_identifier_id, type_system::DataTypeKind variable_data_type, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value);
+        std::vector<std::shared_ptr<ast::ASTNode>> parse_for_body();
+        std::shared_ptr<ast::ReturnStatement> parse_return();
+        std::shared_ptr<ast::VariableDefinitionStatement> parse_variable_definition();
     };
 
 }

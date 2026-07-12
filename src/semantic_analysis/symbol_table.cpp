@@ -8,8 +8,6 @@
  */
 
 #include "semantic_analysis/symbol_table.hpp"
-#include "diagnostics/diagnostics.hpp"
-#include "diagnostics/error_code.hpp"
 #include "emergency.hpp"
 #include "log.hpp"
 #include "semantic_analysis/prototype_symbol_data.hpp"
@@ -19,6 +17,7 @@
 #include "string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <expected>
+#include <format>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -28,13 +27,12 @@
 
 namespace kepler::semantic_analysis {
 
-    std::expected<SymbolId, diagnostics::ErrorCode> SymbolTable::create_variable(StringId identifier_id, type_system::DataTypeKind data_type) {
+    std::expected<SymbolId, std::string> SymbolTable::create_variable(StringId identifier_id, type_system::DataTypeKind data_type) {
         const std::string& identifier = StringTable::get().lookup(identifier_id);
 
         // Check if variable with that name already exists in the current scope
         if (does_name_exist_in_scope_stack(identifier_id)) {
-            diagnostics::info("{}Variable with name '{}' already exists in the current scope", diagnostics::ErrorCode::SymbolTableRedefineSymbol, identifier);
-            return std::unexpected(diagnostics::ErrorCode::SymbolTableRedefineSymbol);
+            return std::unexpected(std::format("Variable with name '{}' already exists in the current scope", identifier));
         }
 
         // Create new symbol
@@ -48,7 +46,7 @@ namespace kepler::semantic_analysis {
         return symbol_id;
     }
 
-    std::expected<SymbolId, diagnostics::ErrorCode> SymbolTable::create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data) {
+    std::expected<SymbolId, std::string> SymbolTable::create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data) {
         const std::string& identifier = StringTable::get().lookup(identifier_id);
 
         // Check if prototype with that name already exists in the global scope
@@ -64,16 +62,14 @@ namespace kepler::semantic_analysis {
             const Symbol& symbol = symbols[symbol_id];
 
             if (std::holds_alternative<PrototypeSymbolData>(symbol.data)) {
-                diagnostics::info("{}Function with name '{}' already exists", diagnostics::ErrorCode::SymbolTableRedefineSymbol, identifier);
-
+                const std::string message = std::format("Function with name '{}' already exists", identifier);
                 if (std::get<PrototypeSymbolData>(symbol.data) != data) {
-                    diagnostics::info("{}The function signature is different, but function overloading is not supported yet", log::styling::last_indented);
+                    return std::unexpected(std::format("{}{}The function signature is different, but function overloading is not supported yet", message, log::styling::last_indented));
                 }
+                return std::unexpected(message);
             } else {
-                diagnostics::info("{}Trying to define a function with the name '{}', but a variable with that name already exists", log::styling::last_indented, identifier);
+                return std::unexpected(std::format("Trying to define a function with the name '{}', but a variable with that name already exists", identifier));
             }
-
-            return std::unexpected(diagnostics::ErrorCode::SymbolTableRedefineSymbol);
         }
 
         // Create symbol

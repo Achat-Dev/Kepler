@@ -21,7 +21,7 @@ namespace kepler {
     template <typename... Args>
     [[noreturn]]
     void emergency_exit(std::format_string<Args...> format, Args&&... args) {
-        std::println("{}{}[ Internal emergency, everybody panic ]{}: {}", log::styling::bold, log::styling::bg_magenta, log::styling::reset, std::format(format, std::forward<Args>(args)...));
+        std::println("{}{}[ Internal emergency, we have entered unreachable territory, everybody panic ]{}: {}", log::styling::bold, log::styling::bg_magenta, log::styling::reset, std::format(format, std::forward<Args>(args)...));
 
         constexpr char h[] = "\u2500";
         constexpr char v[] = "\u2502";

@@ -14,8 +14,8 @@
 namespace kepler::diagnostics {
 
     struct SourceLocation {
-        size_t position;
-        size_t size;
+        size_t position = 0;
+        size_t size = 0;
     };
 
 }
