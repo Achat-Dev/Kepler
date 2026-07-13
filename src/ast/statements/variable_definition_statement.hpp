@@ -12,21 +12,22 @@
 #include "ast/codegen_result.hpp"
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/statement.hpp"
-#include "semantic_analysis/string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <memory>
+#include <string>
+#include <utility>
 
 namespace kepler::ast {
 
     class VariableDefinitionStatement : public Statement {
     public:
-        VariableDefinitionStatement(type_system::DataTypeKind data_type, semantic_analysis::StringId identifier_id, std::shared_ptr<AssignmentStatement> assignment_statement)
-            : data_type(data_type), identifier_id(identifier_id), assignment_statement(assignment_statement) {}
+        VariableDefinitionStatement(type_system::DataTypeKind data_type, std::string identifier, std::shared_ptr<AssignmentStatement> assignment_statement)
+            : data_type(data_type), identifier(std::move(identifier)), assignment_statement(assignment_statement) {}
         CodegenResult codegen() const override;
 
     private:
         const type_system::DataTypeKind data_type;
-        const semantic_analysis::StringId identifier_id;
+        const std::string identifier;
         const std::shared_ptr<AssignmentStatement> assignment_statement;
     };
 

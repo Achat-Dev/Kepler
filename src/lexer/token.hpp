@@ -13,7 +13,6 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
-#include "semantic_analysis/string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <format>
@@ -24,7 +23,7 @@ namespace kepler::lexer {
 
     using TokenData = std::variant<double, // Floating point literals
         int64_t,                           // Integer literals
-        semantic_analysis::StringId,       // String literals & identifiers
+        std::string,                       // String literals & identifiers
         bool,                              // Boolean literals
         OperatorType,                      // Operators
         type_system::DataTypeKind,         // Data types
@@ -34,7 +33,7 @@ namespace kepler::lexer {
         Token(TokenType type, diagnostics::SourceLocation source_location)
             : type(type), source_location(source_location) {}
         Token(TokenType type, diagnostics::SourceLocation source_location, TokenData data)
-            : type(type), source_location(source_location), data(data) {}
+            : type(type), source_location(source_location), data(std::move(data)) {}
 
         TokenType type;
         TokenData data;
@@ -66,20 +65,17 @@ struct std::formatter<kepler::lexer::Token> : std::formatter<std::string> {
             case kepler::lexer::TokenType::Operator:
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::lexer::OperatorType>(token.data)), ctx);
             case kepler::lexer::TokenType::Identifier: {
-                kepler::semantic_analysis::StringId identifier_id = std::get<kepler::semantic_analysis::StringId>(token.data);
-                const std::string& identifier = kepler::semantic_analysis::StringTable::get().lookup(identifier_id);
+                const std::string& identifier = std::get<std::string>(token.data);
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, identifier), ctx);
             }
             case kepler::lexer::TokenType::Literal: {
-                const std::string format = std::visit([&token](const auto value) -> std::string {
+                const std::string format = std::visit([&token](const auto& value) -> std::string {
                     using ValueType = std::decay_t<decltype(value)>;
-                    if constexpr (std::is_same_v<ValueType, kepler::semantic_analysis::StringId>) {
-                        const std::string& identifier = kepler::semantic_analysis::StringTable::get().lookup(value);
-                        return std::format("{}({})", token.type, identifier);
-                    } else if constexpr (!std::is_same_v<ValueType, std::monostate>) {
+                    if constexpr (std::is_same_v<ValueType, std::monostate>) {
+                        return std::format("{}", token.type);
+                    } else {
                         return std::format("{}({})", token.type, value);
                     }
-                    return std::format("{}", token.type);
                 },
                     token.data);
 

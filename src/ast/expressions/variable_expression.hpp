@@ -11,18 +11,19 @@
 
 #include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
-#include "semantic_analysis/string_table.hpp"
+#include <string>
+#include <utility>
 
 namespace kepler::ast {
 
     class VariableExpression : public Expression {
     public:
-        VariableExpression(semantic_analysis::StringId identifier_id)
-            : identifier_id(identifier_id) {}
+        VariableExpression(std::string identifier)
+            : identifier(std::move(identifier)) {}
         CodegenResult codegen() const override;
 
     private:
-        const semantic_analysis::StringId identifier_id;
+        const std::string identifier;
     };
 
 }

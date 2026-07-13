@@ -14,7 +14,6 @@
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_id.hpp"
-#include "string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <expected>
 #include <format>
@@ -27,28 +26,24 @@
 
 namespace kepler::semantic_analysis {
 
-    std::expected<SymbolId, std::string> SymbolTable::create_variable(StringId identifier_id, type_system::DataTypeKind data_type) {
-        const std::string& identifier = StringTable::get().lookup(identifier_id);
-
+    std::expected<SymbolId, std::string> SymbolTable::create_variable(const std::string& identifier, type_system::DataTypeKind data_type) {
         // Check if variable with that name already exists in the current scope
-        if (does_name_exist_in_scope_stack(identifier_id)) {
+        if (does_name_exist_in_scope_stack(identifier)) {
             return std::unexpected(std::format("Variable with name '{}' already exists in the current scope", identifier));
         }
 
         // Create new symbol
         const SymbolId symbol_id = symbols.size();
         const Symbol symbol{
-            .identifier_id = identifier_id,
+            .identifier_id = identifier,
             .data_type = data_type};
         symbols.push_back(std::move(symbol));
         const std::shared_ptr<Scope> current_scope = scopes.back();
-        current_scope->contained_identifiers.emplace(identifier_id, symbol_id);
+        current_scope->contained_identifiers.emplace(identifier, symbol_id);
         return symbol_id;
     }
 
-    std::expected<SymbolId, std::string> SymbolTable::create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data) {
-        const std::string& identifier = StringTable::get().lookup(identifier_id);
-
+    std::expected<SymbolId, std::string> SymbolTable::create_prototype(const std::string& identifier, type_system::DataTypeKind data_type, PrototypeSymbolData data) {
         // Check if prototype with that name already exists in the global scope
         // Use the global scope because functions can only be defined inside the global scope right now
         const std::shared_ptr<Scope> current_scope = scopes.back()->parent;
@@ -56,9 +51,9 @@ namespace kepler::semantic_analysis {
             emergency_exit("Trying to create a prototype symbol in a scope other than the global scope. Current scope is '{}', expected '1' for the global scope.\n{}Catching this mistake is not my job, parser, what are you doing?", scopes.size(), log::styling::last_indented);
         }
 
-        std::unordered_map<StringId, SymbolId>& identifiers_in_current_scope = current_scope->contained_identifiers;
-        if (identifiers_in_current_scope.contains(identifier_id)) {
-            const SymbolId symbol_id = identifiers_in_current_scope[identifier_id];
+        std::unordered_map<std::string, SymbolId>& identifiers_in_current_scope = current_scope->contained_identifiers;
+        if (identifiers_in_current_scope.contains(identifier)) {
+            const SymbolId symbol_id = identifiers_in_current_scope[identifier];
             const Symbol& symbol = symbols[symbol_id];
 
             if (std::holds_alternative<PrototypeSymbolData>(symbol.data)) {
@@ -75,11 +70,11 @@ namespace kepler::semantic_analysis {
         // Create symbol
         const SymbolId symbol_id = symbols.size();
         const Symbol symbol{
-            .identifier_id = identifier_id,
+            .identifier_id = identifier,
             .data_type = data_type,
             .data = std::move(data)};
         symbols.push_back(std::move(symbol));
-        identifiers_in_current_scope.emplace(identifier_id, symbol_id);
+        identifiers_in_current_scope.emplace(identifier, symbol_id);
         return symbol_id;
     }
 
@@ -108,10 +103,10 @@ namespace kepler::semantic_analysis {
         scopes.pop_back();
     }
 
-    bool SymbolTable::does_name_exist_in_scope_stack(StringId identifier_id) const {
+    bool SymbolTable::does_name_exist_in_scope_stack(const std::string& identifier) const {
         std::shared_ptr<Scope> scope = scopes.back();
         while (scope != nullptr) {
-            if (scope->contained_identifiers.contains(identifier_id)) {
+            if (scope->contained_identifiers.contains(identifier)) {
                 return true;
             }
             scope = scope->parent;

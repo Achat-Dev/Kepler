@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include "semantic_analysis/string_table.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace kepler::semantic_analysis {
@@ -21,7 +21,7 @@ namespace kepler::semantic_analysis {
 
     struct Scope {
         std::shared_ptr<Scope> parent;
-        std::unordered_map<StringId, SymbolId> contained_identifiers;
+        std::unordered_map<std::string, SymbolId> contained_identifiers;
 
         Scope(std::shared_ptr<Scope> parent) : parent(parent) {}
     };

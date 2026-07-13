@@ -14,7 +14,6 @@
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
-#include "semantic_analysis/string_table.hpp"
 #include <cctype>
 #include <cstddef>
 #include <cstdio>
@@ -22,6 +21,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace kepler::lexer {
@@ -192,8 +192,7 @@ namespace kepler::lexer {
             return token;
         }
 
-        const semantic_analysis::StringId identifier_id = semantic_analysis::StringTable::get().store_or_lookup(identifier);
-        const Token token(TokenType::Identifier, {identifier_start_position, identifier_length}, identifier_id);
+        const Token token(TokenType::Identifier, {identifier_start_position, identifier_length}, std::move(identifier));
         return token;
     }
 
@@ -222,9 +221,8 @@ namespace kepler::lexer {
 
         next_char(); // eat closing '"'
 
-        const semantic_analysis::StringId literal_id = semantic_analysis::StringTable::get().store_or_lookup(literal);
         const size_t literal_length = literal.size();
-        return Token(TokenType::Literal, {position - literal_length - 1, literal_length + 2}, literal_id); // -1 for opening " and +2 for opening and closing "
+        return Token(TokenType::Literal, {position - literal_length - 1, literal_length + 2}, std::move(literal)); // -1 for opening " and +2 for opening and closing "
     }
 
     Token Tokenizer::read_numeric_literal() {

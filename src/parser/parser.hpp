@@ -25,7 +25,6 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
-#include "semantic_analysis/string_table.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
@@ -72,15 +71,15 @@ namespace kepler::parser {
         std::shared_ptr<ast::Expression> parse_literal();
         std::shared_ptr<ast::Expression> parse_parenthesis();
         std::shared_ptr<ast::Expression> parse_identifier();
-        std::shared_ptr<ast::CallExpression> parse_call(semantic_analysis::StringId identifier_id);
+        std::shared_ptr<ast::CallExpression> parse_call(const std::string& identifier);
         std::shared_ptr<ast::NegationExpression> parse_negative();
         std::shared_ptr<ast::CastExpression> parse_cast();
 
         // Statements
-        std::shared_ptr<ast::AssignmentStatement> parse_assignment(semantic_analysis::StringId identifier_id);
+        std::shared_ptr<ast::AssignmentStatement> parse_assignment(const std::string& identifier);
         std::shared_ptr<ast::IfStatement> parse_if();
         std::shared_ptr<ast::ForStatement> parse_for();
-        std::shared_ptr<ast::ForStatement> create_for_statement(semantic_analysis::StringId variable_identifier_id, const lexer::Token* variable_data_type_token, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value, const diagnostics::SourceLocation& for_source_location);
+        std::shared_ptr<ast::ForStatement> create_for_statement(const std::string& variable_identifier, const lexer::Token* variable_data_type_token, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value, const diagnostics::SourceLocation& for_source_location);
         void recover_for_definition_and_parse_body(const diagnostics::SourceLocation& source_location);
         std::shared_ptr<ast::ReturnStatement> parse_return();
         std::shared_ptr<ast::VariableDefinitionStatement> parse_variable_definition();

@@ -13,7 +13,6 @@
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_id.hpp"
-#include "string_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <expected>
 #include <memory>
@@ -27,13 +26,13 @@ namespace kepler::semantic_analysis {
         SymbolTable(const SymbolTable& string_table) = delete;
         void operator=(const SymbolTable& string_table) = delete;
 
-        std::expected<SymbolId, std::string> create_variable(StringId identifier_id, type_system::DataTypeKind data_type);
-        std::expected<SymbolId, std::string> create_prototype(StringId identifier_id, type_system::DataTypeKind data_type, PrototypeSymbolData data);
+        std::expected<SymbolId, std::string> create_variable(const std::string& identifier, type_system::DataTypeKind data_type);
+        std::expected<SymbolId, std::string> create_prototype(const std::string& identifier, type_system::DataTypeKind data_type, PrototypeSymbolData data);
         const Symbol& lookup(SymbolId id) const;
 
         void open_scope();
         void close_scope();
-        bool does_name_exist_in_scope_stack(StringId identifier_id) const;
+        bool does_name_exist_in_scope_stack(const std::string& identifier) const;
 
         static SymbolTable& get();
 

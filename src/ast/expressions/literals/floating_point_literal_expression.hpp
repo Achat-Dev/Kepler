@@ -15,7 +15,6 @@
 namespace kepler::ast {
 
     class FloatingPointLiteralExpression : public Expression {
-
     public:
         FloatingPointLiteralExpression(double value)
             : value(value) {}

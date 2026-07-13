@@ -15,12 +15,10 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
-#include "semantic_analysis/string_table.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
-#include <expected>
 #include <memory>
 #include <optional>
 #include <string>
@@ -57,7 +55,7 @@ namespace kepler::parser {
             return std::nullopt;
         }
         const lexer::Token* identifier_token = current_token;
-        const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
+        const std::string& identifier = std::get<std::string>(current_token->data);
 
         next_token(true); // eat identifier
         if (current_token->type != lexer::TokenType::BracketOpen) {
@@ -87,8 +85,8 @@ namespace kepler::parser {
                 return std::nullopt;
             }
 
-            const semantic_analysis::StringId parameter_identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
-            const auto parameter_id = semantic_analysis::SymbolTable::get().create_variable(parameter_identifier_id, parameter_type);
+            const std::string& parameter_identifier = std::get<std::string>(current_token->data);
+            const auto parameter_id = semantic_analysis::SymbolTable::get().create_variable(parameter_identifier, parameter_type);
             if (!parameter_id) {
                 diagnostic_sink.report(diagnostics::DiagnosticCode::SymbolAlreadyExists, parameter_id.error(), file_path, current_token->source_location);
                 did_symbol_creation_fail = true;
@@ -120,7 +118,7 @@ namespace kepler::parser {
             return std::nullopt;
         }
 
-        const auto prototype_id = semantic_analysis::SymbolTable::get().create_prototype(identifier_id, return_type, std::move(prototype_symbol_data));
+        const auto prototype_id = semantic_analysis::SymbolTable::get().create_prototype(identifier, return_type, std::move(prototype_symbol_data));
         if (!prototype_id) {
             diagnostic_sink.report(diagnostics::DiagnosticCode::SymbolAlreadyExists, prototype_id.error(), file_path, identifier_token->source_location);
             return std::nullopt;

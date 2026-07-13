@@ -11,20 +11,21 @@
 
 #include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
-#include "semantic_analysis/string_table.hpp"
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace kepler::ast {
 
     class CallExpression : public Expression {
     public:
-        CallExpression(semantic_analysis::StringId identifier_id, std::vector<std::shared_ptr<Expression>> args)
-            : identifier_id(identifier_id), args(std::move(args)) {}
+        CallExpression(std::string identifier, std::vector<std::shared_ptr<Expression>> args)
+            : identifier(std::move(identifier)), args(std::move(args)) {}
         CodegenResult codegen() const override;
 
     private:
-        const semantic_analysis::StringId identifier_id;
+        const std::string identifier;
         const std::vector<std::shared_ptr<Expression>> args;
     };
 

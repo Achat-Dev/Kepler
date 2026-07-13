@@ -16,6 +16,7 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace kepler::ast {
 

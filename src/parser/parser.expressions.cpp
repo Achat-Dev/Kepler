@@ -25,7 +25,6 @@
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
-#include "semantic_analysis/string_table.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
@@ -145,27 +144,27 @@ namespace kepler::parser {
     }
 
     std::shared_ptr<ast::Expression> Parser::parse_identifier() {
-        const semantic_analysis::StringId identifier_id = std::get<semantic_analysis::StringId>(current_token->data);
-        if (!semantic_analysis::SymbolTable::get().does_name_exist_in_scope_stack(identifier_id)) {
-            const std::string message = std::format("Undefined symbol '{}'", semantic_analysis::StringTable::get().lookup(identifier_id));
+        const std::string& identifier = std::get<std::string>(current_token->data);
+        if (!semantic_analysis::SymbolTable::get().does_name_exist_in_scope_stack(identifier)) {
+            const std::string message = std::format("Undefined symbol '{}'", identifier);
             diagnostic_sink.report(diagnostics::DiagnosticCode::UndefinedSymbol, message, file_path, current_token->source_location);
             // Symbol doesn't exist, but act like it exists for further diagnostics, so no need to recover and/or return
         }
 
         next_token(true); // eat identifier
         if (current_token->type == lexer::TokenType::BracketOpen) {
-            return parse_call(identifier_id);
+            return parse_call(identifier);
         }
-        return std::make_shared<ast::VariableExpression>(identifier_id);
+        return std::make_shared<ast::VariableExpression>(identifier);
     }
 
-    std::shared_ptr<ast::CallExpression> Parser::parse_call(semantic_analysis::StringId identifier_id) {
+    std::shared_ptr<ast::CallExpression> Parser::parse_call(const std::string& identifier) {
         next_token(true); // eat '('
 
         // Call with no arguments
         if (current_token->type == lexer::TokenType::BracketClose) {
             next_token(true); // eat ')'
-            return std::make_shared<ast::CallExpression>(identifier_id, std::vector<std::shared_ptr<ast::Expression>>{});
+            return std::make_shared<ast::CallExpression>(identifier, std::vector<std::shared_ptr<ast::Expression>>{});
         }
 
         // Call with arguments
@@ -190,7 +189,7 @@ namespace kepler::parser {
         }
 
         next_token(true); // eat ')'
-        return std::make_shared<ast::CallExpression>(identifier_id, std::move(args));
+        return std::make_shared<ast::CallExpression>(identifier, std::move(args));
     }
 
     std::shared_ptr<ast::Expression> Parser::parse_literal() {
@@ -201,8 +200,8 @@ namespace kepler::parser {
             return std::make_shared<ast::FloatingPointLiteralExpression>(std::get<double>(literal_data));
         } else if (std::holds_alternative<int64_t>(literal_data)) {
             return std::make_shared<ast::IntegerLiteralExpression>(std::get<int64_t>(literal_data));
-        } else if (std::holds_alternative<semantic_analysis::StringId>(literal_data)) {
-            return std::make_shared<ast::StringLiteralExpression>(std::get<semantic_analysis::StringId>(literal_data));
+        } else if (std::holds_alternative<std::string>(literal_data)) {
+            return std::make_shared<ast::StringLiteralExpression>(std::get<std::string>(literal_data));
         } else if (std::holds_alternative<bool>(literal_data)) {
             return std::make_shared<ast::BooleanLiteralExpression>(std::get<bool>(literal_data));
         } else {
