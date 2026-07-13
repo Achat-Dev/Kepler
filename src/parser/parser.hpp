@@ -21,6 +21,7 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
+#include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
@@ -53,18 +54,7 @@ namespace kepler::parser {
         int get_operator_precedence(lexer::OperatorType operator_type) const;
         void next_token(bool skip_newline);
         void previous_token(bool skip_newline);
-
-        template <typename... SynchronisationTokens>
-        void recover(bool eat_synchronisation_token, SynchronisationTokens... synchronisation_tokens) {
-            while (((current_token->type != synchronisation_tokens) && ...) && current_token->type != lexer::TokenType::EndOfFile) {
-                next_token(false);
-            }
-            if (eat_synchronisation_token) {
-                next_token(false);
-            }
-        }
-
-        // TODO: Split in multiple smaller parsers
+        void jump_to_token(size_t index);
 
         // Top level
         std::shared_ptr<ast::ASTNode> parse_extern();
@@ -90,10 +80,45 @@ namespace kepler::parser {
         std::shared_ptr<ast::AssignmentStatement> parse_assignment(semantic_analysis::StringId identifier_id);
         std::shared_ptr<ast::IfStatement> parse_if();
         std::shared_ptr<ast::ForStatement> parse_for();
-        std::shared_ptr<ast::ForStatement> create_for_statement(semantic_analysis::StringId variable_identifier_id, type_system::DataTypeKind variable_data_type, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value);
-        std::vector<std::shared_ptr<ast::ASTNode>> parse_for_body();
+        std::shared_ptr<ast::ForStatement> create_for_statement(semantic_analysis::StringId variable_identifier_id, const lexer::Token* variable_data_type_token, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value, const diagnostics::SourceLocation& for_source_location);
+        void recover_for_definition_and_parse_body(const diagnostics::SourceLocation& source_location);
         std::shared_ptr<ast::ReturnStatement> parse_return();
         std::shared_ptr<ast::VariableDefinitionStatement> parse_variable_definition();
+
+        template <lexer::TokenType... T>
+        struct SynchronizationSet {};
+
+        template <lexer::TokenType... Sync, lexer::TokenType... Consume>
+        void recover(SynchronizationSet<Sync...> synchronisation_tokens, SynchronizationSet<Consume...> consume_tokens) {
+            while (!synchronisation_tokens_contains<Sync...>(current_token->type) && current_token->type != lexer::TokenType::EndOfFile) {
+                next_token(false);
+            }
+            if (synchronisation_tokens_contains<Consume...>(current_token->type)) {
+                next_token(true);
+            }
+        }
+
+        template <lexer::TokenType... T>
+        bool synchronisation_tokens_contains(lexer::TokenType token_type) {
+            return ((token_type == T) || ...);
+        }
+
+        template <lexer::TokenType... T>
+        std::optional<std::vector<std::shared_ptr<ast::ASTNode>>> parse_body(const std::string& diagnostic_message_on_end, const diagnostics::SourceLocation& source_location) {
+            std::vector<std::shared_ptr<ast::ASTNode>> body;
+            while (((current_token->type != T) && ...)) {
+                if (current_token->type == lexer::TokenType::EndOfFile) {
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::MissingEndKeyword, diagnostic_message_on_end, file_path, source_location);
+                    return std::nullopt;
+                }
+
+                const std::shared_ptr<ast::ASTNode> statement = parse_statement();
+                if (statement) {
+                    body.push_back(statement);
+                }
+            }
+            return body;
+        }
     };
 
 }

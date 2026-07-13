@@ -23,10 +23,10 @@ namespace kepler::io {
 
     class File {
     public:
-        static std::expected<File, FileError> load(const std::string& path);
-
         const std::string path;
         const std::string content;
+
+        static std::expected<File, FileError> load(const std::string& path);
 
     private:
         File(std::string path, std::string content)

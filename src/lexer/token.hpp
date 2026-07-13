@@ -47,6 +47,7 @@ template <>
 struct std::formatter<kepler::lexer::Token> : std::formatter<std::string> {
     auto format(const kepler::lexer::Token& token, std::format_context& ctx) const {
         switch (token.type) {
+            case kepler::lexer::TokenType::Newline:
             case kepler::lexer::TokenType::EndOfFile:
             case kepler::lexer::TokenType::BracketOpen:
             case kepler::lexer::TokenType::BracketClose:
