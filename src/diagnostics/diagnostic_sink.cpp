@@ -13,10 +13,13 @@
 #include "diagnostics/severity.hpp"
 #include "diagnostics/source_location.hpp"
 #include "log.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <fstream>
+#include <iterator>
 #include <print>
 #include <string>
+#include <tuple>
 
 namespace kepler::diagnostics {
 
@@ -44,6 +47,12 @@ namespace kepler::diagnostics {
     }
 
     void DiagnosticSink::flush() {
+        std::sort(std::begin(diagnostics), std::end(diagnostics), [](const Diagnostic& a, const Diagnostic& b) {
+            const int severity_a = static_cast<int>(get_severity(a.code));
+            const int severity_b = static_cast<int>(get_severity(b.code));
+            return std::tie(a.file_path, severity_a, a.source_location.position) < std::tie(b.file_path, severity_b, b.source_location.position);
+        });
+
         for (const Diagnostic& diagnostic : diagnostics) {
             const Severity severity = get_severity(diagnostic.code);
 

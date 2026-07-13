@@ -184,14 +184,8 @@ namespace kepler::parser {
 
             if (current_token->type != lexer::TokenType::BracketClose) {
                 diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ')' or ',' in function argument list", file_path, current_token->source_location);
-                recover(SynchronizationSet<lexer::TokenType::Comma,
-                            lexer::TokenType::BracketClose,
-                            lexer::TokenType::Newline,
-                            lexer::TokenType::End>{},
-                    SynchronizationSet<lexer::TokenType::Comma, lexer::TokenType::Newline>{});
-                if (current_token->type == lexer::TokenType::End) {
-                    return nullptr;
-                }
+                recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
+                return nullptr;
             }
         }
 

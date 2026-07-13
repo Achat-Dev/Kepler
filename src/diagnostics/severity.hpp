@@ -46,7 +46,7 @@ struct std::formatter<kepler::diagnostics::Severity> : std::formatter<std::strin
                                                                kepler::log::styling::reset),
                     ctx);
             case kepler::diagnostics::Severity::Unsupported:
-                return std::formatter<std::string>::format(std::format("{}{}[ Unpaid developer ]{}: ",
+                return std::formatter<std::string>::format(std::format("{}{}[ Unpaid developer error ]{}: ",
                                                                kepler::log::styling::bold,
                                                                kepler::log::styling::bg_magenta,
                                                                kepler::log::styling::reset),
