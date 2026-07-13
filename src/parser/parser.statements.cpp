@@ -112,22 +112,29 @@ namespace kepler::parser {
             }
         } else {
             next_token(true); // eat '('
-            // Parse 'if' condition
-            condition = parse_expression();
-
-            if (current_token->type != lexer::TokenType::BracketClose) {
-                const diagnostics::SourceLocation source_location(current_token->source_location.position + 1, 1);
-                const std::string message = std::format("Expected ')' after condition in '{}'", if_token->type);
-                diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, file_path, source_location);
-                recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
-                if (current_token->type == lexer::TokenType::End) {
-                    next_token(true); // eat 'end'
-                    return nullptr;
+            if (current_token->type == lexer::TokenType::BracketClose) {
+                const std::string message = std::format("Missing '{}' condition, expected expression as condition", if_token->type);
+                diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, file_path, current_token->source_location);
+                next_token(true);
+            } else {
+                // Parse 'if' condition
+                condition = parse_expression();
+                if (condition && current_token->type != lexer::TokenType::BracketClose) {
+                    const diagnostics::SourceLocation source_location(current_token->source_location.position + 1, 1);
+                    const std::string message = std::format("Expected ')' after condition in '{}'", if_token->type);
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, file_path, source_location);
+                    recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
+                    if (current_token->type == lexer::TokenType::End) {
+                        next_token(true); // eat 'end'
+                        return nullptr;
+                    }
                 }
             }
         }
-        next_token(true); // eat ')'
 
+        if (condition) {
+            next_token(true); // eat ')'
+        }
         const std::string message = std::format("'{}' statement was not closed with an 'end' keyword", if_token->type);
         const auto if_body = parse_body<lexer::TokenType::Elseif, lexer::TokenType::Else, lexer::TokenType::End>(message, if_token->source_location);
 
@@ -173,7 +180,11 @@ namespace kepler::parser {
         }
 
         next_token(true); // eat '('
-        if (current_token->type != lexer::TokenType::DataType) {
+        if (current_token->type == lexer::TokenType::BracketClose) {
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Missing 'for' definition, expected at least '(<datatype> <identifier> : <end_value>)'", file_path, current_token->source_location);
+            recover_for_definition_and_parse_body(for_source_location);
+            return nullptr;
+        } else if (current_token->type != lexer::TokenType::DataType) {
             diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected data type after '(' in 'for'", file_path, current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
