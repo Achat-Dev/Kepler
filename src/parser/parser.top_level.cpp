@@ -19,6 +19,7 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
+#include <format>
 #include <memory>
 #include <optional>
 #include <string>
@@ -129,6 +130,7 @@ namespace kepler::parser {
 
     std::shared_ptr<ast::ASTNode> Parser::parse_top_level_data_type() {
         const type_system::DataTypeKind data_type = std::get<type_system::DataTypeKind>(current_token->data);
+        const diagnostics::SourceLocation& data_type_source_location = current_token->source_location;
         next_token(true); // eat data type
         if (current_token->type != lexer::TokenType::Identifier) {
             diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected identifier after data type on top level", file_path, current_token->source_location);
@@ -139,7 +141,7 @@ namespace kepler::parser {
         next_token(true); // eat identifier
         // Variable definition
         if (current_token->type == lexer::TokenType::Assignment) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::Unsupported, "Global variables are not supported yet", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::Unsupported, "Global variables are not supported yet", file_path, data_type_source_location);
             recover(SynchronizationSet<lexer::TokenType::Newline>{}, SynchronizationSet<lexer::TokenType::Newline>{});
             return nullptr;
         }
@@ -155,17 +157,16 @@ namespace kepler::parser {
 
     std::shared_ptr<ast::Function> Parser::parse_function(type_system::DataTypeKind return_type) {
         // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
-        const size_t function_definition_end_position = current_token->source_location.position + current_token->source_location.size;
         previous_token(true);
+        const lexer::Token* identifier_token = current_token;
         previous_token(true);
-        const size_t current_position = current_token->source_location.position;
-        diagnostics::SourceLocation function_definition_source_location(current_position, function_definition_end_position - current_position - 1);
 
         semantic_analysis::SymbolTable::get().open_scope();
         current_parsing_function_return_type = return_type;
 
         const auto prototype_id = parse_prototype(ast::Prototype::LinkageType::Internal);
-        const auto body = parse_body<lexer::TokenType::End>("Function was not closed with an 'end' keyword", function_definition_source_location);
+        const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", std::get<std::string>(identifier_token->data));
+        const auto body = parse_body<lexer::TokenType::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end'
         current_parsing_function_return_type = type_system::DataTypeKind::None;
         semantic_analysis::SymbolTable::get().close_scope();
