@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/prototype_symbol_data.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
@@ -26,8 +27,8 @@ namespace kepler::semantic_analysis {
         SymbolTable(const SymbolTable& string_table) = delete;
         void operator=(const SymbolTable& string_table) = delete;
 
-        std::expected<SymbolId, std::string> create_variable(const std::string& identifier, type_system::DataTypeKind data_type);
-        std::expected<SymbolId, std::string> create_prototype(const std::string& identifier, type_system::DataTypeKind data_type, PrototypeSymbolData data);
+        std::expected<SymbolId, diagnostics::Diagnostic> create_variable(const std::string& identifier, type_system::DataTypeKind data_type);
+        std::expected<SymbolId, diagnostics::Diagnostic> create_prototype(const std::string& identifier, type_system::DataTypeKind data_type, PrototypeSymbolData data);
         const Symbol& lookup(SymbolId id) const;
 
         void open_scope();

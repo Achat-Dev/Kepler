@@ -31,9 +31,9 @@ namespace kepler::lexer {
 
     struct Token {
         Token(TokenType type, diagnostics::SourceLocation source_location)
-            : type(type), source_location(source_location) {}
+            : type(type), source_location(std::move(source_location)) {}
         Token(TokenType type, diagnostics::SourceLocation source_location, TokenData data)
-            : type(type), source_location(source_location), data(std::move(data)) {}
+            : type(type), source_location(std::move(source_location)), data(std::move(data)) {}
 
         TokenType type;
         TokenData data;

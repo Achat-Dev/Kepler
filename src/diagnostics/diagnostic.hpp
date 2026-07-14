@@ -18,6 +18,9 @@ namespace kepler::diagnostics {
     struct Diagnostic {
         DiagnosticCode code;
         std::string message;
+    };
+
+    struct SourceDiagnostic : Diagnostic {
         std::string file_path;
         SourceLocation source_location;
     };

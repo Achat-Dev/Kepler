@@ -30,7 +30,7 @@ namespace kepler::diagnostics {
     private:
         uint32_t warning_count = 0;
         uint32_t error_count = 0;
-        std::vector<Diagnostic> diagnostics;
+        std::vector<SourceDiagnostic> diagnostics;
 
         size_t strlen_utf8(const std::string& string) const;
         std::string get_severity_highlight(Severity severity) const;

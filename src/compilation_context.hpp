@@ -9,16 +9,11 @@
 
 #pragma once
 
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include <expected>
 #include <string>
 
 namespace kepler {
-
-    struct UsageError {
-        diagnostics::DiagnosticCode code;
-        std::string message;
-    };
 
     struct CompilationContext {
         std::string input_file_path;
@@ -26,6 +21,6 @@ namespace kepler {
         bool log_verbose = false;
     };
 
-    std::expected<CompilationContext, UsageError> parse_command_line_arguments(int argc, char* argv[]);
+    std::expected<CompilationContext, diagnostics::Diagnostic> parse_command_line_arguments(int argc, char* argv[]);
 
 }

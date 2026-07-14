@@ -9,24 +9,19 @@
 
 #pragma once
 
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include <expected>
 #include <string>
 #include <utility>
 
 namespace kepler::io {
 
-    struct FileError {
-        diagnostics::DiagnosticCode code;
-        std::string message;
-    };
-
     class File {
     public:
         const std::string path;
         const std::string content;
 
-        static std::expected<File, FileError> load(const std::string& path);
+        static std::expected<File, diagnostics::Diagnostic> load(const std::string& path);
 
     private:
         File(std::string path, std::string content)

@@ -47,13 +47,13 @@ namespace kepler::diagnostics {
     }
 
     void DiagnosticSink::flush() {
-        std::sort(std::begin(diagnostics), std::end(diagnostics), [](const Diagnostic& a, const Diagnostic& b) {
+        std::sort(std::begin(diagnostics), std::end(diagnostics), [](const SourceDiagnostic& a, const SourceDiagnostic& b) {
             const int severity_a = static_cast<int>(get_severity(a.code));
             const int severity_b = static_cast<int>(get_severity(b.code));
             return std::tie(a.file_path, severity_a, a.source_location.position) < std::tie(b.file_path, severity_b, b.source_location.position);
         });
 
-        for (const Diagnostic& diagnostic : diagnostics) {
+        for (const SourceDiagnostic& diagnostic : diagnostics) {
             const Severity severity = get_severity(diagnostic.code);
 
             if (diagnostic.file_path.empty()) {

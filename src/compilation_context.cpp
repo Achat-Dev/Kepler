@@ -8,6 +8,7 @@
  */
 
 #include "compilation_context.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_code.hpp"
 #include <cxxopts.hpp>
 #include <expected>
@@ -30,7 +31,7 @@ namespace kepler {
         }
     }
 
-    std::expected<CompilationContext, UsageError> parse_command_line_arguments(int argc, char* argv[]) {
+    std::expected<CompilationContext, diagnostics::Diagnostic> parse_command_line_arguments(int argc, char* argv[]) {
         try {
             cxxopts::Options options("kepler", "The compiler for the kepler programming language");
 
@@ -46,7 +47,7 @@ namespace kepler {
             // Help option
             cxxopts::ParseResult parse_result = options.parse(argc, argv);
             if (parse_result.contains("help") && parse_result.arguments().size() == 1) {
-                return std::unexpected(UsageError(diagnostics::DiagnosticCode::HelpRequested, options.help()));
+                return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::HelpRequested, options.help()));
             }
 
             CompilationContext compilation_context;
@@ -57,9 +58,9 @@ namespace kepler {
                 compilation_context.input_file_path = parse_result["input"].as<std::string>();
             } else if (input_count > 1) {
                 const std::string message = std::format("Input file (-i) can only be specified once, but was specified {} times", input_count);
-                return std::unexpected(UsageError(diagnostics::DiagnosticCode::TooManyInputFiles, message));
+                return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::TooManyInputFiles, message));
             } else {
-                return std::unexpected(UsageError(diagnostics::DiagnosticCode::NoInputFile, "Missing input file (-i)"));
+                return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::NoInputFile, "Missing input file (-i)"));
             }
 
             // Output option
@@ -68,16 +69,16 @@ namespace kepler {
                 compilation_context.output_file_path = parse_result["output"].as<std::string>();
             } else if (input_count > 1) {
                 const std::string message = std::format("Output file (-o) can only be specified once, but was specified {} times", output_count);
-                return std::unexpected(UsageError(diagnostics::DiagnosticCode::TooManyOutputFiles, message));
+                return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::TooManyOutputFiles, message));
             } else {
-                return std::unexpected(UsageError(diagnostics::DiagnosticCode::NoOutputFile, "Missing output file (-o)"));
+                return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::NoOutputFile, "Missing output file (-o)"));
             }
 
             compilation_context.log_verbose = parse_result.contains("verbose");
 
             return compilation_context;
         } catch (const cxxopts::exceptions::exception& e) {
-            return std::unexpected(UsageError(diagnostics::DiagnosticCode::TooManyInputFiles, e.what()));
+            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::TooManyInputFiles, e.what()));
         }
     }
 

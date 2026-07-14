@@ -18,7 +18,6 @@
 #include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/data_type_kind.hpp"
-#include <cstddef>
 #include <format>
 #include <memory>
 #include <optional>
@@ -89,7 +88,7 @@ namespace kepler::parser {
             const std::string& parameter_identifier = std::get<std::string>(current_token->data);
             const auto parameter_id = semantic_analysis::SymbolTable::get().create_variable(parameter_identifier, parameter_type);
             if (!parameter_id) {
-                diagnostic_sink.report(diagnostics::DiagnosticCode::SymbolAlreadyExists, parameter_id.error(), file_path, current_token->source_location);
+                diagnostic_sink.report(parameter_id.error().code, parameter_id.error().message, file_path, current_token->source_location);
                 did_symbol_creation_fail = true;
                 // Symbol already exists, but act like it doesn't so the symbols for the following parameters can be created
             } else {
@@ -121,7 +120,7 @@ namespace kepler::parser {
 
         const auto prototype_id = semantic_analysis::SymbolTable::get().create_prototype(identifier, return_type, std::move(prototype_symbol_data));
         if (!prototype_id) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::SymbolAlreadyExists, prototype_id.error(), file_path, identifier_token->source_location);
+            diagnostic_sink.report(prototype_id.error().code, prototype_id.error().message, file_path, identifier_token->source_location);
             return std::nullopt;
         }
 
@@ -168,13 +167,13 @@ namespace kepler::parser {
         const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", std::get<std::string>(identifier_token->data));
         const auto body = parse_body<lexer::TokenType::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end'
+
         current_parsing_function_return_type = type_system::DataTypeKind::None;
         semantic_analysis::SymbolTable::get().close_scope();
 
         if (!prototype_id || !body) {
             return nullptr;
         }
-
         return std::make_shared<ast::Function>(*prototype_id, std::move(*body));
     }
 
