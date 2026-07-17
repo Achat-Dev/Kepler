@@ -10,7 +10,6 @@
 #include "parser/parser.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
-#include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/for_statement.hpp"
@@ -22,7 +21,6 @@
 #include "emergency.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
-#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <format>
 #include <memory>
@@ -32,7 +30,7 @@
 
 namespace kepler::parser {
 
-    std::shared_ptr<ast::ASTNode> Parser::parse_statement() {
+    std::unique_ptr<ast::ASTNode> Parser::parse_statement() {
         switch (current_token->type) {
             case lexer::TokenType::If:
                 return parse_if();
@@ -44,27 +42,13 @@ namespace kepler::parser {
                 return parse_variable_definition();
             }
             case lexer::TokenType::Identifier: {
-                const std::string& identifier = std::get<std::string>(current_token->data);
-                const bool is_undefined_symbol = !semantic_analysis::SymbolTable::get().does_name_exist_in_scope_stack(identifier);
-                const diagnostics::SourceLocation& identifier_source_location = current_token->source_location;
-
+                const lexer::Token* identifier_token = current_token;
                 next_token(true); // eat identifier
                 if (current_token->type == lexer::TokenType::Assignment) {
-                    if (is_undefined_symbol) {
-                        const std::string message = std::format("Undefined symbol '{}'", identifier);
-                        diagnostic_sink.report(diagnostics::DiagnosticCode::UndefinedSymbol, message, file_path, identifier_source_location);
-                        // Symbol doesn't exist, but act like it exists for further diagnostics, so no need to recover and/or return
-                    }
-                    return parse_assignment(identifier);
+                    return parse_assignment(identifier_token);
                 } else if (current_token->type == lexer::TokenType::BracketOpen) {
-                    if (is_undefined_symbol) {
-                        const std::string message = std::format("Undefined symbol '{}'", identifier);
-                        diagnostic_sink.report(diagnostics::DiagnosticCode::UndefinedSymbol, message, file_path, identifier_source_location);
-                        // Symbol doesn't exist, but act like it exists for further diagnostics, so no need to recover and/or return
-                    }
-                    return parse_call(identifier);
+                    return parse_call(identifier_token);
                 }
-
                 previous_token(true); // Previous token for the diagnostic
                 break;
             }
@@ -73,36 +57,37 @@ namespace kepler::parser {
                 break;
         }
 
-        diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), file_path, current_token->source_location);
+        diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), current_token->source_location);
         recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
         return nullptr;
     }
 
-    std::shared_ptr<ast::AssignmentStatement> Parser::parse_assignment(const std::string& identifier) {
+    std::unique_ptr<ast::AssignmentStatement> Parser::parse_assignment(const lexer::Token* identifier_token) {
+        const diagnostics::SourceLocation& assignment_source_location = current_token->source_location;
         if (current_token->type != lexer::TokenType::Assignment) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected '=' after identifier in assignment", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected '=' after identifier in assignment", current_token->source_location);
             recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
             return nullptr;
         }
 
         next_token(true); // eat '='
-        const std::shared_ptr<ast::Expression> value_expression = parse_expression();
+        std::unique_ptr<ast::Expression> value_expression = parse_expression();
         if (!value_expression) {
             return nullptr; // parse_expression alredy recovered, so no need to recover here
         }
 
-        const std::shared_ptr<ast::VariableExpression> variable = std::make_shared<ast::VariableExpression>(identifier);
-        return std::make_shared<ast::AssignmentStatement>(variable, value_expression);
+        const std::string& identifier = std::get<std::string>(identifier_token->data);
+        return std::make_unique<ast::AssignmentStatement>(std::make_unique<ast::VariableExpression>(identifier, identifier_token->source_location), std::move(value_expression), assignment_source_location);
     }
 
-    std::shared_ptr<ast::IfStatement> Parser::parse_if() {
+    std::unique_ptr<ast::IfStatement> Parser::parse_if() {
         const lexer::Token* if_token = current_token;
 
-        std::shared_ptr<ast::Expression> condition = nullptr;
+        std::unique_ptr<ast::Expression> condition = nullptr;
         next_token(true); // eat 'if' or 'elseif'
         if (current_token->type != lexer::TokenType::BracketOpen) {
             const std::string message = std::format("Expected '(' after '{}'", if_token->type);
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, current_token->source_location);
             recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
             if (current_token->type == lexer::TokenType::End) {
                 next_token(true); // eat 'end'
@@ -112,15 +97,15 @@ namespace kepler::parser {
             next_token(true); // eat '('
             if (current_token->type == lexer::TokenType::BracketClose) {
                 const std::string message = std::format("Missing '{}' condition, expected expression as condition", if_token->type);
-                diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, file_path, current_token->source_location);
+                diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, current_token->source_location);
                 next_token(true);
             } else {
                 // Parse 'if' condition
                 condition = parse_expression();
                 if (condition && current_token->type != lexer::TokenType::BracketClose) {
-                    const diagnostics::SourceLocation source_location(current_token->source_location.position + 1, 1);
+                    const diagnostics::SourceLocation source_location(current_token->source_location.file_id, current_token->source_location.position + 1, 1);
                     const std::string message = std::format("Expected ')' after condition in '{}'", if_token->type);
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, file_path, source_location);
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, message, source_location);
                     recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
                     if (current_token->type == lexer::TokenType::End) {
                         next_token(true); // eat 'end'
@@ -134,56 +119,58 @@ namespace kepler::parser {
             next_token(true); // eat ')'
         }
         const std::string message = std::format("'{}' statement was not closed with an 'end' keyword", if_token->type);
-        const auto if_body = parse_body<lexer::TokenType::Elseif, lexer::TokenType::Else, lexer::TokenType::End>(message, if_token->source_location);
+        auto if_body = parse_body<lexer::TokenType::Elseif, lexer::TokenType::Else, lexer::TokenType::End>(message, if_token->source_location);
 
         // Setup behaviour for different 'if' ending cases
         switch (current_token->type) {
             case lexer::TokenType::Elseif: {
                 // Don' eat the 'elseif', it will be eaten by parse_if
-                const std::shared_ptr<ast::IfStatement> elseif = parse_if();
+                std::unique_ptr<ast::IfStatement> elseif = parse_if();
                 if (!condition || !if_body || !elseif) {
                     return nullptr;
                 }
-                return std::make_shared<ast::IfStatement>(condition, std::move(*if_body), std::vector<std::shared_ptr<ast::ASTNode>>{elseif});
+                std::vector<std::unique_ptr<ast::ASTNode>> elseif_body;
+                elseif_body.push_back(std::move(elseif));
+                return std::make_unique<ast::IfStatement>(std::move(condition), std::move(*if_body), std::move(elseif_body), if_token->source_location);
             }
             case lexer::TokenType::Else: {
                 const diagnostics::SourceLocation& source_location = current_token->source_location;
                 next_token(true); // eat 'else'
-                const auto else_body = parse_body<lexer::TokenType::End>("'else' statement was not closed with an 'end' keyword", source_location);
+                auto else_body = parse_body<lexer::TokenType::End>("'else' statement was not closed with an 'end' keyword", source_location);
                 next_token(true); // eat 'end'
                 if (!condition || !if_body || !else_body) {
                     return nullptr;
                 }
-                return std::make_shared<ast::IfStatement>(condition, std::move(*if_body), std::move(*else_body));
+                return std::make_unique<ast::IfStatement>(std::move(condition), std::move(*if_body), std::move(*else_body), if_token->source_location);
             }
             case lexer::TokenType::End: {
                 next_token(true); // eat 'end'
                 if (!condition || !if_body) {
                     return nullptr;
                 }
-                return std::make_shared<ast::IfStatement>(condition, std::move(*if_body), std::vector<std::shared_ptr<ast::ASTNode>>{});
+                return std::make_unique<ast::IfStatement>(std::move(condition), std::move(*if_body), std::vector<std::unique_ptr<ast::ASTNode>>{}, if_token->source_location);
             }
             default:
                 emergency_exit("I may have messed up parsing an if statement so badly that it neither ends with 'elseif', 'else' or 'end' nor have I encountered EOF. Whoops (ᵕ—ᗜ—)");
         }
     }
 
-    std::shared_ptr<ast::ForStatement> Parser::parse_for() {
+    std::unique_ptr<ast::ForStatement> Parser::parse_for() {
         const diagnostics::SourceLocation& for_source_location = current_token->source_location;
         next_token(true); // eat 'for'
         if (current_token->type != lexer::TokenType::BracketOpen) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected '(' after 'for'", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected '(' after 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
 
         next_token(true); // eat '('
         if (current_token->type == lexer::TokenType::BracketClose) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Missing 'for' definition, expected at least '(<datatype> <identifier> : <end_value>)'", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Missing 'for' definition, expected at least '(<datatype> <identifier> : <end_value>)'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         } else if (current_token->type != lexer::TokenType::DataType) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected data type after '(' in 'for'", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected data type after '(' in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
@@ -191,7 +178,7 @@ namespace kepler::parser {
 
         next_token(true); // eat data type
         if (current_token->type != lexer::TokenType::Identifier) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected identifier after data type in 'for'", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected identifier after data type in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
@@ -199,13 +186,13 @@ namespace kepler::parser {
         const std::string& identifier = std::get<std::string>(current_token->data);
         next_token(true); // eat identifier
         if (current_token->type != lexer::TokenType::Colon) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ':' after identifier in 'for'", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ':' after identifier in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
 
         next_token(true); // eat ':'
-        const std::shared_ptr<ast::Expression> first_value = parse_expression();
+        std::unique_ptr<ast::Expression> first_value = parse_expression();
         if (!first_value) {
             if (current_token->type == lexer::TokenType::End) {
                 next_token(true); // eat 'end'
@@ -218,15 +205,15 @@ namespace kepler::parser {
 
         // Only end value is given, start and step are implicit
         if (current_token->type == lexer::TokenType::BracketClose) {
-            return create_for_statement(identifier, data_type_token, std::make_shared<ast::IntegerLiteralExpression>(0), first_value, nullptr, for_source_location);
+            return create_for_statement(identifier, data_type_token, nullptr, std::move(first_value), nullptr, for_source_location);
         } else if (current_token->type != lexer::TokenType::Comma) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after first expression in 'for'", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after first expression in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
 
         next_token(true); // eat ','
-        const std::shared_ptr<ast::Expression> end_value = parse_expression();
+        std::unique_ptr<ast::Expression> end_value = parse_expression();
         if (!end_value) {
             if (current_token->type == lexer::TokenType::End) {
                 next_token(true); // eat 'end'
@@ -239,15 +226,15 @@ namespace kepler::parser {
 
         // Only start and end value are given, step is implicit
         if (current_token->type == lexer::TokenType::BracketClose) {
-            return create_for_statement(identifier, data_type_token, first_value, end_value, nullptr, for_source_location);
+            return create_for_statement(identifier, data_type_token, std::move(first_value), std::move(end_value), nullptr, for_source_location);
         } else if (current_token->type != lexer::TokenType::Comma) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after second expression in 'for'", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after second expression in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
 
         next_token(true); // eat ','
-        const std::shared_ptr<ast::Expression> step_value = parse_expression();
+        std::unique_ptr<ast::Expression> step_value = parse_expression();
         if (!step_value) {
             if (current_token->type == lexer::TokenType::End) {
                 next_token(true); // eat 'end'
@@ -260,35 +247,28 @@ namespace kepler::parser {
 
         // Start, stop and end values are given
         if (current_token->type == lexer::TokenType::BracketClose) {
-            return create_for_statement(identifier, data_type_token, first_value, end_value, step_value, for_source_location);
+            return create_for_statement(identifier, data_type_token, std::move(first_value), std::move(end_value), std::move(step_value), for_source_location);
         }
 
-        diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ')' after third expression in 'for'", file_path, current_token->source_location);
+        diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected ')' after third expression in 'for'", current_token->source_location);
         recover_for_definition_and_parse_body(for_source_location);
         return nullptr;
     }
 
-    std::shared_ptr<ast::ForStatement> Parser::create_for_statement(const std::string& variable_identifier, const lexer::Token* variable_data_type_token, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value, const diagnostics::SourceLocation& for_source_location) {
+    std::unique_ptr<ast::ForStatement> Parser::create_for_statement(const std::string& variable_identifier, const lexer::Token* variable_data_type_token, std::unique_ptr<ast::Expression> start_value, std::unique_ptr<ast::Expression> end_value, std::unique_ptr<ast::Expression> step_value, const diagnostics::SourceLocation& for_source_location) {
         next_token(true); // eat ')'
-        const auto body = parse_body<lexer::TokenType::End>("'for' statement was not closed with an 'end' keyword", for_source_location);
-
+        auto body = parse_body<lexer::TokenType::End>("'for' statement was not closed with an 'end' keyword", for_source_location);
         next_token(true); // eat 'end'
         if (!body) {
             return nullptr;
         }
 
         const type_system::DataTypeKind variable_data_type = std::get<type_system::DataTypeKind>(variable_data_type_token->data);
-        const auto symbol_id = semantic_analysis::SymbolTable::get().create_variable(variable_identifier, variable_data_type);
-        if (!symbol_id) {
-            diagnostic_sink.report(symbol_id.error().code, symbol_id.error().message, file_path, variable_data_type_token->source_location);
-            return nullptr;
-        }
+        std::unique_ptr<ast::VariableExpression> variable = std::make_unique<ast::VariableExpression>(variable_identifier, variable_data_type_token->source_location);
+        std::unique_ptr<ast::AssignmentStatement> assignment_statement = std::make_unique<ast::AssignmentStatement>(std::move(variable), std::move(start_value), variable_data_type_token->source_location);
+        std::unique_ptr<ast::VariableDefinitionStatement> variable_definition_statement = std::make_unique<ast::VariableDefinitionStatement>(variable_data_type, variable_identifier, std::move(assignment_statement), variable_data_type_token->source_location);
 
-        const std::shared_ptr<ast::VariableExpression> variable = std::make_shared<ast::VariableExpression>(variable_identifier);
-        const std::shared_ptr<ast::AssignmentStatement> assignment_statement = std::make_shared<ast::AssignmentStatement>(variable, start_value);
-        const std::shared_ptr<ast::VariableDefinitionStatement> variable_definition_statement = std::make_shared<ast::VariableDefinitionStatement>(variable_data_type, variable_identifier, assignment_statement);
-
-        return std::make_shared<ast::ForStatement>(variable_definition_statement, end_value, step_value, std::move(*body));
+        return std::make_unique<ast::ForStatement>(std::move(variable_definition_statement), std::move(end_value), std::move(step_value), std::move(*body), for_source_location);
     }
 
     void Parser::recover_for_definition_and_parse_body(const diagnostics::SourceLocation& source_location) {
@@ -301,22 +281,16 @@ namespace kepler::parser {
         }
     }
 
-    std::shared_ptr<ast::ReturnStatement> Parser::parse_return() {
+    std::unique_ptr<ast::ReturnStatement> Parser::parse_return() {
+        const diagnostics::SourceLocation& return_source_location = current_token->source_location;
         next_token(true); // eat 'return' keyword
-        if (current_parsing_function_return_type == type_system::DataTypeKind::None) {
-            emergency_exit("Someone - and I am not going to say who (maybe because it was myself) - forgot to store the return type of the currently parsed function. And maybe, but just maybe, that's the reason why I'm currently shitting myself trying to parse a return statement without knowing the return type of the function.");
-        }
-
-        if (current_parsing_function_return_type == type_system::DataTypeKind::Void) {
-            return std::make_shared<ast::ReturnStatement>(nullptr);
-        }
 
         switch (current_token->type) {
             case lexer::TokenType::If:
             case lexer::TokenType::For:
             case lexer::TokenType::Return: {
                 const std::string message = std::format("Cannot return '{}' statement", current_token->type);
-                diagnostic_sink.report(diagnostics::DiagnosticCode::InvalidReturnExpression, message, file_path, current_token->source_location);
+                diagnostic_sink.report(diagnostics::DiagnosticCode::InvalidReturnExpression, message, current_token->source_location);
                 recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
                 return nullptr;
             }
@@ -327,56 +301,48 @@ namespace kepler::parser {
                     previous_token(true);
                     break;
                 }
-                diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}' (data types can only be used for casting here)", *current_token), file_path, current_token->source_location);
+                diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}' (data types can only be used for casting here)", *current_token), current_token->source_location);
                 recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
                 return nullptr;
             case lexer::TokenType::End:
-                diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected expression after 'return' (a non-void function needs a return value)", file_path, current_token->source_location);
-                return nullptr;
-
-            default: break;
+                return std::make_unique<ast::ReturnStatement>(nullptr, return_source_location);
+            default:
+                break;
         }
 
-        const std::shared_ptr<ast::Expression> expression = parse_expression();
+        std::unique_ptr<ast::Expression> expression = parse_expression();
         if (!expression) {
             return nullptr; // parse_expression already recovered, so no need to recover here
         }
 
-        return std::make_shared<ast::ReturnStatement>(expression);
+        return std::make_unique<ast::ReturnStatement>(std::move(expression), return_source_location);
     }
 
-    std::shared_ptr<ast::VariableDefinitionStatement> Parser::parse_variable_definition() {
+    std::unique_ptr<ast::VariableDefinitionStatement> Parser::parse_variable_definition() {
         const diagnostics::SourceLocation& data_type_source_location = current_token->source_location;
         const type_system::DataTypeKind data_type = std::get<type_system::DataTypeKind>(current_token->data);
 
         next_token(true); // eat data type
         if (current_token->type != lexer::TokenType::Identifier) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected identifier (data types can only be used for variable definitions here)", file_path, current_token->source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, "Expected identifier (data types can only be used for variable definitions here)", current_token->source_location);
             recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
             return nullptr;
         }
-        const diagnostics::SourceLocation& identifier_source_location = current_token->source_location;
-        const std::string& identifier = std::get<std::string>(current_token->data);
 
+        const lexer::Token* identifier_token = current_token;
         next_token(true); // eat identifier
-        const std::shared_ptr<ast::AssignmentStatement> assignment_statement = parse_assignment(identifier);
+        std::unique_ptr<ast::AssignmentStatement> assignment_statement = parse_assignment(identifier_token);
         if (!assignment_statement) {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
 
         if (data_type == type_system::DataTypeKind::Void) {
-            diagnostic_sink.report(diagnostics::DiagnosticCode::InvalidVariableType, "Cannot create a local variable of type 'void'", file_path, data_type_source_location);
+            diagnostic_sink.report(diagnostics::DiagnosticCode::InvalidVariableType, "Cannot create a local variable of type 'void'", data_type_source_location);
             return nullptr;
         }
 
-        const auto variable_id = semantic_analysis::SymbolTable::get().create_variable(identifier, data_type);
-        if (!variable_id) {
-            diagnostic_sink.report(variable_id.error().code, variable_id.error().message, file_path, identifier_source_location);
-            recover(SynchronizationSet<lexer::TokenType::Newline, lexer::TokenType::End>{}, SynchronizationSet<lexer::TokenType::Newline>{});
-            return nullptr;
-        }
-
-        return std::make_shared<ast::VariableDefinitionStatement>(data_type, identifier, assignment_statement);
+        const std::string& identifier = std::get<std::string>(identifier_token->data);
+        return std::make_unique<ast::VariableDefinitionStatement>(data_type, identifier, std::move(assignment_statement), data_type_source_location);
     }
 
 }

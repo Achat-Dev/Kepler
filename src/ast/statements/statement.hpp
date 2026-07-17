@@ -10,13 +10,14 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
-#include "ast/codegen_result.hpp"
+#include "diagnostics/source_location.hpp"
+#include <utility>
 
 namespace kepler::ast {
 
-    class Statement : public ASTNode {
-    public:
-        virtual CodegenResult codegen() const = 0;
+    struct Statement : ASTNode {
+        Statement(ASTNodeType node_type, diagnostics::SourceLocation source_location)
+            : ASTNode(node_type, std::move(source_location)) {}
     };
 
 }

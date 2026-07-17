@@ -9,20 +9,18 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
 #include <memory>
+#include <utility>
 
 namespace kepler::ast {
 
-    class NegationExpression : public Expression {
-    public:
-        NegationExpression(std::shared_ptr<Expression> expression)
-            : expression(expression) {}
-        CodegenResult codegen() const override;
+    struct MathematicalNegationExpression : Expression {
+        std::unique_ptr<Expression> expression;
 
-    private:
-        const std::shared_ptr<Expression> expression;
+        MathematicalNegationExpression(std::unique_ptr<Expression> expression, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::MathematicalNegationExpression, std::move(source_location)), expression(std::move(expression)) {}
     };
 
 }

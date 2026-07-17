@@ -9,21 +9,20 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
+#include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/statements/statement.hpp"
+#include "diagnostics/source_location.hpp"
 #include <memory>
+#include <utility>
 
 namespace kepler::ast {
 
-    class ReturnStatement : public Statement {
-    public:
-        ReturnStatement(std::shared_ptr<Expression> expression)
-            : expression(expression) {}
-        CodegenResult codegen() const override;
+    struct ReturnStatement : Statement {
+        std::unique_ptr<Expression> expression;
 
-    private:
-        const std::shared_ptr<Expression> expression;
+        ReturnStatement(std::unique_ptr<Expression> expression, diagnostics::SourceLocation source_location)
+            : Statement(ASTNodeType::ReturnStatement, source_location), expression(std::move(expression)) {}
     };
 
 }

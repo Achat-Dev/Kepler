@@ -9,19 +9,17 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
+#include <utility>
 
 namespace kepler::ast {
 
-    class FloatingPointLiteralExpression : public Expression {
-    public:
-        FloatingPointLiteralExpression(double value)
-            : value(value) {}
-        CodegenResult codegen() const override;
+    struct FloatingPointLiteralExpression : Expression {
+        double value;
 
-    private:
-        const double value;
+        FloatingPointLiteralExpression(double value, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::FloatingPointLiteralExpression, std::move(source_location)), value(value) {}
     };
 
 }

@@ -10,23 +10,20 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
-#include "ast/codegen_result.hpp"
-#include "semantic_analysis/symbol_id.hpp"
+#include "ast/prototype.hpp"
+#include "diagnostics/source_location.hpp"
 #include <memory>
 #include <utility>
 #include <vector>
 
 namespace kepler::ast {
 
-    class Function : public ASTNode {
-    public:
-        Function(semantic_analysis::SymbolId prototype_id, std::vector<std::shared_ptr<ASTNode>> body)
-            : prototype_id(prototype_id), body(std::move(body)) {}
-        CodegenResult codegen() const;
+    struct Function : ASTNode {
+        std::unique_ptr<Prototype> prototype;
+        std::vector<std::unique_ptr<ASTNode>> body;
 
-    private:
-        const semantic_analysis::SymbolId prototype_id;
-        const std::vector<std::shared_ptr<ASTNode>> body;
+        Function(std::unique_ptr<Prototype> prototype, std::vector<std::unique_ptr<ASTNode>> body, diagnostics::SourceLocation source_location)
+            : ASTNode(ASTNodeType::Function, std::move(source_location)), prototype(std::move(prototype)), body(std::move(body)) {}
     };
 
 }

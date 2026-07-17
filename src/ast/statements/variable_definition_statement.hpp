@@ -9,9 +9,10 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
+#include "ast/ast_node.hpp"
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/statement.hpp"
+#include "diagnostics/source_location.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <memory>
 #include <string>
@@ -19,16 +20,13 @@
 
 namespace kepler::ast {
 
-    class VariableDefinitionStatement : public Statement {
-    public:
-        VariableDefinitionStatement(type_system::DataTypeKind data_type, std::string identifier, std::shared_ptr<AssignmentStatement> assignment_statement)
-            : data_type(data_type), identifier(std::move(identifier)), assignment_statement(assignment_statement) {}
-        CodegenResult codegen() const override;
+    struct VariableDefinitionStatement : Statement {
+        type_system::DataTypeKind data_type;
+        std::string identifier;
+        std::unique_ptr<AssignmentStatement> assignment_statement;
 
-    private:
-        const type_system::DataTypeKind data_type;
-        const std::string identifier;
-        const std::shared_ptr<AssignmentStatement> assignment_statement;
+        VariableDefinitionStatement(type_system::DataTypeKind data_type, std::string identifier, std::unique_ptr<AssignmentStatement> assignment_statement, diagnostics::SourceLocation source_location)
+            : Statement(ASTNodeType::VariableDefinitionStatement, source_location), data_type(data_type), identifier(std::move(identifier)), assignment_statement(std::move(assignment_statement)) {}
     };
 
 }

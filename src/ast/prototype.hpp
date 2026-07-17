@@ -10,23 +10,32 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
-#include "ast/codegen_result.hpp"
-#include "semantic_analysis/symbol_id.hpp"
+#include "diagnostics/source_location.hpp"
+#include "type_system/data_type_kind.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace kepler::ast {
 
-    class Prototype : public ASTNode {
-    public:
+    struct ParameterData {
+        type_system::DataTypeKind data_type;
+        std::string identifier;
+    };
+
+    struct Prototype : ASTNode {
         enum class LinkageType {
             Internal,
             External,
         };
 
-        Prototype(semantic_analysis::SymbolId prototype_id) : prototype_id(prototype_id) {}
-        CodegenResult codegen() const;
+        LinkageType linkage_type;
+        type_system::DataTypeKind return_type;
+        std::string identifier;
+        std::vector<ParameterData> parameter_data;
 
-    private:
-        const semantic_analysis::SymbolId prototype_id;
+        Prototype(LinkageType linkage_type, type_system::DataTypeKind return_type, std::string identifier, std::vector<ParameterData> parameter_data, diagnostics::SourceLocation source_location)
+            : ASTNode(ASTNodeType::Prototype, std::move(source_location)), return_type(return_type), identifier(std::move(identifier)), parameter_data(std::move(parameter_data)) {}
     };
 
 }

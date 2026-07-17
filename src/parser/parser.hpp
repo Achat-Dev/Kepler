@@ -9,11 +9,13 @@
 
 #pragma once
 
+#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/call_expression.hpp"
 #include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
-#include "ast/expressions/negation_expression.hpp"
+#include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/extern.hpp"
 #include "ast/function.hpp"
 #include "ast/prototype.hpp"
 #include "ast/statements/assignment_statement.hpp"
@@ -22,10 +24,10 @@
 #include "ast/statements/return_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
+#include "io/file.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
-#include "semantic_analysis/symbol_id.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
 #include <memory>
@@ -38,17 +40,16 @@ namespace kepler::parser {
     // TODO: Replace shared_ptr with raw pointers and an arena allocator once the architecture rework is finished
     class Parser {
     public:
-        Parser(const std::vector<lexer::Token>& tokens, const std::string& file_path, diagnostics::DiagnosticSink& diagnostic_sink)
-            : tokens(tokens), file_path(file_path), diagnostic_sink(diagnostic_sink), current_token(&tokens[0]) {}
-        std::vector<std::shared_ptr<ast::ASTNode>> parse();
+        Parser(const std::vector<lexer::Token>& tokens, const io::File& file, diagnostics::DiagnosticSink& diagnostic_sink)
+            : tokens(tokens), file(file), diagnostic_sink(diagnostic_sink), current_token(&tokens[0]) {}
+        ast::AbstractSyntaxTree parse();
 
     private:
         const std::vector<lexer::Token>& tokens;
-        const std::string& file_path;
+        const io::File& file;
         diagnostics::DiagnosticSink& diagnostic_sink;
         const lexer::Token* current_token;
         size_t current_token_index = 0;
-        type_system::DataTypeKind current_parsing_function_return_type;
 
         int get_operator_precedence(lexer::OperatorType operator_type) const;
         void next_token(bool skip_newline);
@@ -56,33 +57,33 @@ namespace kepler::parser {
         void jump_to_token(size_t index);
 
         // Top level
-        std::shared_ptr<ast::ASTNode> parse_extern();
-        std::optional<semantic_analysis::SymbolId> parse_prototype(ast::Prototype::LinkageType linkage_type);
-        std::shared_ptr<ast::ASTNode> parse_top_level_data_type();
-        std::shared_ptr<ast::Function> parse_function(type_system::DataTypeKind return_type);
+        std::unique_ptr<ast::Extern> parse_extern();
+        std::unique_ptr<ast::Prototype> parse_prototype(ast::Prototype::LinkageType linkage_type);
+        std::unique_ptr<ast::ASTNode> parse_top_level_data_type();
+        std::unique_ptr<ast::Function> parse_function(type_system::DataTypeKind return_type);
 
         // Main body nodes
-        std::shared_ptr<ast::ASTNode> parse_statement();
-        std::shared_ptr<ast::Expression> parse_expression();
+        std::unique_ptr<ast::ASTNode> parse_statement();
+        std::unique_ptr<ast::Expression> parse_expression();
 
         // Expressions
-        std::shared_ptr<ast::Expression> parse_binary_expression_rhs(std::shared_ptr<ast::Expression> lhs_expression, int expression_precedence);
-        std::shared_ptr<ast::Expression> parse_primary();
-        std::shared_ptr<ast::Expression> parse_literal();
-        std::shared_ptr<ast::Expression> parse_parenthesis();
-        std::shared_ptr<ast::Expression> parse_identifier();
-        std::shared_ptr<ast::CallExpression> parse_call(const std::string& identifier);
-        std::shared_ptr<ast::NegationExpression> parse_negative();
-        std::shared_ptr<ast::CastExpression> parse_cast();
+        std::unique_ptr<ast::Expression> parse_binary_expression_rhs(std::unique_ptr<ast::Expression> lhs_expression, int expression_precedence);
+        std::unique_ptr<ast::Expression> parse_primary();
+        std::unique_ptr<ast::Expression> parse_literal();
+        std::unique_ptr<ast::Expression> parse_parenthesis();
+        std::unique_ptr<ast::Expression> parse_identifier();
+        std::unique_ptr<ast::CallExpression> parse_call(const lexer::Token* identifier_token);
+        std::unique_ptr<ast::MathematicalNegationExpression> parse_negative();
+        std::unique_ptr<ast::CastExpression> parse_cast();
 
         // Statements
-        std::shared_ptr<ast::AssignmentStatement> parse_assignment(const std::string& identifier);
-        std::shared_ptr<ast::IfStatement> parse_if();
-        std::shared_ptr<ast::ForStatement> parse_for();
-        std::shared_ptr<ast::ForStatement> create_for_statement(const std::string& variable_identifier, const lexer::Token* variable_data_type_token, std::shared_ptr<ast::Expression> start_value, std::shared_ptr<ast::Expression> end_value, std::shared_ptr<ast::Expression> step_value, const diagnostics::SourceLocation& for_source_location);
+        std::unique_ptr<ast::AssignmentStatement> parse_assignment(const lexer::Token* identifier_token);
+        std::unique_ptr<ast::IfStatement> parse_if();
+        std::unique_ptr<ast::ForStatement> parse_for();
+        std::unique_ptr<ast::ForStatement> create_for_statement(const std::string& variable_identifier, const lexer::Token* variable_data_type_token, std::unique_ptr<ast::Expression> start_value, std::unique_ptr<ast::Expression> end_value, std::unique_ptr<ast::Expression> step_value, const diagnostics::SourceLocation& for_source_location);
         void recover_for_definition_and_parse_body(const diagnostics::SourceLocation& source_location);
-        std::shared_ptr<ast::ReturnStatement> parse_return();
-        std::shared_ptr<ast::VariableDefinitionStatement> parse_variable_definition();
+        std::unique_ptr<ast::ReturnStatement> parse_return();
+        std::unique_ptr<ast::VariableDefinitionStatement> parse_variable_definition();
 
         template <lexer::TokenType... T>
         struct SynchronizationSet {};
@@ -103,17 +104,17 @@ namespace kepler::parser {
         }
 
         template <lexer::TokenType... T>
-        std::optional<std::vector<std::shared_ptr<ast::ASTNode>>> parse_body(const std::string& diagnostic_message_on_end, const diagnostics::SourceLocation& source_location) {
-            std::vector<std::shared_ptr<ast::ASTNode>> body;
+        std::optional<std::vector<std::unique_ptr<ast::ASTNode>>> parse_body(const std::string& diagnostic_message_on_end, const diagnostics::SourceLocation& source_location) {
+            std::vector<std::unique_ptr<ast::ASTNode>> body;
             while (((current_token->type != T) && ...)) {
                 if (current_token->type == lexer::TokenType::EndOfFile) {
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::MissingEndKeyword, diagnostic_message_on_end, file_path, source_location);
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::MissingEndKeyword, diagnostic_message_on_end, source_location);
                     return std::nullopt;
                 }
 
-                const std::shared_ptr<ast::ASTNode> statement = parse_statement();
+                std::unique_ptr<ast::ASTNode> statement = parse_statement();
                 if (statement) {
-                    body.push_back(statement);
+                    body.push_back(std::move(statement));
                 }
             }
             return body;

@@ -9,21 +9,18 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
 #include <string>
 #include <utility>
 
 namespace kepler::ast {
 
-    class VariableExpression : public Expression {
-    public:
-        VariableExpression(std::string identifier)
-            : identifier(std::move(identifier)) {}
-        CodegenResult codegen() const override;
+    struct VariableExpression : Expression {
+        std::string identifier;
 
-    private:
-        const std::string identifier;
+        VariableExpression(std::string identifier, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::VariableExpression, std::move(source_location)), identifier(std::move(identifier)) {}
     };
 
 }

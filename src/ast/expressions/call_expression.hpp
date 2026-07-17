@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -18,15 +18,12 @@
 
 namespace kepler::ast {
 
-    class CallExpression : public Expression {
-    public:
-        CallExpression(std::string identifier, std::vector<std::shared_ptr<Expression>> args)
-            : identifier(std::move(identifier)), args(std::move(args)) {}
-        CodegenResult codegen() const override;
+    struct CallExpression : Expression {
+        std::string identifier;
+        std::vector<std::unique_ptr<Expression>> args;
 
-    private:
-        const std::string identifier;
-        const std::vector<std::shared_ptr<Expression>> args;
+        CallExpression(std::string identifier, std::vector<std::unique_ptr<Expression>> args, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::CallExpression, std::move(source_location)), identifier(std::move(identifier)), args(std::move(args)) {}
     };
 
 }

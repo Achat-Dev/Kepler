@@ -9,23 +9,22 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
+#include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/statements/statement.hpp"
+#include "diagnostics/source_location.hpp"
 #include <memory>
+#include <utility>
 
 namespace kepler::ast {
 
-    class AssignmentStatement : public Statement {
-    public:
-        AssignmentStatement(std::shared_ptr<VariableExpression> variable_expression, std::shared_ptr<Expression> value_expression)
-            : variable_expression(variable_expression), value_expression(value_expression) {}
-        CodegenResult codegen() const override;
+    struct AssignmentStatement : Statement {
+        std::unique_ptr<VariableExpression> variable_expression;
+        std::unique_ptr<Expression> value_expression;
 
-    private:
-        const std::shared_ptr<VariableExpression> variable_expression;
-        const std::shared_ptr<Expression> value_expression;
+        AssignmentStatement(std::unique_ptr<VariableExpression> variable_expression, std::unique_ptr<Expression> value_expression, diagnostics::SourceLocation source_location)
+            : Statement(ASTNodeType::AssignmentStatement, std::move(source_location)), variable_expression(std::move(variable_expression)), value_expression(std::move(value_expression)) {}
     };
 
 }

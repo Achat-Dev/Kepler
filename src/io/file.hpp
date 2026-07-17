@@ -10,22 +10,27 @@
 #pragma once
 
 #include "diagnostics/diagnostic.hpp"
+#include "io/file_id.hpp"
 #include <expected>
+#include <filesystem>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace kepler::io {
 
-    class File {
-    public:
-        const std::string path;
-        const std::string content;
+    struct File {
+        FileId id;
+        std::string content;
 
-        static std::expected<File, diagnostics::Diagnostic> load(const std::string& path);
+        static std::expected<const File, diagnostics::Diagnostic> load(const std::filesystem::path& path);
+        static const std::filesystem::path* get_path_by_id(FileId id);
 
     private:
-        File(std::string path, std::string content)
-            : path(std::move(path)), content(std::move(content)) {}
+        File(FileId id, std::string content)
+            : id(id), content(std::move(content)) {}
+
+        inline static std::vector<std::filesystem::path> known_paths{};
     };
 
 }

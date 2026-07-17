@@ -9,39 +9,35 @@
 
 #pragma once
 
+#include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "semantic_analysis/prototype_symbol_data.hpp"
+#include "diagnostics/source_location.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
-#include "semantic_analysis/symbol_id.hpp"
 #include "type_system/data_type_kind.hpp"
+#include <cstdint>
 #include <expected>
-#include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace kepler::semantic_analysis {
 
     class SymbolTable {
     public:
-        SymbolTable(const SymbolTable& string_table) = delete;
-        void operator=(const SymbolTable& string_table) = delete;
-
-        std::expected<SymbolId, diagnostics::Diagnostic> create_variable(const std::string& identifier, type_system::DataTypeKind data_type);
-        std::expected<SymbolId, diagnostics::Diagnostic> create_prototype(const std::string& identifier, type_system::DataTypeKind data_type, PrototypeSymbolData data);
-        const Symbol& lookup(SymbolId id) const;
-
-        void open_scope();
+        SymbolTable();
+        std::expected<const Symbol*, diagnostics::SourceDiagnostic> create_variable(type_system::DataTypeKind data_type, const std::string& identifier, const diagnostics::SourceLocation& source_location);
+        std::expected<const Symbol*, diagnostics::SourceDiagnostic> create_prototype(type_system::DataTypeKind data_type, const std::string& identifier, ast::Prototype::LinkageType linkage_type, std::vector<type_system::DataTypeKind> parameter_data_types, const diagnostics::SourceLocation& source_location);
+        const Symbol* lookup(const std::string& identifier) const;
+        void open_scope(ScopeType type);
         void close_scope();
-        bool does_name_exist_in_scope_stack(const std::string& identifier) const;
-
-        static SymbolTable& get();
 
     private:
         std::vector<Symbol> symbols;
-        std::vector<std::shared_ptr<Scope>> scopes;
+        std::vector<Scope> scopes;
+        std::unordered_map<std::string, uint32_t> visible_symbols;
 
-        SymbolTable();
+        std::expected<const Symbol*, diagnostics::SourceDiagnostic> create_symbol(type_system::DataTypeKind data_type, const std::string& identifier, SymbolData&& symbol_data, const std::string& error_identifier, const diagnostics::SourceLocation& source_location);
     };
 
 }

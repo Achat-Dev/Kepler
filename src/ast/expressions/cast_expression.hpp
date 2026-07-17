@@ -9,22 +9,20 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <memory>
+#include <utility>
 
 namespace kepler::ast {
 
-    class CastExpression : public Expression {
-    public:
-        CastExpression(std::shared_ptr<Expression> expression, type_system::DataTypeKind target_data_type)
-            : expression(expression), target_data_type(target_data_type) {}
-        CodegenResult codegen() const override;
+    struct CastExpression : Expression {
+        type_system::DataTypeKind target_data_type;
+        std::unique_ptr<Expression> expression;
 
-    private:
-        const std::shared_ptr<Expression> expression;
-        const type_system::DataTypeKind target_data_type;
+        CastExpression(type_system::DataTypeKind target_data_type, std::unique_ptr<Expression> expression, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::CastExpression, std::move(source_location)), target_data_type(target_data_type), expression(std::move(expression)) {}
     };
 
 }

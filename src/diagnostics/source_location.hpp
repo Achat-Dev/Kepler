@@ -9,13 +9,18 @@
 
 #pragma once
 
-#include <cstddef>
+#include "io/file_id.hpp"
+#include <cstdint>
 
 namespace kepler::diagnostics {
 
     struct SourceLocation {
-        size_t position = 0;
-        size_t size = 0;
+        io::FileId file_id;
+        uint32_t position;
+        uint32_t size;
+
+        SourceLocation(io::FileId file_id, uint32_t position, uint32_t size)
+            : file_id(file_id), position(position), size(size) {}
     };
 
 }

@@ -12,11 +12,13 @@
 #include "diagnostics/diagnostic_code.hpp"
 #include "diagnostics/severity.hpp"
 #include "diagnostics/source_location.hpp"
+#include "io/file.hpp"
+#include "io/file_id.hpp"
 #include "log.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
-#include <iterator>
 #include <print>
 #include <string>
 #include <tuple>
@@ -24,10 +26,10 @@
 namespace kepler::diagnostics {
 
     void DiagnosticSink::report(DiagnosticCode code, const std::string& message) {
-        report(code, message, "", {});
+        report(code, message, SourceLocation(io::FileId{INVALID_FILE_ID}, 0, 0));
     }
 
-    void DiagnosticSink::report(DiagnosticCode code, const std::string& message, const std::string& file_path, const SourceLocation& source_location) {
+    void DiagnosticSink::report(DiagnosticCode code, const std::string& message, const SourceLocation& source_location) {
         const Severity severity = get_severity(code);
         switch (severity) {
             case Severity::Warning:
@@ -43,28 +45,33 @@ namespace kepler::diagnostics {
                 break;
         }
 
-        diagnostics.push_back({code, message, file_path, source_location});
+        diagnostics.push_back({code, message, source_location});
     }
 
     void DiagnosticSink::flush() {
-        std::sort(std::begin(diagnostics), std::end(diagnostics), [](const SourceDiagnostic& a, const SourceDiagnostic& b) {
+        std::sort(diagnostics.begin(), diagnostics.end(), [](const SourceDiagnostic& a, const SourceDiagnostic& b) {
             const int severity_a = static_cast<int>(get_severity(a.code));
             const int severity_b = static_cast<int>(get_severity(b.code));
-            return std::tie(a.file_path, severity_a, a.source_location.position) < std::tie(b.file_path, severity_b, b.source_location.position);
+            return std::tie(a.source_location.file_id.value, severity_a, a.source_location.position) < std::tie(b.source_location.file_id.value, severity_b, b.source_location.position);
         });
 
         for (const SourceDiagnostic& diagnostic : diagnostics) {
             const Severity severity = get_severity(diagnostic.code);
 
-            if (diagnostic.file_path.empty()) {
+            if (diagnostic.source_location.file_id.value == INVALID_FILE_ID) {
                 std::println("{}{}", severity, diagnostic.message);
                 continue;
             }
 
-            std::ifstream file_stream(diagnostic.file_path);
+            const std::filesystem::path* file_path = io::File::get_path_by_id(diagnostic.source_location.file_id);
+            if (!file_path) {
+                log::error("Failed to print diagnostics information, because how tf is the file with id '{}' unknown?", diagnostic.source_location.file_id);
+            }
+
+            std::ifstream file_stream(*file_path);
             if (!file_stream) {
-                log::error("Failed to print diagnostics information, because how tf did the file '{}' get deleted while I was compiling it?", diagnostic.file_path);
-                return;
+                log::error("Failed to print diagnostics information, because how tf did the file '{}' get deleted while I was compiling it?", file_path->c_str());
+                continue;
             }
 
             std::string line;
@@ -85,7 +92,7 @@ namespace kepler::diagnostics {
             const size_t end_position_in_line = start_position_in_line + diagnostic.source_location.size;
 
             std::println("{}{}", severity, diagnostic.message);
-            std::println("{}In '{}'", log::styling::indented, diagnostic.file_path);
+            std::println("{}In '{}'", log::styling::indented, file_path->c_str());
 
             const std::string highlight_styling = get_severity_highlight(severity);
             const std::string prefix = std::format("{}At l.{} | ", log::styling::last_indented, line_number);

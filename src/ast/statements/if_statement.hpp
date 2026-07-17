@@ -10,25 +10,22 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/statements/statement.hpp"
+#include "diagnostics/source_location.hpp"
 #include <memory>
 #include <utility>
 #include <vector>
 
 namespace kepler::ast {
 
-    class IfStatement : public Statement {
-    public:
-        IfStatement(std::shared_ptr<Expression> condition, std::vector<std::shared_ptr<ASTNode>> if_body, std::vector<std::shared_ptr<ASTNode>> else_body)
-            : condition(condition), if_body(std::move(if_body)), else_body(std::move(else_body)) {}
-        CodegenResult codegen() const override;
+    struct IfStatement : Statement {
+        std::unique_ptr<Expression> condition;
+        std::vector<std::unique_ptr<ASTNode>> if_body;
+        std::vector<std::unique_ptr<ASTNode>> else_body;
 
-    private:
-        const std::shared_ptr<Expression> condition;
-        const std::vector<std::shared_ptr<ASTNode>> if_body;
-        const std::vector<std::shared_ptr<ASTNode>> else_body;
+        IfStatement(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<ASTNode>> if_body, std::vector<std::unique_ptr<ASTNode>> else_body, diagnostics::SourceLocation source_location)
+            : Statement(ASTNodeType::IfStatement, source_location), condition(std::move(condition)), if_body(std::move(if_body)), else_body(std::move(else_body)) {}
     };
 
 }

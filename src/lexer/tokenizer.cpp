@@ -10,13 +10,16 @@
 #include "lexer/tokenizer.hpp"
 #include "diagnostics/diagnostic_code.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
+#include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
+#include "io/file_id.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
 #include <cctype>
-#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <format>
 #include <optional>
 #include <string>
@@ -53,7 +56,8 @@ namespace kepler::lexer {
     }
 
     std::vector<Token> Tokenizer::tokenize() {
-        log::verbose("Tokenizing file '{}'", file.path);
+        const std::filesystem::path* file_path = io::File::get_path_by_id(file.id);
+        log::verbose("Tokenizing file '{}'", file_path->c_str());
 
         current_char = file.content[0]; // Read first char manually instead of next_char() because that would read file.content[1]
         std::vector<Token> tokens;
@@ -88,13 +92,13 @@ namespace kepler::lexer {
 
     Token Tokenizer::read_next_token() {
         if (peek_next_char() == EOF) {
-            return Token(TokenType::EndOfFile, {});
+            return Token(TokenType::EndOfFile, diagnostics::SourceLocation(io::FileId{INVALID_FILE_ID}, 0, 0));
         }
 
         while (isspace(current_char)) {
             if (current_char == '\n') {
                 next_char();
-                return Token(TokenType::Newline, {position, 1});
+                return Token(TokenType::Newline, {file.id, position, 1});
             }
             next_char();
         }
@@ -112,78 +116,78 @@ namespace kepler::lexer {
                 return read_next_token();
             case ',':
                 next_char();
-                return Token(TokenType::Comma, {position - 1, 1});
+                return Token(TokenType::Comma, {file.id, position - 1, 1});
             case ':':
                 next_char();
-                return Token(TokenType::Colon, {position - 1, 1});
+                return Token(TokenType::Colon, {file.id, position - 1, 1});
             case '(':
                 next_char();
-                return Token(TokenType::BracketOpen, {position - 1, 1});
+                return Token(TokenType::BracketOpen, {file.id, position - 1, 1});
             case ')':
                 next_char();
-                return Token(TokenType::BracketClose, {position - 1, 1});
+                return Token(TokenType::BracketClose, {file.id, position - 1, 1});
             case '=':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::Equals);
+                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::Equals);
                 } else {
-                    return Token(TokenType::Assignment, {position - 1, 1});
+                    return Token(TokenType::Assignment, {file.id, position - 1, 1});
                 }
             case '+':
                 next_char();
-                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Plus);
+                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Plus);
             case '-':
                 next_char();
-                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Minus);
+                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Minus);
             case '*':
                 next_char();
-                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Multiplication);
+                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Multiplication);
             case '/':
                 next_char();
-                return Token(TokenType::Operator, {position - 1, 1}, OperatorType::Division);
+                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Division);
             case '<':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::LessEquals);
+                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::LessEquals);
                 } else {
-                    return Token(TokenType::Operator, {position - 1, 1}, OperatorType::LessThan);
+                    return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::LessThan);
                 }
             case '>':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::GreaterEquals);
+                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::GreaterEquals);
                 } else {
-                    return Token(TokenType::Operator, {position - 1, 1}, OperatorType::GreaterThan);
+                    return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::GreaterThan);
                 }
             case '!':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {position - 2, 2}, OperatorType::NotEquals);
+                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::NotEquals);
                 } else {
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::Unsupported, "Logical negation with '!' is not supported yet", file.path, {position - 1, 1});
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::Unsupported, "Logical negation with '!' is not supported yet", {file.id, position - 1, 1});
                     next_char();
                     return read_next_token();
                 }
             case '"': return read_string_literal();
         }
 
-        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", current_char), file.path, {position, 1});
+        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", current_char), {file.id, position, 1});
         next_char();
         return read_next_token();
     }
 
     Token Tokenizer::read_identifier() {
-        const size_t identifier_start_position = position;
+        const uint32_t identifier_start_position = position;
         next_char();
         while (isalnum(current_char) || current_char == '_') {
             next_char();
         }
 
-        const size_t identifier_length = position - identifier_start_position;
+        const uint32_t identifier_length = position - identifier_start_position;
         const std::string identifier = file.content.substr(identifier_start_position, identifier_length);
 
         if (keyword_map.contains(identifier)) {
@@ -192,7 +196,7 @@ namespace kepler::lexer {
             return token;
         }
 
-        const Token token(TokenType::Identifier, {identifier_start_position, identifier_length}, std::move(identifier));
+        const Token token(TokenType::Identifier, {file.id, identifier_start_position, identifier_length}, std::move(identifier));
         return token;
     }
 
@@ -210,7 +214,7 @@ namespace kepler::lexer {
                     case '\\': literal += '\\'; break;
                     case '"': literal += '"'; break;
                     default:
-                        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownEscapeSequence, std::format("Unknown escape sequence '\\{}' in string", current_char), file.path, {position - 1, 2});
+                        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownEscapeSequence, std::format("Unknown escape sequence '\\{}' in string", current_char), {file.id, position - 1, 2});
                         break;
                 }
             } else {
@@ -221,12 +225,12 @@ namespace kepler::lexer {
 
         next_char(); // eat closing '"'
 
-        const size_t literal_length = literal.size();
-        return Token(TokenType::Literal, {position - literal_length - 1, literal_length + 2}, std::move(literal)); // -1 for opening " and +2 for opening and closing "
+        const uint32_t literal_length = literal.size();
+        return Token(TokenType::Literal, {file.id, position - literal_length - 1, literal_length + 2}, std::move(literal)); // -1 for opening " and +2 for opening and closing "
     }
 
     Token Tokenizer::read_numeric_literal() {
-        const size_t literal_start_position = position;
+        const uint32_t literal_start_position = position;
         bool is_float = false;
         do {
             next_char();
@@ -235,13 +239,13 @@ namespace kepler::lexer {
             }
         } while (isdigit(current_char) || current_char == '.');
 
-        const size_t literal_length = position - literal_start_position;
+        const uint32_t literal_length = position - literal_start_position;
         const std::string literal = file.content.substr(literal_start_position, literal_length);
 
         if (is_float) {
-            return Token(TokenType::Literal, {literal_start_position}, std::stod(literal.data()));
+            return Token(TokenType::Literal, {file.id, literal_start_position, literal_length}, std::stod(literal.data()));
         } else {
-            return Token(TokenType::Literal, {literal_start_position, literal_length}, std::stoll(literal.data()));
+            return Token(TokenType::Literal, {file.id, literal_start_position, literal_length}, std::stoll(literal.data()));
         }
     }
 
@@ -250,10 +254,10 @@ namespace kepler::lexer {
 
         // Two # after each other -> multiline comment
         if (current_char == '#') {
-            const size_t comment_start_position = position - 1;
+            const uint32_t comment_start_position = position - 1;
             while (!(current_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::MultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.", file.path, {comment_start_position, 2});
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::MultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.", {file.id, comment_start_position, 2});
                     return;
                 }
 
@@ -276,7 +280,7 @@ namespace kepler::lexer {
     }
 
     void Tokenizer::register_keyword(const std::string& keyword, TokenType token_type, TokenData token_data) {
-        keyword_map.emplace(keyword, Token(token_type, {0, keyword.size()}, token_data));
+        keyword_map.emplace(keyword, Token(token_type, {file.id, 0, static_cast<uint32_t>(keyword.size())}, token_data));
     }
 
 }

@@ -9,20 +9,18 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
 #include <cstdint>
+#include <utility>
 
 namespace kepler::ast {
 
-    class IntegerLiteralExpression : public Expression {
-    public:
-        IntegerLiteralExpression(int64_t value)
-            : value(value) {}
-        CodegenResult codegen() const override;
+    struct IntegerLiteralExpression : Expression {
+        int64_t value;
 
-    private:
-        const int64_t value;
+        IntegerLiteralExpression(int64_t value, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value(value) {}
     };
 
 }

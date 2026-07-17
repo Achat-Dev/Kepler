@@ -9,21 +9,32 @@
 
 #pragma once
 
-#include "semantic_analysis/symbol_id.hpp"
 #include <cstdint>
-#include <memory>
-#include <string>
-#include <unordered_map>
+#include <vector>
 
 namespace kepler::semantic_analysis {
 
-    using ScopeId = uint32_t;
+    struct ScopeID {
+        uint32_t value;
+    };
+
+    enum class ScopeType {
+        File,
+        Function,
+        Block,
+    };
 
     struct Scope {
-        std::shared_ptr<Scope> parent;
-        std::unordered_map<std::string, SymbolId> contained_identifiers;
+        ScopeID id;
+        ScopeType type;
+        ScopeID parent_id;
+        std::vector<uint32_t> symbol_indices;
 
-        Scope(std::shared_ptr<Scope> parent) : parent(parent) {}
+        Scope(ScopeType type, ScopeID parent_id)
+            : id(id_creator++), type(type), parent_id(parent_id) {}
+
+    private:
+        inline static uint32_t id_creator = 0;
     };
 
 }

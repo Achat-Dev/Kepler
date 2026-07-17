@@ -8,22 +8,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
-    src/ast/expressions/literals/boolean_literal_expression.cpp
-    src/ast/expressions/literals/floating_point_literal_expression.cpp
-    src/ast/expressions/literals/integer_literal_expression.cpp
-    src/ast/expressions/literals/string_literal_expression.cpp
-    src/ast/expressions/binary_expression.cpp
-    src/ast/expressions/call_expression.cpp
-    src/ast/expressions/cast_expression.cpp
-    src/ast/expressions/negation_expression.cpp
-    src/ast/expressions/variable_expression.cpp
-    src/ast/function.cpp
-    src/ast/prototype.cpp
-    src/ast/statements/assignment_statement.cpp
-    src/ast/statements/if_statement.cpp
-    src/ast/statements/for_statement.cpp
-    src/ast/statements/return_statement.cpp
-    src/ast/statements/variable_definition_statement.cpp
     src/diagnostics/diagnostic_code.cpp
     src/diagnostics/diagnostic_sink.cpp
     src/io/file.cpp
@@ -32,6 +16,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/parser/parser.expressions.cpp
     src/parser/parser.statements.cpp
     src/parser/parser.top_level.cpp
+    src/semantic_analysis/semantic_analysis_pass.cpp
     src/semantic_analysis/symbol_table.cpp
     src/type_system/data_type_kind.cpp
     src/compilation_context.cpp

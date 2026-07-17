@@ -9,18 +9,19 @@
 
 #pragma once
 
-#include "ast/expressions/expression.hpp"
+#include "ast/ast_node.hpp"
+#include "ast/prototype.hpp"
 #include "diagnostics/source_location.hpp"
-#include <string>
+#include <memory>
 #include <utility>
 
 namespace kepler::ast {
 
-    struct StringLiteralExpression : Expression {
-        std::string value;
+    struct Extern : ASTNode {
+        std::unique_ptr<Prototype> prototype;
 
-        StringLiteralExpression(std::string value, diagnostics::SourceLocation source_location)
-            : Expression(ASTNodeType::StringLiteralExpression, std::move(source_location)), value(std::move(value)) {}
+        Extern(std::unique_ptr<Prototype> prototype, diagnostics::SourceLocation source_location)
+            : ASTNode(ASTNodeType::Extern, std::move(source_location)), prototype(std::move(prototype)) {}
     };
 
 }

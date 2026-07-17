@@ -9,23 +9,21 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include <memory>
+#include <utility>
 
 namespace kepler::ast {
 
-    class BinaryExpression : public Expression {
-    public:
-        BinaryExpression(lexer::OperatorType operator_type, std::shared_ptr<Expression> lhs, std::shared_ptr<Expression> rhs)
-            : operator_type(operator_type), lhs(lhs), rhs(rhs) {}
-        CodegenResult codegen() const override;
+    struct BinaryExpression : Expression {
+        lexer::OperatorType operator_type;
+        std::unique_ptr<Expression> lhs;
+        std::unique_ptr<Expression> rhs;
 
-    private:
-        const lexer::OperatorType operator_type;
-        const std::shared_ptr<Expression> lhs;
-        const std::shared_ptr<Expression> rhs;
+        BinaryExpression(lexer::OperatorType operator_type, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::BinaryExpression, std::move(source_location)), operator_type(operator_type), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
     };
 
 }

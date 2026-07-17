@@ -12,17 +12,25 @@
 #include "diagnostics/diagnostic_code.hpp"
 #include "diagnostics/source_location.hpp"
 #include <string>
+#include <utility>
 
 namespace kepler::diagnostics {
 
     struct Diagnostic {
         DiagnosticCode code;
         std::string message;
+
+        Diagnostic(DiagnosticCode code, std::string message)
+            : code(code), message(std::move(message)) {}
     };
 
-    struct SourceDiagnostic : Diagnostic {
-        std::string file_path;
+    struct SourceDiagnostic {
+        DiagnosticCode code;
+        std::string message;
         SourceLocation source_location;
+
+        SourceDiagnostic(DiagnosticCode code, std::string message, SourceLocation source_location)
+            : code(code), message(std::move(message)), source_location(std::move(source_location)) {}
     };
 
 }

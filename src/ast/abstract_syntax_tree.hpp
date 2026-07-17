@@ -7,12 +7,16 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "ast/expressions/call_expression.hpp"
-#include "ast/codegen_result.hpp"
+#pragma once
+
+#include "ast/ast_node.hpp"
+#include <memory>
+#include <vector>
 
 namespace kepler::ast {
 
-    CodegenResult CallExpression::codegen() const {
-    }
+    struct AbstractSyntaxTree {
+        std::vector<std::unique_ptr<ASTNode>> nodes;
+    };
 
 }

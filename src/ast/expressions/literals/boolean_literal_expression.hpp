@@ -9,19 +9,18 @@
 
 #pragma once
 
-#include "ast/codegen_result.hpp"
+#include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
+#include "diagnostics/source_location.hpp"
+#include <utility>
 
 namespace kepler::ast {
 
-    class BooleanLiteralExpression : public Expression {
-    public:
-        BooleanLiteralExpression(bool value)
-            : value(value) {}
-        CodegenResult codegen() const override;
+    struct BooleanLiteralExpression : Expression {
+        bool value;
 
-    private:
-        const bool value;
+        BooleanLiteralExpression(bool value, diagnostics::SourceLocation source_location)
+            : Expression(ASTNodeType::BooleanLiteralExpression, std::move(source_location)), value(value) {}
     };
 
 }

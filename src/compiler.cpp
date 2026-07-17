@@ -8,7 +8,7 @@
  */
 
 #include "compiler.hpp"
-#include "ast/ast_node.hpp"
+#include "ast/abstract_syntax_tree.hpp"
 #include "compilation_context.hpp"
 #include "diagnostics/diagnostic_code.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
@@ -18,7 +18,8 @@
 #include "lexer/tokenizer.hpp"
 #include "log.hpp"
 #include "parser/parser.hpp"
-#include <memory>
+#include "semantic_analysis/semantic_analysis_pass.hpp"
+#include "semantic_analysis/symbol_table.hpp"
 #include <print>
 #include <vector>
 
@@ -40,18 +41,17 @@ namespace kepler {
         lexer::Tokenizer tokenizer(*file, diagnostic_sink);
         const std::vector<lexer::Token> tokens = tokenizer.tokenize();
 
-        parser::Parser parser(tokens, (*file).path, diagnostic_sink);
-        const std::vector<std::shared_ptr<ast::ASTNode>> ast_nodes = parser.parse();
+        parser::Parser parser(tokens, *file, diagnostic_sink);
+        const ast::AbstractSyntaxTree ast = parser.parse();
+
+        semantic_analysis::SymbolTable symbol_table;
+        semantic_analysis::SemanticAnalysisPass semantic_analysis_pass(ast, diagnostic_sink, symbol_table);
+        semantic_analysis_pass.run();
 
         if (diagnostic_sink.get_error_count() > 0) {
             diagnostic_sink.flush();
             std::println("{}{}[ This one's on you ]{}{}: Compilation failed with {} error(s) and {} warning(s){}", log::styling::bold, log::styling::bg_red, log::styling::reset, log::styling::bg_red, diagnostic_sink.get_error_count(), diagnostic_sink.get_warning_count(), log::styling::reset);
         }
-
-        /*
-        for (const std::shared_ptr<ast::ASTNode> ast_node : *ast_nodes) {
-            ast_node->codegen();
-        }*/
     }
 
 }

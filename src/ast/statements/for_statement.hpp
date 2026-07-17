@@ -10,33 +10,32 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
-#include "ast/codegen_result.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/statements/statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "diagnostics/source_location.hpp"
 #include <memory>
 #include <utility>
 #include <vector>
 
 namespace kepler::ast {
 
-    class ForStatement : public Statement {
-    public:
-        ForStatement(std::shared_ptr<VariableDefinitionStatement> loop_variable_definition,
-            std::shared_ptr<Expression> end_value,
-            std::shared_ptr<Expression> step_value,
-            std::vector<std::shared_ptr<ASTNode>> body)
-            : loop_variable_definition(loop_variable_definition),
-              end_value(end_value),
-              step_value(step_value),
-              body(std::move(body)) {}
-        CodegenResult codegen() const override;
+    struct ForStatement : Statement {
+        std::unique_ptr<VariableDefinitionStatement> loop_variable_definition;
+        std::unique_ptr<Expression> end_value;
+        std::unique_ptr<Expression> step_value;
+        std::vector<std::unique_ptr<ASTNode>> body;
 
-    private:
-        const std::shared_ptr<VariableDefinitionStatement> loop_variable_definition;
-        const std::shared_ptr<Expression> end_value;
-        const std::shared_ptr<Expression> step_value;
-        const std::vector<std::shared_ptr<ASTNode>> body;
+        ForStatement(std::unique_ptr<VariableDefinitionStatement> loop_variable_definition,
+            std::unique_ptr<Expression> end_value,
+            std::unique_ptr<Expression> step_value,
+            std::vector<std::unique_ptr<ASTNode>> body,
+            diagnostics::SourceLocation source_location)
+            : Statement(ASTNodeType::ForStatement, std::move(source_location)),
+              loop_variable_definition(std::move(loop_variable_definition)),
+              end_value(std::move(end_value)),
+              step_value(std::move(step_value)),
+              body(std::move(body)) {}
     };
 
 }

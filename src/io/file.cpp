@@ -10,6 +10,10 @@
 #include "io/file.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_code.hpp"
+#include "io/file_id.hpp"
+#include "log.hpp"
+#include <algorithm>
+#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <format>
@@ -20,25 +24,37 @@
 
 namespace kepler::io {
 
-    std::expected<File, diagnostics::Diagnostic> File::load(const std::string& path) {
+    std::expected<const File, diagnostics::Diagnostic> File::load(const std::filesystem::path& path) {
         if (!std::filesystem::exists(path)) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FileNotFound, std::format("File '{}' not found", path)));
+            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FileNotFound, std::format("File '{}' not found", path.c_str())));
         }
         if (std::filesystem::is_directory(path)) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FileIsADirectory, std::format("Path '{}' is a directory", path)));
+            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FileIsADirectory, std::format("Path '{}' is a directory", path.c_str())));
         }
         if (!std::filesystem::is_regular_file(path)) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::NotARegularFile, std::format("File '{}' is not a regular file", path)));
+            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::NotARegularFile, std::format("File '{}' is not a regular file", path.c_str())));
         }
 
         // Read file contents into string
         std::ifstream file_stream(path);
         if (!file_stream) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FailedToCreateFileStream, std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path)));
+            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FailedToCreateFileStream, std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path.c_str())));
         }
 
+        uint32_t known_path_count = known_paths.size();
+        if (!std::ranges::contains(known_paths, path)) {
+            known_paths.push_back(path);
+        }
         const std::string content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
-        return File(path, std::move(content));
+        return File({known_path_count}, std::move(content));
+    }
+
+    const std::filesystem::path* File::get_path_by_id(FileId id) {
+        if (id.value >= known_paths.size()) {
+            log::error("File path with id '{}' doesn't exist", id);
+            return nullptr;
+        }
+        return &known_paths[id.value];
     }
 
 }

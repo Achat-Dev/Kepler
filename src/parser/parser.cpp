@@ -8,6 +8,7 @@
  */
 
 #include "parser/parser.hpp"
+#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic_code.hpp"
 #include "emergency.hpp"
@@ -54,30 +55,27 @@ namespace kepler::parser {
         current_token = &tokens[current_token_index];
     }
 
-    std::vector<std::shared_ptr<ast::ASTNode>> Parser::parse() {
+    ast::AbstractSyntaxTree Parser::parse() {
         log::verbose("Parsing token stream");
 
         if (tokens.back().type != lexer::TokenType::EndOfFile) {
             emergency_exit("Parser received token stream without EOF token, my tokenizer seems to have fucked up somewhere");
         }
 
-        std::vector<std::shared_ptr<ast::ASTNode>> result;
-        while (true) {
+        ast::AbstractSyntaxTree result;
+        while (current_token->type != lexer::TokenType::EndOfFile) {
             switch (current_token->type) {
                 case lexer::TokenType::DataType: {
-                    const std::shared_ptr<ast::ASTNode> ast_node = parse_top_level_data_type();
+                    std::unique_ptr<ast::ASTNode> ast_node = parse_top_level_data_type();
                     if (ast_node) {
-                        result.push_back(ast_node);
+                        result.nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
-                case lexer::TokenType::EndOfFile:
-                    log::verbose_no_prefix("{} Parsing done", log::styling::last_indented);
-                    return result;
                 case lexer::TokenType::Extern: {
-                    const std::shared_ptr<ast::ASTNode> ast_node = parse_extern();
+                    std::unique_ptr<ast::ASTNode> ast_node = parse_extern();
                     if (ast_node) {
-                        result.push_back(ast_node);
+                        result.nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
@@ -85,11 +83,14 @@ namespace kepler::parser {
                     next_token(true);
                     break;
                 default:
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}' on top level, expected 'extern' or function definition", current_token->type), file_path, current_token->source_location);
+                    diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}' on top level, expected 'extern' or function definition", current_token->type), current_token->source_location);
                     recover(SynchronizationSet<lexer::TokenType::Newline>{}, SynchronizationSet<lexer::TokenType::Newline>{});
                     break;
             }
         }
+
+        log::verbose_no_prefix("{} Parsing done", log::styling::last_indented);
+        return result;
     }
 
 }
