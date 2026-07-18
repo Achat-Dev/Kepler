@@ -19,56 +19,51 @@
 #include <string>
 #include <variant>
 
-namespace kepler::lexer {
+namespace kepler {
 
-    using TokenData = std::variant<double, // Floating point literals
-        int64_t,                           // Integer literals
-        std::string,                       // String literals & identifiers
-        bool,                              // Boolean literals
-        OperatorType,                      // Operators
-        type_system::DataTypeKind,         // Data types
-        std::monostate>;
+    using TokenData = std::variant<std::monostate,
+        double,        // Floating point literals
+        int64_t,       // Integer literals
+        std::string,   // String literals & identifiers
+        bool,          // Boolean literals
+        OperatorType,  // Operators
+        DataTypeKind>; // Data types
 
     struct Token {
         TokenType type;
-        TokenData data;
-        diagnostics::SourceLocation source_location;
-
-        Token(TokenType type, diagnostics::SourceLocation source_location)
-            : type(type), source_location(std::move(source_location)), data(std::monostate{}) {}
-        Token(TokenType type, diagnostics::SourceLocation source_location, TokenData data)
-            : type(type), source_location(std::move(source_location)), data(std::move(data)) {}
+        SourceLocation source_location;
+        TokenData data = std::monostate{};
     };
 
 }
 
 template <>
-struct std::formatter<kepler::lexer::Token> : std::formatter<std::string> {
-    auto format(const kepler::lexer::Token& token, std::format_context& ctx) const {
+struct std::formatter<kepler::Token> : std::formatter<std::string> {
+    auto format(const kepler::Token& token, std::format_context& ctx) const {
         switch (token.type) {
-            case kepler::lexer::TokenType::Newline:
-            case kepler::lexer::TokenType::EndOfFile:
-            case kepler::lexer::TokenType::BracketOpen:
-            case kepler::lexer::TokenType::BracketClose:
-            case kepler::lexer::TokenType::Comma:
-            case kepler::lexer::TokenType::Colon:
-            case kepler::lexer::TokenType::Assignment:
-            case kepler::lexer::TokenType::Extern:
-            case kepler::lexer::TokenType::Return:
-            case kepler::lexer::TokenType::End:
-            case kepler::lexer::TokenType::If:
-            case kepler::lexer::TokenType::Else:
-            case kepler::lexer::TokenType::Elseif:
-            case kepler::lexer::TokenType::For:
+            case kepler::TokenType::Newline:
+            case kepler::TokenType::EndOfFile:
+            case kepler::TokenType::BracketOpen:
+            case kepler::TokenType::BracketClose:
+            case kepler::TokenType::Comma:
+            case kepler::TokenType::Colon:
+            case kepler::TokenType::Assignment:
+            case kepler::TokenType::Extern:
+            case kepler::TokenType::Return:
+            case kepler::TokenType::End:
+            case kepler::TokenType::If:
+            case kepler::TokenType::Else:
+            case kepler::TokenType::Elseif:
+            case kepler::TokenType::For:
                 return std::formatter<std::string>::format(std::format("{}", token.type), ctx);
 
-            case kepler::lexer::TokenType::Operator:
-                return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::lexer::OperatorType>(token.data)), ctx);
-            case kepler::lexer::TokenType::Identifier: {
+            case kepler::TokenType::Operator:
+                return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::OperatorType>(token.data)), ctx);
+            case kepler::TokenType::Identifier: {
                 const std::string& identifier = std::get<std::string>(token.data);
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, identifier), ctx);
             }
-            case kepler::lexer::TokenType::Literal: {
+            case kepler::TokenType::Literal: {
                 const std::string format = std::visit([&token](const auto& value) -> std::string {
                     using ValueType = std::decay_t<decltype(value)>;
                     if constexpr (std::is_same_v<ValueType, std::monostate>) {
@@ -81,8 +76,8 @@ struct std::formatter<kepler::lexer::Token> : std::formatter<std::string> {
 
                 return std::formatter<std::string>::format(std::format("{}", format), ctx);
             }
-            case kepler::lexer::TokenType::DataType:
-                return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::type_system::DataTypeKind>(token.data)), ctx);
+            case kepler::TokenType::DataType:
+                return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::DataTypeKind>(token.data)), ctx);
             default:
                 kepler::log::warning("Missing format implementation for token of type '{}'", static_cast<int>(token.type));
                 return std::formatter<std::string>::format(std::format("{}", token.type), ctx);

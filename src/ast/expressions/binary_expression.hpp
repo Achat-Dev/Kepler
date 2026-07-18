@@ -15,14 +15,14 @@
 #include <memory>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct BinaryExpression : Expression {
-        lexer::OperatorType operator_type;
+        OperatorType operator_type;
         std::unique_ptr<Expression> lhs;
         std::unique_ptr<Expression> rhs;
 
-        BinaryExpression(lexer::OperatorType operator_type, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs, diagnostics::SourceLocation source_location)
+        BinaryExpression(OperatorType operator_type, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs, SourceLocation source_location)
             : Expression(ASTNodeType::BinaryExpression, std::move(source_location)), operator_type(operator_type), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
     };
 

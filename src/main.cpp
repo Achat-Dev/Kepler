@@ -10,7 +10,7 @@
 #include "compilation_context.hpp"
 #include "compiler.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic_severity.hpp"
 #include <cstdlib>
 #include <print>
 
@@ -18,13 +18,13 @@ int main(int argc, char* argv[]) {
     const auto context = kepler::parse_command_line_arguments(argc, argv);
 
     if (!context) {
-        const kepler::diagnostics::Diagnostic diagnostic = context.error();
+        const kepler::Diagnostic diagnostic = context.error();
 
-        if (diagnostic.code == kepler::diagnostics::DiagnosticCode::HelpRequested) {
+        if (diagnostic.code == kepler::DiagnosticCode::HelpRequested) {
             std::println("{}", diagnostic.message);
             return EXIT_SUCCESS;
         } else {
-            std::println("{}{}", kepler::diagnostics::get_severity(diagnostic.code), diagnostic.message);
+            std::println("{}{}", kepler::get_diagnostic_severity(diagnostic.code), diagnostic.message);
             return EXIT_FAILURE;
         }
     }

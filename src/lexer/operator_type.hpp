@@ -13,7 +13,7 @@
 #include <format>
 #include <string>
 
-namespace kepler::lexer {
+namespace kepler {
 
     enum class OperatorType {
         Plus,
@@ -31,28 +31,28 @@ namespace kepler::lexer {
 }
 
 template <>
-struct std::formatter<kepler::lexer::OperatorType> : std::formatter<std::string> {
-    auto format(const kepler::lexer::OperatorType& operator_type, std::format_context& ctx) const {
+struct std::formatter<kepler::OperatorType> : std::formatter<std::string> {
+    auto format(const kepler::OperatorType& operator_type, std::format_context& ctx) const {
         switch (operator_type) {
-            case kepler::lexer::OperatorType::Plus:
+            case kepler::OperatorType::Plus:
                 return std::formatter<std::string>::format("+", ctx);
-            case kepler::lexer::OperatorType::Minus:
+            case kepler::OperatorType::Minus:
                 return std::formatter<std::string>::format("-", ctx);
-            case kepler::lexer::OperatorType::Multiplication:
+            case kepler::OperatorType::Multiplication:
                 return std::formatter<std::string>::format("*", ctx);
-            case kepler::lexer::OperatorType::Division:
+            case kepler::OperatorType::Division:
                 return std::formatter<std::string>::format("/", ctx);
-            case kepler::lexer::OperatorType::LessThan:
+            case kepler::OperatorType::LessThan:
                 return std::formatter<std::string>::format("<", ctx);
-            case kepler::lexer::OperatorType::GreaterThan:
+            case kepler::OperatorType::GreaterThan:
                 return std::formatter<std::string>::format(">", ctx);
-            case kepler::lexer::OperatorType::Equals:
+            case kepler::OperatorType::Equals:
                 return std::formatter<std::string>::format("==", ctx);
-            case kepler::lexer::OperatorType::NotEquals:
+            case kepler::OperatorType::NotEquals:
                 return std::formatter<std::string>::format("!=", ctx);
-            case kepler::lexer::OperatorType::LessEquals:
+            case kepler::OperatorType::LessEquals:
                 return std::formatter<std::string>::format("<=", ctx);
-            case kepler::lexer::OperatorType::GreaterEquals:
+            case kepler::OperatorType::GreaterEquals:
                 return std::formatter<std::string>::format(">=", ctx);
             default:
                 kepler::log::warning("Missing format implementation for operator type '{}'", static_cast<int>(operator_type));

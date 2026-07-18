@@ -16,13 +16,13 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct CallExpression : Expression {
         std::string identifier;
         std::vector<std::unique_ptr<Expression>> args;
 
-        CallExpression(std::string identifier, std::vector<std::unique_ptr<Expression>> args, diagnostics::SourceLocation source_location)
+        CallExpression(std::string identifier, std::vector<std::unique_ptr<Expression>> args, SourceLocation source_location)
             : Expression(ASTNodeType::CallExpression, std::move(source_location)), identifier(std::move(identifier)), args(std::move(args)) {}
     };
 

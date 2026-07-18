@@ -18,14 +18,14 @@
 #include <string>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct VariableDefinitionStatement : Statement {
-        type_system::DataTypeKind data_type;
+        DataTypeKind data_type;
         std::string identifier;
         std::unique_ptr<AssignmentStatement> assignment_statement;
 
-        VariableDefinitionStatement(type_system::DataTypeKind data_type, std::string identifier, std::unique_ptr<AssignmentStatement> assignment_statement, diagnostics::SourceLocation source_location)
+        VariableDefinitionStatement(DataTypeKind data_type, std::string identifier, std::unique_ptr<AssignmentStatement> assignment_statement, SourceLocation source_location)
             : Statement(ASTNodeType::VariableDefinitionStatement, source_location), data_type(data_type), identifier(std::move(identifier)), assignment_statement(std::move(assignment_statement)) {}
     };
 

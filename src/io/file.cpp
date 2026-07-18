@@ -22,23 +22,35 @@
 #include <string>
 #include <utility>
 
-namespace kepler::io {
+namespace kepler {
 
-    std::expected<const File, diagnostics::Diagnostic> File::load(const std::filesystem::path& path) {
+    std::expected<const File, Diagnostic> File::load(const std::filesystem::path& path) {
         if (!std::filesystem::exists(path)) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FileNotFound, std::format("File '{}' not found", path.c_str())));
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::FileNotFound,
+                .message = std::format("File '{}' not found", path.c_str()),
+            });
         }
         if (std::filesystem::is_directory(path)) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FileIsADirectory, std::format("Path '{}' is a directory", path.c_str())));
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::FileIsADirectory,
+                .message = std::format("Path '{}' is a directory", path.c_str()),
+            });
         }
         if (!std::filesystem::is_regular_file(path)) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::NotARegularFile, std::format("File '{}' is not a regular file", path.c_str())));
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::NotARegularFile,
+                .message = std::format("File '{}' is not a regular file", path.c_str()),
+            });
         }
 
         // Read file contents into string
         std::ifstream file_stream(path);
         if (!file_stream) {
-            return std::unexpected(diagnostics::Diagnostic(diagnostics::DiagnosticCode::FailedToCreateFileStream, std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path.c_str())));
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::FailedToCreateFileStream,
+                .message = std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path.c_str()),
+            });
         }
 
         uint32_t known_path_count = known_paths.size();

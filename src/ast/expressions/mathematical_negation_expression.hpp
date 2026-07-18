@@ -14,12 +14,12 @@
 #include <memory>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct MathematicalNegationExpression : Expression {
         std::unique_ptr<Expression> expression;
 
-        MathematicalNegationExpression(std::unique_ptr<Expression> expression, diagnostics::SourceLocation source_location)
+        MathematicalNegationExpression(std::unique_ptr<Expression> expression, SourceLocation source_location)
             : Expression(ASTNodeType::MathematicalNegationExpression, std::move(source_location)), expression(std::move(expression)) {}
     };
 

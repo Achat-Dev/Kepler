@@ -13,7 +13,7 @@
 #include <format>
 #include <string>
 
-namespace kepler::lexer {
+namespace kepler {
 
     enum class TokenType {
         // Meta
@@ -44,44 +44,44 @@ namespace kepler::lexer {
 }
 
 template <>
-struct std::formatter<kepler::lexer::TokenType> : std::formatter<std::string> {
-    auto format(const kepler::lexer::TokenType& token_type, std::format_context& ctx) const {
+struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
+    auto format(const kepler::TokenType& token_type, std::format_context& ctx) const {
         switch (token_type) {
-            case kepler::lexer::TokenType::Newline:
+            case kepler::TokenType::Newline:
                 return std::formatter<std::string>::format("Newline", ctx);
-            case kepler::lexer::TokenType::EndOfFile:
+            case kepler::TokenType::EndOfFile:
                 return std::formatter<std::string>::format("EOF", ctx);
-            case kepler::lexer::TokenType::BracketOpen:
+            case kepler::TokenType::BracketOpen:
                 return std::formatter<std::string>::format("(", ctx);
-            case kepler::lexer::TokenType::BracketClose:
+            case kepler::TokenType::BracketClose:
                 return std::formatter<std::string>::format(")", ctx);
-            case kepler::lexer::TokenType::Comma:
+            case kepler::TokenType::Comma:
                 return std::formatter<std::string>::format(",", ctx);
-            case kepler::lexer::TokenType::Colon:
+            case kepler::TokenType::Colon:
                 return std::formatter<std::string>::format(":", ctx);
-            case kepler::lexer::TokenType::Assignment:
+            case kepler::TokenType::Assignment:
                 return std::formatter<std::string>::format("=", ctx);
-            case kepler::lexer::TokenType::Extern:
+            case kepler::TokenType::Extern:
                 return std::formatter<std::string>::format("extern", ctx);
-            case kepler::lexer::TokenType::Return:
+            case kepler::TokenType::Return:
                 return std::formatter<std::string>::format("return", ctx);
-            case kepler::lexer::TokenType::End:
+            case kepler::TokenType::End:
                 return std::formatter<std::string>::format("end", ctx);
-            case kepler::lexer::TokenType::If:
+            case kepler::TokenType::If:
                 return std::formatter<std::string>::format("if", ctx);
-            case kepler::lexer::TokenType::Else:
+            case kepler::TokenType::Else:
                 return std::formatter<std::string>::format("else", ctx);
-            case kepler::lexer::TokenType::Elseif:
+            case kepler::TokenType::Elseif:
                 return std::formatter<std::string>::format("elseif", ctx);
-            case kepler::lexer::TokenType::For:
+            case kepler::TokenType::For:
                 return std::formatter<std::string>::format("for", ctx);
-            case kepler::lexer::TokenType::Literal:
+            case kepler::TokenType::Literal:
                 return std::formatter<std::string>::format("literal", ctx);
-            case kepler::lexer::TokenType::Operator:
+            case kepler::TokenType::Operator:
                 return std::formatter<std::string>::format("operator", ctx);
-            case kepler::lexer::TokenType::Identifier:
+            case kepler::TokenType::Identifier:
                 return std::formatter<std::string>::format("identifier", ctx);
-            case kepler::lexer::TokenType::DataType:
+            case kepler::TokenType::DataType:
                 return std::formatter<std::string>::format("datatype", ctx);
             default:
                 kepler::log::warning("Missing format implementation for token type '{}'", static_cast<int>(token_type));

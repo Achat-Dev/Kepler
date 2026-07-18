@@ -17,14 +17,14 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct IfStatement : Statement {
         std::unique_ptr<Expression> condition;
         std::vector<std::unique_ptr<ASTNode>> if_body;
         std::vector<std::unique_ptr<ASTNode>> else_body;
 
-        IfStatement(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<ASTNode>> if_body, std::vector<std::unique_ptr<ASTNode>> else_body, diagnostics::SourceLocation source_location)
+        IfStatement(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<ASTNode>> if_body, std::vector<std::unique_ptr<ASTNode>> else_body, SourceLocation source_location)
             : Statement(ASTNodeType::IfStatement, source_location), condition(std::move(condition)), if_body(std::move(if_body)), else_body(std::move(else_body)) {}
     };
 

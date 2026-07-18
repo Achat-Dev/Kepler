@@ -13,7 +13,7 @@
 #include <format>
 #include <string>
 
-namespace kepler::type_system {
+namespace kepler {
 
     enum class DataTypeKind {
         None,
@@ -35,30 +35,30 @@ namespace kepler::type_system {
 }
 
 template <>
-struct std::formatter<kepler::type_system::DataTypeKind> : std::formatter<std::string> {
-    auto format(const kepler::type_system::DataTypeKind& data_type_kind, std::format_context& ctx) const {
+struct std::formatter<kepler::DataTypeKind> : std::formatter<std::string> {
+    auto format(const kepler::DataTypeKind& data_type_kind, std::format_context& ctx) const {
         switch (data_type_kind) {
-            case kepler::type_system::DataTypeKind::None:
+            case kepler::DataTypeKind::None:
                 return std::formatter<std::string>::format("none", ctx);
-            case kepler::type_system::DataTypeKind::Void:
+            case kepler::DataTypeKind::Void:
                 return std::formatter<std::string>::format("void", ctx);
-            case kepler::type_system::DataTypeKind::Bool:
+            case kepler::DataTypeKind::Bool:
                 return std::formatter<std::string>::format("bool", ctx);
-            case kepler::type_system::DataTypeKind::Char:
+            case kepler::DataTypeKind::Char:
                 return std::formatter<std::string>::format("char", ctx);
-            case kepler::type_system::DataTypeKind::String:
+            case kepler::DataTypeKind::String:
                 return std::formatter<std::string>::format("string", ctx);
-            case kepler::type_system::DataTypeKind::Int8:
+            case kepler::DataTypeKind::Int8:
                 return std::formatter<std::string>::format("i8", ctx);
-            case kepler::type_system::DataTypeKind::Int16:
+            case kepler::DataTypeKind::Int16:
                 return std::formatter<std::string>::format("i16", ctx);
-            case kepler::type_system::DataTypeKind::Int32:
+            case kepler::DataTypeKind::Int32:
                 return std::formatter<std::string>::format("i32", ctx);
-            case kepler::type_system::DataTypeKind::Int64:
+            case kepler::DataTypeKind::Int64:
                 return std::formatter<std::string>::format("i64", ctx);
-            case kepler::type_system::DataTypeKind::Float32:
+            case kepler::DataTypeKind::Float32:
                 return std::formatter<std::string>::format("f32", ctx);
-            case kepler::type_system::DataTypeKind::Float64:
+            case kepler::DataTypeKind::Float64:
                 return std::formatter<std::string>::format("f64", ctx);
             default:
                 kepler::log::warning("Missing implementation of operator '<<' for data type kind '{}'", static_cast<int>(data_type_kind));

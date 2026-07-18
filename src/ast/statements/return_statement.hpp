@@ -16,12 +16,12 @@
 #include <memory>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct ReturnStatement : Statement {
         std::unique_ptr<Expression> expression;
 
-        ReturnStatement(std::unique_ptr<Expression> expression, diagnostics::SourceLocation source_location)
+        ReturnStatement(std::unique_ptr<Expression> expression, SourceLocation source_location)
             : Statement(ASTNodeType::ReturnStatement, source_location), expression(std::move(expression)) {}
     };
 

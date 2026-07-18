@@ -14,12 +14,12 @@
 #include <string>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct VariableExpression : Expression {
         std::string identifier;
 
-        VariableExpression(std::string identifier, diagnostics::SourceLocation source_location)
+        VariableExpression(std::string identifier, SourceLocation source_location)
             : Expression(ASTNodeType::VariableExpression, std::move(source_location)), identifier(std::move(identifier)) {}
     };
 

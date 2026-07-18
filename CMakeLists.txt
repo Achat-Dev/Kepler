@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
-    src/diagnostics/diagnostic_code.cpp
+    src/diagnostics/diagnostic_severity.cpp
     src/diagnostics/diagnostic_sink.cpp
     src/io/file.cpp
     src/lexer/tokenizer.cpp

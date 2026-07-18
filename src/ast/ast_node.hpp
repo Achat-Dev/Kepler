@@ -15,7 +15,7 @@
 #include <string>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     enum class ASTNodeType {
         Extern,
@@ -41,9 +41,9 @@ namespace kepler::ast {
 
     struct ASTNode {
         ASTNodeType node_type;
-        diagnostics::SourceLocation source_location;
+        SourceLocation source_location;
 
-        ASTNode(ASTNodeType node_type, diagnostics::SourceLocation source_location)
+        ASTNode(ASTNodeType node_type, SourceLocation source_location)
             : node_type(node_type), source_location(std::move(source_location)) {}
         virtual ~ASTNode() = default;
     };
@@ -51,44 +51,44 @@ namespace kepler::ast {
 }
 
 template <>
-struct std::formatter<kepler::ast::ASTNodeType> : std::formatter<std::string> {
-    auto format(const kepler::ast::ASTNodeType& ast_node_type, std::format_context& ctx) const {
+struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
+    auto format(const kepler::ASTNodeType& ast_node_type, std::format_context& ctx) const {
         switch (ast_node_type) {
-            case kepler::ast::ASTNodeType::Function:
+            case kepler::ASTNodeType::Function:
                 return std::formatter<std::string>::format("Function", ctx);
-            case kepler::ast::ASTNodeType::Prototype:
+            case kepler::ASTNodeType::Prototype:
                 return std::formatter<std::string>::format("Prototype", ctx);
-            case kepler::ast::ASTNodeType::Statement:
+            case kepler::ASTNodeType::Statement:
                 return std::formatter<std::string>::format("Statement", ctx);
-            case kepler::ast::ASTNodeType::AssignmentStatement:
+            case kepler::ASTNodeType::AssignmentStatement:
                 return std::formatter<std::string>::format("AssignmentStatement", ctx);
-            case kepler::ast::ASTNodeType::ForStatement:
+            case kepler::ASTNodeType::ForStatement:
                 return std::formatter<std::string>::format("ForStatement", ctx);
-            case kepler::ast::ASTNodeType::IfStatement:
+            case kepler::ASTNodeType::IfStatement:
                 return std::formatter<std::string>::format("IfStatement", ctx);
-            case kepler::ast::ASTNodeType::ReturnStatement:
+            case kepler::ASTNodeType::ReturnStatement:
                 return std::formatter<std::string>::format("ReturnStatement", ctx);
-            case kepler::ast::ASTNodeType::VariableDefinitionStatement:
+            case kepler::ASTNodeType::VariableDefinitionStatement:
                 return std::formatter<std::string>::format("VariableDefinitionStatement", ctx);
-            case kepler::ast::ASTNodeType::Expression:
+            case kepler::ASTNodeType::Expression:
                 return std::formatter<std::string>::format("Expression", ctx);
-            case kepler::ast::ASTNodeType::BooleanLiteralExpression:
+            case kepler::ASTNodeType::BooleanLiteralExpression:
                 return std::formatter<std::string>::format("BooleanLiteralExpression", ctx);
-            case kepler::ast::ASTNodeType::FloatingPointLiteralExpression:
+            case kepler::ASTNodeType::FloatingPointLiteralExpression:
                 return std::formatter<std::string>::format("FloatingPointLiteralExpression", ctx);
-            case kepler::ast::ASTNodeType::IntegerLiteralExpression:
+            case kepler::ASTNodeType::IntegerLiteralExpression:
                 return std::formatter<std::string>::format("IntegerLiteralExpression", ctx);
-            case kepler::ast::ASTNodeType::StringLiteralExpression:
+            case kepler::ASTNodeType::StringLiteralExpression:
                 return std::formatter<std::string>::format("StringLiteralExpression", ctx);
-            case kepler::ast::ASTNodeType::BinaryExpression:
+            case kepler::ASTNodeType::BinaryExpression:
                 return std::formatter<std::string>::format("BinaryExpression", ctx);
-            case kepler::ast::ASTNodeType::CallExpression:
+            case kepler::ASTNodeType::CallExpression:
                 return std::formatter<std::string>::format("CallExpression", ctx);
-            case kepler::ast::ASTNodeType::CastExpression:
+            case kepler::ASTNodeType::CastExpression:
                 return std::formatter<std::string>::format("CastExpression", ctx);
-            case kepler::ast::ASTNodeType::MathematicalNegationExpression:
+            case kepler::ASTNodeType::MathematicalNegationExpression:
                 return std::formatter<std::string>::format("MathematicalNegationExpression", ctx);
-            case kepler::ast::ASTNodeType::VariableExpression:
+            case kepler::ASTNodeType::VariableExpression:
                 return std::formatter<std::string>::format("VariableExpression", ctx);
             default:
                 kepler::log::warning("Missing format implementation for operator type '{}'", static_cast<int>(ast_node_type));

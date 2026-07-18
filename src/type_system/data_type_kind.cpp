@@ -9,7 +9,7 @@
 
 #include "type_system/data_type_kind.hpp"
 
-namespace kepler::type_system {
+namespace kepler {
 
     bool is_integer_type(DataTypeKind data_type) {
         return data_type == DataTypeKind::Int8 || data_type == DataTypeKind::Int16 || data_type == DataTypeKind::Int32 || data_type == DataTypeKind::Int64;

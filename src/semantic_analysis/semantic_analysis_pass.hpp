@@ -15,19 +15,19 @@
 #include "diagnostics/diagnostic_sink.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 
-namespace kepler::semantic_analysis {
+namespace kepler {
 
-    class SemanticAnalysisPass : public ast::ASTPass {
+    class SemanticAnalysisPass : public ASTPass {
     public:
-        SemanticAnalysisPass(const ast::AbstractSyntaxTree& ast, diagnostics::DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table)
-            : ast::ASTPass(ast, diagnostic_sink), symbol_table(symbol_table) {}
+        SemanticAnalysisPass(const AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table)
+            : ASTPass(ast, diagnostic_sink), symbol_table(symbol_table) {}
         void run() const override;
 
     private:
         SymbolTable& symbol_table;
 
         void collect_prototype_symbols() const;
-        void create_prototype_symbol(const ast::Prototype* prototype) const;
+        void create_prototype_symbol(const Prototype* prototype) const;
     };
 
 }

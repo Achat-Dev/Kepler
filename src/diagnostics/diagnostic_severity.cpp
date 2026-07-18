@@ -8,15 +8,15 @@
  */
 
 #include "diagnostics/diagnostic_code.hpp"
-#include "diagnostics/severity.hpp"
+#include "diagnostics/diagnostic_severity.hpp"
 #include "log.hpp"
 
-namespace kepler::diagnostics {
+namespace kepler {
 
-    Severity get_severity(DiagnosticCode diagnostic_code) {
+    DiagnosticSeverity get_diagnostic_severity(DiagnosticCode diagnostic_code) {
         switch (diagnostic_code) {
             case DiagnosticCode::MultilineCommentNotClosed:
-                return Severity::Warning;
+                return DiagnosticSeverity::Warning;
 
             case DiagnosticCode::NoInputFile:
             case DiagnosticCode::NoOutputFile:
@@ -35,14 +35,14 @@ namespace kepler::diagnostics {
             case DiagnosticCode::UsingStatementAsExpression:
             case DiagnosticCode::UndefinedSymbol:
             case DiagnosticCode::SymbolAlreadyExists:
-                return Severity::Error;
+                return DiagnosticSeverity::Error;
 
             case DiagnosticCode::Unsupported:
-                return Severity::Unsupported;
+                return DiagnosticSeverity::Unsupported;
 
             default:
                 log::warning("No severity mapping for diagnostic code '{}', defaulting to error", static_cast<int>(diagnostic_code));
-                return Severity::Error;
+                return DiagnosticSeverity::Error;
         }
     }
 

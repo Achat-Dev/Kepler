@@ -27,11 +27,11 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::lexer {
+namespace kepler {
 
     std::unordered_map<std::string, Token> Tokenizer::keyword_map;
 
-    Tokenizer::Tokenizer(const io::File& file, diagnostics::DiagnosticSink& diagnostic_sink) : file(file), diagnostic_sink(diagnostic_sink) {
+    Tokenizer::Tokenizer(const File& file, DiagnosticSink& diagnostic_sink) : file(file), diagnostic_sink(diagnostic_sink) {
         if (keyword_map.empty()) {
             register_keyword("extern", TokenType::Extern);
             register_keyword("return", TokenType::Return);
@@ -42,21 +42,21 @@ namespace kepler::lexer {
             register_keyword("for", TokenType::For);
             register_keyword("true", TokenType::Literal, true);
             register_keyword("false", TokenType::Literal, false);
-            register_keyword("void", TokenType::DataType, type_system::DataTypeKind::Void);
-            register_keyword("bool", TokenType::DataType, type_system::DataTypeKind::Bool);
-            register_keyword("char", TokenType::DataType, type_system::DataTypeKind::Char);
-            register_keyword("string", TokenType::DataType, type_system::DataTypeKind::String);
-            register_keyword("i8", TokenType::DataType, type_system::DataTypeKind::Int8);
-            register_keyword("i16", TokenType::DataType, type_system::DataTypeKind::Int16);
-            register_keyword("i32", TokenType::DataType, type_system::DataTypeKind::Int32);
-            register_keyword("i64", TokenType::DataType, type_system::DataTypeKind::Int64);
-            register_keyword("f32", TokenType::DataType, type_system::DataTypeKind::Float32);
-            register_keyword("f64", TokenType::DataType, type_system::DataTypeKind::Float64);
+            register_keyword("void", TokenType::DataType, DataTypeKind::Void);
+            register_keyword("bool", TokenType::DataType, DataTypeKind::Bool);
+            register_keyword("char", TokenType::DataType, DataTypeKind::Char);
+            register_keyword("string", TokenType::DataType, DataTypeKind::String);
+            register_keyword("i8", TokenType::DataType, DataTypeKind::Int8);
+            register_keyword("i16", TokenType::DataType, DataTypeKind::Int16);
+            register_keyword("i32", TokenType::DataType, DataTypeKind::Int32);
+            register_keyword("i64", TokenType::DataType, DataTypeKind::Int64);
+            register_keyword("f32", TokenType::DataType, DataTypeKind::Float32);
+            register_keyword("f64", TokenType::DataType, DataTypeKind::Float64);
         }
     }
 
     std::vector<Token> Tokenizer::tokenize() {
-        const std::filesystem::path* file_path = io::File::get_path_by_id(file.id);
+        const std::filesystem::path* file_path = File::get_path_by_id(file.id);
         log::verbose("Tokenizing file '{}'", file_path->c_str());
 
         current_char = file.content[0]; // Read first char manually instead of next_char() because that would read file.content[1]
@@ -92,13 +92,19 @@ namespace kepler::lexer {
 
     Token Tokenizer::read_next_token() {
         if (peek_next_char() == EOF) {
-            return Token(TokenType::EndOfFile, diagnostics::SourceLocation(io::FileId{INVALID_FILE_ID}, 0, 0));
+            return Token{
+                .type = TokenType::EndOfFile,
+                .source_location = {FileId::invalid(), 0, 0},
+            };
         }
 
         while (isspace(current_char)) {
             if (current_char == '\n') {
                 next_char();
-                return Token(TokenType::Newline, {file.id, position, 1});
+                return Token{
+                    .type = TokenType::Newline,
+                    .source_location = {file.id, position, 1},
+                };
             }
             next_char();
         }
@@ -116,66 +122,121 @@ namespace kepler::lexer {
                 return read_next_token();
             case ',':
                 next_char();
-                return Token(TokenType::Comma, {file.id, position - 1, 1});
+                return Token{
+                    .type = TokenType::Comma,
+                    .source_location = {file.id, position - 1, 1},
+                };
             case ':':
                 next_char();
-                return Token(TokenType::Colon, {file.id, position - 1, 1});
+                return Token{
+                    .type = TokenType::Colon,
+                    .source_location = {file.id, position - 1, 1},
+                };
             case '(':
                 next_char();
-                return Token(TokenType::BracketOpen, {file.id, position - 1, 1});
+                return Token{
+                    .type = TokenType::BracketOpen,
+                    .source_location = {file.id, position - 1, 1},
+                };
             case ')':
                 next_char();
-                return Token(TokenType::BracketClose, {file.id, position - 1, 1});
+                return Token{
+                    .type = TokenType::BracketClose,
+                    .source_location = {file.id, position - 1, 1},
+                };
             case '=':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::Equals);
+                    return Token{
+                        .type = TokenType::Operator,
+                        .source_location = {file.id, position - 2, 2},
+                        .data = OperatorType::Equals,
+                    };
                 } else {
-                    return Token(TokenType::Assignment, {file.id, position - 1, 1});
+                    return Token{
+                        .type = TokenType::Assignment,
+                        .source_location = {file.id, position - 1, 1},
+                    };
                 }
             case '+':
                 next_char();
-                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Plus);
+                return Token{
+                    .type = TokenType::Operator,
+                    .source_location = {file.id, position - 1, 1},
+                    .data = OperatorType::Plus,
+                };
             case '-':
                 next_char();
-                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Minus);
+                return Token{
+                    .type = TokenType::Operator,
+                    .source_location = {file.id, position - 1, 1},
+                    .data = OperatorType::Minus,
+                };
             case '*':
                 next_char();
-                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Multiplication);
+                return Token{
+                    .type = TokenType::Operator,
+                    .source_location = {file.id, position - 1, 1},
+                    .data = OperatorType::Multiplication,
+                };
             case '/':
                 next_char();
-                return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::Division);
+                return Token{
+                    .type = TokenType::Operator,
+                    .source_location = {file.id, position - 1, 1},
+                    .data = OperatorType::Division,
+                };
             case '<':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::LessEquals);
+                    return Token{
+                        .type = TokenType::Operator,
+                        .source_location = {file.id, position - 2, 2},
+                        .data = OperatorType::LessEquals,
+                    };
                 } else {
-                    return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::LessThan);
+                    return Token{
+                        .type = TokenType::Operator,
+                        .source_location = {file.id, position - 1, 1},
+                        .data = OperatorType::LessThan,
+                    };
                 }
             case '>':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::GreaterEquals);
+                    return Token{
+                        .type = TokenType::Operator,
+                        .source_location = {file.id, position - 2, 2},
+                        .data = OperatorType::GreaterEquals,
+                    };
                 } else {
-                    return Token(TokenType::Operator, {file.id, position - 1, 1}, OperatorType::GreaterThan);
+                    return Token{
+                        .type = TokenType::Operator,
+                        .source_location = {file.id, position - 1, 1},
+                        .data = OperatorType::GreaterThan,
+                    };
                 }
             case '!':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token(TokenType::Operator, {file.id, position - 2, 2}, OperatorType::NotEquals);
+                    return Token{
+                        .type = TokenType::Operator,
+                        .source_location = {file.id, position - 2, 2},
+                        .data = OperatorType::NotEquals,
+                    };
                 } else {
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::Unsupported, "Logical negation with '!' is not supported yet", {file.id, position - 1, 1});
+                    diagnostic_sink.report(DiagnosticCode::Unsupported, "Logical negation with '!' is not supported yet", {file.id, position - 1, 1});
                     next_char();
                     return read_next_token();
                 }
             case '"': return read_string_literal();
         }
 
-        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", current_char), {file.id, position, 1});
+        diagnostic_sink.report(DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", current_char), {file.id, position, 1});
         next_char();
         return read_next_token();
     }
@@ -196,8 +257,11 @@ namespace kepler::lexer {
             return token;
         }
 
-        const Token token(TokenType::Identifier, {file.id, identifier_start_position, identifier_length}, std::move(identifier));
-        return token;
+        return Token{
+            .type = TokenType::Identifier,
+            .source_location = {file.id, identifier_start_position, identifier_length},
+            .data = std::move(identifier),
+        };
     }
 
     Token Tokenizer::read_string_literal() {
@@ -214,7 +278,7 @@ namespace kepler::lexer {
                     case '\\': literal += '\\'; break;
                     case '"': literal += '"'; break;
                     default:
-                        diagnostic_sink.report(diagnostics::DiagnosticCode::UnknownEscapeSequence, std::format("Unknown escape sequence '\\{}' in string", current_char), {file.id, position - 1, 2});
+                        diagnostic_sink.report(DiagnosticCode::UnknownEscapeSequence, std::format("Unknown escape sequence '\\{}' in string", current_char), {file.id, position - 1, 2});
                         break;
                 }
             } else {
@@ -226,7 +290,11 @@ namespace kepler::lexer {
         next_char(); // eat closing '"'
 
         const uint32_t literal_length = literal.size();
-        return Token(TokenType::Literal, {file.id, position - literal_length - 1, literal_length + 2}, std::move(literal)); // -1 for opening " and +2 for opening and closing "
+        return Token{
+            .type = TokenType::Literal,
+            .source_location = {file.id, position - literal_length - 1, literal_length + 2}, // -1 for opening " and +2 for opening and closing "
+            .data = std::move(literal),
+        };
     }
 
     Token Tokenizer::read_numeric_literal() {
@@ -243,9 +311,17 @@ namespace kepler::lexer {
         const std::string literal = file.content.substr(literal_start_position, literal_length);
 
         if (is_float) {
-            return Token(TokenType::Literal, {file.id, literal_start_position, literal_length}, std::stod(literal.data()));
+            return Token{
+                .type = TokenType::Literal,
+                .source_location = {file.id, literal_start_position, literal_length},
+                .data = std::stod(literal.data()),
+            };
         } else {
-            return Token(TokenType::Literal, {file.id, literal_start_position, literal_length}, std::stoll(literal.data()));
+            return Token{
+                .type = TokenType::Literal,
+                .source_location = {file.id, literal_start_position, literal_length},
+                .data = std::stoll(literal.data()),
+            };
         }
     }
 
@@ -257,7 +333,7 @@ namespace kepler::lexer {
             const uint32_t comment_start_position = position - 1;
             while (!(current_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::MultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.", {file.id, comment_start_position, 2});
+                    diagnostic_sink.report(DiagnosticCode::MultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.", {file.id, comment_start_position, 2});
                     return;
                 }
 
@@ -280,7 +356,12 @@ namespace kepler::lexer {
     }
 
     void Tokenizer::register_keyword(const std::string& keyword, TokenType token_type, TokenData token_data) {
-        keyword_map.emplace(keyword, Token(token_type, {file.id, 0, static_cast<uint32_t>(keyword.size())}, token_data));
+        keyword_map.emplace(
+            keyword,
+            Token{
+                .type = token_type,
+                .source_location = {file.id, 0, static_cast<uint32_t>(keyword.size())},
+                .data = token_data,
+            });
     }
-
 }

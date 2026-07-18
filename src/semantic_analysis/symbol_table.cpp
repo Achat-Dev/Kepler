@@ -20,26 +20,27 @@
 #include <cstdint>
 #include <expected>
 #include <format>
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 
-#define INVALID_SYMBOL_INDEX UINT32_MAX
+#define INVALID_SYMBOL_INDEX std::numeric_limits<uint32_t>::max()
 
-namespace kepler::semantic_analysis {
+namespace kepler {
 
     SymbolTable::SymbolTable() {
         open_scope(ScopeType::File);
     }
 
-    std::expected<const Symbol*, diagnostics::SourceDiagnostic> SymbolTable::create_variable(type_system::DataTypeKind data_type, const std::string& identifier, const diagnostics::SourceLocation& source_location) {
+    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_variable(DataTypeKind data_type, const std::string& identifier, const SourceLocation& source_location) {
         return create_symbol(data_type, identifier, std::monostate{}, "Variable", source_location);
     }
 
-    std::expected<const Symbol*, diagnostics::SourceDiagnostic> SymbolTable::create_prototype(type_system::DataTypeKind data_type, const std::string& identifier, ast::Prototype::LinkageType linkage_type, std::vector<type_system::DataTypeKind> parameter_data_types, const diagnostics::SourceLocation& source_location) {
-        return create_symbol(data_type, identifier, PrototypeSymbolData(linkage_type, std::move(parameter_data_types)), "Function", source_location);
+    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_prototype(DataTypeKind data_type, const std::string& identifier, Prototype::LinkageType linkage_type, std::vector<DataTypeKind> parameter_data_types, const SourceLocation& source_location) {
+        return create_symbol(data_type, identifier, PrototypeSymbolData{.linkage_type = linkage_type, .parameter_data_types = std::move(parameter_data_types)}, "Function", source_location);
     }
 
     const Symbol* SymbolTable::lookup(const std::string& identifier) const {
@@ -52,7 +53,7 @@ namespace kepler::semantic_analysis {
 
     void SymbolTable::open_scope(ScopeType type) {
         if (scopes.empty()) {
-            scopes.emplace_back(type, ScopeID{INVALID_SYMBOL_INDEX});
+            scopes.emplace_back(type, ScopeId::invalid());
         } else {
             scopes.emplace_back(type, scopes.back().id);
         }
@@ -76,7 +77,7 @@ namespace kepler::semantic_analysis {
         scopes.pop_back();
     }
 
-    std::expected<const Symbol*, diagnostics::SourceDiagnostic> SymbolTable::create_symbol(type_system::DataTypeKind data_type, const std::string& identifier, SymbolData&& data, const std::string& error_identifier, const diagnostics::SourceLocation& source_location) {
+    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_symbol(DataTypeKind data_type, const std::string& identifier, SymbolData&& data, const std::string& error_identifier, const SourceLocation& source_location) {
         const Scope& current_scope = scopes.back();
         const auto it = visible_symbols.find(identifier);
         uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;
@@ -84,10 +85,18 @@ namespace kepler::semantic_analysis {
         if (it != visible_symbols.end()) {
             const Symbol& symbol = symbols[it->second];
             if (symbol.scope_id.value == current_scope.id.value) {
-                return std::unexpected(diagnostics::SourceDiagnostic(diagnostics::DiagnosticCode::SymbolAlreadyExists, std::format("{} with name '{}' already exists in the current scope", error_identifier, symbol.identifier), source_location));
+                return std::unexpected(SourceDiagnostic{
+                    .code = DiagnosticCode::SymbolAlreadyExists,
+                    .message = std::format("{} with name '{}' already exists in the current scope", error_identifier, symbol.identifier),
+                    .source_location = source_location,
+                });
             }
             if (!symbol.can_be_shadowed) {
-                return std::unexpected(diagnostics::SourceDiagnostic(diagnostics::DiagnosticCode::SymbolAlreadyExists, std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, symbol.identifier), source_location));
+                return std::unexpected(SourceDiagnostic{
+                    .code = DiagnosticCode::SymbolAlreadyExists,
+                    .message = std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, symbol.identifier),
+                    .source_location = source_location,
+                });
             }
             symbol_index_to_shadow = it->second;
         }

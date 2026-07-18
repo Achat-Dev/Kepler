@@ -9,43 +9,46 @@
 
 #pragma once
 
+#include "diagnostics/diagnostic_code.hpp"
 #include "log.hpp"
 #include <format>
 #include <string>
 
-namespace kepler::diagnostics {
+namespace kepler {
 
-    enum class Severity {
+    enum class DiagnosticSeverity {
         Note,
         Warning,
         Error,
         Unsupported,
     };
 
+    DiagnosticSeverity get_diagnostic_severity(DiagnosticCode diagnostic_code);
+
 }
 
 template <>
-struct std::formatter<kepler::diagnostics::Severity> : std::formatter<std::string> {
-    auto format(const kepler::diagnostics::Severity& severity, std::format_context& ctx) const {
+struct std::formatter<kepler::DiagnosticSeverity> : std::formatter<std::string> {
+    auto format(const kepler::DiagnosticSeverity& severity, std::format_context& ctx) const {
         switch (severity) {
-            case kepler::diagnostics::Severity::Note:
+            case kepler::DiagnosticSeverity::Note:
                 return std::formatter<std::string>::format(std::format("{}[ Note ]{}: ",
                                                                kepler::log::styling::bold,
                                                                kepler::log::styling::reset),
                     ctx);
-            case kepler::diagnostics::Severity::Warning:
+            case kepler::DiagnosticSeverity::Warning:
                 return std::formatter<std::string>::format(std::format("{}{}[ Warning ]{}: ",
                                                                kepler::log::styling::bold,
                                                                kepler::log::styling::bg_yellow,
                                                                kepler::log::styling::reset),
                     ctx);
-            case kepler::diagnostics::Severity::Error:
+            case kepler::DiagnosticSeverity::Error:
                 return std::formatter<std::string>::format(std::format("{}{}[ Error ]{}: ",
                                                                kepler::log::styling::bold,
                                                                kepler::log::styling::bg_red,
                                                                kepler::log::styling::reset),
                     ctx);
-            case kepler::diagnostics::Severity::Unsupported:
+            case kepler::DiagnosticSeverity::Unsupported:
                 return std::formatter<std::string>::format(std::format("{}{}[ Unpaid developer error ]{}: ",
                                                                kepler::log::styling::bold,
                                                                kepler::log::styling::bg_magenta,

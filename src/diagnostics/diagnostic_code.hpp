@@ -9,9 +9,7 @@
 
 #pragma once
 
-#include "diagnostics/severity.hpp"
-
-namespace kepler::diagnostics {
+namespace kepler {
 
     enum class DiagnosticCode {
         // Usage
@@ -49,7 +47,5 @@ namespace kepler::diagnostics {
 
         Unsupported = 999,
     };
-
-    Severity get_severity(DiagnosticCode diagnostic_code);
 
 }

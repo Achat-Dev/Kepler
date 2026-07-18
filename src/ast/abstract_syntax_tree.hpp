@@ -13,7 +13,7 @@
 #include <memory>
 #include <vector>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct AbstractSyntaxTree {
         std::vector<std::unique_ptr<ASTNode>> nodes;

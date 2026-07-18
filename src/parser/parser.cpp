@@ -19,14 +19,14 @@
 #include <memory>
 #include <vector>
 
-namespace kepler::parser {
+namespace kepler {
 
     void Parser::next_token(bool skip_newline) {
         if (current_token_index < tokens.size() - 1) {
             current_token_index++;
             current_token = &tokens[current_token_index];
 
-            if (current_token->type == lexer::TokenType::Newline && skip_newline) {
+            if (current_token->type == TokenType::Newline && skip_newline) {
                 next_token(skip_newline);
             }
         }
@@ -37,7 +37,7 @@ namespace kepler::parser {
             current_token_index--;
             current_token = &tokens[current_token_index];
 
-            if (current_token->type == lexer::TokenType::Newline && skip_newline) {
+            if (current_token->type == TokenType::Newline && skip_newline) {
                 previous_token(skip_newline);
             }
         }
@@ -55,36 +55,36 @@ namespace kepler::parser {
         current_token = &tokens[current_token_index];
     }
 
-    ast::AbstractSyntaxTree Parser::parse() {
+    AbstractSyntaxTree Parser::parse() {
         log::verbose("Parsing token stream");
 
-        if (tokens.back().type != lexer::TokenType::EndOfFile) {
+        if (tokens.back().type != TokenType::EndOfFile) {
             emergency_exit("Parser received token stream without EOF token, my tokenizer seems to have fucked up somewhere");
         }
 
-        ast::AbstractSyntaxTree result;
-        while (current_token->type != lexer::TokenType::EndOfFile) {
+        AbstractSyntaxTree result;
+        while (current_token->type != TokenType::EndOfFile) {
             switch (current_token->type) {
-                case lexer::TokenType::DataType: {
-                    std::unique_ptr<ast::ASTNode> ast_node = parse_top_level_data_type();
+                case TokenType::DataType: {
+                    std::unique_ptr<ASTNode> ast_node = parse_top_level_data_type();
                     if (ast_node) {
                         result.nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
-                case lexer::TokenType::Extern: {
-                    std::unique_ptr<ast::ASTNode> ast_node = parse_extern();
+                case TokenType::Extern: {
+                    std::unique_ptr<ASTNode> ast_node = parse_extern();
                     if (ast_node) {
                         result.nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
-                case lexer::TokenType::Newline:
+                case TokenType::Newline:
                     next_token(true);
                     break;
                 default:
-                    diagnostic_sink.report(diagnostics::DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}' on top level, expected 'extern' or function definition", current_token->type), current_token->source_location);
-                    recover(SynchronizationSet<lexer::TokenType::Newline>{}, SynchronizationSet<lexer::TokenType::Newline>{});
+                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}' on top level, expected 'extern' or function definition", current_token->type), current_token->source_location);
+                    recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
                     break;
             }
         }

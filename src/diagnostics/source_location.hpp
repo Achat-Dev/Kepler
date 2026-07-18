@@ -12,15 +12,12 @@
 #include "io/file_id.hpp"
 #include <cstdint>
 
-namespace kepler::diagnostics {
+namespace kepler {
 
     struct SourceLocation {
-        io::FileId file_id;
-        uint32_t position;
-        uint32_t size;
-
-        SourceLocation(io::FileId file_id, uint32_t position, uint32_t size)
-            : file_id(file_id), position(position), size(size) {}
+        FileId file_id;
+        uint32_t position = 0;
+        uint32_t size = 0;
     };
 
 }

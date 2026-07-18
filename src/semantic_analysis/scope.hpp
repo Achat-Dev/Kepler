@@ -12,10 +12,13 @@
 #include <cstdint>
 #include <vector>
 
-namespace kepler::semantic_analysis {
+namespace kepler {
 
-    struct ScopeID {
-        uint32_t value;
+    struct ScopeId {
+        uint32_t value = 0;
+
+        constexpr bool is_valid() const { return value == std::numeric_limits<uint32_t>::max(); }
+        static constexpr ScopeId invalid() { return ScopeId{std::numeric_limits<uint32_t>::max()}; }
     };
 
     enum class ScopeType {
@@ -25,12 +28,12 @@ namespace kepler::semantic_analysis {
     };
 
     struct Scope {
-        ScopeID id;
+        ScopeId id;
         ScopeType type;
-        ScopeID parent_id;
+        ScopeId parent_id;
         std::vector<uint32_t> symbol_indices;
 
-        Scope(ScopeType type, ScopeID parent_id)
+        Scope(ScopeType type, ScopeId parent_id)
             : id(id_creator++), type(type), parent_id(parent_id) {}
 
     private:

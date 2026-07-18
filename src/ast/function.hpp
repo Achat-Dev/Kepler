@@ -16,13 +16,13 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct Function : ASTNode {
         std::unique_ptr<Prototype> prototype;
         std::vector<std::unique_ptr<ASTNode>> body;
 
-        Function(std::unique_ptr<Prototype> prototype, std::vector<std::unique_ptr<ASTNode>> body, diagnostics::SourceLocation source_location)
+        Function(std::unique_ptr<Prototype> prototype, std::vector<std::unique_ptr<ASTNode>> body, SourceLocation source_location)
             : ASTNode(ASTNodeType::Function, std::move(source_location)), prototype(std::move(prototype)), body(std::move(body)) {}
     };
 

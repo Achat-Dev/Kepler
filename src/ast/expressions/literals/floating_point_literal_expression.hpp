@@ -13,12 +13,12 @@
 #include "diagnostics/source_location.hpp"
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct FloatingPointLiteralExpression : Expression {
         double value;
 
-        FloatingPointLiteralExpression(double value, diagnostics::SourceLocation source_location)
+        FloatingPointLiteralExpression(double value, SourceLocation source_location)
             : Expression(ASTNodeType::FloatingPointLiteralExpression, std::move(source_location)), value(value) {}
     };
 

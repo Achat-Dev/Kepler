@@ -15,13 +15,13 @@
 #include <memory>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct CastExpression : Expression {
-        type_system::DataTypeKind target_data_type;
+        DataTypeKind target_data_type;
         std::unique_ptr<Expression> expression;
 
-        CastExpression(type_system::DataTypeKind target_data_type, std::unique_ptr<Expression> expression, diagnostics::SourceLocation source_location)
+        CastExpression(DataTypeKind target_data_type, std::unique_ptr<Expression> expression, SourceLocation source_location)
             : Expression(ASTNodeType::CastExpression, std::move(source_location)), target_data_type(target_data_type), expression(std::move(expression)) {}
     };
 

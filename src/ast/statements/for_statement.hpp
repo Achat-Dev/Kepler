@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct ForStatement : Statement {
         std::unique_ptr<VariableDefinitionStatement> loop_variable_definition;
@@ -30,7 +30,7 @@ namespace kepler::ast {
             std::unique_ptr<Expression> end_value,
             std::unique_ptr<Expression> step_value,
             std::vector<std::unique_ptr<ASTNode>> body,
-            diagnostics::SourceLocation source_location)
+            SourceLocation source_location)
             : Statement(ASTNodeType::ForStatement, std::move(source_location)),
               loop_variable_definition(std::move(loop_variable_definition)),
               end_value(std::move(end_value)),

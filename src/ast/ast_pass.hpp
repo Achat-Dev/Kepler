@@ -12,19 +12,19 @@
 #include "ast/abstract_syntax_tree.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 
-namespace kepler::ast {
+namespace kepler {
 
     // The virtual function call could be eliminated by using CRTP
     class ASTPass {
     public:
-        ASTPass(const AbstractSyntaxTree& ast, diagnostics::DiagnosticSink& diagnostic_sink)
+        ASTPass(const AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink)
             : ast(ast), diagnostic_sink(diagnostic_sink) {}
         virtual ~ASTPass() = default;
         virtual void run() const = 0;
 
     protected:
         const AbstractSyntaxTree& ast;
-        diagnostics::DiagnosticSink& diagnostic_sink;
+        DiagnosticSink& diagnostic_sink;
     };
 
 }

@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::semantic_analysis {
+namespace kepler {
 
     void SemanticAnalysisPass::run() const {
         collect_prototype_symbols();
@@ -32,13 +32,13 @@ namespace kepler::semantic_analysis {
     void SemanticAnalysisPass::collect_prototype_symbols() const {
         for (const auto& ast_node : ast.nodes) {
             switch (ast_node->node_type) {
-                case ast::ASTNodeType::Function: {
-                    const ast::Function* function = static_cast<ast::Function*>(ast_node.get());
+                case ASTNodeType::Function: {
+                    const Function* function = static_cast<Function*>(ast_node.get());
                     create_prototype_symbol(function->prototype.get());
                     break;
                 }
-                case ast::ASTNodeType::Prototype: {
-                    const ast::Prototype* prototype = static_cast<ast::Prototype*>(ast_node.get());
+                case ASTNodeType::Prototype: {
+                    const Prototype* prototype = static_cast<Prototype*>(ast_node.get());
                     create_prototype_symbol(prototype);
                     break;
                 }
@@ -49,15 +49,15 @@ namespace kepler::semantic_analysis {
         }
     }
 
-    void SemanticAnalysisPass::create_prototype_symbol(const ast::Prototype* prototype) const {
-        std::vector<type_system::DataTypeKind> parameter_data_types;
+    void SemanticAnalysisPass::create_prototype_symbol(const Prototype* prototype) const {
+        std::vector<DataTypeKind> parameter_data_types;
         parameter_data_types.reserve(prototype->parameter_data.size());
         for (const auto& parameter_data : prototype->parameter_data) {
             parameter_data_types.push_back(parameter_data.data_type);
         }
-        const auto& symbol = symbol_table.create_prototype(prototype->return_type, prototype->identifier, prototype->linkage_type, std::move(parameter_data_types), prototype->source_location);
+        const auto symbol = symbol_table.create_prototype(prototype->return_type, prototype->identifier, prototype->linkage_type, std::move(parameter_data_types), prototype->source_location);
         if (!symbol) {
-            const diagnostics::SourceDiagnostic& diagnostic = symbol.error();
+            const SourceDiagnostic& diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
         }
     }

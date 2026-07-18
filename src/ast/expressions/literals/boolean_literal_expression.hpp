@@ -14,12 +14,12 @@
 #include "diagnostics/source_location.hpp"
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct BooleanLiteralExpression : Expression {
         bool value;
 
-        BooleanLiteralExpression(bool value, diagnostics::SourceLocation source_location)
+        BooleanLiteralExpression(bool value, SourceLocation source_location)
             : Expression(ASTNodeType::BooleanLiteralExpression, std::move(source_location)), value(value) {}
     };
 

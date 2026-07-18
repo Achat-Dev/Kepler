@@ -21,13 +21,13 @@
 #include <unordered_map>
 #include <vector>
 
-namespace kepler::semantic_analysis {
+namespace kepler {
 
     class SymbolTable {
     public:
         SymbolTable();
-        std::expected<const Symbol*, diagnostics::SourceDiagnostic> create_variable(type_system::DataTypeKind data_type, const std::string& identifier, const diagnostics::SourceLocation& source_location);
-        std::expected<const Symbol*, diagnostics::SourceDiagnostic> create_prototype(type_system::DataTypeKind data_type, const std::string& identifier, ast::Prototype::LinkageType linkage_type, std::vector<type_system::DataTypeKind> parameter_data_types, const diagnostics::SourceLocation& source_location);
+        std::expected<const Symbol*, SourceDiagnostic> create_variable(DataTypeKind data_type, const std::string& identifier, const SourceLocation& source_location);
+        std::expected<const Symbol*, SourceDiagnostic> create_prototype(DataTypeKind data_type, const std::string& identifier, Prototype::LinkageType linkage_type, std::vector<DataTypeKind> parameter_data_types, const SourceLocation& source_location);
         const Symbol* lookup(const std::string& identifier) const;
         void open_scope(ScopeType type);
         void close_scope();
@@ -37,7 +37,7 @@ namespace kepler::semantic_analysis {
         std::vector<Scope> scopes;
         std::unordered_map<std::string, uint32_t> visible_symbols;
 
-        std::expected<const Symbol*, diagnostics::SourceDiagnostic> create_symbol(type_system::DataTypeKind data_type, const std::string& identifier, SymbolData&& symbol_data, const std::string& error_identifier, const diagnostics::SourceLocation& source_location);
+        std::expected<const Symbol*, SourceDiagnostic> create_symbol(DataTypeKind data_type, const std::string& identifier, SymbolData&& symbol_data, const std::string& error_identifier, const SourceLocation& source_location);
     };
 
 }

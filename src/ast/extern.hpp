@@ -15,12 +15,12 @@
 #include <memory>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct Extern : ASTNode {
         std::unique_ptr<Prototype> prototype;
 
-        Extern(std::unique_ptr<Prototype> prototype, diagnostics::SourceLocation source_location)
+        Extern(std::unique_ptr<Prototype> prototype, SourceLocation source_location)
             : ASTNode(ASTNodeType::Extern, std::move(source_location)), prototype(std::move(prototype)) {}
     };
 

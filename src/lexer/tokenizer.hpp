@@ -19,11 +19,11 @@
 #include <variant>
 #include <vector>
 
-namespace kepler::lexer {
+namespace kepler {
 
     class Tokenizer {
     public:
-        Tokenizer(const io::File& file, diagnostics::DiagnosticSink& diagnostic_sink);
+        Tokenizer(const File& file, DiagnosticSink& diagnostic_sink);
         std::vector<Token> tokenize();
 
     private:
@@ -36,8 +36,8 @@ namespace kepler::lexer {
         void read_comment();
         void register_keyword(const std::string& keyword, TokenType token_type, TokenData token_data = std::monostate{});
 
-        const io::File& file;
-        diagnostics::DiagnosticSink& diagnostic_sink;
+        const File& file;
+        DiagnosticSink& diagnostic_sink;
         char current_char = ' ';
         uint32_t position = 0;
 

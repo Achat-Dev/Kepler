@@ -21,6 +21,6 @@ namespace kepler {
         bool log_verbose = false;
     };
 
-    std::expected<CompilationContext, diagnostics::Diagnostic> parse_command_line_arguments(int argc, char* argv[]);
+    std::expected<CompilationContext, Diagnostic> parse_command_line_arguments(int argc, char* argv[]);
 
 }

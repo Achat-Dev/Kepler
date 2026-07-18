@@ -17,13 +17,13 @@
 #include <memory>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct AssignmentStatement : Statement {
         std::unique_ptr<VariableExpression> variable_expression;
         std::unique_ptr<Expression> value_expression;
 
-        AssignmentStatement(std::unique_ptr<VariableExpression> variable_expression, std::unique_ptr<Expression> value_expression, diagnostics::SourceLocation source_location)
+        AssignmentStatement(std::unique_ptr<VariableExpression> variable_expression, std::unique_ptr<Expression> value_expression, SourceLocation source_location)
             : Statement(ASTNodeType::AssignmentStatement, std::move(source_location)), variable_expression(std::move(variable_expression)), value_expression(std::move(value_expression)) {}
     };
 

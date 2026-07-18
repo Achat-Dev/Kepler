@@ -14,12 +14,12 @@
 #include <cstdint>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct IntegerLiteralExpression : Expression {
         int64_t value;
 
-        IntegerLiteralExpression(int64_t value, diagnostics::SourceLocation source_location)
+        IntegerLiteralExpression(int64_t value, SourceLocation source_location)
             : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value(value) {}
     };
 

@@ -13,11 +13,11 @@
 #include "type_system/data_type_kind.hpp"
 #include <vector>
 
-namespace kepler::semantic_analysis {
+namespace kepler {
 
     struct PrototypeSymbolData {
-        ast::Prototype::LinkageType linkage_type;
-        std::vector<type_system::DataTypeKind> parameter_data_types;
+        Prototype::LinkageType linkage_type;
+        std::vector<DataTypeKind> parameter_data_types;
     };
 
 }

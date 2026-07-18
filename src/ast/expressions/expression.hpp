@@ -13,10 +13,10 @@
 #include "diagnostics/source_location.hpp"
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct Expression : ASTNode {
-        Expression(ASTNodeType node_type, diagnostics::SourceLocation source_location)
+        Expression(ASTNodeType node_type, SourceLocation source_location)
             : ASTNode(node_type, std::move(source_location)) {}
     };
 

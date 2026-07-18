@@ -17,13 +17,13 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::io {
+namespace kepler {
 
     struct File {
         FileId id;
         std::string content;
 
-        static std::expected<const File, diagnostics::Diagnostic> load(const std::filesystem::path& path);
+        static std::expected<const File, Diagnostic> load(const std::filesystem::path& path);
         static const std::filesystem::path* get_path_by_id(FileId id);
 
     private:

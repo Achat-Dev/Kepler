@@ -10,14 +10,14 @@
 #pragma once
 
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/severity.hpp"
+#include "diagnostics/diagnostic_severity.hpp"
 #include "diagnostics/source_location.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace kepler::diagnostics {
+namespace kepler {
 
     class DiagnosticSink {
     public:
@@ -33,7 +33,7 @@ namespace kepler::diagnostics {
         std::vector<SourceDiagnostic> diagnostics;
 
         size_t strlen_utf8(const std::string& string) const;
-        std::string get_severity_highlight(Severity severity) const;
+        std::string get_severity_highlight(DiagnosticSeverity severity) const;
     };
 
 }

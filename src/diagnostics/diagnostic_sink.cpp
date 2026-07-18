@@ -10,7 +10,7 @@
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_code.hpp"
-#include "diagnostics/severity.hpp"
+#include "diagnostics/diagnostic_severity.hpp"
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
 #include "io/file_id.hpp"
@@ -23,22 +23,22 @@
 #include <string>
 #include <tuple>
 
-namespace kepler::diagnostics {
+namespace kepler {
 
     void DiagnosticSink::report(DiagnosticCode code, const std::string& message) {
-        report(code, message, SourceLocation(io::FileId{INVALID_FILE_ID}, 0, 0));
+        report(code, message, {.file_id = FileId::invalid(), .position = 0, .size = 0});
     }
 
     void DiagnosticSink::report(DiagnosticCode code, const std::string& message, const SourceLocation& source_location) {
-        const Severity severity = get_severity(code);
+        const DiagnosticSeverity severity = get_diagnostic_severity(code);
         switch (severity) {
-            case Severity::Warning:
+            case DiagnosticSeverity::Warning:
                 warning_count++;
                 break;
-            case Severity::Error:
+            case DiagnosticSeverity::Error:
                 error_count++;
                 break;
-            case Severity::Unsupported:
+            case DiagnosticSeverity::Unsupported:
                 error_count++;
                 break;
             default:
@@ -50,20 +50,20 @@ namespace kepler::diagnostics {
 
     void DiagnosticSink::flush() {
         std::sort(diagnostics.begin(), diagnostics.end(), [](const SourceDiagnostic& a, const SourceDiagnostic& b) {
-            const int severity_a = static_cast<int>(get_severity(a.code));
-            const int severity_b = static_cast<int>(get_severity(b.code));
+            const int severity_a = static_cast<int>(get_diagnostic_severity(a.code));
+            const int severity_b = static_cast<int>(get_diagnostic_severity(b.code));
             return std::tie(a.source_location.file_id.value, severity_a, a.source_location.position) < std::tie(b.source_location.file_id.value, severity_b, b.source_location.position);
         });
 
         for (const SourceDiagnostic& diagnostic : diagnostics) {
-            const Severity severity = get_severity(diagnostic.code);
+            const DiagnosticSeverity severity = get_diagnostic_severity(diagnostic.code);
 
-            if (diagnostic.source_location.file_id.value == INVALID_FILE_ID) {
+            if (diagnostic.source_location.file_id.is_valid()) {
                 std::println("{}{}", severity, diagnostic.message);
                 continue;
             }
 
-            const std::filesystem::path* file_path = io::File::get_path_by_id(diagnostic.source_location.file_id);
+            const std::filesystem::path* file_path = File::get_path_by_id(diagnostic.source_location.file_id);
             if (!file_path) {
                 log::error("Failed to print diagnostics information, because how tf is the file with id '{}' unknown?", diagnostic.source_location.file_id);
             }
@@ -122,15 +122,15 @@ namespace kepler::diagnostics {
         return count;
     }
 
-    std::string DiagnosticSink::get_severity_highlight(Severity severity) const {
+    std::string DiagnosticSink::get_severity_highlight(DiagnosticSeverity severity) const {
         switch (severity) {
-            case Severity::Note:
+            case DiagnosticSeverity::Note:
                 return log::styling::bold;
-            case Severity::Warning:
+            case DiagnosticSeverity::Warning:
                 return log::styling::combine(log::styling::bold, log::styling::yellow);
-            case Severity::Error:
+            case DiagnosticSeverity::Error:
                 return log::styling::combine(log::styling::bold, log::styling::red);
-            case Severity::Unsupported:
+            case DiagnosticSeverity::Unsupported:
                 return log::styling::combine(log::styling::bold, log::styling::magenta);
             default:
                 log::warning("No styling for severity '{}' found", static_cast<int>(severity));

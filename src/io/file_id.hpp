@@ -11,21 +11,23 @@
 
 #include <cstdint>
 #include <format>
+#include <limits>
 #include <string>
 
-#define INVALID_FILE_ID UINT32_MAX
-
-namespace kepler::io {
+namespace kepler {
 
     struct FileId {
-        uint32_t value;
+        uint32_t value = 0;
+
+        constexpr bool is_valid() const { return value == std::numeric_limits<uint32_t>::max(); }
+        static constexpr FileId invalid() { return FileId{std::numeric_limits<uint32_t>::max()}; }
     };
 
 }
 
 template <>
-struct std::formatter<kepler::io::FileId> : std::formatter<std::string> {
-    auto format(const kepler::io::FileId& id, std::format_context& ctx) const {
+struct std::formatter<kepler::FileId> : std::formatter<std::string> {
+    auto format(const kepler::FileId& id, std::format_context& ctx) const {
         return std::formatter<std::string>::format(std::format("{}", id.value), ctx);
     }
 };

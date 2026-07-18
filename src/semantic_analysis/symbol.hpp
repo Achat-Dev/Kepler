@@ -14,33 +14,19 @@
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <string>
-#include <utility>
 #include <variant>
 
-namespace kepler::semantic_analysis {
+namespace kepler {
 
-    using SymbolData = std::variant<PrototypeSymbolData, std::monostate>;
+    using SymbolData = std::variant<std::monostate, PrototypeSymbolData>;
 
     struct Symbol {
-        ScopeID scope_id;
-        type_system::DataTypeKind data_type;
+        ScopeId scope_id;
+        DataTypeKind data_type;
         std::string identifier;
-        bool can_be_shadowed;
-        uint32_t shadowed_symbol_index;
-        SymbolData data;
-
-        Symbol(ScopeID scope_id,
-            type_system::DataTypeKind data_type,
-            const std::string& identifier,
-            bool can_be_shadowed,
-            uint32_t shadowed_symbol_index,
-            SymbolData data)
-            : scope_id(scope_id),
-              data_type(data_type),
-              identifier(identifier),
-              can_be_shadowed(can_be_shadowed),
-              shadowed_symbol_index(shadowed_symbol_index),
-              data(std::move(data)) {}
+        bool can_be_shadowed = false;
+        uint32_t shadowed_symbol_index = 0;
+        SymbolData data = std::monostate{};
     };
 
 }

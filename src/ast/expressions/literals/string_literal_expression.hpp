@@ -14,12 +14,12 @@
 #include <string>
 #include <utility>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct StringLiteralExpression : Expression {
         std::string value;
 
-        StringLiteralExpression(std::string value, diagnostics::SourceLocation source_location)
+        StringLiteralExpression(std::string value, SourceLocation source_location)
             : Expression(ASTNodeType::StringLiteralExpression, std::move(source_location)), value(std::move(value)) {}
     };
 

@@ -16,10 +16,10 @@
 #include <utility>
 #include <vector>
 
-namespace kepler::ast {
+namespace kepler {
 
     struct ParameterData {
-        type_system::DataTypeKind data_type;
+        DataTypeKind data_type;
         std::string identifier;
     };
 
@@ -30,11 +30,11 @@ namespace kepler::ast {
         };
 
         LinkageType linkage_type;
-        type_system::DataTypeKind return_type;
+        DataTypeKind return_type;
         std::string identifier;
         std::vector<ParameterData> parameter_data;
 
-        Prototype(LinkageType linkage_type, type_system::DataTypeKind return_type, std::string identifier, std::vector<ParameterData> parameter_data, diagnostics::SourceLocation source_location)
+        Prototype(LinkageType linkage_type, DataTypeKind return_type, std::string identifier, std::vector<ParameterData> parameter_data, SourceLocation source_location)
             : ASTNode(ASTNodeType::Prototype, std::move(source_location)), return_type(return_type), identifier(std::move(identifier)), parameter_data(std::move(parameter_data)) {}
     };
 
