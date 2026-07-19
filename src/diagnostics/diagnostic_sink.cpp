@@ -25,11 +25,11 @@
 
 namespace kepler {
 
-    void DiagnosticSink::report(DiagnosticCode code, const std::string& message) {
+    void DiagnosticSink::report(DiagnosticCode code, std::string message) {
         report(code, message, {.file_id = FileId::invalid(), .position = 0, .size = 0});
     }
 
-    void DiagnosticSink::report(DiagnosticCode code, const std::string& message, const SourceLocation& source_location) {
+    void DiagnosticSink::report(DiagnosticCode code, std::string message, SourceLocation source_location) {
         const DiagnosticSeverity severity = get_diagnostic_severity(code);
         switch (severity) {
             case DiagnosticSeverity::Warning:
@@ -52,7 +52,12 @@ namespace kepler {
         std::sort(diagnostics.begin(), diagnostics.end(), [](const SourceDiagnostic& a, const SourceDiagnostic& b) {
             const int severity_a = static_cast<int>(get_diagnostic_severity(a.code));
             const int severity_b = static_cast<int>(get_diagnostic_severity(b.code));
-            return std::tie(a.source_location.file_id.value, severity_a, a.source_location.position) < std::tie(b.source_location.file_id.value, severity_b, b.source_location.position);
+            return std::tie(a.source_location.file_id.value,
+                       severity_a,
+                       a.source_location.position) <
+                   std::tie(b.source_location.file_id.value,
+                       severity_b,
+                       b.source_location.position);
         });
 
         for (const SourceDiagnostic& diagnostic : diagnostics) {

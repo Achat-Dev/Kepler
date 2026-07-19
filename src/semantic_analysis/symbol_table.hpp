@@ -14,6 +14,7 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
+#include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <expected>
@@ -26,18 +27,26 @@ namespace kepler {
     class SymbolTable {
     public:
         SymbolTable();
-        std::expected<const Symbol*, SourceDiagnostic> create_variable(DataTypeKind data_type, const std::string& identifier, const SourceLocation& source_location);
-        std::expected<const Symbol*, SourceDiagnostic> create_prototype(DataTypeKind data_type, const std::string& identifier, Prototype::LinkageType linkage_type, std::vector<DataTypeKind> parameter_data_types, const SourceLocation& source_location);
-        const Symbol* lookup(const std::string& identifier) const;
+        std::expected<const Symbol*, SourceDiagnostic> create_variable(DataTypeKind data_type, StringId identifier_id, SourceLocation source_location);
+        std::expected<const Symbol*, SourceDiagnostic> create_prototype(DataTypeKind data_type,
+            StringId identifier_id,
+            Prototype::LinkageType linkage_type,
+            std::vector<DataTypeKind> parameter_data_types,
+            SourceLocation source_location);
+        const Symbol* lookup(StringId identifier_id) const;
         void open_scope(ScopeType type);
         void close_scope();
 
     private:
         std::vector<Symbol> symbols;
         std::vector<Scope> scopes;
-        std::unordered_map<std::string, uint32_t> visible_symbols;
+        std::unordered_map<StringId, uint32_t> visible_symbols;
 
-        std::expected<const Symbol*, SourceDiagnostic> create_symbol(DataTypeKind data_type, const std::string& identifier, SymbolData&& symbol_data, const std::string& error_identifier, const SourceLocation& source_location);
+        std::expected<const Symbol*, SourceDiagnostic> create_symbol(DataTypeKind data_type,
+            StringId identifier_id,
+            SymbolData&& symbol_data,
+            const std::string& error_identifier,
+            SourceLocation source_location);
     };
 
 }

@@ -56,7 +56,9 @@ namespace kepler {
     }
 
     AbstractSyntaxTree Parser::parse() {
-        KPL_ASSERT(tokens.back().type == TokenType::EndOfFile, "Parser received token stream without EOF token (last token is '{}'), my tokenizer seems to have fucked up somewhere", tokens.back());
+        KPL_ASSERT(tokens.back().type == TokenType::EndOfFile,
+            "Parser received token stream without EOF token (last token is '{}'), my tokenizer seems to have fucked up somewhere",
+            tokens.back());
         log::verbose("Parsing token stream");
 
         AbstractSyntaxTree result;
@@ -80,7 +82,9 @@ namespace kepler {
                     next_token(true);
                     break;
                 default:
-                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}' on top level, expected 'extern' or function definition", current_token->type), current_token->source_location);
+                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                        std::format("Unexpected token '{}' on top level, expected 'extern' or function definition", current_token->type),
+                        current_token->source_location);
                     recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
                     break;
             }

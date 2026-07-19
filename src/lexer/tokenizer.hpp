@@ -13,6 +13,7 @@
 #include "io/file.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
+#include "string_pool.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -41,7 +42,7 @@ namespace kepler {
         char current_char = ' ';
         uint32_t position = 0;
 
-        static std::unordered_map<std::string, Token> keyword_map;
+        static std::unordered_map<StringId, Token> keyword_map;
     };
 
 }

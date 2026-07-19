@@ -21,7 +21,8 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/type_system/data_type_kind.cpp
     src/compilation_context.cpp
     src/compiler.cpp
-    src/main.cpp)
+    src/main.cpp
+    src/string_pool.cpp)
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_23)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE

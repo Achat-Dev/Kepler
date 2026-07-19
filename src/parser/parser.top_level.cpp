@@ -16,11 +16,13 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
+#include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <format>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -51,7 +53,7 @@ namespace kepler {
             return nullptr;
         }
         const SourceLocation& identifier_source_location = current_token->source_location;
-        const std::string& identifier = std::get<std::string>(current_token->data);
+        const StringId identifier_id = std::get<StringId>(current_token->data);
 
         next_token(true); // eat identifier
         if (current_token->type != TokenType::BracketOpen) {
@@ -79,15 +81,17 @@ namespace kepler {
                 return nullptr;
             }
 
-            const std::string& parameter_identifier = std::get<std::string>(current_token->data);
-            parameter_data.push_back({.data_type = parameter_type, .identifier = identifier});
+            const StringId parameter_identifier_id = std::get<StringId>(current_token->data);
+            parameter_data.push_back({.data_type = parameter_type, .identifier_id = identifier_id});
 
             next_token(true); // eat identifier
             if (current_token->type == TokenType::Comma) {
                 next_token(true); // eat ','
 
                 if (current_token->type != TokenType::DataType) {
-                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected data type after ',' in prototype parameters", current_token->source_location);
+                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                        "Expected data type after ',' in prototype parameters",
+                        current_token->source_location);
                     recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
                     return nullptr;
                 }
@@ -101,7 +105,7 @@ namespace kepler {
         }
         next_token(true); // eat ')'
 
-        return std::make_unique<Prototype>(linkage_type, return_type, identifier, std::move(parameter_data), identifier_source_location);
+        return std::make_unique<Prototype>(linkage_type, return_type, identifier_id, std::move(parameter_data), identifier_source_location);
     }
 
     std::unique_ptr<ASTNode> Parser::parse_top_level_data_type() {
@@ -126,7 +130,9 @@ namespace kepler {
             return parse_function(data_type);
         }
 
-        diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected either an assignment operator or a '(' after identifier on top level", current_token->source_location);
+        diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+            "Expected either an assignment operator or a '(' after identifier on top level",
+            current_token->source_location);
         recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
         return nullptr;
     }
@@ -138,7 +144,9 @@ namespace kepler {
         previous_token(true);
 
         std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::Internal);
-        const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", std::get<std::string>(identifier_token->data));
+        const StringId identifier_id = std::get<StringId>(identifier_token->data);
+        const std::string_view identifier = StringPool::get().lookup(identifier_id);
+        const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", identifier);
         auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end'
 

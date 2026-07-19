@@ -13,10 +13,12 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
+#include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <format>
 #include <string>
+#include <string_view>
 #include <variant>
 
 namespace kepler {
@@ -24,7 +26,7 @@ namespace kepler {
     using TokenData = std::variant<std::monostate,
         double,        // Floating point literals
         int64_t,       // Integer literals
-        std::string,   // String literals & identifiers
+        StringId,      // String literals & identifiers
         bool,          // Boolean literals
         OperatorType,  // Operators
         DataTypeKind>; // Data types
@@ -60,7 +62,8 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             case kepler::TokenType::Operator:
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::OperatorType>(token.data)), ctx);
             case kepler::TokenType::Identifier: {
-                const std::string& identifier = std::get<std::string>(token.data);
+                const kepler::StringId identifier_id = std::get<kepler::StringId>(token.data);
+                const string_view identifier = kepler::StringPool::get().lookup(identifier_id);
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, identifier), ctx);
             }
             case kepler::TokenType::Literal: {

@@ -22,8 +22,14 @@ namespace kepler {
         std::unique_ptr<Expression> lhs;
         std::unique_ptr<Expression> rhs;
 
-        BinaryExpression(OperatorType operator_type, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs, SourceLocation source_location)
-            : Expression(ASTNodeType::BinaryExpression, std::move(source_location)), operator_type(operator_type), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+        BinaryExpression(OperatorType operator_type,
+            std::unique_ptr<Expression> lhs,
+            std::unique_ptr<Expression> rhs,
+            SourceLocation source_location)
+            : Expression(ASTNodeType::BinaryExpression, std::move(source_location)),
+              operator_type(operator_type),
+              lhs(std::move(lhs)),
+              rhs(std::move(rhs)) {}
     };
 
 }

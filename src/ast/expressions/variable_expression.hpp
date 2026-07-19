@@ -11,16 +11,16 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
-#include <string>
+#include "string_pool.hpp"
 #include <utility>
 
 namespace kepler {
 
     struct VariableExpression : Expression {
-        std::string identifier;
+        StringId identifier_id;
 
-        VariableExpression(std::string identifier, SourceLocation source_location)
-            : Expression(ASTNodeType::VariableExpression, std::move(source_location)), identifier(std::move(identifier)) {}
+        VariableExpression(StringId identifier_id, SourceLocation source_location)
+            : Expression(ASTNodeType::VariableExpression, source_location), identifier_id(std::move(identifier_id)) {}
     };
 
 }

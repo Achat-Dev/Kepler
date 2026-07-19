@@ -24,6 +24,7 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
+#include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -55,7 +56,9 @@ namespace kepler {
                 return 30;
         }
 
-        KPL_ASSERT(false, "Binary operator '{}' doesn't have a precedence associated to it. If this was intended, what the fuck where you thinking past me?", operator_type);
+        KPL_ASSERT(false,
+            "Binary operator '{}' doesn't have a precedence associated to it. If this was intended, what the fuck where you thinking past me?",
+            operator_type);
         std::unreachable();
     }
 
@@ -91,7 +94,9 @@ namespace kepler {
             if (current_token->type == TokenType::DataType) {
                 next_token(true);
                 if (current_token->type != TokenType::BracketOpen) {
-                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' (data types can only be used for casting inside of a binary expression)", current_token->source_location);
+                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                        "Expected '(' (data types can only be used for casting inside of a binary expression)",
+                        current_token->source_location);
                     recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                     return nullptr;
                 }
@@ -104,7 +109,10 @@ namespace kepler {
             }
 
             if (current_token->type != TokenType::Operator) {
-                return std::make_unique<BinaryExpression>(current_operator_type, std::move(lhs_expression), std::move(rhs_expression), operator_source_location);
+                return std::make_unique<BinaryExpression>(current_operator_type,
+                    std::move(lhs_expression),
+                    std::move(rhs_expression),
+                    operator_source_location);
             }
 
             const OperatorType next_operator_type = std::get<OperatorType>(current_token->data);
@@ -116,7 +124,10 @@ namespace kepler {
                 }
             }
 
-            lhs_expression = std::make_unique<BinaryExpression>(current_operator_type, std::move(lhs_expression), std::move(rhs_expression), operator_source_location);
+            lhs_expression = std::make_unique<BinaryExpression>(current_operator_type,
+                std::move(lhs_expression),
+                std::move(rhs_expression),
+                operator_source_location);
         }
     }
 
@@ -149,18 +160,18 @@ namespace kepler {
         if (current_token->type == TokenType::BracketOpen) {
             return parse_call(identifier_token);
         }
-        const std::string& identifier = std::get<std::string>(identifier_token->data);
-        return std::make_unique<VariableExpression>(identifier, identifier_token->source_location);
+        const StringId identifier_id = std::get<StringId>(identifier_token->data);
+        return std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location);
     }
 
     std::unique_ptr<CallExpression> Parser::parse_call(const Token* identifier_token) {
-        const std::string& identifier = std::get<std::string>(identifier_token->data);
+        const StringId identifier_id = std::get<StringId>(identifier_token->data);
         next_token(true); // eat '('
 
         // Call with no arguments
         if (current_token->type == TokenType::BracketClose) {
             next_token(true); // eat ')'
-            return std::make_unique<CallExpression>(identifier, std::vector<std::unique_ptr<Expression>>{}, identifier_token->source_location);
+            return std::make_unique<CallExpression>(identifier_id, std::vector<std::unique_ptr<Expression>>{}, identifier_token->source_location);
         }
 
         // Call with arguments
@@ -185,7 +196,7 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
-        return std::make_unique<CallExpression>(identifier, std::move(args), identifier_token->source_location);
+        return std::make_unique<CallExpression>(identifier_id, std::move(args), identifier_token->source_location);
     }
 
     std::unique_ptr<Expression> Parser::parse_literal() {
@@ -197,8 +208,8 @@ namespace kepler {
             return std::make_unique<FloatingPointLiteralExpression>(std::get<double>(literal_data), source_location);
         } else if (std::holds_alternative<int64_t>(literal_data)) {
             return std::make_unique<IntegerLiteralExpression>(std::get<int64_t>(literal_data), source_location);
-        } else if (std::holds_alternative<std::string>(literal_data)) {
-            return std::make_unique<StringLiteralExpression>(std::get<std::string>(literal_data), source_location);
+        } else if (std::holds_alternative<StringId>(literal_data)) {
+            return std::make_unique<StringLiteralExpression>(std::get<StringId>(literal_data), source_location);
         } else if (std::holds_alternative<bool>(literal_data)) {
             return std::make_unique<BooleanLiteralExpression>(std::get<bool>(literal_data), source_location);
         }

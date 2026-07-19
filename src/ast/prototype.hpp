@@ -11,8 +11,8 @@
 
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
+#include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -20,7 +20,7 @@ namespace kepler {
 
     struct ParameterData {
         DataTypeKind data_type;
-        std::string identifier;
+        StringId identifier_id;
     };
 
     struct Prototype : ASTNode {
@@ -31,11 +31,18 @@ namespace kepler {
 
         LinkageType linkage_type;
         DataTypeKind return_type;
-        std::string identifier;
+        StringId identifier_id;
         std::vector<ParameterData> parameter_data;
 
-        Prototype(LinkageType linkage_type, DataTypeKind return_type, std::string identifier, std::vector<ParameterData> parameter_data, SourceLocation source_location)
-            : ASTNode(ASTNodeType::Prototype, std::move(source_location)), return_type(return_type), identifier(std::move(identifier)), parameter_data(std::move(parameter_data)) {}
+        Prototype(LinkageType linkage_type,
+            DataTypeKind return_type,
+            StringId identifier_id,
+            std::vector<ParameterData> parameter_data,
+            SourceLocation source_location)
+            : ASTNode(ASTNodeType::Prototype, std::move(source_location)),
+              return_type(return_type),
+              identifier_id(identifier_id),
+              parameter_data(std::move(parameter_data)) {}
     };
 
 }

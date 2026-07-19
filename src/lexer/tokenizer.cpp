@@ -16,6 +16,7 @@
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
 #include "log.hpp"
+#include "string_pool.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
@@ -29,7 +30,7 @@
 
 namespace kepler {
 
-    std::unordered_map<std::string, Token> Tokenizer::keyword_map;
+    std::unordered_map<StringId, Token> Tokenizer::keyword_map;
 
     Tokenizer::Tokenizer(const File& file, DiagnosticSink& diagnostic_sink) : file(file), diagnostic_sink(diagnostic_sink) {
         if (keyword_map.empty()) {
@@ -249,10 +250,10 @@ namespace kepler {
         }
 
         const uint32_t identifier_length = position - identifier_start_position;
-        const std::string identifier = file.content.substr(identifier_start_position, identifier_length);
+        const StringId identifier_id = StringPool::get().store(file.content.substr(identifier_start_position, identifier_length));
 
-        if (keyword_map.contains(identifier)) {
-            Token token = keyword_map.at(identifier);
+        if (keyword_map.contains(identifier_id)) {
+            Token token = keyword_map[identifier_id];
             token.source_location.position = identifier_start_position;
             return token;
         }
@@ -260,7 +261,7 @@ namespace kepler {
         return Token{
             .type = TokenType::Identifier,
             .source_location = {file.id, identifier_start_position, identifier_length},
-            .data = std::move(identifier),
+            .data = identifier_id,
         };
     }
 
@@ -278,7 +279,9 @@ namespace kepler {
                     case '\\': literal += '\\'; break;
                     case '"': literal += '"'; break;
                     default:
-                        diagnostic_sink.report(DiagnosticCode::UnknownEscapeSequence, std::format("Unknown escape sequence '\\{}' in string", current_char), {file.id, position - 1, 2});
+                        diagnostic_sink.report(DiagnosticCode::UnknownEscapeSequence,
+                            std::format("Unknown escape sequence '\\{}' in string", current_char),
+                            {file.id, position - 1, 2});
                         break;
                 }
             } else {
@@ -290,10 +293,11 @@ namespace kepler {
         next_char(); // eat closing '"'
 
         const uint32_t literal_length = literal.size();
+        const StringId literal_id = StringPool::get().store(std::move(literal));
         return Token{
             .type = TokenType::Literal,
             .source_location = {file.id, position - literal_length - 1, literal_length + 2}, // -1 for opening " and +2 for opening and closing "
-            .data = std::move(literal),
+            .data = literal_id,
         };
     }
 
@@ -333,7 +337,9 @@ namespace kepler {
             const uint32_t comment_start_position = position - 1;
             while (!(current_char == '#' && peek_next_char() == '#')) {
                 if (peek_next_char() == EOF) {
-                    diagnostic_sink.report(DiagnosticCode::MultilineCommentNotClosed, "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.", {file.id, comment_start_position, 2});
+                    diagnostic_sink.report(DiagnosticCode::MultilineCommentNotClosed,
+                        "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.",
+                        {file.id, comment_start_position, 2});
                     return;
                 }
 
@@ -356,8 +362,9 @@ namespace kepler {
     }
 
     void Tokenizer::register_keyword(const std::string& keyword, TokenType token_type, TokenData token_data) {
+        const StringId keyword_id = StringPool::get().store(keyword);
         keyword_map.emplace(
-            keyword,
+            keyword_id,
             Token{
                 .type = token_type,
                 .source_location = {file.id, 0, static_cast<uint32_t>(keyword.size())},

@@ -21,8 +21,8 @@ namespace kepler {
 
     class DiagnosticSink {
     public:
-        void report(DiagnosticCode code, const std::string& message);
-        void report(DiagnosticCode code, const std::string& message, const SourceLocation& source_location);
+        void report(DiagnosticCode code, std::string message);
+        void report(DiagnosticCode code, std::string message, SourceLocation source_location);
         void flush();
         uint32_t get_warning_count() const { return warning_count; }
         uint32_t get_error_count() const { return error_count; }

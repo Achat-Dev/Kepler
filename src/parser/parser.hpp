@@ -28,11 +28,13 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
+#include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace kepler {
@@ -80,8 +82,13 @@ namespace kepler {
         std::unique_ptr<AssignmentStatement> parse_assignment(const Token* identifier_token);
         std::unique_ptr<IfStatement> parse_if();
         std::unique_ptr<ForStatement> parse_for();
-        std::unique_ptr<ForStatement> create_for_statement(const std::string& variable_identifier, const Token* variable_data_type_token, std::unique_ptr<Expression> start_value, std::unique_ptr<Expression> end_value, std::unique_ptr<Expression> step_value, const SourceLocation& for_source_location);
-        void recover_for_definition_and_parse_body(const SourceLocation& source_location);
+        std::unique_ptr<ForStatement> create_for_statement(StringId identifier_id,
+            const Token* variable_data_type_token,
+            std::unique_ptr<Expression> start_value,
+            std::unique_ptr<Expression> end_value,
+            std::unique_ptr<Expression> step_value,
+            SourceLocation for_source_location);
+        void recover_for_definition_and_parse_body(SourceLocation source_location);
         std::unique_ptr<ReturnStatement> parse_return();
         std::unique_ptr<VariableDefinitionStatement> parse_variable_definition();
 
@@ -104,11 +111,11 @@ namespace kepler {
         }
 
         template <TokenType... T>
-        std::optional<std::vector<std::unique_ptr<ASTNode>>> parse_body(const std::string& diagnostic_message_on_end, const SourceLocation& source_location) {
+        std::optional<std::vector<std::unique_ptr<ASTNode>>> parse_body(std::string diagnostic_message_on_end, SourceLocation source_location) {
             std::vector<std::unique_ptr<ASTNode>> body;
             while (((current_token->type != T) && ...)) {
                 if (current_token->type == TokenType::EndOfFile) {
-                    diagnostic_sink.report(DiagnosticCode::MissingEndKeyword, diagnostic_message_on_end, source_location);
+                    diagnostic_sink.report(DiagnosticCode::MissingEndKeyword, std::move(diagnostic_message_on_end), source_location);
                     return std::nullopt;
                 }
 

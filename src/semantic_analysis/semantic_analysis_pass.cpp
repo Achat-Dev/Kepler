@@ -43,7 +43,9 @@ namespace kepler {
                     break;
                 }
                 default:
-                    KPL_ASSERT(false, "Behold: I somehow managed to create a malformed AST with a node of type '{}' on the top level <(˘ ˘ ˘)>", ast_node->node_type);
+                    KPL_ASSERT(false,
+                        "Behold: I somehow managed to create a malformed AST with a node of type '{}' on the top level <(˘ ˘ ˘)>",
+                        ast_node->node_type);
                     std::unreachable();
             }
         }
@@ -55,7 +57,11 @@ namespace kepler {
         for (const auto& parameter_data : prototype->parameter_data) {
             parameter_data_types.push_back(parameter_data.data_type);
         }
-        const auto symbol = symbol_table.create_prototype(prototype->return_type, prototype->identifier, prototype->linkage_type, std::move(parameter_data_types), prototype->source_location);
+        const auto symbol = symbol_table.create_prototype(prototype->return_type,
+            prototype->identifier_id,
+            prototype->linkage_type,
+            std::move(parameter_data_types),
+            prototype->source_location);
         if (!symbol) {
             const SourceDiagnostic& diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);

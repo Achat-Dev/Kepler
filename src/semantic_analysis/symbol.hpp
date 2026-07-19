@@ -11,9 +11,9 @@
 
 #include "semantic_analysis/prototype_symbol_data.hpp"
 #include "semantic_analysis/scope.hpp"
+#include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstdint>
-#include <string>
 #include <variant>
 
 namespace kepler {
@@ -23,7 +23,7 @@ namespace kepler {
     struct Symbol {
         ScopeId scope_id;
         DataTypeKind data_type;
-        std::string identifier;
+        StringId identifier_id;
         bool can_be_shadowed = false;
         uint32_t shadowed_symbol_index = 0;
         SymbolData data = std::monostate{};
