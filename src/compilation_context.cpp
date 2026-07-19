@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2025 Lion Schulz
  *
- * This file is part of the Kepler programming language, which is licensed under the GNU Affero General Public License version 3 or later.
+ * This file is part of the compiler for the Kepler programming language, which is licensed under the GNU Affero General Public License version 3 or later.
  * You should have received a copy of the license along with this program.
  * If not, see <https://www.gnu.org/licenses/>
  */
@@ -25,7 +25,6 @@ namespace kepler {
             options.add_options()
                 ("i,input", "The .kpl input file", cxxopts::value<std::string>())
                 ("o,output", "The output file", cxxopts::value<std::string>())
-                //("a,additional", "Additional C++ or object files, separated by ','", cxxopts::value<std::vector<std::string>>())
                 ("v,verbose", "Enable verbose logging", cxxopts::value<bool>())
                 ("h,help", "Print help");
             // clang-format on

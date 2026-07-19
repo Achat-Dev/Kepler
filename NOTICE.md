@@ -16,13 +16,11 @@ The architecture of the project is based on the [official LLVM tutorial](https:/
 
 ## Included dependencies
 
-(The links to the licenses only work if you correctly cloned the submodules)
-
 **cxxopts** - 3.3.1
 
 > Copyright (c) 2014 Jarryd Beck\
 > Licensed under the MIT license\
-> See the [license](./external/cxxopts/LICENSE) for more details
+> See the [license](./external/cxxopts/include/LICENSE) for more details
 
 ## Dependencies that are not included but need to be pre-installed
 
