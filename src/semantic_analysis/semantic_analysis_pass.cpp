@@ -8,12 +8,12 @@
  */
 
 #include "semantic_analysis/semantic_analysis_pass.hpp"
+#include "assert.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/function.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "emergency.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <memory>
 #include <utility>
@@ -43,8 +43,8 @@ namespace kepler {
                     break;
                 }
                 default:
-                    emergency_exit("Behold: I somehow managed to create a malformed AST with a node of type '{}' on the top level <(˘ ˘ ˘)>", ast_node->node_type);
-                    break;
+                    KPL_ASSERT(false, "Behold: I somehow managed to create a malformed AST with a node of type '{}' on the top level <(˘ ˘ ˘)>", ast_node->node_type);
+                    std::unreachable();
             }
         }
     }

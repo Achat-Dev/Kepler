@@ -8,11 +8,11 @@
  */
 
 #include "semantic_analysis/symbol_table.hpp"
+#include "assert.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_code.hpp"
 #include "diagnostics/source_location.hpp"
-#include "emergency.hpp"
 #include "semantic_analysis/prototype_symbol_data.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
@@ -60,10 +60,7 @@ namespace kepler {
     }
 
     void SymbolTable::close_scope() {
-        if (scopes.empty()) {
-            emergency_exit("Trying to close the global scope, how did I even end up here?");
-        }
-
+        KPL_ASSERT(scopes.size() > 0, "Trying to close the global scope, how did I even end up here?");
         const Scope& current_scope = scopes.back();
         for (const uint32_t symbol_index : current_scope.symbol_indices) {
             const Symbol& symbol = symbols[symbol_index];

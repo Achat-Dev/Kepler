@@ -8,6 +8,7 @@
  */
 
 #include "parser/parser.hpp"
+#include "assert.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
 #include "ast/expressions/cast_expression.hpp"
@@ -20,11 +21,9 @@
 #include "ast/expressions/variable_expression.hpp"
 #include "diagnostics/diagnostic_code.hpp"
 #include "diagnostics/source_location.hpp"
-#include "emergency.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "lexer/token_type.hpp"
-#include "log.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -54,9 +53,10 @@ namespace kepler {
             case OperatorType::Multiplication:
             case OperatorType::Division:
                 return 30;
-            default:
-                emergency_exit("Binary operator '{}' doesn't have a precedence associated to it\n{}If this was intended, what the fuck where you thinking past me?", operator_type, log::styling::last_indented);
         }
+
+        KPL_ASSERT(false, "Binary operator '{}' doesn't have a precedence associated to it. If this was intended, what the fuck where you thinking past me?", operator_type);
+        std::unreachable();
     }
 
     std::unique_ptr<Expression> Parser::parse_expression() {
@@ -201,9 +201,10 @@ namespace kepler {
             return std::make_unique<StringLiteralExpression>(std::get<std::string>(literal_data), source_location);
         } else if (std::holds_alternative<bool>(literal_data)) {
             return std::make_unique<BooleanLiteralExpression>(std::get<bool>(literal_data), source_location);
-        } else {
-            emergency_exit("Literal token doesn't contain the literal data? Tokenization, wtf?");
         }
+
+        KPL_ASSERT(false, "Literal token doesn't contain the literal data? Tokenization, wtf?");
+        std::unreachable();
     }
 
     std::unique_ptr<Expression> Parser::parse_parenthesis() {
