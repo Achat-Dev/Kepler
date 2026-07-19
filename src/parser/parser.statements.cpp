@@ -374,7 +374,7 @@ namespace kepler {
         }
 
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
-        return std::make_unique<VariableDefinitionStatement>(data_type, identifier_id, std::move(assignment_statement), data_type_source_location);
+        return std::make_unique<VariableDefinitionStatement>(data_type, identifier_id, std::move(assignment_statement), identifier_token->source_location);
     }
 
 }

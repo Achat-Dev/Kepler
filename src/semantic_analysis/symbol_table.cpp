@@ -23,6 +23,7 @@
 #include <format>
 #include <limits>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -101,16 +102,18 @@ namespace kepler {
         if (it != visible_symbols.end()) {
             const Symbol& symbol = symbols[it->second];
             if (symbol.scope_id.value == current_scope.id.value) {
+                const std::string_view identifier = StringPool::get().lookup(symbol.identifier_id);
                 return std::unexpected(SourceDiagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
-                    .message = std::format("{} with name '{}' already exists in the current scope", error_identifier, symbol.identifier_id),
+                    .message = std::format("{} with name '{}' already exists in the current scope", error_identifier, identifier),
                     .source_location = source_location,
                 });
             }
             if (!symbol.can_be_shadowed) {
+                const std::string_view identifier = StringPool::get().lookup(symbol.identifier_id);
                 return std::unexpected(SourceDiagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
-                    .message = std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, symbol.identifier_id),
+                    .message = std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, identifier),
                     .source_location = source_location,
                 });
             }

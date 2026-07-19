@@ -21,6 +21,7 @@ namespace kepler {
     struct ParameterData {
         DataTypeKind data_type;
         StringId identifier_id;
+        SourceLocation source_location;
     };
 
     struct Prototype : ASTNode {

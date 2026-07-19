@@ -82,7 +82,7 @@ namespace kepler {
             }
 
             const StringId parameter_identifier_id = std::get<StringId>(current_token->data);
-            parameter_data.push_back({.data_type = parameter_type, .identifier_id = identifier_id});
+            parameter_data.push_back({.data_type = parameter_type, .identifier_id = parameter_identifier_id, .source_location = current_token->source_location});
 
             next_token(true); // eat identifier
             if (current_token->type == TokenType::Comma) {

@@ -16,7 +16,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/parser/parser.expressions.cpp
     src/parser/parser.statements.cpp
     src/parser/parser.top_level.cpp
-    src/semantic_analysis/semantic_analysis_pass.cpp
+    src/semantic_analysis/name_resolution_pass.cpp
     src/semantic_analysis/symbol_table.cpp
     src/type_system/data_type_kind.cpp
     src/compilation_context.cpp

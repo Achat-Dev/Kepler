@@ -15,12 +15,13 @@
 namespace kepler {
 
     // The virtual function call could be eliminated by using CRTP
+    template <typename T>
     class ASTPass {
     public:
         ASTPass(const AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink)
             : ast(ast), diagnostic_sink(diagnostic_sink) {}
         virtual ~ASTPass() = default;
-        virtual void run() const = 0;
+        virtual T run() = 0;
 
     protected:
         const AbstractSyntaxTree& ast;

@@ -17,7 +17,7 @@
 #include "lexer/tokenizer.hpp"
 #include "log.hpp"
 #include "parser/parser.hpp"
-#include "semantic_analysis/semantic_analysis_pass.hpp"
+#include "semantic_analysis/name_resolution_pass.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include <print>
 #include <vector>
@@ -48,7 +48,7 @@ namespace kepler {
         const AbstractSyntaxTree ast = parser.parse();
 
         SymbolTable symbol_table;
-        SemanticAnalysisPass semantic_analysis_pass(ast, diagnostic_sink, symbol_table);
+        NameResolutionPass semantic_analysis_pass(ast, diagnostic_sink, symbol_table);
         semantic_analysis_pass.run();
 
         if (diagnostic_sink.get_error_count() > 0) {
