@@ -12,7 +12,6 @@
 #include "diagnostics/diagnostic_sink.hpp"
 #include "io/file.hpp"
 #include "lexer/token.hpp"
-#include "lexer/token_type.hpp"
 #include "string_pool.hpp"
 #include <cstdint>
 #include <string>

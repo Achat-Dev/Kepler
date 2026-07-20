@@ -11,9 +11,8 @@
 #include "assert.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
-#include "lexer/token_type.hpp"
 #include "log.hpp"
 #include <format>
 #include <memory>

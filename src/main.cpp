@@ -10,7 +10,6 @@
 #include "compilation_context.hpp"
 #include "compiler.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/diagnostic_severity.hpp"
 #include <cstdlib>
 #include <print>
 

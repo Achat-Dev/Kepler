@@ -7,8 +7,7 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "diagnostics/diagnostic_severity.hpp"
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "log.hpp"
 
 namespace kepler {
@@ -27,7 +26,7 @@ namespace kepler {
             case DiagnosticCode::UnknownEscapeSequence:
             case DiagnosticCode::UnexpectedToken:
             case DiagnosticCode::InvalidCast:
-            case DiagnosticCode::InvalidReturnExpression:
+            case DiagnosticCode::InvalidReturn:
             case DiagnosticCode::InvalidVariableType:
             case DiagnosticCode::InvalidLoopVariableType:
             case DiagnosticCode::InvalidMathematicalNegation:

@@ -19,11 +19,10 @@
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
-#include "lexer/token_type.hpp"
 #include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <cstddef>

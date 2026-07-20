@@ -10,7 +10,7 @@
 #include "compiler.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "compilation_context.hpp"
-#include "diagnostics/diagnostic_severity.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "io/file.hpp"
 #include "lexer/token.hpp"
@@ -19,6 +19,7 @@
 #include "parser/parser.hpp"
 #include "semantic_analysis/name_resolution_pass.hpp"
 #include "semantic_analysis/symbol_table.hpp"
+#include "type_system/type_check_pass.hpp"
 #include <print>
 #include <vector>
 
@@ -43,13 +44,12 @@ namespace kepler {
 
         Tokenizer tokenizer(*file, diagnostic_sink);
         const std::vector<Token> tokens = tokenizer.tokenize();
-
         Parser parser(tokens, *file, diagnostic_sink);
         const AbstractSyntaxTree ast = parser.parse();
 
         SymbolTable symbol_table;
-        NameResolutionPass semantic_analysis_pass(ast, diagnostic_sink, symbol_table);
-        semantic_analysis_pass.run();
+        NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table);
+        name_resolution_pass.run();
 
         if (diagnostic_sink.get_error_count() > 0) {
             diagnostic_sink.flush();

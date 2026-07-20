@@ -9,8 +9,6 @@
 
 #include "io/file.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/diagnostic_code.hpp"
-#include "io/file_id.hpp"
 #include "log.hpp"
 #include <algorithm>
 #include <cstdint>

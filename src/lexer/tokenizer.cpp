@@ -8,13 +8,11 @@
  */
 
 #include "lexer/tokenizer.hpp"
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
-#include "io/file_id.hpp"
 #include "lexer/token.hpp"
-#include "lexer/token_type.hpp"
 #include "log.hpp"
 #include "string_pool.hpp"
 #include <cctype>

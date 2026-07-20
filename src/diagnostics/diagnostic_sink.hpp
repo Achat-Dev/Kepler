@@ -10,7 +10,6 @@
 #pragma once
 
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/diagnostic_severity.hpp"
 #include "diagnostics/source_location.hpp"
 #include <cstddef>
 #include <cstdint>

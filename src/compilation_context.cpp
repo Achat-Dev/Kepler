@@ -9,7 +9,6 @@
 
 #include "compilation_context.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/diagnostic_code.hpp"
 #include <cxxopts.hpp>
 #include <expected>
 #include <format>

@@ -9,11 +9,56 @@
 
 #pragma once
 
-#include "diagnostics/diagnostic_code.hpp"
 #include "diagnostics/source_location.hpp"
+#include "log.hpp"
+#include <format>
 #include <string>
 
 namespace kepler {
+
+    enum class DiagnosticCode {
+        // Usage
+        HelpRequested = 100,
+        NoInputFile,
+        NoOutputFile,
+        TooManyInputFiles,
+        TooManyOutputFiles,
+        CxxoptsException,
+
+        // I/O
+        FileNotFound = 200,
+        FileIsADirectory,
+        NotARegularFile,
+        FailedToCreateFileStream,
+
+        // Lexer
+        UnknownCharacter = 300,
+        UnknownEscapeSequence,
+        MultilineCommentNotClosed,
+
+        // Parser
+        UnexpectedToken = 400,
+        InvalidCast,
+        InvalidReturn,
+        InvalidVariableType,
+        InvalidLoopVariableType,
+        InvalidMathematicalNegation,
+        MissingEndKeyword,
+        UsingStatementAsExpression,
+
+        // Semantic analysis
+        UndefinedSymbol = 500,
+        SymbolAlreadyExists,
+
+        Unsupported = 999,
+    };
+
+    enum class DiagnosticSeverity {
+        Note,
+        Warning,
+        Error,
+        Unsupported,
+    };
 
     struct Diagnostic {
         DiagnosticCode code;
@@ -26,4 +71,40 @@ namespace kepler {
         SourceLocation source_location;
     };
 
+    DiagnosticSeverity get_diagnostic_severity(DiagnosticCode diagnostic_code);
+
 }
+
+template <>
+struct std::formatter<kepler::DiagnosticSeverity> : std::formatter<std::string> {
+    auto format(const kepler::DiagnosticSeverity& severity, std::format_context& ctx) const {
+        switch (severity) {
+            case kepler::DiagnosticSeverity::Note:
+                return std::formatter<std::string>::format(std::format("{}[ Note ]{}: ",
+                                                               kepler::log::styling::bold,
+                                                               kepler::log::styling::reset),
+                    ctx);
+            case kepler::DiagnosticSeverity::Warning:
+                return std::formatter<std::string>::format(std::format("{}{}[ Warning ]{}: ",
+                                                               kepler::log::styling::bold,
+                                                               kepler::log::styling::bg_yellow,
+                                                               kepler::log::styling::reset),
+                    ctx);
+            case kepler::DiagnosticSeverity::Error:
+                return std::formatter<std::string>::format(std::format("{}{}[ Error ]{}: ",
+                                                               kepler::log::styling::bold,
+                                                               kepler::log::styling::bg_red,
+                                                               kepler::log::styling::reset),
+                    ctx);
+            case kepler::DiagnosticSeverity::Unsupported:
+                return std::formatter<std::string>::format(std::format("{}{}[ Unpaid developer error ]{}: ",
+                                                               kepler::log::styling::bold,
+                                                               kepler::log::styling::bg_magenta,
+                                                               kepler::log::styling::reset),
+                    ctx);
+            default:
+                kepler::log::warning("Missing format implementation for severity '{}'", static_cast<int>(severity));
+                return std::formatter<std::string>::format(std::format(""), ctx);
+        }
+    }
+};

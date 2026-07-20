@@ -9,11 +9,8 @@
 
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/diagnostic_code.hpp"
-#include "diagnostics/diagnostic_severity.hpp"
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
-#include "io/file_id.hpp"
 #include "log.hpp"
 #include <algorithm>
 #include <cstddef>

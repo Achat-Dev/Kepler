@@ -9,15 +9,24 @@
 
 #pragma once
 
-#include "diagnostics/diagnostic.hpp"
-#include "io/file_id.hpp"
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace kepler {
+
+    // Forward declare to avoid circular include (file.hpp -> diagnostic.hpp -> source_location.hpp -> file.hpp ...)
+    struct Diagnostic;
+
+    struct FileId {
+        uint32_t value = 0;
+
+        constexpr bool is_valid() const { return value == std::numeric_limits<uint32_t>::max(); }
+        static constexpr FileId invalid() { return FileId{std::numeric_limits<uint32_t>::max()}; }
+    };
 
     struct File {
         FileId id;
@@ -34,3 +43,10 @@ namespace kepler {
     };
 
 }
+
+template <>
+struct std::formatter<kepler::FileId> : std::formatter<std::string> {
+    auto format(const kepler::FileId& id, std::format_context& ctx) const {
+        return std::formatter<std::string>::format(std::format("{}", id.value), ctx);
+    }
+};

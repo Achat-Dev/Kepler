@@ -17,10 +17,9 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
-#include "diagnostics/diagnostic_code.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
-#include "lexer/token_type.hpp"
 #include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
 #include <format>
@@ -318,7 +317,7 @@ namespace kepler {
             case TokenType::For:
             case TokenType::Return: {
                 const std::string message = std::format("Cannot return '{}' statement", current_token->type);
-                diagnostic_sink.report(DiagnosticCode::InvalidReturnExpression, message, current_token->source_location);
+                diagnostic_sink.report(DiagnosticCode::InvalidReturn, message, current_token->source_location);
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
             }
