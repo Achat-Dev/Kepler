@@ -93,7 +93,7 @@ namespace kepler {
         SourceLocation source_location
     ) {
         // clang-format on
-        const Scope& current_scope = scopes.back();
+        Scope& current_scope = scopes.back();
         const auto it = visible_symbols.find(identifier_id);
         uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;
 
@@ -121,6 +121,8 @@ namespace kepler {
         visible_symbols[identifier_id] = symbols.size();
 
         bool can_be_shadowed = current_scope.type != ScopeType::Function && current_scope.type != ScopeType::Block;
+        const uint32_t symbol_index = symbols.size();
+        current_scope.symbol_indices.push_back(symbol_index);
         symbols.emplace_back(current_scope.id, data_type, identifier_id, can_be_shadowed, symbol_index_to_shadow, std::move(data));
         return &symbols.back();
     }
