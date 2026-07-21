@@ -32,30 +32,36 @@ namespace kepler {
 
     class NameResolutionPass : public ASTPass<void> {
     public:
-        NameResolutionPass(const AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table)
-            : ASTPass(ast, diagnostic_sink), symbol_table(symbol_table) {}
+        struct ResolutionResult {
+            bool poisoned;
+            operator bool() const { return poisoned; }
+        };
+
+        NameResolutionPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table)
+            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table) {}
         void run() override;
 
     private:
+        DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
 
         void collect_prototype_symbols() const;
-        void create_prototype_symbol(const Prototype* prototype) const;
-        void resolve_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes) const;
-        void resolve_node(const ASTNode* node) const;
-        void resolve_extern(const Extern* ext) const;
-        void resolve_function(const Function* function) const;
-        void resolve_prototype(const Prototype* prototype) const;
-        void resolve_assignment_statement(const AssignmentStatement* statement) const;
-        void resolve_for_statement(const ForStatement* statement) const;
-        void resolve_if_statement(const IfStatement* statement) const;
-        void resolve_return_statement(const ReturnStatement* statement) const;
-        void resolve_variable_definition_statement(const VariableDefinitionStatement* statement) const;
-        void resolve_binary_expression(const BinaryExpression* expression) const;
-        void resolve_call_expression(const CallExpression* expression) const;
-        void resolve_cast_expression(const CastExpression* expression) const;
-        void resolve_mathematical_negation_expression(const MathematicalNegationExpression* expression) const;
-        void resolve_variable_expression(const VariableExpression* expression) const;
+        void create_prototype_symbol(Prototype* prototype) const;
+        ResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
+        ResolutionResult resolve_node(ASTNode* node) const;
+        void resolve_extern(Extern* ext) const;
+        void resolve_function(Function* function) const;
+        ResolutionResult resolve_prototype(Prototype* prototype) const;
+        ResolutionResult resolve_assignment_statement(AssignmentStatement* statement) const;
+        ResolutionResult resolve_for_statement(ForStatement* statement) const;
+        ResolutionResult resolve_if_statement(IfStatement* statement) const;
+        ResolutionResult resolve_return_statement(ReturnStatement* statement) const;
+        ResolutionResult resolve_variable_definition_statement(VariableDefinitionStatement* statement) const;
+        ResolutionResult resolve_binary_expression(BinaryExpression* expression) const;
+        ResolutionResult resolve_call_expression(CallExpression* expression) const;
+        ResolutionResult resolve_cast_expression(CastExpression* expression) const;
+        ResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
+        ResolutionResult resolve_variable_expression(VariableExpression* expression) const;
     };
 
 }

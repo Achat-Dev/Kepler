@@ -1,5 +1,6 @@
 .vs/
 .cache/
 .clang-format
+.zed/
 build/
 examples/

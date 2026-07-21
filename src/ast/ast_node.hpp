@@ -18,16 +18,15 @@
 namespace kepler {
 
     enum class ASTNodeType {
+        Poison,
         Extern,
         Function,
         Prototype,
-        Statement,
         AssignmentStatement,
         ForStatement,
         IfStatement,
         ReturnStatement,
         VariableDefinitionStatement,
-        Expression,
         BooleanLiteralExpression,
         FloatingPointLiteralExpression,
         IntegerLiteralExpression,
@@ -54,12 +53,14 @@ template <>
 struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
     auto format(const kepler::ASTNodeType& ast_node_type, std::format_context& ctx) const {
         switch (ast_node_type) {
+            case kepler::ASTNodeType::Poison:
+                return std::formatter<std::string>::format("Poison", ctx);
+            case kepler::ASTNodeType::Extern:
+                return std::formatter<std::string>::format("Extern", ctx);
             case kepler::ASTNodeType::Function:
                 return std::formatter<std::string>::format("Function", ctx);
             case kepler::ASTNodeType::Prototype:
                 return std::formatter<std::string>::format("Prototype", ctx);
-            case kepler::ASTNodeType::Statement:
-                return std::formatter<std::string>::format("Statement", ctx);
             case kepler::ASTNodeType::AssignmentStatement:
                 return std::formatter<std::string>::format("AssignmentStatement", ctx);
             case kepler::ASTNodeType::ForStatement:
@@ -70,8 +71,6 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("ReturnStatement", ctx);
             case kepler::ASTNodeType::VariableDefinitionStatement:
                 return std::formatter<std::string>::format("VariableDefinitionStatement", ctx);
-            case kepler::ASTNodeType::Expression:
-                return std::formatter<std::string>::format("Expression", ctx);
             case kepler::ASTNodeType::BooleanLiteralExpression:
                 return std::formatter<std::string>::format("BooleanLiteralExpression", ctx);
             case kepler::ASTNodeType::FloatingPointLiteralExpression:
@@ -91,7 +90,7 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
             case kepler::ASTNodeType::VariableExpression:
                 return std::formatter<std::string>::format("VariableExpression", ctx);
             default:
-                kepler::log::warning("Missing format implementation for operator type '{}'", static_cast<int>(ast_node_type));
+                kepler::log::warning("Missing format implementation for ast node type '{}'", static_cast<int>(ast_node_type));
                 return std::formatter<std::string>::format(std::format("{}", static_cast<int>(ast_node_type)), ctx);
         }
     }

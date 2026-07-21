@@ -45,7 +45,7 @@ namespace kepler {
         Tokenizer tokenizer(*file, diagnostic_sink);
         const std::vector<Token> tokens = tokenizer.tokenize();
         Parser parser(tokens, *file, diagnostic_sink);
-        const AbstractSyntaxTree ast = parser.parse();
+        AbstractSyntaxTree ast = parser.parse();
 
         SymbolTable symbol_table;
         NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table);

@@ -10,7 +10,6 @@
 #pragma once
 
 #include "ast/abstract_syntax_tree.hpp"
-#include "diagnostics/diagnostic_sink.hpp"
 
 namespace kepler {
 
@@ -18,14 +17,12 @@ namespace kepler {
     template <typename T>
     class ASTPass {
     public:
-        ASTPass(const AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink)
-            : ast(ast), diagnostic_sink(diagnostic_sink) {}
+        explicit ASTPass(AbstractSyntaxTree& ast) : ast(ast) {}
         virtual ~ASTPass() = default;
         virtual T run() = 0;
 
     protected:
-        const AbstractSyntaxTree& ast;
-        DiagnosticSink& diagnostic_sink;
+        AbstractSyntaxTree& ast;
     };
 
 }
