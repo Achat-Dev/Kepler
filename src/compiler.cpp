@@ -9,6 +9,7 @@
 
 #include "compiler.hpp"
 #include "ast/abstract_syntax_tree.hpp"
+#include "ast/ast_printer.hpp"
 #include "compilation_context.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
@@ -46,6 +47,9 @@ namespace kepler {
         const std::vector<Token> tokens = tokenizer.tokenize();
         Parser parser(tokens, *file, diagnostic_sink);
         AbstractSyntaxTree ast = parser.parse();
+
+        ASTPrinter ast_printer(ast);
+        ast_printer.run();
 
         SymbolTable symbol_table;
         NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table);

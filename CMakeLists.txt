@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
+    src/ast/ast_printer.cpp
     src/diagnostics/diagnostic.cpp
     src/diagnostics/diagnostic_sink.cpp
     src/io/file.cpp

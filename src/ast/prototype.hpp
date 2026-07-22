@@ -13,6 +13,8 @@
 #include "diagnostics/source_location.hpp"
 #include "string_pool.hpp"
 #include "type_system/data_type_kind.hpp"
+#include <format>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -41,9 +43,25 @@ namespace kepler {
             std::vector<ParameterData> parameter_data,
             SourceLocation source_location)
             : ASTNode(ASTNodeType::Prototype, std::move(source_location)),
+              linkage_type(linkage_type),
               return_type(return_type),
               identifier_id(identifier_id),
               parameter_data(std::move(parameter_data)) {}
     };
 
 }
+
+template <>
+struct std::formatter<kepler::Prototype::LinkageType> : std::formatter<std::string> {
+    auto format(const kepler::Prototype::LinkageType& linkage_type, std::format_context& ctx) const {
+        switch (linkage_type) {
+            case kepler::Prototype::LinkageType::Internal:
+                return std::formatter<std::string>::format("Internal", ctx);
+            case kepler::Prototype::LinkageType::External:
+                return std::formatter<std::string>::format("External", ctx);
+            default:
+                kepler::log::warning("Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type));
+                return std::formatter<std::string>::format(std::format("{}", static_cast<int>(linkage_type)), ctx);
+        }
+    }
+};
