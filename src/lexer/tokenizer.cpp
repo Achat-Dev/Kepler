@@ -43,7 +43,6 @@ namespace kepler {
             register_keyword("false", TokenType::Literal, false);
             register_keyword("void", TokenType::DataType, DataTypeKind::Void);
             register_keyword("bool", TokenType::DataType, DataTypeKind::Bool);
-            register_keyword("char", TokenType::DataType, DataTypeKind::Char);
             register_keyword("string", TokenType::DataType, DataTypeKind::String);
             register_keyword("i8", TokenType::DataType, DataTypeKind::Int8);
             register_keyword("i16", TokenType::DataType, DataTypeKind::Int16);

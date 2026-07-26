@@ -11,6 +11,7 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
+#include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <utility>
 
@@ -18,9 +19,10 @@ namespace kepler {
 
     struct IntegerLiteralExpression : Expression {
         int64_t value;
+        DataTypeKind target_type;
 
         IntegerLiteralExpression(int64_t value, SourceLocation source_location)
-            : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value(value) {}
+            : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value(value), target_type(DataTypeKind::Internal_Undetermined) {}
     };
 
 }

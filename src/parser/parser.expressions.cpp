@@ -246,7 +246,6 @@ namespace kepler {
         std::unique_ptr<Expression> expression = nullptr;
         switch (current_token->type) {
             case TokenType::Identifier:
-                // TODO: Check if the symbol behind the identifier has a type that can be negated
                 expression = parse_identifier();
                 break;
             case TokenType::BracketOpen:

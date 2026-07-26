@@ -49,6 +49,9 @@ namespace kepler {
         // Semantic analysis
         UndefinedSymbol = 500,
         SymbolAlreadyExists,
+        InvalidFunctionCall,
+        TypeMismatch,
+        UnsupportedMathematicalOperation,
 
         Unsupported = 999,
     };

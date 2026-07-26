@@ -31,6 +31,7 @@
 #include "type_system/data_type_kind.hpp"
 #include <format>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -45,22 +46,20 @@ namespace kepler {
     }
 
     void NameResolutionPass::collect_prototype_symbols() const {
-        for (const std::unique_ptr<ASTNode>& ast_node : ast.nodes) {
-            switch (ast_node->node_type) {
+        for (const std::unique_ptr<ASTNode>& node : ast.nodes) {
+            switch (node->node_type) {
                 case ASTNodeType::Extern: {
-                    const Extern* ext = static_cast<Extern*>(ast_node.get());
+                    const Extern* ext = static_cast<Extern*>(node.get());
                     create_prototype_symbol(ext->prototype.get());
                     break;
                 }
                 case ASTNodeType::Function: {
-                    const Function* function = static_cast<Function*>(ast_node.get());
+                    const Function* function = static_cast<Function*>(node.get());
                     create_prototype_symbol(function->prototype.get());
                     break;
                 }
                 default:
-                    KPL_ASSERT(false,
-                        "Behold: I somehow managed to create a malformed AST with a node of type '{}' on the top level <(˘ ˘ ˘)>",
-                        ast_node->node_type);
+                    KPL_ASSERT(false, "I have no idea how I am supposed to collect the prototype symbol of an ast node of type '{}'", node->node_type);
                     std::unreachable();
             }
         }
@@ -137,9 +136,7 @@ namespace kepler {
                 return {false};
 
             default:
-                KPL_ASSERT(false,
-                    "I have no idea how I am supposed to semantically analyse an ast node of type '{}'",
-                    node->node_type);
+                KPL_ASSERT(false, "I have no idea how I am supposed to semantically analyse an ast node of type '{}'", node->node_type);
                 std::unreachable();
         }
     }
@@ -251,10 +248,22 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
-        if (!symbol_table.lookup(expression->identifier_id)) {
+        const Symbol* prototype_symbol = symbol_table.lookup(expression->identifier_id);
+        if (prototype_symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
+            return {true};
+        }
+
+        const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
+        const int expected_parameter_count = prototype_symbol_data.parameter_data_types.size();
+        const int given_argument_count = expression->args.size();
+        if (expected_parameter_count != given_argument_count) {
+            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+            const std::string message = std::format("Function '{}' expects {} arguments, got {}", identifier, expected_parameter_count, given_argument_count);
+            diagnostic_sink.report(DiagnosticCode::InvalidFunctionCall, message, expression->source_location);
+            return {true};
         }
 
         bool poisoned = false;
@@ -266,9 +275,9 @@ namespace kepler {
         }
         if (poisoned) {
             expression->node_type = ASTNodeType::Poison;
+            return {true};
         }
-        // Return like this because the node can already poison itself if the call symbol doesn't exist
-        return {expression->node_type == ASTNodeType::Poison};
+        return {false};
     }
 
     Nrr NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {

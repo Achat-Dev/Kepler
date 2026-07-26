@@ -19,6 +19,7 @@
 #include <print>
 #include <string>
 #include <tuple>
+#include <utility>
 
 namespace kepler {
 
@@ -42,7 +43,7 @@ namespace kepler {
                 break;
         }
 
-        diagnostics.push_back({code, message, source_location});
+        diagnostics.emplace_back(code, std::move(message), source_location);
     }
 
     void DiagnosticSink::flush() {

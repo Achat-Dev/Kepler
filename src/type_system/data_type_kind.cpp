@@ -15,4 +15,8 @@ namespace kepler {
         return data_type == DataTypeKind::Int8 || data_type == DataTypeKind::Int16 || data_type == DataTypeKind::Int32 || data_type == DataTypeKind::Int64;
     }
 
+    bool is_floating_point_type(DataTypeKind data_type) {
+        return data_type == DataTypeKind::Float32 || data_type == DataTypeKind::Float64;
+    }
+
 }
