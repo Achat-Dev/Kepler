@@ -12,7 +12,7 @@
 #include "ast/prototype.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type.hpp"
 #include <cstdint>
 #include <variant>
 #include <vector>
@@ -21,14 +21,14 @@ namespace kepler {
 
     struct PrototypeSymbolData {
         Prototype::LinkageType linkage_type;
-        std::vector<DataTypeKind> parameter_data_types;
+        std::vector<Type*> parameter_types;
     };
 
     using SymbolData = std::variant<std::monostate, PrototypeSymbolData>;
 
     struct Symbol {
         ScopeId scope_id;
-        DataTypeKind data_type;
+        Type* type;
         StringId identifier_id;
         bool can_be_shadowed = false;
         uint32_t shadowed_symbol_index = 0;

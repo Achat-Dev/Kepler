@@ -9,20 +9,23 @@
 
 #pragma once
 
+#include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "string_pool.hpp"
+#include "type_system/type.hpp"
 #include <memory>
 #include <utility>
 
 namespace kepler {
 
     struct CastExpression : Expression {
-        DataTypeKind target_data_type;
+        StringId target_type_id;
+        Type* target_type;
         std::unique_ptr<Expression> expression;
 
-        CastExpression(DataTypeKind target_data_type, std::unique_ptr<Expression> expression, SourceLocation source_location)
-            : Expression(ASTNodeType::CastExpression, std::move(source_location)), target_data_type(target_data_type), expression(std::move(expression)) {}
+        CastExpression(StringId target_type_id, std::unique_ptr<Expression> expression, SourceLocation source_location)
+            : Expression(ASTNodeType::CastExpression, std::move(source_location)), target_type_id(target_type_id), target_type(nullptr), expression(std::move(expression)) {}
     };
 
 }

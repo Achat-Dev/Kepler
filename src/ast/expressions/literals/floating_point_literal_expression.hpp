@@ -11,17 +11,19 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type.hpp"
 #include <utility>
 
 namespace kepler {
 
     struct FloatingPointLiteralExpression : Expression {
         double value;
-        DataTypeKind target_type;
+        Type* target_type;
 
         FloatingPointLiteralExpression(double value, SourceLocation source_location)
-            : Expression(ASTNodeType::FloatingPointLiteralExpression, std::move(source_location)), value(value), target_type(DataTypeKind::Internal_Undetermined) {}
+            : Expression(ASTNodeType::FloatingPointLiteralExpression, std::move(source_location)),
+              value(value),
+              target_type(nullptr) {}
     };
 
 }

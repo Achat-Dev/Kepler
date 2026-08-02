@@ -15,6 +15,7 @@
 #include "lexer/token.hpp"
 #include "log.hpp"
 #include "string_pool.hpp"
+#include "type_system/type_table.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
@@ -30,7 +31,7 @@ namespace kepler {
 
     std::unordered_map<StringId, Token> Tokenizer::keyword_map;
 
-    Tokenizer::Tokenizer(const File& file, DiagnosticSink& diagnostic_sink) : file(file), diagnostic_sink(diagnostic_sink) {
+    Tokenizer::Tokenizer(const File& file, DiagnosticSink& diagnostic_sink, const TypeTable& type_table) : file(file), diagnostic_sink(diagnostic_sink) {
         if (keyword_map.empty()) {
             register_keyword("extern", TokenType::Extern);
             register_keyword("return", TokenType::Return);
@@ -41,15 +42,15 @@ namespace kepler {
             register_keyword("for", TokenType::For);
             register_keyword("true", TokenType::Literal, true);
             register_keyword("false", TokenType::Literal, false);
-            register_keyword("void", TokenType::DataType, DataTypeKind::Void);
-            register_keyword("bool", TokenType::DataType, DataTypeKind::Bool);
-            register_keyword("string", TokenType::DataType, DataTypeKind::String);
-            register_keyword("i8", TokenType::DataType, DataTypeKind::Int8);
-            register_keyword("i16", TokenType::DataType, DataTypeKind::Int16);
-            register_keyword("i32", TokenType::DataType, DataTypeKind::Int32);
-            register_keyword("i64", TokenType::DataType, DataTypeKind::Int64);
-            register_keyword("f32", TokenType::DataType, DataTypeKind::Float32);
-            register_keyword("f64", TokenType::DataType, DataTypeKind::Float64);
+            register_keyword("void", TokenType::Type, type_table.Builtins.void_type->name_id);
+            register_keyword("bool", TokenType::Type, type_table.Builtins.bool_type->name_id);
+            register_keyword("string", TokenType::Type, type_table.Builtins.string_type->name_id);
+            register_keyword("i8", TokenType::Type, type_table.Builtins.i8_type->name_id);
+            register_keyword("i16", TokenType::Type, type_table.Builtins.i16_type->name_id);
+            register_keyword("i32", TokenType::Type, type_table.Builtins.i32_type->name_id);
+            register_keyword("i64", TokenType::Type, type_table.Builtins.i64_type->name_id);
+            register_keyword("f32", TokenType::Type, type_table.Builtins.f32_type->name_id);
+            register_keyword("f64", TokenType::Type, type_table.Builtins.f64_type->name_id);
         }
     }
 

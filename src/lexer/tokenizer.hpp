@@ -13,6 +13,7 @@
 #include "io/file.hpp"
 #include "lexer/token.hpp"
 #include "string_pool.hpp"
+#include "type_system/type_table.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -23,7 +24,7 @@ namespace kepler {
 
     class Tokenizer {
     public:
-        Tokenizer(const File& file, DiagnosticSink& diagnostic_sink);
+        Tokenizer(const File& file, DiagnosticSink& diagnostic_sink, const TypeTable& type_table);
         std::vector<Token> tokenize();
 
     private:

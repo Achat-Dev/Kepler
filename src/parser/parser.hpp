@@ -28,7 +28,7 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type_table.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -38,17 +38,18 @@
 
 namespace kepler {
 
-    // TODO: Replace shared_ptr with raw pointers and an arena allocator once the architecture rework is finished
+    // TODO: Replace unique_ptr with raw pointers and an arena allocator once the architecture rework is finished
     class Parser {
     public:
-        Parser(const std::vector<Token>& tokens, const File& file, DiagnosticSink& diagnostic_sink)
-            : tokens(tokens), file(file), diagnostic_sink(diagnostic_sink), current_token(&tokens[0]) {}
+        Parser(const std::vector<Token>& tokens, const File& file, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
+            : tokens(tokens), file(file), diagnostic_sink(diagnostic_sink), type_table(type_table), current_token(&tokens[0]) {}
         AbstractSyntaxTree parse();
 
     private:
         const std::vector<Token>& tokens;
         const File& file;
         DiagnosticSink& diagnostic_sink;
+        const TypeTable& type_table;
         const Token* current_token;
         size_t current_token_index = 0;
 
@@ -60,15 +61,15 @@ namespace kepler {
         // Top level
         std::unique_ptr<Extern> parse_extern();
         std::unique_ptr<Prototype> parse_prototype(Prototype::LinkageType linkage_type);
-        std::unique_ptr<ASTNode> parse_top_level_data_type();
-        std::unique_ptr<Function> parse_function(DataTypeKind return_type);
+        std::unique_ptr<ASTNode> parse_top_level_type();
+        std::unique_ptr<Function> parse_function();
 
         // Main body nodes
         std::unique_ptr<ASTNode> parse_statement();
         std::unique_ptr<Expression> parse_expression();
 
         // Expressions
-        std::unique_ptr<Expression> parse_binary_expression_rhs(std::unique_ptr<Expression> lhs_expression, int expression_precedence);
+        std::unique_ptr<Expression> parse_binary_expression_rhs(std::unique_ptr<Expression> lhs, int expression_precedence);
         std::unique_ptr<Expression> parse_primary();
         std::unique_ptr<Expression> parse_literal();
         std::unique_ptr<Expression> parse_parenthesis();
@@ -82,7 +83,7 @@ namespace kepler {
         std::unique_ptr<IfStatement> parse_if();
         std::unique_ptr<ForStatement> parse_for();
         std::unique_ptr<ForStatement> create_for_statement(StringId identifier_id,
-            const Token* variable_data_type_token,
+            const Token* variable_type_token,
             std::unique_ptr<Expression> start_value,
             std::unique_ptr<Expression> end_value,
             std::unique_ptr<Expression> step_value,

@@ -9,15 +9,15 @@
 
 #pragma once
 
+#include "assert.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
-#include "log.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
 #include <cstdint>
 #include <format>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 
 namespace kepler {
@@ -34,7 +34,7 @@ namespace kepler {
 
         // Primary
         Identifier,
-        DataType,
+        Type,
         Operator,
         Literal,
 
@@ -51,10 +51,9 @@ namespace kepler {
     using TokenData = std::variant<std::monostate,
         double,        // Floating point literals
         int64_t,       // Integer literals
-        StringId,      // String literals & identifiers
+        StringId,      // String literals, types & identifiers
         bool,          // Boolean literals
-        OperatorType,  // Operators
-        DataTypeKind>; // Data types
+        OperatorType>; // Operators
 
     struct Token {
         TokenType type;
@@ -102,12 +101,12 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("operator", ctx);
             case kepler::TokenType::Identifier:
                 return std::formatter<std::string>::format("identifier", ctx);
-            case kepler::TokenType::DataType:
-                return std::formatter<std::string>::format("datatype", ctx);
-            default:
-                kepler::log::warning("Missing format implementation for token type '{}'", static_cast<int>(token_type));
-                return std::formatter<std::string>::format(std::format("{}", static_cast<int>(token_type)), ctx);
+            case kepler::TokenType::Type:
+                return std::formatter<std::string>::format("type", ctx);
         }
+
+        KPL_ASSERT(false, "Missing format implementation for token type '{}'", static_cast<int>(token_type));
+        std::unreachable();
     }
 };
 
@@ -151,11 +150,14 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
 
                 return std::formatter<std::string>::format(std::format("{}", format), ctx);
             }
-            case kepler::TokenType::DataType:
-                return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::DataTypeKind>(token.data)), ctx);
-            default:
-                kepler::log::warning("Missing format implementation for token of type '{}'", static_cast<int>(token.type));
-                return std::formatter<std::string>::format(std::format("{}", token.type), ctx);
+            case kepler::TokenType::Type: {
+                const kepler::StringId type_id = std::get<kepler::StringId>(token.data);
+                const std::string_view type_name = kepler::StringPool::get().lookup(type_id);
+                return std::formatter<std::string>::format(std::format("{}({})", token.type, type_name), ctx);
+            }
         }
+
+        KPL_ASSERT(false, "Missing format implementation for token of type '{}'", static_cast<int>(token.type));
+        std::unreachable();
     }
 };

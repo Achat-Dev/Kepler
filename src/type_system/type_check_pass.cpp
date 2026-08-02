@@ -13,6 +13,7 @@
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
 #include "ast/expressions/cast_expression.hpp"
+#include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
 #include "ast/expressions/literals/integer_literal_expression.hpp"
@@ -30,7 +31,8 @@
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type.hpp"
+#include "type_system/type_table.hpp"
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -63,34 +65,34 @@ namespace kepler {
             case OperatorType::GreaterEquals:
                 return true;
         }
+
+        KPL_ASSERT(false, "Missing implementation if operator type is boolean operator for operator type '{}'", static_cast<int>(type));
+        std::unreachable();
     }
 
     Tcr TypeCheckPass::typecheck_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
         Tcr::Status result_status = Tcr::Status::RequestFulfilled;
         for (const std::unique_ptr<ASTNode>& node : nodes) {
-            const Tcr typecheck_result = typecheck_node(node.get(), DataTypeKind::Internal_Undetermined);
+            const Tcr typecheck_result = typecheck_node(node.get(), *type_table.Builtins.unknown_type);
             if (typecheck_result.is_poisoned()) {
                 result_status = Tcr::Status::PoisonedWithDiagnostic;
             }
         }
-        return {.status = result_status, .data_type = DataTypeKind::Internal_Undetermined};
+        return {.status = result_status, .type = nullptr};
     }
 
-    Tcr TypeCheckPass::typecheck_node(ASTNode* node, DataTypeKind requested_data_type) {
-        if (node == nullptr) {
-            return {.status = Tcr::Status::RequestFulfilled, .data_type = DataTypeKind::Internal_Undetermined};
-        }
-
+    Tcr TypeCheckPass::typecheck_node(ASTNode* node, Type& requested_type) {
+        KPL_ASSERT(node != nullptr, "How am I supposed to typecheck a nullptr node? Whose idea was that?");
         if (node->node_type == ASTNodeType::Poison) {
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
 
         switch (node->node_type) {
             case ASTNodeType::Extern:
-                return {.status = Tcr::Status::RequestFulfilled, .data_type = DataTypeKind::Internal_Undetermined};
+                return {.status = Tcr::Status::RequestFulfilled, .type = nullptr};
             case ASTNodeType::Function:
-                typecheck_function(static_cast<const Function*>(node));
-                return {.status = Tcr::Status::RequestFulfilled, .data_type = DataTypeKind::Internal_Undetermined};
+                typecheck_function(static_cast<Function*>(node));
+                return {.status = Tcr::Status::RequestFulfilled, .type = nullptr};
             case ASTNodeType::AssignmentStatement:
                 return typecheck_assignment_statement(static_cast<AssignmentStatement*>(node));
             case ASTNodeType::ForStatement:
@@ -102,278 +104,393 @@ namespace kepler {
             case ASTNodeType::VariableDefinitionStatement:
                 return typecheck_variable_definition_statement(static_cast<VariableDefinitionStatement*>(node));
             case ASTNodeType::BooleanLiteralExpression:
-                return typecheck_boolean_literal_expression(static_cast<BooleanLiteralExpression*>(node), requested_data_type);
+                return typecheck_boolean_literal_expression(static_cast<BooleanLiteralExpression*>(node), requested_type);
             case ASTNodeType::FloatingPointLiteralExpression:
-                return typecheck_floating_point_literal_expression(static_cast<FloatingPointLiteralExpression*>(node), requested_data_type);
+                return typecheck_floating_point_literal_expression(static_cast<FloatingPointLiteralExpression*>(node), requested_type);
             case ASTNodeType::IntegerLiteralExpression:
-                return typecheck_integer_literal_expression(static_cast<IntegerLiteralExpression*>(node), requested_data_type);
+                return typecheck_integer_literal_expression(static_cast<IntegerLiteralExpression*>(node), requested_type);
             case ASTNodeType::StringLiteralExpression:
-                return typecheck_string_literal_expression(static_cast<StringLiteralExpression*>(node), requested_data_type);
+                return typecheck_string_literal_expression(static_cast<StringLiteralExpression*>(node), requested_type);
             case ASTNodeType::BinaryExpression:
-                return typecheck_binary_expression(static_cast<BinaryExpression*>(node), requested_data_type);
+                return typecheck_binary_expression(static_cast<BinaryExpression*>(node), requested_type);
             case ASTNodeType::CallExpression:
-                return typecheck_call_expression(static_cast<CallExpression*>(node), requested_data_type);
+                return typecheck_call_expression(static_cast<CallExpression*>(node), requested_type);
             case ASTNodeType::CastExpression:
-                return typecheck_cast_expression(static_cast<CastExpression*>(node), requested_data_type);
+                return typecheck_cast_expression(static_cast<CastExpression*>(node), requested_type);
             case ASTNodeType::MathematicalNegationExpression:
-                return typecheck_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node), requested_data_type);
+                return typecheck_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node), requested_type);
             case ASTNodeType::VariableExpression:
-                return typecheck_variable_expression(static_cast<VariableExpression*>(node), requested_data_type);
+                return typecheck_variable_expression(static_cast<VariableExpression*>(node), requested_type);
             default:
                 KPL_ASSERT(false, "I have no idea how I am supposed to typecheck an ast node of type '{}'", node->node_type);
                 std::unreachable();
         }
     }
 
-    void TypeCheckPass::typecheck_function(const Function* function) {
+    void TypeCheckPass::typecheck_function(Function* function) {
         current_function_return_type = function->prototype->return_type;
+        // Typecheck the body without poisoning the function so that the unpoisoned part of the body can still be accessed by later passes
         typecheck_nodes(function->body);
-        current_function_return_type = DataTypeKind::Internal_Undetermined;
+        current_function_return_type = nullptr;
     }
 
     Tcr TypeCheckPass::typecheck_assignment_statement(AssignmentStatement* statement) {
         const Symbol* variable_symbol = symbol_table.lookup(statement->variable_expression->identifier_id);
-        const Tcr typecheck_result = typecheck_node(statement->value_expression.get(), variable_symbol->data_type);
+        const std::string_view variable_name = StringPool::get().lookup(statement->variable_expression->identifier_id);
+        KPL_ASSERT(variable_symbol != nullptr,
+            "\"The name resolution pass catches all undefined symbols\" my ass, here I am discovering that the symbol '{}' is undefined while type checking",
+            variable_name);
+        KPL_ASSERT(variable_symbol->type != nullptr, "Who forgot to assign a type to the symbol '{}'?", variable_name);
+        const Tcr typecheck_result = typecheck_node(statement->value_expression.get(), *variable_symbol->type);
         switch (typecheck_result.status) {
             case Tcr::Status::PoisonedWithDiagnostic:
                 statement->node_type = ASTNodeType::Poison;
-                return {.status = Tcr::Status::PosionedWithoutDiagnostic, .data_type = typecheck_result.data_type};
-            case Tcr::Status::PosionedWithoutDiagnostic: {
+                return typecheck_result;
+            case Tcr::Status::PoisonedWithoutDiagnostic: {
                 const std::string message = std::format("Type mismatch: cannot assign a value of type '{}' to a variable of type '{}'",
-                    typecheck_result.data_type, variable_symbol->data_type);
+                    typecheck_result.type,
+                    variable_symbol->type);
                 diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->source_location);
                 statement->node_type = ASTNodeType::Poison;
-                return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = typecheck_result.data_type};
+                return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
             }
             case Tcr::Status::RequestFulfilled:
-                return {.status = Tcr::Status::RequestFulfilled, .data_type = variable_symbol->data_type};
+                return {.status = Tcr::Status::RequestFulfilled, .type = variable_symbol->type};
         }
+
+        KPL_ASSERT(false, "");
+        std::unreachable();
     }
 
     Tcr TypeCheckPass::typecheck_for_statement(ForStatement* statement) {
-        const DataTypeKind variable_data_type = statement->loop_variable_definition->data_type;
-        if (!is_integer_type(variable_data_type)) {
-            const std::string message = std::format("Loop variable of a for statement has to be an integer type, got '{}'",
-                statement->loop_variable_definition->data_type);
+        Type* variable_type = statement->loop_variable_definition->type;
+        KPL_ASSERT(variable_type != nullptr, "Who forgot to assign a value to the type of the loop variable definition of a for loop?");
+        if (!is_integer_type(variable_type->type_kind)) {
+            const std::string message = std::format("Loop variable of a for statement has to be an integer type, got '{}'", variable_type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->loop_variable_definition->source_location);
-            statement->node_type = ASTNodeType::Poison;
-            typecheck_nodes(statement->body);
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+            return typecheck_body_and_poison_for_statement(statement);
         }
 
         const Tcr variable_tcr = typecheck_variable_definition_statement(statement->loop_variable_definition.get());
-        const Tcr end_tcr = typecheck_node(statement->end_value.get(), variable_data_type);
-        if (end_tcr.status == Tcr::Status::PosionedWithoutDiagnostic) {
-            const std::string message = std::format("Type mismatch: expected '{}', got '{}'", variable_data_type, end_tcr.data_type);
-            diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->end_value->source_location);
-            statement->node_type = ASTNodeType::Poison;
-            typecheck_nodes(statement->body);
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+        if (variable_tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+            return typecheck_body_and_poison_for_statement(statement);
         }
 
-        const Tcr step_tcr = typecheck_node(statement->step_value.get(), variable_data_type);
-        if (step_tcr.status == Tcr::Status::PosionedWithoutDiagnostic) {
-            const std::string message = std::format("Type mismatch: expected '{}', got '{}'", variable_data_type, step_tcr.data_type);
+        const Tcr end_tcr = typecheck_node(statement->end_value.get(), *variable_type);
+        if (end_tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+            return typecheck_body_and_poison_for_statement(statement);
+        } else if (end_tcr.status == Tcr::Status::PoisonedWithoutDiagnostic) {
+            const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", variable_type, end_tcr.type);
+            diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->end_value->source_location);
+            return typecheck_body_and_poison_for_statement(statement);
+        }
+
+        // Default value for the typecheck result of the step_value in case the step doesn't exist
+        Tcr step_tcr{.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
+        if (statement->step_value != nullptr) {
+            step_tcr = typecheck_node(statement->step_value.get(), *variable_type);
+        }
+        if (step_tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+            return typecheck_body_and_poison_for_statement(statement);
+        }
+        if (step_tcr.status == Tcr::Status::PoisonedWithoutDiagnostic) {
+            const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", variable_type, step_tcr.type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->step_value->source_location);
-            statement->node_type = ASTNodeType::Poison;
-            typecheck_nodes(statement->body);
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+            return typecheck_body_and_poison_for_statement(statement);
         }
 
         const Tcr body_tcr = typecheck_nodes(statement->body);
         if (variable_tcr.is_poisoned() || end_tcr.is_poisoned() || step_tcr.is_poisoned() || body_tcr.is_poisoned()) {
             statement->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
-        return {.status = Tcr::Status::RequestFulfilled, .data_type = DataTypeKind::Internal_Undetermined};
+        return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
+    }
+
+    Tcr TypeCheckPass::typecheck_body_and_poison_for_statement(ForStatement* statement) {
+        statement->node_type = ASTNodeType::Poison;
+        typecheck_nodes(statement->body);
+        return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
     }
 
     Tcr TypeCheckPass::typecheck_if_statement(IfStatement* statement) {
-        const Tcr condition_tcr = typecheck_node(statement->condition.get(), DataTypeKind::Bool);
-        if (condition_tcr.status == Tcr::Status::PosionedWithoutDiagnostic) {
-            const std::string message = std::format("Condition of an if statement needs to be of type bool, got '{}'", condition_tcr.data_type);
+        const Tcr condition_tcr = typecheck_node(statement->condition.get(), *type_table.Builtins.bool_type);
+        if (condition_tcr.status == Tcr::Status::PoisonedWithoutDiagnostic) {
+            const std::string message = std::format("Condition of an if statement needs to be of type bool, got '{}'", condition_tcr.type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->condition->source_location);
-            statement->node_type = ASTNodeType::Poison;
-            typecheck_nodes(statement->if_body);
-            typecheck_nodes(statement->else_body);
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
         }
 
         const Tcr if_body_tcr = typecheck_nodes(statement->if_body);
         const Tcr else_body_tcr = typecheck_nodes(statement->else_body);
         if (condition_tcr.is_poisoned() || if_body_tcr.is_poisoned() || else_body_tcr.is_poisoned()) {
             statement->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
-        return {.status = Tcr::Status::RequestFulfilled, .data_type = DataTypeKind::Internal_Undetermined};
+        return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
     }
 
     Tcr TypeCheckPass::typecheck_return_statement(ReturnStatement* statement) {
-        KPL_ASSERT(current_function_return_type != DataTypeKind::Internal_Undetermined, "Someone - and I am not going to say who (maybe because it was myself) - forgot to store the return type of the currently typechecked function. And maybe, but just maybe, that's the reason why I'm currently shitting myself trying to parse a return statement without knowing the return type of the function.");
+        KPL_ASSERT(current_function_return_type != nullptr, "Someone - and I am not going to say who (maybe because it was myself) - forgot to store the return type of the currently typechecked function. And maybe, but just maybe, that's the reason why I'm currently shitting myself trying to parse a return statement without knowing the return type of the function.");
+        KPL_ASSERT(current_function_return_type != type_table.Builtins.unknown_type, "Who came up with the idea that a function wants to return an unknown type? (spoiler warning: it was me)");
 
-        if (current_function_return_type == DataTypeKind::Void && statement->expression != nullptr) {
+        if (current_function_return_type == type_table.Builtins.void_type && statement->expression != nullptr) {
             diagnostic_sink.report(DiagnosticCode::InvalidReturn, "Cannot return a value from void function", statement->source_location);
             statement->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Void};
-        } else if (current_function_return_type != DataTypeKind::Void && statement->expression == nullptr) {
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+        } else if (current_function_return_type != type_table.Builtins.void_type && statement->expression == nullptr) {
             diagnostic_sink.report(DiagnosticCode::InvalidReturn,
                 "Expected expression after 'return' (non-void function needs a return value)",
                 statement->source_location);
             statement->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = DataTypeKind::Void};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
 
-        Tcr typecheck_result = typecheck_node(statement->expression.get(), current_function_return_type);
+        Tcr typecheck_result = typecheck_node(statement->expression.get(), *current_function_return_type);
         switch (typecheck_result.status) {
             case Tcr::Status::PoisonedWithDiagnostic:
                 statement->node_type = ASTNodeType::Poison;
-                return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = typecheck_result.data_type};
-            case Tcr::Status::PosionedWithoutDiagnostic: {
-                const std::string message = std::format("Type mismatch: cannot return a value of type '{}' from a function with a return type of '{}'", typecheck_result.data_type, current_function_return_type);
+                return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            case Tcr::Status::PoisonedWithoutDiagnostic: {
+                const std::string message = std::format("Type mismatch: cannot return a value of type '{}' from a function with a return type of '{}'", typecheck_result.type, current_function_return_type);
                 diagnostic_sink.report(DiagnosticCode::TypeMismatch, message, statement->source_location);
                 statement->node_type = ASTNodeType::Poison;
-                return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = typecheck_result.data_type};
+                return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             }
             case Tcr::Status::RequestFulfilled:
-                return {.status = Tcr::Status::RequestFulfilled, .data_type = current_function_return_type};
+                return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
         }
+
+        KPL_ASSERT(false, "");
+        std::unreachable();
     }
 
     Tcr TypeCheckPass::typecheck_variable_definition_statement(VariableDefinitionStatement* statement) {
+        KPL_ASSERT(statement->type != nullptr, "Variable definition statement doesn't have a type");
         const Tcr typecheck_result = typecheck_assignment_statement(statement->assignment_statement.get());
-        KPL_ASSERT(typecheck_result.status != Tcr::Status::PosionedWithoutDiagnostic,
-            "Assignment statement of a variable definition has to report a disgnostic if it poisons itself");
+        KPL_ASSERT(typecheck_result.status != Tcr::Status::PoisonedWithoutDiagnostic,
+            "Assignment statement of a variable definition has to report a diagnostic if it poisons itself");
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
             statement->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = typecheck_result.data_type};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
         }
-        return {.status = Tcr::Status::RequestFulfilled, .data_type = statement->data_type};
+        return {.status = Tcr::Status::RequestFulfilled, .type = statement->type};
     }
 
-    Tcr TypeCheckPass::typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, DataTypeKind requested_data_type) const {
-        switch (requested_data_type) {
-            case DataTypeKind::Bool:
-            case DataTypeKind::Internal_Undetermined:
-                return {.status = Tcr::Status::RequestFulfilled, .data_type = DataTypeKind::Bool};
-            default:
+    Tcr TypeCheckPass::typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, const Type& requested_type) const {
+        if (&requested_type == type_table.Builtins.bool_type || &requested_type == type_table.Builtins.unknown_type) {
+            return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.bool_type};
+        } else {
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.bool_type};
+        }
+    }
+
+    Tcr TypeCheckPass::typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, Type& requested_type) const {
+        if (is_floating_point_type(requested_type.type_kind)) {
+            expression->target_type = &requested_type;
+            return {.status = Tcr::Status::RequestFulfilled, .type = &requested_type};
+        } else if (&requested_type == type_table.Builtins.unknown_type) {
+            expression->target_type = type_table.Builtins.f32_type;
+            return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.f32_type};
+        } else {
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.unknown_type};
+        }
+    }
+
+    Tcr TypeCheckPass::typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type& requested_type) const {
+        if (is_integer_type(requested_type.type_kind) || is_floating_point_type(requested_type.type_kind)) {
+            expression->target_type = &requested_type;
+            return {.status = Tcr::Status::RequestFulfilled, .type = &requested_type};
+        } else if (&requested_type == type_table.Builtins.unknown_type) {
+            expression->target_type = type_table.Builtins.i32_type;
+            return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.i32_type};
+        } else {
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.unknown_type};
+        }
+    }
+
+    Tcr TypeCheckPass::typecheck_string_literal_expression(StringLiteralExpression* expression, const Type& requested_type) const {
+        if (&requested_type == type_table.Builtins.string_type || &requested_type == type_table.Builtins.unknown_type) {
+            return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.string_type};
+        } else {
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.string_type};
+        }
+    }
+
+    Tcr TypeCheckPass::typecheck_binary_expression(BinaryExpression* expression, Type& requested_type) {
+        Tcr lhs_tcr;
+        Tcr rhs_tcr;
+
+        if (&requested_type == type_table.Builtins.bool_type) {
+            if (!is_boolean_operator(expression->operator_type)) {
+                const std::string message = std::format("Type mismatch: Binary operator '{}' doesn't produce a boolean value", expression->operator_type);
+                diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->source_location);
                 expression->node_type = ASTNodeType::Poison;
-                return {.status = Tcr::Status::PosionedWithoutDiagnostic, .data_type = DataTypeKind::Bool};
-        }
-    }
+                return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
 
-    Tcr TypeCheckPass::typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, DataTypeKind requested_data_type) const {
-        if (is_floating_point_type(requested_data_type)) {
-            expression->target_type = requested_data_type;
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .data_type = requested_data_type};
-        } else if (requested_data_type == DataTypeKind::Internal_Undetermined) {
-            expression->target_type = DataTypeKind::Float32;
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .data_type = DataTypeKind::Float32};
+            // Pass unknown as the requested type so that the expressions don't try to produce a boolean individually
+            lhs_tcr = typecheck_node(expression->lhs.get(), *type_table.Builtins.unknown_type);
+            KPL_ASSERT(lhs_tcr.status != Tcr::Status::PoisonedWithoutDiagnostic, "I don't know how, I don't know why, but a lhs expression failed to procude a type when 'unknown' was requested");
+            if (lhs_tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
+
+            rhs_tcr = typecheck_node(expression->rhs.get(), *type_table.Builtins.unknown_type);
+            KPL_ASSERT(rhs_tcr.status != Tcr::Status::PoisonedWithoutDiagnostic, "I don't know how, I don't know why, but a rhs expression failed to procude a type when 'unknown' was requested");
+            if (rhs_tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
         } else {
-            expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PosionedWithoutDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+            lhs_tcr = typecheck_binary_expression_side(expression, expression->lhs.get(), requested_type);
+            KPL_ASSERT(lhs_tcr.status != Tcr::Status::PoisonedWithoutDiagnostic, "Lhs of binary expression can't be poisoned without reporting a diagnostic");
+            if (lhs_tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+                return lhs_tcr;
+            }
+
+            rhs_tcr = typecheck_binary_expression_side(expression, expression->rhs.get(), requested_type);
+            KPL_ASSERT(rhs_tcr.status != Tcr::Status::PoisonedWithoutDiagnostic, "Rhs of binary expression can't be poisoned without reporting a diagnostic");
+            if (rhs_tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+                return rhs_tcr;
+            }
         }
-    }
 
-    Tcr TypeCheckPass::typecheck_integer_literal_expression(IntegerLiteralExpression* expression, DataTypeKind requested_data_type) const {
-        if (is_integer_type(requested_data_type)) {
-            expression->target_type = requested_data_type;
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .data_type = requested_data_type};
-        } else if (requested_data_type == DataTypeKind::Internal_Undetermined) {
-            expression->target_type = DataTypeKind::Int32;
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .data_type = DataTypeKind::Int32};
-        } else {
+        const StringId operator_name_id = get_operator_name_id(expression->operator_type);
+        if (!lhs_tcr.type->find_method(operator_name_id, {rhs_tcr.type})) {
+            const std::string message = std::format("No implemention of binary operator '{}' between types '{}' and '{}'",
+                expression->operator_type,
+                lhs_tcr.type,
+                rhs_tcr.type);
+            diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PosionedWithoutDiagnostic, .data_type = DataTypeKind::Internal_Undetermined};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
+
+        return {.status = Tcr::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
     }
 
-    Tcr TypeCheckPass::typecheck_string_literal_expression(StringLiteralExpression* expression, DataTypeKind requested_data_type) const {
-        if (requested_data_type == DataTypeKind::String) {
-            return {.status = Tcr::Status::RequestFulfilled, .data_type = DataTypeKind::String};
-        } else {
-            expression->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PosionedWithoutDiagnostic, .data_type = DataTypeKind::String};
+    Tcr TypeCheckPass::typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, Type& requested_type) {
+        const Tcr tcr = typecheck_node(side_expression, requested_type);
+        if (tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+            binary_expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+        } else if (tcr.status == Tcr::Status::PoisonedWithoutDiagnostic) {
+            const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", requested_type, tcr.type);
+            diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), side_expression->source_location);
+            binary_expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
+        return {.status = Tcr::Status::RequestFulfilled, .type = &requested_type};
     }
 
-    Tcr TypeCheckPass::typecheck_binary_expression(BinaryExpression* expression, DataTypeKind requested_data_type) {
-    }
-
-    Tcr TypeCheckPass::typecheck_call_expression(CallExpression* expression, DataTypeKind requested_data_type) {
+    Tcr TypeCheckPass::typecheck_call_expression(CallExpression* expression, const Type& requested_type) {
         const Symbol* prototype_symbol = symbol_table.lookup(expression->identifier_id);
-        if (requested_data_type != prototype_symbol->data_type && requested_data_type != DataTypeKind::Internal_Undetermined) {
+        KPL_ASSERT(prototype_symbol != nullptr,
+            "The fact that the prototype a call expression is trying to call doesn't exist should have been caught during name resolution");
+        if (&requested_type != prototype_symbol->type && &requested_type != type_table.Builtins.unknown_type) {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PosionedWithoutDiagnostic, .data_type = prototype_symbol->data_type};
+            return {.status = Tcr::Status::PoisonedWithoutDiagnostic, .type = prototype_symbol->type};
         }
 
-        const std::vector<DataTypeKind>& parameter_data_types = std::get<PrototypeSymbolData>(prototype_symbol->data).parameter_data_types;
-        KPL_ASSERT(parameter_data_types.size() == expression->args.size(),
-            "Argument count mismatch during typechecking, this should have been caught during semantic analysis");
+        const std::vector<Type*>& parameter_types = std::get<PrototypeSymbolData>(prototype_symbol->data).parameter_types;
+        KPL_ASSERT(parameter_types.size() == expression->args.size(),
+            "Argument count mismatch during typechecking, this should have been caught during name resolution");
 
-        for (size_t i = 0; i < parameter_data_types.size(); i++) {
-            const Tcr typecheck_result = typecheck_node(expression->args[i].get(), parameter_data_types[i]);
+        for (size_t i = 0; i < parameter_types.size(); i++) {
+            const Tcr typecheck_result = typecheck_node(expression->args[i].get(), *parameter_types[i]);
             switch (typecheck_result.status) {
                 case Tcr::Status::PoisonedWithDiagnostic:
                     expression->node_type = ASTNodeType::Poison;
-                    return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = prototype_symbol->data_type};
-                case Tcr::Status::PosionedWithoutDiagnostic: {
+                    return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
+                case Tcr::Status::PoisonedWithoutDiagnostic: {
                     // Nodes only poison themselves without diagnostics if they aren't able to produce the requested data type, hence the assert
-                    KPL_ASSERT(typecheck_result.data_type != parameter_data_types[i],
+                    KPL_ASSERT(typecheck_result.type != parameter_types[i],
                         "For some reason an argument in a call expression poisoned itself without reporting a diagnostic while producing the requested data type");
 
                     const std::string_view identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
                     const std::string message = std::format("Type mismatch: Parameter no. {} of function '{}' expects type '{}', but the given argument is of type '{}'",
                         (i + 1),
                         identifier,
-                        parameter_data_types[i],
-                        typecheck_result.data_type);
+                        parameter_types[i],
+                        typecheck_result.type);
                     diagnostic_sink.report(DiagnosticCode::TypeMismatch, message, expression->args[i]->source_location);
                     expression->node_type = ASTNodeType::Poison;
-                    return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = prototype_symbol->data_type};
+                    return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
                 }
                 default:
                     break;
             }
         }
-        return {.status = Tcr::Status::RequestFulfilled, .data_type = prototype_symbol->data_type};
+        return {.status = Tcr::Status::RequestFulfilled, .type = prototype_symbol->type};
     }
 
-    Tcr TypeCheckPass::typecheck_cast_expression(CastExpression* expression, DataTypeKind requested_data_type) const {
+    Tcr TypeCheckPass::typecheck_cast_expression(CastExpression* expression, const Type& requested_type) {
+        if (&requested_type != type_table.Builtins.unknown_type && &requested_type != expression->target_type) {
+            const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", requested_type, expression->target_type);
+            diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+        }
+
+        const Tcr tcr = typecheck_node(expression->expression.get(), *type_table.Builtins.unknown_type);
+        KPL_ASSERT(tcr.status != Tcr::Status::PoisonedWithoutDiagnostic, "Expression of a cast failed to procude a type when 'unknown' was requested, smh");
+        if (tcr.status == Tcr::Status::PoisonedWithDiagnostic) {
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+        }
+
+        if (!expression->target_type->find_method(StringPool::get().store("new"), {tcr.type})) {
+            const std::string message = std::format("Type '{}' doesn't implement cast to type '{}'", expression->target_type, tcr.type);
+            diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+        }
+
+        if (expression->target_type == tcr.type) {
+            const std::string message = std::format("Redundant cast of type '{}' to itself (the cast will be discarded)", tcr.type);
+            diagnostic_sink.report(DiagnosticCode::RedundantCast, std::move(message), expression->source_location);
+        }
+
+        return {.status = Tcr::Status::RequestFulfilled, .type = expression->target_type};
     }
 
-    Tcr TypeCheckPass::typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, DataTypeKind requested_data_type) {
-        Tcr typecheck_result = typecheck_node(expression->expression.get(), requested_data_type);
+    Tcr TypeCheckPass::typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, Type& requested_type) {
+        Tcr typecheck_result = typecheck_node(expression->expression.get(), requested_type);
         if (typecheck_result.status == Tcr::Status::PoisonedWithDiagnostic) {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = typecheck_result.data_type};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
         }
 
         // The data type of the expression to negate maybe doesn't support mathematical negation
         // This can be the case either if the typecheck fulfills the requested data type or the typechecks fails but doesn't report a diagnostic
-        if (!is_integer_type(typecheck_result.data_type) && !is_floating_point_type(typecheck_result.data_type)) {
-            const std::string message = std::format("Cannot mathematically negate an expression of type '{}'", typecheck_result.data_type);
+        if (typecheck_result.type->find_method(StringPool::get().store("__math_negate"), {typecheck_result.type})) {
+            const std::string message = std::format("Type '{}' doesn't support unary operator '-'", typecheck_result.type);
             diagnostic_sink.report(DiagnosticCode::InvalidMathematicalNegation, message, expression->source_location);
             expression->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PoisonedWithDiagnostic, .data_type = typecheck_result.data_type};
+            return {.status = Tcr::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
         }
 
         // If the data type supports mathematical negation but the typecheck didn't report a diagnostic we have to propagate that
         // because this ast node doesn't know a proper diagnostic
-        if (typecheck_result.status == Tcr::Status::PosionedWithoutDiagnostic) {
+        if (typecheck_result.status == Tcr::Status::PoisonedWithoutDiagnostic) {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PosionedWithoutDiagnostic, .data_type = typecheck_result.data_type};
+            return {.status = Tcr::Status::PoisonedWithoutDiagnostic, .type = typecheck_result.type};
         }
-        return {.status = Tcr::Status::RequestFulfilled, .data_type = typecheck_result.data_type};
+        return {.status = Tcr::Status::RequestFulfilled, .type = typecheck_result.type};
     }
 
-    Tcr TypeCheckPass::typecheck_variable_expression(VariableExpression* expression, DataTypeKind requested_data_type) const {
+    Tcr TypeCheckPass::typecheck_variable_expression(VariableExpression* expression, const Type& requested_type) const {
         const Symbol* symbol = symbol_table.lookup(expression->identifier_id);
-        if (requested_data_type == symbol->data_type || requested_data_type == DataTypeKind::Internal_Undetermined) {
-            return {.status = Tcr::Status::RequestFulfilled, .data_type = symbol->data_type};
+        if (&requested_type == symbol->type || &requested_type == type_table.Builtins.unknown_type) {
+            return {.status = Tcr::Status::RequestFulfilled, .type = symbol->type};
         } else {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = Tcr::Status::PosionedWithoutDiagnostic, .data_type = symbol->data_type};
+            return {.status = Tcr::Status::PoisonedWithoutDiagnostic, .type = symbol->type};
         }
     }
-
 }

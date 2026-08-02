@@ -24,7 +24,7 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type_table.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -73,28 +73,28 @@ namespace kepler {
         return expression;
     }
 
-    std::unique_ptr<Expression> Parser::parse_binary_expression_rhs(std::unique_ptr<Expression> lhs_expression, int expression_precedence) {
+    std::unique_ptr<Expression> Parser::parse_binary_expression_rhs(std::unique_ptr<Expression> lhs, int expression_precedence) {
         while (true) {
             if (current_token->type != TokenType::Operator) {
-                return lhs_expression;
+                return lhs;
             }
 
             const SourceLocation& operator_source_location = current_token->source_location;
             const OperatorType current_operator_type = std::get<OperatorType>(current_token->data);
             const int current_operator_precedence = get_operator_precedence(current_operator_type);
             if (current_operator_precedence < expression_precedence) {
-                return lhs_expression;
+                return lhs;
             }
 
             next_token(true); // eat binary operator
 
             // Do a bit of lookahead for better diagnostics
             const size_t continuation_token_index = current_token_index;
-            if (current_token->type == TokenType::DataType) {
+            if (current_token->type == TokenType::Type) {
                 next_token(true);
                 if (current_token->type != TokenType::BracketOpen) {
                     diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                        "Expected '(' (data types can only be used for casting inside of a binary expression)",
+                        "Expected '(' (types can only be used for casting inside of a binary expression)",
                         current_token->source_location);
                     recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                     return nullptr;
@@ -102,30 +102,30 @@ namespace kepler {
                 jump_to_token(continuation_token_index);
             }
 
-            std::unique_ptr<Expression> rhs_expression = parse_primary();
-            if (!rhs_expression) {
+            std::unique_ptr<Expression> rhs = parse_primary();
+            if (!rhs) {
                 return nullptr;
             }
 
             if (current_token->type != TokenType::Operator) {
                 return std::make_unique<BinaryExpression>(current_operator_type,
-                    std::move(lhs_expression),
-                    std::move(rhs_expression),
+                    std::move(lhs),
+                    std::move(rhs),
                     operator_source_location);
             }
 
             const OperatorType next_operator_type = std::get<OperatorType>(current_token->data);
             const int next_operator_precedence = get_operator_precedence(next_operator_type);
             if (current_operator_precedence < next_operator_precedence) {
-                rhs_expression = parse_binary_expression_rhs(std::move(rhs_expression), current_operator_precedence + 1);
-                if (!rhs_expression) {
+                rhs = parse_binary_expression_rhs(std::move(rhs), current_operator_precedence + 1);
+                if (!rhs) {
                     return nullptr;
                 }
             }
 
-            lhs_expression = std::make_unique<BinaryExpression>(current_operator_type,
-                std::move(lhs_expression),
-                std::move(rhs_expression),
+            lhs = std::make_unique<BinaryExpression>(current_operator_type,
+                std::move(lhs),
+                std::move(rhs),
                 operator_source_location);
         }
     }
@@ -134,7 +134,7 @@ namespace kepler {
         switch (current_token->type) {
             case TokenType::Identifier:
                 return parse_identifier();
-            case TokenType::DataType:
+            case TokenType::Type:
                 return parse_cast();
             case TokenType::Operator:
                 if (std::get<OperatorType>(current_token->data) == OperatorType::Minus) {
@@ -145,7 +145,8 @@ namespace kepler {
                 return parse_literal();
             case TokenType::BracketOpen:
                 return parse_parenthesis();
-            default: break;
+            default:
+                break;
         }
 
         diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), current_token->source_location);
@@ -274,11 +275,11 @@ namespace kepler {
     }
 
     std::unique_ptr<CastExpression> Parser::parse_cast() {
-        const SourceLocation& data_type_source_location = current_token->source_location;
-        const DataTypeKind data_type = std::get<DataTypeKind>(current_token->data);
-        next_token(true); // eat data type
+        const SourceLocation& type_source_location = current_token->source_location;
+        const StringId type_id = std::get<StringId>(current_token->data);
+        next_token(true); // eat type
         if (current_token->type != TokenType::BracketOpen) {
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after data type for cast", current_token->source_location);
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after type for cast", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
@@ -312,10 +313,10 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
-        if (data_type == DataTypeKind::Void) {
+        if (type_id == type_table.Builtins.void_type->name_id) {
             diagnostic_sink.report(DiagnosticCode::InvalidCast, "Cannot cast a value to 'void'", current_token->source_location);
             return nullptr;
         }
-        return std::make_unique<CastExpression>(data_type, std::move(expression_to_cast), data_type_source_location);
+        return std::make_unique<CastExpression>(type_id, std::move(expression_to_cast), type_source_location);
     }
 }

@@ -63,8 +63,8 @@ namespace kepler {
         AbstractSyntaxTree result;
         while (current_token->type != TokenType::EndOfFile) {
             switch (current_token->type) {
-                case TokenType::DataType: {
-                    std::unique_ptr<ASTNode> ast_node = parse_top_level_data_type();
+                case TokenType::Type: {
+                    std::unique_ptr<ASTNode> ast_node = parse_top_level_type();
                     if (ast_node) {
                         result.nodes.push_back(std::move(ast_node));
                     }

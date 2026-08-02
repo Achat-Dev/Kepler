@@ -28,7 +28,8 @@
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type.hpp"
+#include <cstddef>
 #include <format>
 #include <memory>
 #include <string>
@@ -46,7 +47,7 @@ namespace kepler {
     }
 
     void NameResolutionPass::collect_prototype_symbols() const {
-        for (const std::unique_ptr<ASTNode>& node : ast.nodes) {
+        for (std::unique_ptr<ASTNode>& node : ast.nodes) {
             switch (node->node_type) {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
@@ -65,21 +66,42 @@ namespace kepler {
         }
     }
 
-    void NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
-        std::vector<DataTypeKind> parameter_data_types;
-        parameter_data_types.reserve(prototype->parameter_data.size());
-        for (const auto& parameter_data : prototype->parameter_data) {
-            parameter_data_types.push_back(parameter_data.data_type);
+    Nrr NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
+        KPL_ASSERT(prototype->return_type == nullptr, "Why does this prototype already know its type when I haven't even done the name resolution?");
+        Type* return_type = type_table.lookup(prototype->return_type_id);
+        if (return_type == nullptr) {
+            report_unknown_type(prototype->return_type_id, prototype->source_location);
+            prototype->node_type = ASTNodeType::Poison;
+            return {true};
         }
-        const auto symbol = symbol_table.create_prototype(prototype->return_type,
+        prototype->return_type = return_type;
+
+        std::vector<Type*> parameter_types;
+        parameter_types.reserve(prototype->parameter_data.size());
+        for (auto& parameter_data : prototype->parameter_data) {
+            KPL_ASSERT(parameter_data.type == nullptr, "Why does this parameter already know its type when I haven't even done the name resolution?");
+            Type* parameter_type = type_table.lookup(parameter_data.type_id);
+            if (parameter_type == nullptr) {
+                report_unknown_type(parameter_data.type_id, parameter_data.type_source_location);
+                prototype->node_type = ASTNodeType::Poison;
+                return {true};
+            }
+            parameter_data.type = parameter_type;
+            parameter_types.push_back(parameter_type);
+        }
+
+        const auto symbol = symbol_table.create_prototype(return_type,
             prototype->identifier_id,
             prototype->linkage_type,
-            std::move(parameter_data_types),
-            prototype->source_location);
+            std::move(parameter_types),
+            prototype->identifier_source_location);
         if (!symbol) {
             const SourceDiagnostic& diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
+            prototype->node_type = ASTNodeType::Poison;
+            return {true};
         }
+        return {false};
     }
 
     Nrr NameResolutionPass::resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const {
@@ -153,14 +175,14 @@ namespace kepler {
 
     void NameResolutionPass::resolve_function(Function* function) const {
         symbol_table.open_scope(ScopeType::Function);
-        const Nrr prototype_result = resolve_prototype(function->prototype.get());
-        const Nrr body_result = resolve_nodes(function->body);
+        resolve_prototype(function->prototype.get());
+        resolve_nodes(function->body);
         symbol_table.close_scope();
     }
 
     Nrr NameResolutionPass::resolve_prototype(Prototype* prototype) const {
         for (const ParameterData& parameter : prototype->parameter_data) {
-            const auto symbol = symbol_table.create_variable(parameter.data_type, parameter.identifier_id, parameter.source_location);
+            const auto symbol = symbol_table.create_variable(parameter.type, parameter.identifier_id, parameter.identifier_source_location);
             if (!symbol) {
                 const SourceDiagnostic& diagnostic = symbol.error();
                 diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
@@ -222,7 +244,16 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
-        const auto symbol = symbol_table.create_variable(statement->data_type, statement->identifier_id, statement->source_location);
+        KPL_ASSERT(statement->type == nullptr, "Why does this variable definition already know its type when I haven't even done the name resolution?");
+        Type* type = type_table.lookup(statement->type_id);
+        if (type == nullptr) {
+            report_unknown_type(statement->type_id, statement->source_location);
+            statement->node_type = ASTNodeType::Poison;
+            return {true};
+        }
+        statement->type = type;
+
+        const auto symbol = symbol_table.create_variable(type, statement->identifier_id, statement->source_location);
         if (!symbol) {
             const SourceDiagnostic& diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
@@ -248,7 +279,7 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
-        const Symbol* prototype_symbol = symbol_table.lookup(expression->identifier_id);
+        const Symbol* prototype_symbol = symbol_table.lookup_visible(expression->identifier_id);
         if (prototype_symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
@@ -257,8 +288,8 @@ namespace kepler {
         }
 
         const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
-        const int expected_parameter_count = prototype_symbol_data.parameter_data_types.size();
-        const int given_argument_count = expression->args.size();
+        const size_t expected_parameter_count = prototype_symbol_data.parameter_types.size();
+        const size_t given_argument_count = expression->args.size();
         if (expected_parameter_count != given_argument_count) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             const std::string message = std::format("Function '{}' expects {} arguments, got {}", identifier, expected_parameter_count, given_argument_count);
@@ -281,6 +312,15 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
+        KPL_ASSERT(expression->target_type == nullptr, "Why does this cast already know its type when I haven't even done the name resolution?");
+        Type* target_type = type_table.lookup(expression->target_type_id);
+        if (!target_type) {
+            report_unknown_type(expression->target_type_id, expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {true};
+        }
+        expression->target_type = target_type;
+
         const Nrr resolution_result = resolve_node(expression->expression.get());
         if (resolution_result) {
             expression->node_type = ASTNodeType::Poison;
@@ -297,13 +337,18 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {
-        if (!symbol_table.lookup(expression->identifier_id)) {
+        if (!symbol_table.lookup_visible(expression->identifier_id)) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {true};
         }
         return {false};
+    }
+
+    void NameResolutionPass::report_unknown_type(StringId type_id, SourceLocation source_location) const {
+        const std::string_view type_name = StringPool::get().lookup(type_id);
+        diagnostic_sink.report(DiagnosticCode::UnknownType, std::format("Unknown type '{}'", type_name), source_location);
     }
 
 }

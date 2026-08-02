@@ -15,7 +15,7 @@
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type.hpp"
 #include <cstdint>
 #include <expected>
 #include <format>
@@ -35,26 +35,36 @@ namespace kepler {
         open_scope(ScopeType::File);
     }
 
-    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_variable(DataTypeKind data_type, StringId identifier_id, SourceLocation source_location) {
-        return create_symbol(data_type, identifier_id, std::monostate{}, "Variable", source_location);
+    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_variable(Type* type, StringId identifier_id, SourceLocation source_location) {
+        return create_symbol(type, identifier_id, std::monostate{}, "Variable", source_location);
     }
 
     // clang-format off
-    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_prototype(DataTypeKind data_type,
+    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_prototype(Type* type,
         StringId identifier_id,
         Prototype::LinkageType linkage_type,
-        std::vector<DataTypeKind> parameter_data_types,
-        SourceLocation source_location
+        std::vector<Type*> parameter_types,
+        SourceLocation identifier_source_location
     ) {
         // clang-format on
-        return create_symbol(data_type,
+        return create_symbol(type,
             identifier_id,
-            PrototypeSymbolData{.linkage_type = linkage_type, .parameter_data_types = std::move(parameter_data_types)},
-            "Function",
-            source_location);
+            PrototypeSymbolData{.linkage_type = linkage_type, .parameter_types = std::move(parameter_types)},
+            "Prototype",
+            identifier_source_location);
     }
 
+    // TODO: Not the best implementation
     const Symbol* SymbolTable::lookup(StringId identifier_id) const {
+        for (const Symbol& symbol : symbols) {
+            if (symbol.identifier_id == identifier_id) {
+                return &symbol;
+            }
+        }
+        return nullptr;
+    }
+
+    const Symbol* SymbolTable::lookup_visible(StringId identifier_id) const {
         const auto it = visible_symbols.find(identifier_id);
         if (it == visible_symbols.end()) {
             return nullptr;
@@ -86,7 +96,7 @@ namespace kepler {
     }
 
     // clang-format off
-    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_symbol(DataTypeKind data_type,
+    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_symbol(Type* type,
         StringId identifier_id,
         SymbolData&& data,
         const std::string& error_identifier,
@@ -123,7 +133,7 @@ namespace kepler {
         bool can_be_shadowed = current_scope.type != ScopeType::Function && current_scope.type != ScopeType::Block;
         const uint32_t symbol_index = symbols.size();
         current_scope.symbol_indices.push_back(symbol_index);
-        symbols.emplace_back(current_scope.id, data_type, identifier_id, can_be_shadowed, symbol_index_to_shadow, std::move(data));
+        symbols.emplace_back(current_scope.id, type, identifier_id, can_be_shadowed, symbol_index_to_shadow, std::move(data));
         return &symbols.back();
     }
 }

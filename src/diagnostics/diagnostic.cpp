@@ -8,13 +8,18 @@
  */
 
 #include "diagnostics/diagnostic.hpp"
-#include "log.hpp"
+#include "assert.hpp"
+#include <utility>
 
 namespace kepler {
 
     DiagnosticSeverity get_diagnostic_severity(DiagnosticCode diagnostic_code) {
         switch (diagnostic_code) {
+            case DiagnosticCode::HelpRequested:
+                return DiagnosticSeverity::Note;
+
             case DiagnosticCode::MultilineCommentNotClosed:
+            case DiagnosticCode::RedundantCast:
                 return DiagnosticSeverity::Warning;
 
             case DiagnosticCode::NoInputFile:
@@ -38,15 +43,18 @@ namespace kepler {
             case DiagnosticCode::UsingStatementAsExpression:
             case DiagnosticCode::UndefinedSymbol:
             case DiagnosticCode::SymbolAlreadyExists:
+            case DiagnosticCode::UnknownType:
+            case DiagnosticCode::InvalidFunctionCall:
+            case DiagnosticCode::TypeMismatch:
+            case DiagnosticCode::UnsupportedMathematicalOperation:
                 return DiagnosticSeverity::Error;
 
             case DiagnosticCode::Unsupported:
                 return DiagnosticSeverity::Unsupported;
-
-            default:
-                log::warning("No severity mapping for diagnostic code '{}', defaulting to error", static_cast<int>(diagnostic_code));
-                return DiagnosticSeverity::Error;
         }
+
+        KPL_ASSERT(false, "No severity mapping for diagnostic code '{}', defaulting to error", static_cast<int>(diagnostic_code));
+        std::unreachable();
     }
 
 }

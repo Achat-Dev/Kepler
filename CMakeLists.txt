@@ -12,6 +12,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/diagnostics/diagnostic.cpp
     src/diagnostics/diagnostic_sink.cpp
     src/io/file.cpp
+    src/lexer/operator_type.cpp
     src/lexer/tokenizer.cpp
     src/parser/parser.cpp
     src/parser/parser.expressions.cpp
@@ -19,8 +20,11 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/parser/parser.top_level.cpp
     src/semantic_analysis/name_resolution_pass.cpp
     src/semantic_analysis/symbol_table.cpp
-    src/type_system/data_type_kind.cpp
+    src/type_system/type.cpp
+    src/type_system/type_check_pass.cpp
+    src/type_system/type_table.cpp
     src/compilation_context.cpp
+    src/arena_allocator.cpp
     src/compiler.cpp
     src/main.cpp
     src/string_pool.cpp)

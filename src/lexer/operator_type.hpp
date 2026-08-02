@@ -9,12 +9,15 @@
 
 #pragma once
 
-#include "log.hpp"
+#include "assert.hpp"
+#include "string_pool.hpp"
 #include <format>
 #include <string>
+#include <utility>
 
 namespace kepler {
 
+    // TODO: Add unary operators
     enum class OperatorType {
         Plus,
         Minus,
@@ -27,6 +30,8 @@ namespace kepler {
         LessEquals,
         GreaterEquals,
     };
+
+    StringId get_operator_name_id(OperatorType operator_type);
 
 }
 
@@ -54,9 +59,9 @@ struct std::formatter<kepler::OperatorType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("<=", ctx);
             case kepler::OperatorType::GreaterEquals:
                 return std::formatter<std::string>::format(">=", ctx);
-            default:
-                kepler::log::warning("Missing format implementation for operator type '{}'", static_cast<int>(operator_type));
-                return std::formatter<std::string>::format(std::format("{}", static_cast<int>(operator_type)), ctx);
         }
+
+        KPL_ASSERT(false, "Missing format implementation for operator type '{}'", static_cast<int>(operator_type));
+        std::unreachable();
     }
 };

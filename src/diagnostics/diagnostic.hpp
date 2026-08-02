@@ -9,10 +9,12 @@
 
 #pragma once
 
+#include "assert.hpp"
 #include "diagnostics/source_location.hpp"
 #include "log.hpp"
 #include <format>
 #include <string>
+#include <utility>
 
 namespace kepler {
 
@@ -49,9 +51,11 @@ namespace kepler {
         // Semantic analysis
         UndefinedSymbol = 500,
         SymbolAlreadyExists,
+        UnknownType,
         InvalidFunctionCall,
         TypeMismatch,
         UnsupportedMathematicalOperation,
+        RedundantCast,
 
         Unsupported = 999,
     };
@@ -105,9 +109,9 @@ struct std::formatter<kepler::DiagnosticSeverity> : std::formatter<std::string> 
                                                                kepler::log::styling::bg_magenta,
                                                                kepler::log::styling::reset),
                     ctx);
-            default:
-                kepler::log::warning("Missing format implementation for severity '{}'", static_cast<int>(severity));
-                return std::formatter<std::string>::format(std::format(""), ctx);
         }
+
+        KPL_ASSERT(false, "Missing format implementation for severity '{}'", static_cast<int>(severity));
+        std::unreachable();
     }
 };

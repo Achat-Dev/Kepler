@@ -9,10 +9,11 @@
 
 #pragma once
 
+#include "assert.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type.hpp"
 #include <format>
 #include <string>
 #include <utility>
@@ -21,9 +22,11 @@
 namespace kepler {
 
     struct ParameterData {
-        DataTypeKind data_type;
+        StringId type_id;
         StringId identifier_id;
-        SourceLocation source_location;
+        Type* type;
+        SourceLocation type_source_location;
+        SourceLocation identifier_source_location;
     };
 
     struct Prototype : ASTNode {
@@ -33,18 +36,23 @@ namespace kepler {
         };
 
         LinkageType linkage_type;
-        DataTypeKind return_type;
+        SourceLocation identifier_source_location;
         StringId identifier_id;
+        StringId return_type_id;
+        Type* return_type;
         std::vector<ParameterData> parameter_data;
 
         Prototype(LinkageType linkage_type,
-            DataTypeKind return_type,
+            StringId return_type_id,
             StringId identifier_id,
             std::vector<ParameterData> parameter_data,
-            SourceLocation source_location)
-            : ASTNode(ASTNodeType::Prototype, std::move(source_location)),
+            SourceLocation type_source_location,
+            SourceLocation identifier_source_location)
+            : ASTNode(ASTNodeType::Prototype, std::move(type_source_location)),
               linkage_type(linkage_type),
-              return_type(return_type),
+              identifier_source_location(std::move(identifier_source_location)),
+              return_type_id(return_type_id),
+              return_type(nullptr),
               identifier_id(identifier_id),
               parameter_data(std::move(parameter_data)) {}
     };
@@ -59,9 +67,9 @@ struct std::formatter<kepler::Prototype::LinkageType> : std::formatter<std::stri
                 return std::formatter<std::string>::format("Internal", ctx);
             case kepler::Prototype::LinkageType::External:
                 return std::formatter<std::string>::format("External", ctx);
-            default:
-                kepler::log::warning("Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type));
-                return std::formatter<std::string>::format(std::format("{}", static_cast<int>(linkage_type)), ctx);
         }
+
+        KPL_ASSERT(false, "Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type));
+        std::unreachable();
     }
 };

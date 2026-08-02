@@ -26,7 +26,10 @@
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
+#include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol_table.hpp"
+#include "string_pool.hpp"
+#include "type_system/type_table.hpp"
 
 namespace kepler {
 
@@ -37,16 +40,17 @@ namespace kepler {
             operator bool() const { return poisoned; }
         };
 
-        NameResolutionPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table)
-            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table) {}
+        NameResolutionPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, TypeTable& type_table)
+            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
         void run() override;
 
     private:
         DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
+        TypeTable& type_table;
 
         void collect_prototype_symbols() const;
-        void create_prototype_symbol(Prototype* prototype) const;
+        ResolutionResult create_prototype_symbol(Prototype* prototype) const;
         ResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
         ResolutionResult resolve_node(ASTNode* node) const;
         void resolve_extern(Extern* ext) const;
@@ -62,6 +66,8 @@ namespace kepler {
         ResolutionResult resolve_cast_expression(CastExpression* expression) const;
         ResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
         ResolutionResult resolve_variable_expression(VariableExpression* expression) const;
+
+        void report_unknown_type(StringId type_id, SourceLocation source_location) const;
     };
 
 }

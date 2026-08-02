@@ -28,6 +28,7 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "log.hpp"
 #include "string_pool.hpp"
+#include "type_system/type.hpp"
 #include <cstddef>
 #include <cstring>
 #include <format>
@@ -99,6 +100,7 @@ namespace kepler {
 
         if (node->node_type == ASTNodeType::Poison) {
             std::println(log::styling::reset);
+            return;
         } else {
             std::println();
         }
@@ -172,7 +174,12 @@ namespace kepler {
 
     void ASTPrinter::print_prototype(const Prototype* prototype, std::string indent) const {
         std::println("{}{}Linkage: {}", indent, item, prototype->linkage_type);
-        std::println("{}{}Type: {}", indent, item, prototype->return_type);
+        if (prototype->return_type == nullptr) {
+            const std::string_view type_name = StringPool::get().lookup(prototype->return_type_id);
+            std::println("{}{}Type: {}", indent, item, type_name);
+        } else {
+            std::println("{}{}Type: {}", indent, item, prototype->return_type);
+        }
         const std::string_view identifier = StringPool::get().lookup(prototype->identifier_id);
         std::println("{}{}Identifier: {}", indent, item, identifier);
         std::print("{}{}Parameters: ", indent, last_item);
@@ -187,15 +194,23 @@ namespace kepler {
         for (size_t i = 0; i < prototype->parameter_data.size(); i++) {
             bool is_last = i == prototype->parameter_data.size() - 1;
             const std::string_view parameter_identifier = StringPool::get().lookup(prototype->parameter_data[i].identifier_id);
+            Type* parameter_type = prototype->parameter_data[i].type;
+            std::string item_indent;
             if (is_last) {
                 std::println("{}{}{}:", indent, last_item, (i + 1));
-                std::println("{}{}Type: {}", indent + space, item, prototype->parameter_data[i].data_type);
-                std::println("{}{}Identifier: {}", indent + space, last_item, parameter_identifier);
+                item_indent = space;
             } else {
                 std::println("{}{}{}:", indent, item, (i + 1));
-                std::println("{}{}Type: {}", indent + vertical, item, prototype->parameter_data[i].data_type);
-                std::println("{}{}Identifier: {}", indent + vertical, last_item, parameter_identifier);
+                item_indent = vertical;
             }
+
+            if (parameter_type == nullptr) {
+                const std::string_view parameter_type_name = StringPool::get().lookup(prototype->parameter_data[i].type_id);
+                std::println("{}{}Type: {}", indent + item_indent, item, parameter_type_name);
+            } else {
+                std::println("{}{}Type: {}", indent + item_indent, item, parameter_type);
+            }
+            std::println("{}{}Identifier: {}", indent + item_indent, last_item, parameter_identifier);
         }
     }
 
@@ -222,7 +237,12 @@ namespace kepler {
     }
 
     void ASTPrinter::print_variable_definition_statement(const VariableDefinitionStatement* statement, const std::string& indent) const {
-        std::println("{}{}Type: {}", indent, item, statement->data_type);
+        if (statement->type == nullptr) {
+            const std::string_view type_name = StringPool::get().lookup(statement->type_id);
+            std::println("{}{}Type: {}", indent, item, type_name);
+        } else {
+            std::println("{}{}Type: {}", indent, item, statement->type);
+        }
         const std::string_view identifier = StringPool::get().lookup(statement->identifier_id);
         std::println("{}{}Identifier: {}", indent, item, identifier);
         print_node(statement->assignment_statement.get(), "", indent, true);
@@ -263,7 +283,12 @@ namespace kepler {
     }
 
     void ASTPrinter::print_cast_expression(const CastExpression* expression, const std::string& indent) const {
-        std::println("{}{}Type: {}", indent, item, expression->target_data_type);
+        if (expression->target_type == nullptr) {
+            const std::string_view target_type_name = StringPool::get().lookup(expression->target_type_id);
+            std::println("{}{}Type: {}", indent, item, target_type_name);
+        } else {
+            std::println("{}{}Type: {}", indent, item, expression->target_type);
+        }
         print_node(expression->expression.get(), "", indent, true);
     }
 

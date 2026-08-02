@@ -30,7 +30,8 @@
 #include "diagnostics/diagnostic_sink.hpp"
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/symbol_table.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type.hpp"
+#include "type_system/type_table.hpp"
 #include <memory>
 #include <vector>
 
@@ -42,44 +43,47 @@ namespace kepler {
             enum class Status {
                 RequestFulfilled,
                 PoisonedWithDiagnostic,
-                PosionedWithoutDiagnostic,
+                PoisonedWithoutDiagnostic,
             };
 
             Status status;
-            DataTypeKind data_type;
+            Type* type;
 
             bool is_poisoned() const {
-                return status == Status::PoisonedWithDiagnostic || status == Status::PosionedWithoutDiagnostic;
+                return status == Status::PoisonedWithDiagnostic || status == Status::PoisonedWithoutDiagnostic;
             }
         };
 
-        TypeCheckPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, const SymbolTable& symbol_table)
-            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table) {}
+        TypeCheckPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, const SymbolTable& symbol_table, const TypeTable& type_table)
+            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
         void run() override;
 
     private:
-        DataTypeKind current_function_return_type;
+        Type* current_function_return_type;
         DiagnosticSink& diagnostic_sink;
         const SymbolTable& symbol_table;
+        const TypeTable& type_table;
 
         bool is_boolean_operator(OperatorType type) const;
 
         TypeCheckResult typecheck_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
-        TypeCheckResult typecheck_node(ASTNode* node, DataTypeKind requested_data_type);
-        void typecheck_function(const Function* function);
+        TypeCheckResult typecheck_node(ASTNode* node, Type& requested_type);
+        void typecheck_function(Function* function);
         TypeCheckResult typecheck_assignment_statement(AssignmentStatement* statement);
         TypeCheckResult typecheck_for_statement(ForStatement* statement);
+        TypeCheckResult typecheck_body_and_poison_for_statement(ForStatement* statement);
         TypeCheckResult typecheck_if_statement(IfStatement* statement);
         TypeCheckResult typecheck_return_statement(ReturnStatement* statement);
         TypeCheckResult typecheck_variable_definition_statement(VariableDefinitionStatement* statement);
-        TypeCheckResult typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, DataTypeKind requested_data_type) const;
-        TypeCheckResult typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, DataTypeKind requested_data_type) const;
-        TypeCheckResult typecheck_integer_literal_expression(IntegerLiteralExpression* expression, DataTypeKind requested_data_type) const;
-        TypeCheckResult typecheck_string_literal_expression(StringLiteralExpression* expression, DataTypeKind requested_data_type) const;
-        TypeCheckResult typecheck_binary_expression(BinaryExpression* expression, DataTypeKind requested_data_type);
-        TypeCheckResult typecheck_call_expression(CallExpression* expression, DataTypeKind requested_data_type);
-        TypeCheckResult typecheck_cast_expression(CastExpression* expression, DataTypeKind requested_data_type) const;
-        TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, DataTypeKind requested_data_type);
-        TypeCheckResult typecheck_variable_expression(VariableExpression* expression, DataTypeKind requested_data_type) const;
+        TypeCheckResult typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, const Type& requested_type) const;
+        TypeCheckResult typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, Type& requested_type) const;
+        TypeCheckResult typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type& requested_type) const;
+        TypeCheckResult typecheck_string_literal_expression(StringLiteralExpression* expression, const Type& requested_type) const;
+        TypeCheckResult typecheck_binary_expression(BinaryExpression* expression, Type& requested_type);
+        TypeCheckResult typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, Type& requested_type);
+        TypeCheckResult typecheck_call_expression(CallExpression* expression, const Type& requested_type);
+        TypeCheckResult typecheck_cast_expression(CastExpression* expression, const Type& requested_type);
+        TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, Type& requested_type);
+        TypeCheckResult typecheck_variable_expression(VariableExpression* expression, const Type& requested_type) const;
     };
 }

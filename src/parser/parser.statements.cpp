@@ -21,7 +21,7 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "string_pool.hpp"
-#include "type_system/data_type_kind.hpp"
+#include "type_system/type_table.hpp"
 #include <format>
 #include <memory>
 #include <string>
@@ -38,7 +38,7 @@ namespace kepler {
                 return parse_for();
             case TokenType::Return:
                 return parse_return();
-            case TokenType::DataType: {
+            case TokenType::Type: {
                 return parse_variable_definition();
             }
             case TokenType::Identifier: {
@@ -170,20 +170,20 @@ namespace kepler {
         next_token(true); // eat '('
         if (current_token->type == TokenType::BracketClose) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                "Missing 'for' definition, expected at least '(<datatype> <identifier> : <end_value>)'",
+                "Missing 'for' definition, expected at least '(<type> <identifier> : <end_value>)'",
                 current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
-        } else if (current_token->type != TokenType::DataType) {
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected data type after '(' in 'for'", current_token->source_location);
+        } else if (current_token->type != TokenType::Type) {
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type after '(' in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
-        const Token* data_type_token = current_token;
+        const Token* type_token = current_token;
 
-        next_token(true); // eat data type
+        next_token(true); // eat type
         if (current_token->type != TokenType::Identifier) {
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after data type in 'for'", current_token->source_location);
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after type in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
@@ -210,7 +210,7 @@ namespace kepler {
 
         // Only end value is given, start and step are implicit
         if (current_token->type == TokenType::BracketClose) {
-            return create_for_statement(identifier_id, data_type_token, nullptr, std::move(first_value), nullptr, for_source_location);
+            return create_for_statement(identifier_id, type_token, nullptr, std::move(first_value), nullptr, for_source_location);
         } else if (current_token->type != TokenType::Comma) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after first expression in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
@@ -231,7 +231,7 @@ namespace kepler {
 
         // Only start and end value are given, step is implicit
         if (current_token->type == TokenType::BracketClose) {
-            return create_for_statement(identifier_id, data_type_token, std::move(first_value), std::move(end_value), nullptr, for_source_location);
+            return create_for_statement(identifier_id, type_token, std::move(first_value), std::move(end_value), nullptr, for_source_location);
         } else if (current_token->type != TokenType::Comma) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after second expression in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
@@ -253,7 +253,7 @@ namespace kepler {
         // Start, stop and end values are given
         if (current_token->type == TokenType::BracketClose) {
             return create_for_statement(identifier_id,
-                data_type_token,
+                type_token,
                 std::move(first_value),
                 std::move(end_value),
                 std::move(step_value),
@@ -267,7 +267,7 @@ namespace kepler {
 
     // clang-format off
     std::unique_ptr<ForStatement> Parser::create_for_statement(StringId variable_identifier_id,
-        const Token* variable_data_type_token,
+        const Token* variable_type_token,
         std::unique_ptr<Expression> start_value,
         std::unique_ptr<Expression> end_value,
         std::unique_ptr<Expression> step_value,
@@ -281,15 +281,15 @@ namespace kepler {
             return nullptr;
         }
 
-        const DataTypeKind variable_data_type = std::get<DataTypeKind>(variable_data_type_token->data);
-        std::unique_ptr<VariableExpression> variable = std::make_unique<VariableExpression>(variable_identifier_id, variable_data_type_token->source_location);
+        const StringId variable_type_id = std::get<StringId>(variable_type_token->data);
+        std::unique_ptr<VariableExpression> variable = std::make_unique<VariableExpression>(variable_identifier_id, variable_type_token->source_location);
         std::unique_ptr<AssignmentStatement> assignment_statement = std::make_unique<AssignmentStatement>(std::move(variable),
             std::move(start_value),
-            variable_data_type_token->source_location);
-        std::unique_ptr<VariableDefinitionStatement> variable_definition_statement = std::make_unique<VariableDefinitionStatement>(variable_data_type,
+            variable_type_token->source_location);
+        std::unique_ptr<VariableDefinitionStatement> variable_definition_statement = std::make_unique<VariableDefinitionStatement>(variable_type_id,
             variable_identifier_id,
             std::move(assignment_statement),
-            variable_data_type_token->source_location);
+            variable_type_token->source_location);
 
         return std::make_unique<ForStatement>(std::move(variable_definition_statement),
             std::move(end_value),
@@ -321,15 +321,15 @@ namespace kepler {
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
             }
-            case TokenType::DataType:
-                next_token(true); // eat data type
+            case TokenType::Type:
+                next_token(true); // eat type
                 // It's a cast if there is a open bracket next, which is allowed here, so break out if that's the case
                 if (current_token->type == TokenType::BracketOpen) {
                     previous_token(true);
                     break;
                 }
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                    std::format("Unexpected token '{}' (data types can only be used for casting here)", *current_token),
+                    std::format("Unexpected token '{}' (types can only be used for casting here)", *current_token),
                     current_token->source_location);
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
@@ -348,13 +348,13 @@ namespace kepler {
     }
 
     std::unique_ptr<VariableDefinitionStatement> Parser::parse_variable_definition() {
-        const SourceLocation& data_type_source_location = current_token->source_location;
-        const DataTypeKind data_type = std::get<DataTypeKind>(current_token->data);
+        const SourceLocation& type_source_location = current_token->source_location;
+        const StringId type_id = std::get<StringId>(current_token->data);
 
-        next_token(true); // eat data type
+        next_token(true); // eat type
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                "Expected identifier (data types can only be used for variable definitions here)",
+                "Expected identifier (types can only be used for variable definitions here)",
                 current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
@@ -367,13 +367,13 @@ namespace kepler {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
 
-        if (data_type == DataTypeKind::Void) {
-            diagnostic_sink.report(DiagnosticCode::InvalidVariableType, "Cannot create a local variable of type 'void'", data_type_source_location);
+        if (type_id == type_table.Builtins.void_type->name_id) {
+            diagnostic_sink.report(DiagnosticCode::InvalidVariableType, "Cannot create a local variable of type 'void'", type_source_location);
             return nullptr;
         }
 
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
-        return std::make_unique<VariableDefinitionStatement>(data_type, identifier_id, std::move(assignment_statement), identifier_token->source_location);
+        return std::make_unique<VariableDefinitionStatement>(type_id, identifier_id, std::move(assignment_statement), identifier_token->source_location);
     }
 
 }
