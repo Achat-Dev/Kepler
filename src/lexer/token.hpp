@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include "assert.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "string_pool.hpp"
+#include <cassert>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -105,7 +105,7 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("type", ctx);
         }
 
-        KPL_ASSERT(false, "Missing format implementation for token type '{}'", static_cast<int>(token_type));
+        assert(false && "Missing format implementation for token type");
         std::unreachable();
     }
 };
@@ -157,7 +157,7 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             }
         }
 
-        KPL_ASSERT(false, "Missing format implementation for token of type '{}'", static_cast<int>(token.type));
+        assert(false && "Missing format implementation for token of type");
         std::unreachable();
     }
 };

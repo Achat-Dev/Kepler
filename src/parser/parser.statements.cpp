@@ -8,7 +8,6 @@
  */
 
 #include "parser/parser.hpp"
-#include "assert.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
@@ -22,6 +21,7 @@
 #include "lexer/token.hpp"
 #include "string_pool.hpp"
 #include "type_system/type_table.hpp"
+#include <cassert>
 #include <format>
 #include <memory>
 #include <string>
@@ -153,7 +153,7 @@ namespace kepler {
                 return std::make_unique<IfStatement>(std::move(condition), std::move(*if_body), std::vector<std::unique_ptr<ASTNode>>{}, if_token->source_location);
             }
             default:
-                KPL_ASSERT(false, "I may have messed up parsing an if statement so badly that it neither ends with 'elseif', 'else' or 'end' nor have I encountered EOF. Whoops (ᵕ—ᗜ—)");
+                assert(false && "Parsing an if statement failed");
                 std::unreachable();
         }
     }

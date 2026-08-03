@@ -8,7 +8,7 @@
  */
 
 #include "diagnostics/diagnostic.hpp"
-#include "assert.hpp"
+#include <cassert>
 #include <utility>
 
 namespace kepler {
@@ -53,7 +53,7 @@ namespace kepler {
                 return DiagnosticSeverity::Unsupported;
         }
 
-        KPL_ASSERT(false, "No severity mapping for diagnostic code '{}', defaulting to error", static_cast<int>(diagnostic_code));
+        assert(false && "Missing format implementation for severity mapping of diagnostic code");
         std::unreachable();
     }
 

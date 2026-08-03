@@ -9,11 +9,11 @@
 
 #pragma once
 
-#include "assert.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
 #include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include <cassert>
 #include <format>
 #include <string>
 #include <utility>
@@ -69,7 +69,7 @@ struct std::formatter<kepler::Prototype::LinkageType> : std::formatter<std::stri
                 return std::formatter<std::string>::format("External", ctx);
         }
 
-        KPL_ASSERT(false, "Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type));
+        assert(false && "Missing format implementation for linkage type '{}'");
         std::unreachable();
     }
 };

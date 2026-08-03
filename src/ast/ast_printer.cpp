@@ -8,7 +8,6 @@
  */
 
 #include "ast/ast_printer.hpp"
-#include "assert.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
@@ -29,6 +28,7 @@
 #include "log.hpp"
 #include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include <cassert>
 #include <cstddef>
 #include <cstring>
 #include <format>
@@ -158,7 +158,7 @@ namespace kepler {
                 print_variable_expression(static_cast<const VariableExpression*>(node), indent);
                 break;
             default:
-                KPL_ASSERT(false, "I have no idea how I am supposed to print an ast node of type '{}'", node->node_type);
+                assert(false && "Failed to print ast node");
                 std::unreachable();
         }
     }

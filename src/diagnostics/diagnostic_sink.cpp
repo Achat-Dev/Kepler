@@ -8,12 +8,12 @@
  */
 
 #include "diagnostics/diagnostic_sink.hpp"
-#include "assert.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
 #include "log.hpp"
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -138,7 +138,7 @@ namespace kepler {
                 return log::styling::combine(log::styling::bold, log::styling::magenta);
         }
 
-        KPL_ASSERT(false, "No styling for severity '{}' found", static_cast<int>(severity));
+        assert(false && "Missing styling implementation for severity");
         std::unreachable();
     }
 

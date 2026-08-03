@@ -9,9 +9,9 @@
 
 #pragma once
 
-#include "assert.hpp"
 #include "diagnostics/source_location.hpp"
 #include "log.hpp"
+#include <cassert>
 #include <format>
 #include <string>
 #include <utility>
@@ -111,7 +111,7 @@ struct std::formatter<kepler::DiagnosticSeverity> : std::formatter<std::string> 
                     ctx);
         }
 
-        KPL_ASSERT(false, "Missing format implementation for severity '{}'", static_cast<int>(severity));
+        assert(false && "Missing format implementation for severity");
         std::unreachable();
     }
 };

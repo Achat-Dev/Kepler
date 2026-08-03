@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "assert.hpp"
 #include "string_pool.hpp"
+#include <cassert>
 #include <format>
 #include <string>
 #include <string_view>
@@ -77,7 +77,7 @@ struct std::formatter<kepler::Type> : std::formatter<std::string> {
 template <>
 struct std::formatter<kepler::Type*> : std::formatter<std::string> {
     auto format(const kepler::Type* type, std::format_context& ctx) const {
-        KPL_ASSERT(type != nullptr, "Trying to format a nullptr type");
+        assert(type != nullptr);
         return std::formatter<std::string>::format(std::format("{}", *type), ctx);
     }
 };

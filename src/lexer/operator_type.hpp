@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "assert.hpp"
 #include "string_pool.hpp"
+#include <cassert>
 #include <format>
 #include <string>
 #include <utility>
@@ -61,7 +61,7 @@ struct std::formatter<kepler::OperatorType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format(">=", ctx);
         }
 
-        KPL_ASSERT(false, "Missing format implementation for operator type '{}'", static_cast<int>(operator_type));
+        assert(false && "Missing format implementation for operator type");
         std::unreachable();
     }
 };

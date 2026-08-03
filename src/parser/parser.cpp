@@ -8,12 +8,12 @@
  */
 
 #include "parser/parser.hpp"
-#include "assert.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
 #include "log.hpp"
+#include <cassert>
 #include <format>
 #include <memory>
 #include <vector>
@@ -55,9 +55,7 @@ namespace kepler {
     }
 
     AbstractSyntaxTree Parser::parse() {
-        KPL_ASSERT(tokens.back().type == TokenType::EndOfFile,
-            "Parser received token stream without EOF token (last token is '{}'), my tokenizer seems to have fucked up somewhere",
-            tokens.back());
+        assert(tokens.back().type == TokenType::EndOfFile && "Parser received invalid token stream");
         log::verbose("Parsing token stream");
 
         AbstractSyntaxTree result;

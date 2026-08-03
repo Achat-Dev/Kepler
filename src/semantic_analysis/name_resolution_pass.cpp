@@ -8,7 +8,6 @@
  */
 
 #include "semantic_analysis/name_resolution_pass.hpp"
-#include "assert.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
@@ -29,6 +28,7 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include <cassert>
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -60,14 +60,14 @@ namespace kepler {
                     break;
                 }
                 default:
-                    KPL_ASSERT(false, "I have no idea how I am supposed to collect the prototype symbol of an ast node of type '{}'", node->node_type);
+                    assert(false && "Invalid ast node type on top level");
                     std::unreachable();
             }
         }
     }
 
     Nrr NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
-        KPL_ASSERT(prototype->return_type == nullptr, "Why does this prototype already know its type when I haven't even done the name resolution?");
+        assert(prototype->return_type == nullptr);
         Type* return_type = type_table.lookup(prototype->return_type_id);
         if (return_type == nullptr) {
             report_unknown_type(prototype->return_type_id, prototype->source_location);
@@ -79,7 +79,7 @@ namespace kepler {
         std::vector<Type*> parameter_types;
         parameter_types.reserve(prototype->parameter_data.size());
         for (auto& parameter_data : prototype->parameter_data) {
-            KPL_ASSERT(parameter_data.type == nullptr, "Why does this parameter already know its type when I haven't even done the name resolution?");
+            assert(parameter_data.type == nullptr);
             Type* parameter_type = type_table.lookup(parameter_data.type_id);
             if (parameter_type == nullptr) {
                 report_unknown_type(parameter_data.type_id, parameter_data.type_source_location);
@@ -158,7 +158,7 @@ namespace kepler {
                 return {false};
 
             default:
-                KPL_ASSERT(false, "I have no idea how I am supposed to semantically analyse an ast node of type '{}'", node->node_type);
+                assert(false && "Invalid node type for name resolution");
                 std::unreachable();
         }
     }
@@ -193,9 +193,9 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_assignment_statement(AssignmentStatement* statement) const {
-        const Nrr variable_result = resolve_variable_expression(statement->variable_expression.get());
-        const Nrr value_result = resolve_node(statement->value_expression.get());
-        if (variable_result || value_result) {
+        const Nrr variable_nrr = resolve_variable_expression(statement->variable_expression.get());
+        const Nrr value_nrr = resolve_node(statement->value_expression.get());
+        if (variable_nrr || value_nrr) {
             statement->node_type = ASTNodeType::Poison;
             return {true};
         }
@@ -204,13 +204,13 @@ namespace kepler {
 
     Nrr NameResolutionPass::resolve_for_statement(ForStatement* statement) const {
         symbol_table.open_scope(ScopeType::Block);
-        const Nrr definition_result = resolve_variable_definition_statement(statement->loop_variable_definition.get());
-        const Nrr end_result = resolve_node(statement->end_value.get());
-        const Nrr step_result = resolve_node(statement->step_value.get());
-        const Nrr body_result = resolve_nodes(statement->body);
+        const Nrr definition_nrr = resolve_variable_definition_statement(statement->loop_variable_definition.get());
+        const Nrr end_nrr = resolve_node(statement->end_value.get());
+        const Nrr step_nrr = resolve_node(statement->step_value.get());
+        const Nrr body_nrr = resolve_nodes(statement->body);
         symbol_table.close_scope();
 
-        if (definition_result || end_result || step_result || body_result) {
+        if (definition_nrr || end_nrr || step_nrr || body_nrr) {
             statement->node_type = ASTNodeType::Poison;
             return {true};
         }
@@ -218,17 +218,17 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_if_statement(IfStatement* statement) const {
-        const Nrr condition_result = resolve_node(statement->condition.get());
+        const Nrr condition_nrr = resolve_node(statement->condition.get());
 
         symbol_table.open_scope(ScopeType::Block);
-        const Nrr if_body_result = resolve_nodes(statement->if_body);
+        const Nrr if_body_nrr = resolve_nodes(statement->if_body);
         symbol_table.close_scope();
 
         symbol_table.open_scope(ScopeType::Block);
-        const Nrr else_body_result = resolve_nodes(statement->else_body);
+        const Nrr else_body_nrr = resolve_nodes(statement->else_body);
         symbol_table.close_scope();
 
-        if (condition_result || if_body_result || else_body_result) {
+        if (condition_nrr || if_body_nrr || else_body_nrr) {
             statement->node_type = ASTNodeType::Poison;
             return {true};
         }
@@ -244,7 +244,7 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
-        KPL_ASSERT(statement->type == nullptr, "Why does this variable definition already know its type when I haven't even done the name resolution?");
+        assert(statement->type == nullptr);
         Type* type = type_table.lookup(statement->type_id);
         if (type == nullptr) {
             report_unknown_type(statement->type_id, statement->source_location);
@@ -269,9 +269,9 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_binary_expression(BinaryExpression* expression) const {
-        const Nrr lhs_result = resolve_node(expression->lhs.get());
-        const Nrr rhs_result = resolve_node(expression->rhs.get());
-        if (lhs_result || rhs_result) {
+        const Nrr lhs_nrr = resolve_node(expression->lhs.get());
+        const Nrr rhs_nrr = resolve_node(expression->rhs.get());
+        if (lhs_nrr || rhs_nrr) {
             expression->node_type = ASTNodeType::Poison;
             return {true};
         }
@@ -312,7 +312,7 @@ namespace kepler {
     }
 
     Nrr NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
-        KPL_ASSERT(expression->target_type == nullptr, "Why does this cast already know its type when I haven't even done the name resolution?");
+        assert(expression->target_type == nullptr);
         Type* target_type = type_table.lookup(expression->target_type_id);
         if (!target_type) {
             report_unknown_type(expression->target_type_id, expression->source_location);

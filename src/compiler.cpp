@@ -8,7 +8,6 @@
  */
 
 #include "compiler.hpp"
-#include "assert.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/ast_printer.hpp"
@@ -23,6 +22,7 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_check_pass.hpp"
 #include "type_system/type_table.hpp"
+#include <cassert>
 #include <filesystem>
 #include <memory>
 #include <print>
@@ -38,9 +38,7 @@ namespace kepler {
 #else
         void verify_ast(const AbstractSyntaxTree& ast) {
             for (const std::unique_ptr<ASTNode>& node : ast.nodes) {
-                KPL_ASSERT(node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function,
-                    "Behold: I somehow managed to create a malformed AST with a node of type '{}' on the top level <(˘ ˘ ˘)>",
-                    node->node_type);
+                assert(node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function && "Invalid ast node type on top level");
             }
         }
 #endif

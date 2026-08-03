@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "assert.hpp"
 #include "diagnostics/source_location.hpp"
+#include <cassert>
 #include <format>
 #include <string>
 #include <utility>
@@ -91,7 +91,7 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("VariableExpression", ctx);
         }
 
-        KPL_ASSERT(false, "Missing format implementation for ast node type '{}'", static_cast<int>(ast_node_type));
+        assert(false && "Missing format implementation for ast node type");
         std::unreachable();
     }
 };

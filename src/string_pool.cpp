@@ -8,7 +8,7 @@
  */
 
 #include "string_pool.hpp"
-#include "assert.hpp"
+#include <cassert>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -29,7 +29,7 @@ namespace kepler {
     }
 
     std::string_view StringPool::lookup(StringId id) const {
-        KPL_ASSERT(id.value < strings.size(), "String with id '{}' doesn't exist", id);
+        assert(id.value < strings.size() && "Looking up invalid StringId");
         return strings[id.value];
     }
 

@@ -8,11 +8,10 @@
  */
 
 #include "arena_allocator.hpp"
-#include "assert.hpp"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <format>
 #include <string>
 #include <utility>
 
@@ -20,7 +19,7 @@ namespace kepler {
 
     ArenaAllocator::ArenaAllocator(size_t block_size, std::string label)
         : block_size(block_size), label(std::move(label)) {
-        KPL_ASSERT(block_size > 0, "Can't create ArenaAllocator '{}' with size of '{}'", this->label, block_size);
+        assert(block_size > 0 && "Blocksize of ArenaAllocator has to be greater than 0");
         blocks.emplace_back(this, block_size);
         current_block = &blocks.back();
     }

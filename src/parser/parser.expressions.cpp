@@ -8,7 +8,6 @@
  */
 
 #include "parser/parser.hpp"
-#include "assert.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
 #include "ast/expressions/cast_expression.hpp"
@@ -25,6 +24,7 @@
 #include "lexer/token.hpp"
 #include "string_pool.hpp"
 #include "type_system/type_table.hpp"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -55,9 +55,7 @@ namespace kepler {
                 return 30;
         }
 
-        KPL_ASSERT(false,
-            "Binary operator '{}' doesn't have a precedence associated to it. If this was intended, what the fuck where you thinking past me?",
-            operator_type);
+        assert(false && "Missing binary operator precedence implementation");
         std::unreachable();
     }
 
@@ -214,7 +212,7 @@ namespace kepler {
             return std::make_unique<BooleanLiteralExpression>(std::get<bool>(literal_data), source_location);
         }
 
-        KPL_ASSERT(false, "Literal token doesn't contain the literal data? Tokenization, wtf?");
+        assert(false && "Literal token doesn't contain the literal data");
         std::unreachable();
     }
 

@@ -8,7 +8,6 @@
  */
 
 #include "semantic_analysis/symbol_table.hpp"
-#include "assert.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
@@ -16,6 +15,7 @@
 #include "semantic_analysis/symbol.hpp"
 #include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include <cassert>
 #include <cstdint>
 #include <expected>
 #include <format>
@@ -81,7 +81,7 @@ namespace kepler {
     }
 
     void SymbolTable::close_scope() {
-        KPL_ASSERT(scopes.size() > 0, "Trying to close the global scope, how did I even end up here?");
+        assert(scopes.size() > 0 && "Can't close the global scope");
         const Scope& current_scope = scopes.back();
         for (const uint32_t symbol_index : current_scope.symbol_indices) {
             const Symbol& symbol = symbols[symbol_index];
