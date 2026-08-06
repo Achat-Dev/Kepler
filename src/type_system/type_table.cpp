@@ -8,10 +8,10 @@
  */
 
 #include "type_system/type_table.hpp"
-#include "arena_allocator.hpp"
 #include "lexer/operator_type.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include "utils/arena_allocator.hpp"
+#include "utils/string_pool.hpp"
 #include <string>
 #include <utility>
 #include <vector>

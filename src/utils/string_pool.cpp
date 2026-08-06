@@ -7,7 +7,7 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "string_pool.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <cstdint>
 #include <string>

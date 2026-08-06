@@ -7,7 +7,7 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "arena_allocator.hpp"
+#include "utils/arena_allocator.hpp"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>

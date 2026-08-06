@@ -26,8 +26,8 @@
 #include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol_table.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <cstddef>
 #include <format>

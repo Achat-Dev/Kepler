@@ -27,8 +27,8 @@
 #include "io/file.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
-#include "string_pool.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/string_pool.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>

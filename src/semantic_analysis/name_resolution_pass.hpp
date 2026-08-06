@@ -28,8 +28,8 @@
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol_table.hpp"
-#include "string_pool.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/string_pool.hpp"
 
 namespace kepler {
 

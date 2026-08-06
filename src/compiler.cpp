@@ -11,18 +11,20 @@
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/ast_printer.hpp"
+#include "codegen/codegen_pass.hpp"
 #include "compilation_context.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "io/file.hpp"
 #include "lexer/tokenizer.hpp"
-#include "log.hpp"
 #include "parser/parser.hpp"
 #include "semantic_analysis/name_resolution_pass.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_check_pass.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/log.hpp"
 #include <cassert>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <print>
@@ -45,12 +47,13 @@ namespace kepler {
 
     }
 
+    // TODO: Use return value instead of exit(1)
     void compile_project(const CompilationContext& context) {
         log::config.should_log_verbose = context.log_verbose;
         log::verbose("Compiling project with the following context:\n{}-i (input file name): '{}'\n{}-o (output file name): '{}",
-            log::styling::indented,
+            log::indented,
             context.input_file_path,
-            log::styling::last_indented,
+            log::last_indented,
             context.input_file_path);
 
         const auto file = File::load(context.input_file_path);
@@ -81,17 +84,23 @@ namespace kepler {
         TypeCheckPass type_check_pass(ast, diagnostic_sink, symbol_table, type_table);
         type_check_pass.run();
 
+        // Print diagnostics and abort if any of the passes encountered errors
         if (diagnostic_sink.get_error_count() > 0) {
             diagnostic_sink.flush();
             std::println("{}{}[ This one's on you ]{}{}: Compilation failed with {} error(s) and {} warning(s){}",
-                log::styling::bold,
-                log::styling::bg_red,
-                log::styling::reset,
-                log::styling::bg_red,
+                ansi_codes::bold,
+                ansi_codes::bg_red,
+                ansi_codes::reset,
+                ansi_codes::bg_red,
                 diagnostic_sink.get_error_count(),
                 diagnostic_sink.get_warning_count(),
-                log::styling::reset);
+                ansi_codes::reset);
+            exit(1);
         }
+
+        // Do the actual code generation and compilation
+        CodegenPass codegen_pass(ast);
+        codegen_pass.run();
     }
 
 }

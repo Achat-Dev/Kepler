@@ -29,9 +29,9 @@
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <cstddef>
 #include <format>

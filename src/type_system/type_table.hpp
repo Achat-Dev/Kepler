@@ -9,9 +9,9 @@
 
 #pragma once
 
-#include "arena_allocator.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include "utils/arena_allocator.hpp"
+#include "utils/string_pool.hpp"
 
 namespace kepler {
 

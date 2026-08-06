@@ -25,9 +25,9 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
-#include "log.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include "utils/ansi_codes.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <cstddef>
 #include <cstring>
@@ -67,7 +67,7 @@ namespace kepler {
         }
 
         if (nodes.empty()) {
-            std::println("{}Empty{}", log::styling::dim, log::styling::reset);
+            std::println("{}Empty{}", ansi_codes::dim, ansi_codes::reset);
             return;
         } else {
             std::println();
@@ -85,7 +85,7 @@ namespace kepler {
         }
 
         if (node->node_type == ASTNodeType::Poison) {
-            std::print(log::styling::magenta);
+            std::print(ansi_codes::magenta);
         }
 
         std::print("{}", indent);
@@ -99,7 +99,7 @@ namespace kepler {
         std::print("{}{}", prefix, node->node_type);
 
         if (node->node_type == ASTNodeType::Poison) {
-            std::println(log::styling::reset);
+            std::println(ansi_codes::reset);
             return;
         } else {
             std::println();
@@ -185,7 +185,7 @@ namespace kepler {
         std::print("{}{}Parameters: ", indent, last_item);
 
         if (prototype->parameter_data.empty()) {
-            std::println("{}None{}", log::styling::dim, log::styling::reset);
+            std::println("{}None{}", ansi_codes::dim, ansi_codes::reset);
         } else {
             std::println();
         }

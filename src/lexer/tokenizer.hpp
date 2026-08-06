@@ -12,8 +12,8 @@
 #include "diagnostics/diagnostic_sink.hpp"
 #include "io/file.hpp"
 #include "lexer/token.hpp"
-#include "string_pool.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/string_pool.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>

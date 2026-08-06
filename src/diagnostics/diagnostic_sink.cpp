@@ -11,7 +11,8 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
-#include "log.hpp"
+#include "utils/ansi_codes.hpp"
+#include "utils/log.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -96,21 +97,21 @@ namespace kepler {
             const size_t end_position_in_line = start_position_in_line + diagnostic.source_location.size;
 
             std::println("{}{}", severity, diagnostic.message);
-            std::println("{}In '{}'", log::styling::indented, file_path->c_str());
+            std::println("{}In '{}'", log::indented, file_path->c_str());
 
             const std::string highlight_styling = get_severity_highlight(severity);
-            const std::string prefix = std::format("{}At l.{} | ", log::styling::last_indented, line_number);
+            const std::string prefix = std::format("{}At l.{} | ", log::last_indented, line_number);
             const std::string ending = end_position_in_line < line.size() ? line.substr(end_position_in_line) : std::string(line.size() - end_position_in_line + 1, ' ');
             const std::string message = std::format("{}{}{}{}{}",
                 line.substr(0, start_position_in_line),
                 highlight_styling,
                 line.substr(start_position_in_line, diagnostic.source_location.size),
-                log::styling::reset,
+                ansi_codes::reset,
                 ending);
             std::println("{}{}", prefix, message);
 
             const std::string arrows(diagnostic.source_location.size, '^');
-            std::println("{}{}{}{}", std::string(strlen_utf8(prefix) + start_position_in_line, ' '), highlight_styling, arrows, log::styling::reset);
+            std::println("{}{}{}{}", std::string(strlen_utf8(prefix) + start_position_in_line, ' '), highlight_styling, arrows, ansi_codes::reset);
         }
 
         diagnostics.clear();
@@ -129,13 +130,13 @@ namespace kepler {
     std::string DiagnosticSink::get_severity_highlight(DiagnosticSeverity severity) const {
         switch (severity) {
             case DiagnosticSeverity::Note:
-                return log::styling::bold;
+                return ansi_codes::bold;
             case DiagnosticSeverity::Warning:
-                return log::styling::combine(log::styling::bold, log::styling::yellow);
+                return ansi_codes::combine(ansi_codes::bold, ansi_codes::yellow);
             case DiagnosticSeverity::Error:
-                return log::styling::combine(log::styling::bold, log::styling::red);
+                return ansi_codes::combine(ansi_codes::bold, ansi_codes::red);
             case DiagnosticSeverity::Unsupported:
-                return log::styling::combine(log::styling::bold, log::styling::magenta);
+                return ansi_codes::combine(ansi_codes::bold, ansi_codes::magenta);
         }
 
         assert(false && "Missing styling implementation for severity");

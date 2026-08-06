@@ -12,7 +12,7 @@
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
-#include "log.hpp"
+#include "utils/log.hpp"
 #include <cassert>
 #include <format>
 #include <memory>
@@ -87,7 +87,7 @@ namespace kepler {
             }
         }
 
-        log::verbose_no_prefix("{} Parsing done", log::styling::last_indented);
+        log::verbose_no_prefix("{} Parsing done", log::last_indented);
         return result;
     }
 

@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "string_pool.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <format>
 #include <string>

@@ -11,8 +11,8 @@
 
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <format>
 #include <string>

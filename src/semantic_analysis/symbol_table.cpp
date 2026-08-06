@@ -13,8 +13,8 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <cstdint>
 #include <expected>

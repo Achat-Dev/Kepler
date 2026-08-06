@@ -11,7 +11,7 @@
 
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
-#include "string_pool.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <cstdint>
 #include <format>

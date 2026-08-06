@@ -9,6 +9,7 @@ find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
     src/ast/ast_printer.cpp
+    src/codegen/codegen_pass.cpp
     src/diagnostics/diagnostic.cpp
     src/diagnostics/diagnostic_sink.cpp
     src/io/file.cpp
@@ -23,11 +24,11 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/type_system/type.cpp
     src/type_system/type_check_pass.cpp
     src/type_system/type_table.cpp
+    src/utils/arena_allocator.cpp
+    src/utils/string_pool.cpp
     src/compilation_context.cpp
-    src/arena_allocator.cpp
     src/compiler.cpp
-    src/main.cpp
-    src/string_pool.cpp)
+    src/main.cpp)
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_23)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE

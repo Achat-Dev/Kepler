@@ -13,9 +13,9 @@
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
 #include "lexer/token.hpp"
-#include "log.hpp"
-#include "string_pool.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/log.hpp"
+#include "utils/string_pool.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
@@ -68,7 +68,7 @@ namespace kepler {
 
             tokens.push_back(*token);
             if (token->type == TokenType::EndOfFile) {
-                log::verbose_no_prefix("{}Tokenizing done", log::styling::last_indented);
+                log::verbose_no_prefix("{}Tokenizing done", log::last_indented);
                 return tokens;
             }
         }

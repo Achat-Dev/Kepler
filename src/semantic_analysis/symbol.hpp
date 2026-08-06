@@ -11,8 +11,8 @@
 
 #include "ast/prototype.hpp"
 #include "semantic_analysis/scope.hpp"
-#include "string_pool.hpp"
 #include "type_system/type.hpp"
+#include "utils/string_pool.hpp"
 #include <cstdint>
 #include <variant>
 #include <vector>

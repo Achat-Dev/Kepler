@@ -15,7 +15,7 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
-#include "string_pool.hpp"
+#include "utils/string_pool.hpp"
 #include <format>
 #include <memory>
 #include <optional>

@@ -11,7 +11,7 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
-#include "string_pool.hpp"
+#include "utils/string_pool.hpp"
 #include <memory>
 #include <utility>
 #include <vector>

@@ -19,8 +19,8 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
-#include "string_pool.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <format>
 #include <memory>

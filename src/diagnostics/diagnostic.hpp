@@ -10,7 +10,7 @@
 #pragma once
 
 #include "diagnostics/source_location.hpp"
-#include "log.hpp"
+#include "utils/ansi_codes.hpp"
 #include <cassert>
 #include <format>
 #include <string>
@@ -88,26 +88,26 @@ struct std::formatter<kepler::DiagnosticSeverity> : std::formatter<std::string> 
         switch (severity) {
             case kepler::DiagnosticSeverity::Note:
                 return std::formatter<std::string>::format(std::format("{}[ Note ]{}: ",
-                                                               kepler::log::styling::bold,
-                                                               kepler::log::styling::reset),
+                                                               kepler::ansi_codes::bold,
+                                                               kepler::ansi_codes::reset),
                     ctx);
             case kepler::DiagnosticSeverity::Warning:
                 return std::formatter<std::string>::format(std::format("{}{}[ Warning ]{}: ",
-                                                               kepler::log::styling::bold,
-                                                               kepler::log::styling::bg_yellow,
-                                                               kepler::log::styling::reset),
+                                                               kepler::ansi_codes::bold,
+                                                               kepler::ansi_codes::bg_yellow,
+                                                               kepler::ansi_codes::reset),
                     ctx);
             case kepler::DiagnosticSeverity::Error:
                 return std::formatter<std::string>::format(std::format("{}{}[ Error ]{}: ",
-                                                               kepler::log::styling::bold,
-                                                               kepler::log::styling::bg_red,
-                                                               kepler::log::styling::reset),
+                                                               kepler::ansi_codes::bold,
+                                                               kepler::ansi_codes::bg_red,
+                                                               kepler::ansi_codes::reset),
                     ctx);
             case kepler::DiagnosticSeverity::Unsupported:
                 return std::formatter<std::string>::format(std::format("{}{}[ Unpaid developer error ]{}: ",
-                                                               kepler::log::styling::bold,
-                                                               kepler::log::styling::bg_magenta,
-                                                               kepler::log::styling::reset),
+                                                               kepler::ansi_codes::bold,
+                                                               kepler::ansi_codes::bg_magenta,
+                                                               kepler::ansi_codes::reset),
                     ctx);
         }
 

@@ -8,7 +8,7 @@
  */
 
 #include "type_system/type.hpp"
-#include "string_pool.hpp"
+#include "utils/string_pool.hpp"
 #include <cassert>
 #include <utility>
 #include <vector>

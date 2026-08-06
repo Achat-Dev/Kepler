@@ -9,7 +9,7 @@
 
 #include "io/file.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "log.hpp"
+#include "utils/log.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <expected>
