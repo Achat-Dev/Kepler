@@ -33,13 +33,13 @@
 
 namespace kepler {
 
+    struct NameResolutionResult {
+        bool poisoned;
+        operator bool() const { return poisoned; }
+    };
+
     class NameResolutionPass : public ASTPass<void> {
     public:
-        struct ResolutionResult {
-            bool poisoned;
-            operator bool() const { return poisoned; }
-        };
-
         NameResolutionPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, TypeTable& type_table)
             : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
         void run() override;
@@ -50,22 +50,22 @@ namespace kepler {
         TypeTable& type_table;
 
         void collect_prototype_symbols() const;
-        ResolutionResult create_prototype_symbol(Prototype* prototype) const;
-        ResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
-        ResolutionResult resolve_node(ASTNode* node) const;
+        NameResolutionResult create_prototype_symbol(Prototype* prototype) const;
+        NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
+        NameResolutionResult resolve_node(ASTNode* node) const;
         void resolve_extern(Extern* ext) const;
         void resolve_function(Function* function) const;
-        ResolutionResult resolve_prototype(Prototype* prototype) const;
-        ResolutionResult resolve_assignment_statement(AssignmentStatement* statement) const;
-        ResolutionResult resolve_for_statement(ForStatement* statement) const;
-        ResolutionResult resolve_if_statement(IfStatement* statement) const;
-        ResolutionResult resolve_return_statement(ReturnStatement* statement) const;
-        ResolutionResult resolve_variable_definition_statement(VariableDefinitionStatement* statement) const;
-        ResolutionResult resolve_binary_expression(BinaryExpression* expression) const;
-        ResolutionResult resolve_call_expression(CallExpression* expression) const;
-        ResolutionResult resolve_cast_expression(CastExpression* expression) const;
-        ResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
-        ResolutionResult resolve_variable_expression(VariableExpression* expression) const;
+        NameResolutionResult resolve_prototype(Prototype* prototype) const;
+        NameResolutionResult resolve_assignment_statement(AssignmentStatement* statement) const;
+        NameResolutionResult resolve_for_statement(ForStatement* statement) const;
+        NameResolutionResult resolve_if_statement(IfStatement* statement) const;
+        NameResolutionResult resolve_return_statement(ReturnStatement* statement) const;
+        NameResolutionResult resolve_variable_definition_statement(VariableDefinitionStatement* statement) const;
+        NameResolutionResult resolve_binary_expression(BinaryExpression* expression) const;
+        NameResolutionResult resolve_call_expression(CallExpression* expression) const;
+        NameResolutionResult resolve_cast_expression(CastExpression* expression) const;
+        NameResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
+        NameResolutionResult resolve_variable_expression(VariableExpression* expression) const;
 
         void report_unknown_type(StringId type_id, SourceLocation source_location) const;
     };

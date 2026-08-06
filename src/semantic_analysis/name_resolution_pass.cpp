@@ -39,8 +39,6 @@
 
 namespace kepler {
 
-    using Nrr = NameResolutionPass::ResolutionResult;
-
     void NameResolutionPass::run() {
         collect_prototype_symbols();
         resolve_nodes(ast.nodes);
@@ -66,7 +64,7 @@ namespace kepler {
         }
     }
 
-    Nrr NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
+    NameResolutionResult NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
         assert(prototype->return_type == nullptr);
         Type* return_type = type_table.lookup(prototype->return_type_id);
         if (return_type == nullptr) {
@@ -104,10 +102,10 @@ namespace kepler {
         return {false};
     }
 
-    Nrr NameResolutionPass::resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const {
+    NameResolutionResult NameResolutionPass::resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const {
         bool poisoned = false;
         for (const std::unique_ptr<ASTNode>& node : nodes) {
-            const Nrr resolution_result = resolve_node(node.get());
+            const NameResolutionResult resolution_result = resolve_node(node.get());
             if (resolution_result) {
                 poisoned = true;
             }
@@ -115,7 +113,7 @@ namespace kepler {
         return {poisoned};
     }
 
-    Nrr NameResolutionPass::resolve_node(ASTNode* node) const {
+    NameResolutionResult NameResolutionPass::resolve_node(ASTNode* node) const {
         if (node == nullptr) {
             return {false};
         }
@@ -165,7 +163,7 @@ namespace kepler {
 
     void NameResolutionPass::resolve_extern(Extern* ext) const {
         symbol_table.open_scope(ScopeType::Function);
-        const Nrr prototype_result = resolve_prototype(ext->prototype.get());
+        const NameResolutionResult prototype_result = resolve_prototype(ext->prototype.get());
         symbol_table.close_scope();
 
         if (prototype_result) {
@@ -180,7 +178,7 @@ namespace kepler {
         symbol_table.close_scope();
     }
 
-    Nrr NameResolutionPass::resolve_prototype(Prototype* prototype) const {
+    NameResolutionResult NameResolutionPass::resolve_prototype(Prototype* prototype) const {
         for (const ParameterData& parameter : prototype->parameter_data) {
             const auto symbol = symbol_table.create_variable(parameter.type, parameter.identifier_id, parameter.identifier_source_location);
             if (!symbol) {
@@ -192,9 +190,9 @@ namespace kepler {
         return {prototype->node_type == ASTNodeType::Poison};
     }
 
-    Nrr NameResolutionPass::resolve_assignment_statement(AssignmentStatement* statement) const {
-        const Nrr variable_nrr = resolve_variable_expression(statement->variable_expression.get());
-        const Nrr value_nrr = resolve_node(statement->value_expression.get());
+    NameResolutionResult NameResolutionPass::resolve_assignment_statement(AssignmentStatement* statement) const {
+        const NameResolutionResult variable_nrr = resolve_variable_expression(statement->variable_expression.get());
+        const NameResolutionResult value_nrr = resolve_node(statement->value_expression.get());
         if (variable_nrr || value_nrr) {
             statement->node_type = ASTNodeType::Poison;
             return {true};
@@ -202,12 +200,12 @@ namespace kepler {
         return {false};
     }
 
-    Nrr NameResolutionPass::resolve_for_statement(ForStatement* statement) const {
+    NameResolutionResult NameResolutionPass::resolve_for_statement(ForStatement* statement) const {
         symbol_table.open_scope(ScopeType::Block);
-        const Nrr definition_nrr = resolve_variable_definition_statement(statement->loop_variable_definition.get());
-        const Nrr end_nrr = resolve_node(statement->end_value.get());
-        const Nrr step_nrr = resolve_node(statement->step_value.get());
-        const Nrr body_nrr = resolve_nodes(statement->body);
+        const NameResolutionResult definition_nrr = resolve_variable_definition_statement(statement->loop_variable_definition.get());
+        const NameResolutionResult end_nrr = resolve_node(statement->end_value.get());
+        const NameResolutionResult step_nrr = resolve_node(statement->step_value.get());
+        const NameResolutionResult body_nrr = resolve_nodes(statement->body);
         symbol_table.close_scope();
 
         if (definition_nrr || end_nrr || step_nrr || body_nrr) {
@@ -217,15 +215,15 @@ namespace kepler {
         return {false};
     }
 
-    Nrr NameResolutionPass::resolve_if_statement(IfStatement* statement) const {
-        const Nrr condition_nrr = resolve_node(statement->condition.get());
+    NameResolutionResult NameResolutionPass::resolve_if_statement(IfStatement* statement) const {
+        const NameResolutionResult condition_nrr = resolve_node(statement->condition.get());
 
         symbol_table.open_scope(ScopeType::Block);
-        const Nrr if_body_nrr = resolve_nodes(statement->if_body);
+        const NameResolutionResult if_body_nrr = resolve_nodes(statement->if_body);
         symbol_table.close_scope();
 
         symbol_table.open_scope(ScopeType::Block);
-        const Nrr else_body_nrr = resolve_nodes(statement->else_body);
+        const NameResolutionResult else_body_nrr = resolve_nodes(statement->else_body);
         symbol_table.close_scope();
 
         if (condition_nrr || if_body_nrr || else_body_nrr) {
@@ -235,15 +233,15 @@ namespace kepler {
         return {false};
     }
 
-    Nrr NameResolutionPass::resolve_return_statement(ReturnStatement* statement) const {
-        const Nrr resolution_result = resolve_node(statement->expression.get());
+    NameResolutionResult NameResolutionPass::resolve_return_statement(ReturnStatement* statement) const {
+        const NameResolutionResult resolution_result = resolve_node(statement->expression.get());
         if (resolution_result) {
             statement->node_type = ASTNodeType::Poison;
         }
         return resolution_result;
     }
 
-    Nrr NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
+    NameResolutionResult NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
         assert(statement->type == nullptr);
         Type* type = type_table.lookup(statement->type_id);
         if (type == nullptr) {
@@ -260,7 +258,7 @@ namespace kepler {
             statement->node_type = ASTNodeType::Poison;
         }
 
-        const Nrr resolution_result = resolve_assignment_statement(statement->assignment_statement.get());
+        const NameResolutionResult resolution_result = resolve_assignment_statement(statement->assignment_statement.get());
         if (resolution_result) {
             statement->node_type = ASTNodeType::Poison;
         }
@@ -268,9 +266,9 @@ namespace kepler {
         return {statement->node_type == ASTNodeType::Poison};
     }
 
-    Nrr NameResolutionPass::resolve_binary_expression(BinaryExpression* expression) const {
-        const Nrr lhs_nrr = resolve_node(expression->lhs.get());
-        const Nrr rhs_nrr = resolve_node(expression->rhs.get());
+    NameResolutionResult NameResolutionPass::resolve_binary_expression(BinaryExpression* expression) const {
+        const NameResolutionResult lhs_nrr = resolve_node(expression->lhs.get());
+        const NameResolutionResult rhs_nrr = resolve_node(expression->rhs.get());
         if (lhs_nrr || rhs_nrr) {
             expression->node_type = ASTNodeType::Poison;
             return {true};
@@ -278,7 +276,7 @@ namespace kepler {
         return {false};
     }
 
-    Nrr NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
+    NameResolutionResult NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
         const Symbol* prototype_symbol = symbol_table.lookup_visible(expression->identifier_id);
         if (prototype_symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
@@ -299,7 +297,7 @@ namespace kepler {
 
         bool poisoned = false;
         for (const auto& arg : expression->args) {
-            const Nrr resolution_result = resolve_node(arg.get());
+            const NameResolutionResult resolution_result = resolve_node(arg.get());
             if (resolution_result) {
                 poisoned = true;
             }
@@ -311,7 +309,7 @@ namespace kepler {
         return {false};
     }
 
-    Nrr NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
+    NameResolutionResult NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
         assert(expression->target_type == nullptr);
         Type* target_type = type_table.lookup(expression->target_type_id);
         if (!target_type) {
@@ -321,22 +319,22 @@ namespace kepler {
         }
         expression->target_type = target_type;
 
-        const Nrr resolution_result = resolve_node(expression->expression.get());
+        const NameResolutionResult resolution_result = resolve_node(expression->expression.get());
         if (resolution_result) {
             expression->node_type = ASTNodeType::Poison;
         }
         return resolution_result;
     }
 
-    Nrr NameResolutionPass::resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const {
-        const Nrr resolution_result = resolve_node(expression->expression.get());
+    NameResolutionResult NameResolutionPass::resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const {
+        const NameResolutionResult resolution_result = resolve_node(expression->expression.get());
         if (resolution_result) {
             expression->node_type = ASTNodeType::Poison;
         }
         return resolution_result;
     }
 
-    Nrr NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {
+    NameResolutionResult NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {
         if (!symbol_table.lookup_visible(expression->identifier_id)) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);

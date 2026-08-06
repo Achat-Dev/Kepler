@@ -37,23 +37,23 @@
 
 namespace kepler {
 
-    class TypeCheckPass : ASTPass<void> {
-    public:
-        struct TypeCheckResult {
-            enum class Status {
-                RequestFulfilled,
-                PoisonedWithDiagnostic,
-                PoisonedWithoutDiagnostic,
-            };
-
-            Status status;
-            Type* type;
-
-            bool is_poisoned() const {
-                return status == Status::PoisonedWithDiagnostic || status == Status::PoisonedWithoutDiagnostic;
-            }
+    struct TypeCheckResult {
+        enum class Status {
+            RequestFulfilled,
+            PoisonedWithDiagnostic,
+            PoisonedWithoutDiagnostic,
         };
 
+        Status status;
+        Type* type;
+
+        bool is_poisoned() const {
+            return status == Status::PoisonedWithDiagnostic || status == Status::PoisonedWithoutDiagnostic;
+        }
+    };
+
+    class TypeCheckPass : ASTPass<void> {
+    public:
         TypeCheckPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, const SymbolTable& symbol_table, const TypeTable& type_table)
             : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
         void run() override;
