@@ -9,10 +9,28 @@
 
 #pragma once
 
-#include "compilation_context.hpp"
+#include "ast/abstract_syntax_tree.hpp"
+#include "diagnostics/diagnostic.hpp"
+#include <expected>
+#include <string>
 
 namespace kepler {
 
-    void compile_project(const CompilationContext& context);
+    struct CompilerContext {
+        std::string input_file_path;
+        std::string output_file_path;
+        bool log_verbose;
+        bool help_requested;
+        std::string help;
+    };
+
+    class Compiler {
+    public:
+        int run(int argc, char** argv) const;
+
+    private:
+        void verify_ast(const AbstractSyntaxTree& ast) const;
+        std::expected<CompilerContext, Diagnostic> parse_args(int argc, char** argv) const;
+    };
 
 }

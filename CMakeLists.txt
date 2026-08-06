@@ -26,7 +26,6 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/type_system/type_table.cpp
     src/utils/arena_allocator.cpp
     src/utils/string_pool.cpp
-    src/compilation_context.cpp
     src/compiler.cpp
     src/main.cpp)
 
