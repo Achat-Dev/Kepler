@@ -37,7 +37,7 @@ namespace kepler {
         // Create the types first and fill in the methods afterwards because the methods need to reference the types
         register_builtin_type(&Builtins.unknown_type, TypeKind::Unknown);
         register_builtin_type(&Builtins.void_type, TypeKind::Void);
-        existing_types.erase(Builtins.void_type->name_id);
+        existing_types.emplace(Builtins.void_type->name_id, Builtins.void_type);
         register_builtin_type(&Builtins.bool_type, TypeKind::Bool);
         register_builtin_type(&Builtins.string_type, TypeKind::String);
         register_builtin_type(&Builtins.i8_type, TypeKind::I8);
