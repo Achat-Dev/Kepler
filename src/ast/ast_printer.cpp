@@ -51,9 +51,9 @@ namespace kepler {
         std::println("\u2514{}\u2518", horizontal_line);
 
         // Dont't use print_nodes to avoid extra 'last_item' character
-        for (size_t i = 0; i < ast.nodes.size(); i++) {
-            bool is_last = i == ast.nodes.size() - 1;
-            print_node(ast.nodes[i].get(), "", "", is_last);
+        for (size_t i = 0; i < ast.top_level_nodes.size(); i++) {
+            bool is_last = i == ast.top_level_nodes.size() - 1;
+            print_node(ast.top_level_nodes[i].get(), "", "", is_last);
         }
     }
 

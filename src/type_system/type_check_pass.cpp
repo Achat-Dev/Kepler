@@ -44,7 +44,7 @@
 namespace kepler {
 
     void TypeCheckPass::run() {
-        typecheck_nodes(ast.nodes);
+        typecheck_nodes(ast.top_level_nodes);
     }
 
     bool TypeCheckPass::is_boolean_operator(OperatorType type) const {
@@ -81,11 +81,10 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_node(ASTNode* node, Type& requested_type) {
         assert(node != nullptr);
-        if (node->node_type == ASTNodeType::Poison) {
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
-        }
 
         switch (node->node_type) {
+            case ASTNodeType::Poison:
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             case ASTNodeType::Extern:
                 return {.status = TypeCheckResult::Status::RequestFulfilled, .type = nullptr};
             case ASTNodeType::Function:
@@ -120,7 +119,7 @@ namespace kepler {
             case ASTNodeType::VariableExpression:
                 return typecheck_variable_expression(static_cast<VariableExpression*>(node), requested_type);
             default:
-                assert(false && "Failed to typecheck ast node");
+                assert(false && "Invalid node type for typechecking");
                 std::unreachable();
         }
     }

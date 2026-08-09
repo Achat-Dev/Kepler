@@ -108,7 +108,7 @@ namespace kepler {
 #if NDEBUG
         return;
 #else
-        for (const std::unique_ptr<ASTNode>& node : ast.nodes) {
+        for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
             assert(node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function && "Invalid ast node type on top level");
         }
 #endif

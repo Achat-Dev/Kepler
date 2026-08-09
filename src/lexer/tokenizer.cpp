@@ -328,7 +328,7 @@ namespace kepler {
     }
 
     void Tokenizer::read_comment() {
-        next_char();
+        next_char(); // eat '#'
 
         // Two # after each other -> multiline comment
         if (current_char == '#') {
@@ -344,8 +344,8 @@ namespace kepler {
                 next_char();
             }
 
-            next_char(); // eat second '#'
-            next_char(); // prepare reading of next token
+            next_char(); // eat first closing '#'
+            next_char(); // eat second closing '#'
         }
         // Single line comment
         else {

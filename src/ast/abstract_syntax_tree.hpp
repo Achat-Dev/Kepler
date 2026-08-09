@@ -16,7 +16,7 @@
 namespace kepler {
 
     struct AbstractSyntaxTree {
-        std::vector<std::unique_ptr<ASTNode>> nodes;
+        std::vector<std::unique_ptr<ASTNode>> top_level_nodes;
     };
 
 }

@@ -64,14 +64,14 @@ namespace kepler {
                 case TokenType::Type: {
                     std::unique_ptr<ASTNode> ast_node = parse_top_level_type();
                     if (ast_node) {
-                        result.nodes.push_back(std::move(ast_node));
+                        result.top_level_nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
                 case TokenType::Extern: {
                     std::unique_ptr<ASTNode> ast_node = parse_extern();
                     if (ast_node) {
-                        result.nodes.push_back(std::move(ast_node));
+                        result.top_level_nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }

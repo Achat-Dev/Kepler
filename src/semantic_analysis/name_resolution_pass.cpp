@@ -41,11 +41,11 @@ namespace kepler {
 
     void NameResolutionPass::run() {
         collect_prototype_symbols();
-        resolve_nodes(ast.nodes);
+        resolve_nodes(ast.top_level_nodes);
     }
 
     void NameResolutionPass::collect_prototype_symbols() const {
-        for (std::unique_ptr<ASTNode>& node : ast.nodes) {
+        for (std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
             switch (node->node_type) {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
@@ -58,7 +58,7 @@ namespace kepler {
                     break;
                 }
                 default:
-                    assert(false && "Invalid ast node type on top level");
+                    assert(false && "Invalid ast node type on top level during name resolution");
                     std::unreachable();
             }
         }
