@@ -80,7 +80,7 @@ namespace kepler {
         NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table, type_table);
         name_resolution_pass.run();
         ast_printer.run();
-        TypeCheckPass type_check_pass(ast, diagnostic_sink, symbol_table, type_table);
+        TypeCheckPass type_check_pass(ast, diagnostic_sink, type_table);
         type_check_pass.run();
 
         // Print diagnostics and abort if any of the passes encountered errors

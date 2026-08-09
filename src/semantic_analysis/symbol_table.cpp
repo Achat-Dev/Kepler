@@ -35,12 +35,12 @@ namespace kepler {
         open_scope(ScopeType::File);
     }
 
-    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_variable(Type* type, StringId identifier_id, SourceLocation source_location) {
+    std::expected<Symbol*, SourceDiagnostic> SymbolTable::create_variable(Type* type, StringId identifier_id, SourceLocation source_location) {
         return create_symbol(type, identifier_id, std::monostate{}, "Variable", source_location);
     }
 
     // clang-format off
-    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_prototype(Type* type,
+    std::expected<Symbol*, SourceDiagnostic> SymbolTable::create_prototype(Type* type,
         StringId identifier_id,
         Prototype::LinkageType linkage_type,
         std::vector<Type*> parameter_types,
@@ -54,49 +54,39 @@ namespace kepler {
             identifier_source_location);
     }
 
-    // TODO: Not the best implementation
-    const Symbol* SymbolTable::lookup(StringId identifier_id) const {
-        for (const Symbol& symbol : symbols) {
-            if (symbol.identifier_id == identifier_id) {
-                return &symbol;
+    Symbol* SymbolTable::lookup(StringId identifier_id) {
+        Scope* scope = &scopes.back();
+        do {
+            const auto it = scope->contained_symbols.find(identifier_id);
+            if (it != scope->contained_symbols.end()) {
+                return &symbols[it->second];
             }
-        }
+
+            if (!scope->parent_id.is_valid()) {
+                return nullptr;
+            }
+            scope = &scopes[scope->parent_id.value];
+        } while (scope->parent_id.is_valid());
         return nullptr;
     }
 
-    const Symbol* SymbolTable::lookup_visible(StringId identifier_id) const {
-        const auto it = visible_symbols.find(identifier_id);
-        if (it == visible_symbols.end()) {
-            return nullptr;
-        }
-        return &symbols[it->second];
-    }
-
     void SymbolTable::open_scope(ScopeType type) {
+        const ScopeId scope_id = {.value = static_cast<uint32_t>(scopes.size())};
         if (scopes.empty()) {
-            scopes.emplace_back(type, ScopeId::invalid());
+            scopes.emplace_back(type, scope_id, ScopeId::invalid(), std::unordered_map<StringId, uint32_t>{});
         } else {
-            scopes.emplace_back(type, scopes.back().id);
+            scopes.emplace_back(type, scope_id, scopes.back().id, std::unordered_map<StringId, uint32_t>{});
         }
+        current_scope = &scopes.back();
     }
 
     void SymbolTable::close_scope() {
-        assert(scopes.size() > 0 && "Can't close the global scope");
-        const Scope& current_scope = scopes.back();
-        for (const uint32_t symbol_index : current_scope.symbol_indices) {
-            const Symbol& symbol = symbols[symbol_index];
-            if (symbol.shadowed_symbol_index == INVALID_SYMBOL_INDEX) {
-                visible_symbols.erase(symbol.identifier_id);
-            } else {
-                visible_symbols[symbol.identifier_id] = symbol.shadowed_symbol_index;
-            }
-        }
-
-        scopes.pop_back();
+        assert(scopes.back().parent_id.is_valid() && "Can't close the global scope");
+        current_scope = &scopes[current_scope->parent_id.value];
     }
 
     // clang-format off
-    std::expected<const Symbol*, SourceDiagnostic> SymbolTable::create_symbol(Type* type,
+    std::expected<Symbol*, SourceDiagnostic> SymbolTable::create_symbol(Type* type,
         StringId identifier_id,
         SymbolData&& data,
         const std::string& error_identifier,
@@ -104,36 +94,48 @@ namespace kepler {
     ) {
         // clang-format on
         Scope& current_scope = scopes.back();
-        const auto it = visible_symbols.find(identifier_id);
+        const auto existing_symbol = lookup_with_index(identifier_id, current_scope.id);
         uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;
 
-        if (it != visible_symbols.end()) {
-            const Symbol& symbol = symbols[it->second];
-            if (symbol.scope_id.value == current_scope.id.value) {
-                const std::string_view identifier = StringPool::get().lookup(symbol.identifier_id);
+        if (existing_symbol.first != nullptr) {
+            if (existing_symbol.first->scope_id.value == current_scope.id.value) {
+                const std::string_view identifier = StringPool::get().lookup(existing_symbol.first->identifier_id);
                 return std::unexpected(SourceDiagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
                     .message = std::format("{} with name '{}' already exists in the current scope", error_identifier, identifier),
                     .source_location = source_location,
                 });
             }
-            if (!symbol.can_be_shadowed) {
-                const std::string_view identifier = StringPool::get().lookup(symbol.identifier_id);
+            if (!existing_symbol.first->can_be_shadowed) {
+                const std::string_view identifier = StringPool::get().lookup(existing_symbol.first->identifier_id);
                 return std::unexpected(SourceDiagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
                     .message = std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, identifier),
                     .source_location = source_location,
                 });
             }
-            symbol_index_to_shadow = it->second;
+            symbol_index_to_shadow = existing_symbol.second;
         }
 
-        visible_symbols[identifier_id] = symbols.size();
-
         bool can_be_shadowed = current_scope.type != ScopeType::Function && current_scope.type != ScopeType::Block;
-        const uint32_t symbol_index = symbols.size();
-        current_scope.symbol_indices.push_back(symbol_index);
+        current_scope.contained_symbols.emplace(identifier_id, symbols.size());
         symbols.emplace_back(current_scope.id, type, identifier_id, can_be_shadowed, symbol_index_to_shadow, std::move(data));
         return &symbols.back();
+    }
+
+    std::pair<Symbol*, uint32_t> SymbolTable::lookup_with_index(StringId identifier_id, ScopeId scope_id) {
+        Scope* scope = &scopes[scope_id.value];
+        while (true) {
+            const auto it = scope->contained_symbols.find(identifier_id);
+            if (it != scope->contained_symbols.end()) {
+                return {&symbols[it->second], it->second};
+            }
+
+            if (scope->parent_id.is_valid()) {
+                scope = &scopes[scope->parent_id.value];
+            } else {
+                return {nullptr, INVALID_SYMBOL_INDEX};
+            }
+        }
     }
 }

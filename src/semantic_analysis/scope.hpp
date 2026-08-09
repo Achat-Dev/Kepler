@@ -9,15 +9,16 @@
 
 #pragma once
 
+#include "utils/string_pool.hpp"
 #include <cstdint>
-#include <vector>
+#include <unordered_map>
 
 namespace kepler {
 
     struct ScopeId {
         uint32_t value = 0;
 
-        constexpr bool is_valid() const { return value == std::numeric_limits<uint32_t>::max(); }
+        constexpr bool is_valid() const { return value != std::numeric_limits<uint32_t>::max(); }
         static constexpr ScopeId invalid() { return ScopeId{std::numeric_limits<uint32_t>::max()}; }
     };
 
@@ -28,16 +29,10 @@ namespace kepler {
     };
 
     struct Scope {
-        ScopeId id;
         ScopeType type;
+        ScopeId id;
         ScopeId parent_id;
-        std::vector<uint32_t> symbol_indices;
-
-        Scope(ScopeType type, ScopeId parent_id)
-            : id(id_creator++), type(type), parent_id(parent_id) {}
-
-    private:
-        inline static uint32_t id_creator = 0;
+        std::unordered_map<StringId, uint32_t> contained_symbols;
     };
 
 }

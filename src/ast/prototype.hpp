@@ -21,6 +21,8 @@
 
 namespace kepler {
 
+    struct Symbol;
+
     struct ParameterData {
         StringId type_id;
         StringId identifier_id;
@@ -40,6 +42,7 @@ namespace kepler {
         StringId identifier_id;
         StringId return_type_id;
         Type* return_type;
+        Symbol* symbol;
         std::vector<ParameterData> parameter_data;
 
         Prototype(LinkageType linkage_type,

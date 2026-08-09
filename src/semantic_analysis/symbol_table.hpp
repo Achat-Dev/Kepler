@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <expected>
 #include <string>
-#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace kepler {
@@ -27,27 +27,30 @@ namespace kepler {
     class SymbolTable {
     public:
         SymbolTable();
-        std::expected<const Symbol*, SourceDiagnostic> create_variable(Type* type, StringId identifier_id, SourceLocation source_location);
-        std::expected<const Symbol*, SourceDiagnostic> create_prototype(Type* type,
+        std::expected<Symbol*, SourceDiagnostic> create_variable(Type* type, StringId identifier_id, SourceLocation source_location);
+        std::expected<Symbol*, SourceDiagnostic> create_prototype(Type* type,
             StringId identifier_id,
             Prototype::LinkageType linkage_type,
             std::vector<Type*> parameter_types,
             SourceLocation identifier_source_location);
-        const Symbol* lookup(StringId identifier_id) const;
-        const Symbol* lookup_visible(StringId identifier_id) const;
+
+        // TODO: Maybe create a method to disable lookup after name resolution
+        // Note: This method should only be used during name resolution.
+        Symbol* lookup(StringId identifier_id);
         void open_scope(ScopeType type);
         void close_scope();
 
     private:
         std::vector<Symbol> symbols;
         std::vector<Scope> scopes;
-        std::unordered_map<StringId, uint32_t> visible_symbols;
+        Scope* current_scope;
 
-        std::expected<const Symbol*, SourceDiagnostic> create_symbol(Type* type,
+        std::expected<Symbol*, SourceDiagnostic> create_symbol(Type* type,
             StringId identifier_id,
             SymbolData&& symbol_data,
             const std::string& error_identifier,
             SourceLocation source_location);
+        std::pair<Symbol*, uint32_t> lookup_with_index(StringId identifier_id, ScopeId scope_id);
     };
 
 }

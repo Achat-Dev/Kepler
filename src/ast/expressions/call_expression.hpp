@@ -11,6 +11,7 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
+#include "semantic_analysis/symbol.hpp"
 #include "utils/string_pool.hpp"
 #include <memory>
 #include <utility>
@@ -20,6 +21,7 @@ namespace kepler {
 
     struct CallExpression : Expression {
         StringId identifier_id;
+        Symbol* symbol;
         std::vector<std::unique_ptr<Expression>> args;
 
         CallExpression(StringId identifier_id, std::vector<std::unique_ptr<Expression>> args, SourceLocation source_location)

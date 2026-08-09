@@ -11,6 +11,7 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
+#include "semantic_analysis/symbol.hpp"
 #include "utils/string_pool.hpp"
 #include <utility>
 
@@ -18,6 +19,7 @@ namespace kepler {
 
     struct VariableExpression : Expression {
         StringId identifier_id;
+        Symbol* symbol;
 
         VariableExpression(StringId identifier_id, SourceLocation source_location)
             : Expression(ASTNodeType::VariableExpression, source_location), identifier_id(std::move(identifier_id)) {}

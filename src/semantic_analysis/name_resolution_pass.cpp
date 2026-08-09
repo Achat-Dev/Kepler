@@ -277,7 +277,7 @@ namespace kepler {
     }
 
     NameResolutionResult NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
-        const Symbol* prototype_symbol = symbol_table.lookup_visible(expression->identifier_id);
+        Symbol* prototype_symbol = symbol_table.lookup(expression->identifier_id);
         if (prototype_symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
@@ -335,7 +335,8 @@ namespace kepler {
     }
 
     NameResolutionResult NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {
-        if (!symbol_table.lookup_visible(expression->identifier_id)) {
+        Symbol* symbol = symbol_table.lookup(expression->identifier_id);
+        if (symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;

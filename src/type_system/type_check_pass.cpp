@@ -28,7 +28,6 @@
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/symbol.hpp"
-#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
@@ -132,7 +131,7 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_assignment_statement(AssignmentStatement* statement) {
-        const Symbol* variable_symbol = symbol_table.lookup(statement->variable_expression->identifier_id);
+        const Symbol* variable_symbol = statement->variable_expression->symbol;
         const std::string_view variable_name = StringPool::get().lookup(statement->variable_expression->identifier_id);
         assert(variable_symbol != nullptr);
         assert(variable_symbol->type != nullptr);
@@ -251,7 +250,6 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_variable_definition_statement(VariableDefinitionStatement* statement) {
-        assert(statement->type != nullptr);
         const TypeCheckResult typecheck_result = typecheck_assignment_statement(statement->assignment_statement.get());
         assert(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
@@ -374,7 +372,7 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_call_expression(CallExpression* expression, const Type& requested_type) {
-        const Symbol* prototype_symbol = symbol_table.lookup(expression->identifier_id);
+        const Symbol* prototype_symbol = expression->symbol;
         assert(prototype_symbol != nullptr);
         if (&requested_type != prototype_symbol->type && &requested_type != type_table.Builtins.unknown_type) {
             expression->node_type = ASTNodeType::Poison;
@@ -463,12 +461,12 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_variable_expression(VariableExpression* expression, const Type& requested_type) const {
-        const Symbol* symbol = symbol_table.lookup(expression->identifier_id);
-        if (&requested_type == symbol->type || &requested_type == type_table.Builtins.unknown_type) {
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .type = symbol->type};
+        assert(expression->symbol);
+        if (&requested_type == expression->symbol->type || &requested_type == type_table.Builtins.unknown_type) {
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type = expression->symbol->type};
         } else {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = symbol->type};
+            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = expression->symbol->type};
         }
     }
 }
