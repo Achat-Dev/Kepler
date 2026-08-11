@@ -27,6 +27,7 @@ namespace kepler {
         StringId type_id;
         StringId identifier_id;
         Type* type;
+        Symbol* symbol;
         SourceLocation type_source_location;
         SourceLocation identifier_source_location;
     };

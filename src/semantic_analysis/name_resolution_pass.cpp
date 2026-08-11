@@ -98,7 +98,10 @@ namespace kepler {
             diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
             prototype->node_type = ASTNodeType::Poison;
             return {true};
+        } else {
+            prototype->symbol = *symbol;
         }
+
         return {false};
     }
 
@@ -179,12 +182,14 @@ namespace kepler {
     }
 
     NameResolutionResult NameResolutionPass::resolve_prototype(Prototype* prototype) const {
-        for (const ParameterData& parameter : prototype->parameter_data) {
+        for (ParameterData& parameter : prototype->parameter_data) {
             const auto symbol = symbol_table.create_variable(parameter.type, parameter.identifier_id, parameter.identifier_source_location);
             if (!symbol) {
                 const SourceDiagnostic& diagnostic = symbol.error();
                 diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
                 prototype->node_type = ASTNodeType::Poison;
+            } else {
+                parameter.symbol = *symbol;
             }
         }
         return {prototype->node_type == ASTNodeType::Poison};
@@ -284,6 +289,7 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {true};
         }
+        expression->symbol = prototype_symbol;
 
         const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
         const size_t expected_parameter_count = prototype_symbol_data.parameter_types.size();
@@ -342,6 +348,8 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {true};
         }
+
+        expression->symbol = symbol;
         return {false};
     }
 
