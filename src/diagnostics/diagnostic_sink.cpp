@@ -71,6 +71,7 @@ namespace kepler {
             const std::filesystem::path* file_path = File::get_path_by_id(diagnostic.source_location.file_id);
             if (!file_path) {
                 log::error("Failed to print diagnostics information, because how tf is the file with id '{}' unknown?", diagnostic.source_location.file_id);
+                continue;
             }
 
             std::ifstream file_stream(*file_path);
