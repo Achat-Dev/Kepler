@@ -16,6 +16,7 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "io/file.hpp"
+#include "lexer/token.hpp"
 #include "lexer/tokenizer.hpp"
 #include "parser/parser.hpp"
 #include "semantic_analysis/name_resolution_pass.hpp"
@@ -30,6 +31,8 @@
 #include <memory>
 #include <print>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace kepler {
 
@@ -68,7 +71,8 @@ namespace kepler {
 
         // AST creation
         Tokenizer tokenizer(*file, diagnostic_sink, type_table);
-        Parser parser(tokenizer.tokenize(), *file, diagnostic_sink, type_table);
+        std::vector<Token> tokens = tokenizer.tokenize();
+        Parser parser(std::move(tokens), *file, diagnostic_sink, type_table);
         AbstractSyntaxTree ast = parser.parse();
         verify_ast(ast);
         ASTPrinter ast_printer(ast);
