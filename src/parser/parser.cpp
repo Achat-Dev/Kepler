@@ -12,8 +12,8 @@
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
+#include "utils/assert.h"
 #include "utils/log.hpp"
-#include <cassert>
 #include <format>
 #include <memory>
 #include <vector>
@@ -55,7 +55,8 @@ namespace kepler {
     }
 
     AbstractSyntaxTree Parser::parse() {
-        assert(tokens.back().type == TokenType::EndOfFile && "Parser received invalid token stream");
+        assert::that(tokens.back().type == TokenType::EndOfFile,
+            std::format("Parser received invalid token stream with token of type '{}' at the end", tokens.back().type));
         log::verbose("Parsing token stream");
 
         AbstractSyntaxTree result;

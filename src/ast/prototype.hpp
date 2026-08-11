@@ -12,8 +12,8 @@
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
 #include "type_system/type.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <format>
 #include <string>
 #include <utility>
@@ -73,7 +73,6 @@ struct std::formatter<kepler::Prototype::LinkageType> : std::formatter<std::stri
                 return std::formatter<std::string>::format("External", ctx);
         }
 
-        assert(false && "Missing format implementation for linkage type '{}'");
-        std::unreachable();
+        kepler::assert::unreachable(std::format("Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type)));
     }
 };

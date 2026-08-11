@@ -11,13 +11,12 @@
 
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <cstdint>
 #include <format>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <variant>
 
 namespace kepler {
@@ -105,8 +104,7 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("type", ctx);
         }
 
-        assert(false && "Missing format implementation for token type");
-        std::unreachable();
+        kepler::assert::unreachable(std::format("Missing format implementation for token type '{}'", static_cast<int>(token_type)));
     }
 };
 
@@ -157,7 +155,6 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             }
         }
 
-        assert(false && "Missing format implementation for token of type");
-        std::unreachable();
+        kepler::assert::unreachable(std::format("Missing format implementation for token of type '{}'", static_cast<int>(token.type)));
     }
 };

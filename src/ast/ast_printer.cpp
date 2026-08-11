@@ -27,8 +27,8 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "type_system/type.hpp"
 #include "utils/ansi_codes.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <cstddef>
 #include <cstring>
 #include <format>
@@ -96,16 +96,11 @@ namespace kepler {
             std::print(item);
             indent += vertical;
         }
-        std::print("{}{}", prefix, node->node_type);
-
-        if (node->node_type == ASTNodeType::Poison) {
-            std::println(ansi_codes::reset);
-            return;
-        } else {
-            std::println();
-        }
+        std::print("{}{}{}", prefix, node->node_type, ansi_codes::reset);
 
         switch (node->node_type) {
+            case ASTNodeType::Poison:
+                return;
             case ASTNodeType::Extern:
                 print_extern(static_cast<const Extern*>(node), indent);
                 break;
@@ -157,10 +152,9 @@ namespace kepler {
             case ASTNodeType::VariableExpression:
                 print_variable_expression(static_cast<const VariableExpression*>(node), indent);
                 break;
-            default:
-                assert(false && "Failed to print ast node");
-                std::unreachable();
         }
+
+        assert::unreachable(std::format("Missing ast printer implementation for node of type '{}'", node->node_type));
     }
 
     void ASTPrinter::print_extern(const Extern* ext, const std::string& indent) const {

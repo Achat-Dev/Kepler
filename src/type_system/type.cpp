@@ -8,9 +8,9 @@
  */
 
 #include "type_system/type.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
-#include <utility>
+#include <format>
 #include <vector>
 
 namespace kepler {
@@ -56,8 +56,7 @@ namespace kepler {
                 return StringPool::get().store("f64");
         }
 
-        assert(false && "Missing type name id implementation for type kind");
-        std::unreachable();
+        assert::unreachable(std::format("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind)));
     }
 
 }

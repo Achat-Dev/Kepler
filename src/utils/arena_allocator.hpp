@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <cassert>
+#include "utils/assert.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -35,8 +35,8 @@ namespace kepler {
         template <typename T, typename... Args>
             requires(!std::is_array_v<T>)
         T* allocate(Args&&... args) {
-            assert(blocks.size() > 0 && "Can't call 'allocate' on freed ArenaAllocator");
-            assert(sizeof(T) <= block_size && "Can't allocate an object that is bigger than the blocksize of an ArenaAllocator");
+            assert::that(blocks.size() > 0, "Can't call 'allocate' on freed ArenaAllocator");
+            assert::that(sizeof(T) <= block_size, "Can't allocate an object that is bigger than the blocksize of an ArenaAllocator");
 
             void* memory = current_block->allocate(sizeof(T), alignof(T));
 

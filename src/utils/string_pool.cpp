@@ -8,7 +8,7 @@
  */
 
 #include "utils/string_pool.hpp"
-#include <cassert>
+#include "utils/assert.h"
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -29,7 +29,7 @@ namespace kepler {
     }
 
     std::string_view StringPool::lookup(StringId id) const {
-        assert(id.value < strings.size() && "Looking up invalid StringId");
+        assert::that(id.value < strings.size(), "Looking up invalid StringId");
         return strings[id.value];
     }
 

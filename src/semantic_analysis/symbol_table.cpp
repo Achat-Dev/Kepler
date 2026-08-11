@@ -14,8 +14,8 @@
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <cstdint>
 #include <expected>
 #include <format>
@@ -81,7 +81,7 @@ namespace kepler {
     }
 
     void SymbolTable::close_scope() {
-        assert(scopes.back().parent_id.is_valid() && "Can't close the global scope");
+        assert::that(scopes.back().parent_id.is_valid(), "Can't close the global scope");
         current_scope = &scopes[current_scope->parent_id.value];
     }
 

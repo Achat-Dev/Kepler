@@ -12,11 +12,12 @@
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
 #include "utils/ansi_codes.hpp"
+#include "utils/assert.h"
 #include "utils/log.hpp"
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <print>
 #include <string>
@@ -140,8 +141,7 @@ namespace kepler {
                 return ansi_codes::combine(ansi_codes::bold, ansi_codes::magenta);
         }
 
-        assert(false && "Missing styling implementation for severity");
-        std::unreachable();
+        assert::unreachable(std::format("Missing styling implementation for severity '{}'", severity));
     }
 
 }

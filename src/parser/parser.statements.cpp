@@ -20,8 +20,8 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <format>
 #include <memory>
 #include <string>
@@ -153,8 +153,7 @@ namespace kepler {
                 return std::make_unique<IfStatement>(std::move(condition), std::move(*if_body), std::vector<std::unique_ptr<ASTNode>>{}, if_token->source_location);
             }
             default:
-                assert(false && "Parsing an if statement failed");
-                std::unreachable();
+                assert::unreachable("Parsing an if statement failed");
         }
     }
 

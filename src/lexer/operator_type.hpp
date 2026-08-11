@@ -9,11 +9,10 @@
 
 #pragma once
 
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <format>
 #include <string>
-#include <utility>
 
 namespace kepler {
 
@@ -61,7 +60,6 @@ struct std::formatter<kepler::OperatorType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format(">=", ctx);
         }
 
-        assert(false && "Missing format implementation for operator type");
-        std::unreachable();
+        kepler::assert::unreachable(std::format("Missing format implementation for operator type '{}'", operator_type));
     }
 };

@@ -9,12 +9,11 @@
 
 #pragma once
 
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <format>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace kepler {
@@ -77,7 +76,7 @@ struct std::formatter<kepler::Type> : std::formatter<std::string> {
 template <>
 struct std::formatter<kepler::Type*> : std::formatter<std::string> {
     auto format(const kepler::Type* type, std::format_context& ctx) const {
-        assert(type != nullptr);
+        kepler::assert::not_nullptr(type);
         return std::formatter<std::string>::format(std::format("{}", *type), ctx);
     }
 };

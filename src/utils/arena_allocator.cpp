@@ -8,7 +8,7 @@
  */
 
 #include "utils/arena_allocator.hpp"
-#include <cassert>
+#include "utils/assert.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -19,7 +19,7 @@ namespace kepler {
 
     ArenaAllocator::ArenaAllocator(size_t block_size, std::string label)
         : block_size(block_size), label(std::move(label)) {
-        assert(block_size > 0 && "Blocksize of ArenaAllocator has to be greater than 0");
+        assert::that(block_size > 0, "Blocksize of ArenaAllocator has to be greater than 0");
         blocks.emplace_back(this, block_size);
         current_block = &blocks.back();
     }

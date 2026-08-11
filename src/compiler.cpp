@@ -23,11 +23,13 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_check_pass.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/ansi_codes.hpp"
+#include "utils/assert.h"
 #include "utils/log.hpp"
-#include <cassert>
 #include <cstdlib>
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <print>
 #include <string>
@@ -109,13 +111,10 @@ namespace kepler {
     }
 
     void Compiler::verify_ast(const AbstractSyntaxTree& ast) const {
-#if NDEBUG
-        return;
-#else
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
-            assert(node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function && "Invalid ast node type on top level");
+            bool is_valid_top_level_node = node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function;
+            assert::that(is_valid_top_level_node, std::format("Malformed ast with node of type '{}' on top level", node->node_type));
         }
-#endif
     }
 
     std::expected<CompilerContext, Diagnostic> Compiler::parse_args(int argc, char** argv) const {
@@ -164,5 +163,4 @@ namespace kepler {
             return std::unexpected(Diagnostic{.code = DiagnosticCode::CxxoptsException, .message = e.what()});
         }
     }
-
 }

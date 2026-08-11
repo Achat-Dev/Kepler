@@ -30,8 +30,8 @@
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -63,8 +63,7 @@ namespace kepler {
                 return true;
         }
 
-        assert(false && "Missing boolean operator check implementation");
-        std::unreachable();
+        assert::unreachable(std::format("Missing boolean operator check implementation for operator type '{}'", type));
     }
 
     TypeCheckResult TypeCheckPass::typecheck_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
@@ -79,7 +78,7 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_node(ASTNode* node, Type& requested_type) {
-        assert(node != nullptr);
+        assert::not_nullptr(node);
 
         switch (node->node_type) {
             case ASTNodeType::Poison:
@@ -118,8 +117,7 @@ namespace kepler {
             case ASTNodeType::VariableExpression:
                 return typecheck_variable_expression(static_cast<VariableExpression*>(node), requested_type);
             default:
-                assert(false && "Invalid node type for typechecking");
-                std::unreachable();
+                assert::unreachable("Invalid node type for typechecking");
         }
     }
 
@@ -132,9 +130,8 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_assignment_statement(AssignmentStatement* statement) {
         const Symbol* variable_symbol = statement->variable_expression->symbol;
-        const std::string_view variable_name = StringPool::get().lookup(statement->variable_expression->identifier_id);
-        assert(variable_symbol != nullptr);
-        assert(variable_symbol->type != nullptr);
+        assert::not_nullptr(variable_symbol);
+        assert::not_nullptr(variable_symbol->type);
 
         const TypeCheckResult typecheck_result = typecheck_node(statement->value_expression.get(), *variable_symbol->type);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
@@ -154,8 +151,8 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_for_statement(ForStatement* statement) {
         Type* variable_type = statement->loop_variable_definition->type;
-        assert(variable_type != nullptr);
         if (!is_integer_type(variable_type->type_kind)) {
+        assert::not_nullptr(variable_type);
             const std::string message = std::format("Loop variable of a for statement has to be an integer type, got '{}'", variable_type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->loop_variable_definition->source_location);
             return typecheck_body_and_poison_for_statement(statement);
@@ -220,8 +217,8 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_return_statement(ReturnStatement* statement) {
-        assert(current_function_return_type != nullptr);
-        assert(current_function_return_type != type_table.Builtins.unknown_type);
+        assert::not_nullptr(current_function_return_type);
+        assert::that(current_function_return_type != type_table.Builtins.unknown_type, "Invalid function return type of unknown");
 
         if (current_function_return_type == type_table.Builtins.void_type && statement->expression != nullptr) {
             diagnostic_sink.report(DiagnosticCode::InvalidReturn, "Cannot return a value from void function", statement->source_location);
@@ -251,7 +248,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_variable_definition_statement(VariableDefinitionStatement* statement) {
         const TypeCheckResult typecheck_result = typecheck_assignment_statement(statement->assignment_statement.get());
-        assert(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
+        assert::that(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
@@ -317,27 +314,27 @@ namespace kepler {
 
             // Pass unknown as the requested type so that the expressions don't try to produce a boolean individually
             lhs_tcr = typecheck_node(expression->lhs.get(), *type_table.Builtins.unknown_type);
-            assert(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
+            assert::that(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
             if (lhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             }
 
             rhs_tcr = typecheck_node(expression->rhs.get(), *type_table.Builtins.unknown_type);
-            assert(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
+            assert::that(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
             if (rhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             }
         } else {
             lhs_tcr = typecheck_binary_expression_side(expression, expression->lhs.get(), requested_type);
-            assert(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
+            assert::that(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
             if (lhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 return lhs_tcr;
             }
 
             rhs_tcr = typecheck_binary_expression_side(expression, expression->rhs.get(), requested_type);
-            assert(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
+            assert::that(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
             if (rhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 return rhs_tcr;
             }
@@ -373,14 +370,14 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_call_expression(CallExpression* expression, const Type& requested_type) {
         const Symbol* prototype_symbol = expression->symbol;
-        assert(prototype_symbol != nullptr);
+        assert::not_nullptr(prototype_symbol);
         if (&requested_type != prototype_symbol->type && &requested_type != type_table.Builtins.unknown_type) {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = prototype_symbol->type};
         }
 
         const std::vector<Type*>& parameter_types = std::get<PrototypeSymbolData>(prototype_symbol->data).parameter_types;
-        assert(parameter_types.size() == expression->args.size() && "Mismatching call parameter count during typechecking (should have been caught by the name resolution)");
+        assert::that(parameter_types.size() == expression->args.size(), "Mismatching call parameter count during typechecking");
 
         for (size_t i = 0; i < parameter_types.size(); i++) {
             const TypeCheckResult typecheck_result = typecheck_node(expression->args[i].get(), *parameter_types[i]);
@@ -388,8 +385,7 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
             } else if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
-                // Nodes only poison themselves without diagnostics if they aren't able to produce the requested data type, hence the assert
-                assert(typecheck_result.type != parameter_types[i]);
+                assert::that(typecheck_result.type != parameter_types[i], "Poisoned because of mismatching call parameter type without diagnostic");
                 const std::string_view identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
                 const std::string message = std::format("Type mismatch: Parameter no. {} of function '{}' expects type '{}', but the given argument is of type '{}'",
                     (i + 1),
@@ -414,7 +410,7 @@ namespace kepler {
         }
 
         const TypeCheckResult typecheck_result = typecheck_node(expression->expression.get(), *type_table.Builtins.unknown_type);
-        assert(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
+        assert::that(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
@@ -461,7 +457,7 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_variable_expression(VariableExpression* expression, const Type& requested_type) const {
-        assert(expression->symbol);
+        assert::not_nullptr(expression->symbol);
         if (&requested_type == expression->symbol->type || &requested_type == type_table.Builtins.unknown_type) {
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = expression->symbol->type};
         } else {

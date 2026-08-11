@@ -27,8 +27,8 @@
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -58,14 +58,13 @@ namespace kepler {
                     break;
                 }
                 default:
-                    assert(false && "Invalid ast node type on top level during name resolution");
-                    std::unreachable();
+                    assert::unreachable(std::format("Invalid ast node type of type '{}' on top level during name resolution", node->node_type));
             }
         }
     }
 
     NameResolutionResult NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
-        assert(prototype->return_type == nullptr);
+        assert::not_nullptr(prototype->return_type);
         Type* return_type = type_table.lookup(prototype->return_type_id);
         if (return_type == nullptr) {
             report_unknown_type(prototype->return_type_id, prototype->source_location);
@@ -77,7 +76,7 @@ namespace kepler {
         std::vector<Type*> parameter_types;
         parameter_types.reserve(prototype->parameter_data.size());
         for (auto& parameter_data : prototype->parameter_data) {
-            assert(parameter_data.type == nullptr);
+            assert::not_nullptr(parameter_data.type);
             Type* parameter_type = type_table.lookup(parameter_data.type_id);
             if (parameter_type == nullptr) {
                 report_unknown_type(parameter_data.type_id, parameter_data.type_source_location);
@@ -159,8 +158,7 @@ namespace kepler {
                 return {false};
 
             default:
-                assert(false && "Invalid node type for name resolution");
-                std::unreachable();
+                assert::unreachable(std::format("Can't perform name resolution for node of type '{}'", node->node_type));
         }
     }
 
@@ -247,7 +245,7 @@ namespace kepler {
     }
 
     NameResolutionResult NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
-        assert(statement->type == nullptr);
+        assert::not_nullptr(statement->type);
         Type* type = type_table.lookup(statement->type_id);
         if (type == nullptr) {
             report_unknown_type(statement->type_id, statement->source_location);
@@ -316,7 +314,7 @@ namespace kepler {
     }
 
     NameResolutionResult NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
-        assert(expression->target_type == nullptr);
+        assert::not_nullptr(expression->target_type);
         Type* target_type = type_table.lookup(expression->target_type_id);
         if (!target_type) {
             report_unknown_type(expression->target_type_id, expression->source_location);

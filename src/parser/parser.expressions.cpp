@@ -23,8 +23,8 @@
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -55,8 +55,7 @@ namespace kepler {
                 return 30;
         }
 
-        assert(false && "Missing binary operator precedence implementation");
-        std::unreachable();
+        assert::unreachable(std::format("Missing binary operator precedence implementation for operator '{}'", static_cast<int>(operator_type)));
     }
 
     std::unique_ptr<Expression> Parser::parse_expression() {
@@ -212,8 +211,7 @@ namespace kepler {
             return std::make_unique<BooleanLiteralExpression>(std::get<bool>(literal_data), source_location);
         }
 
-        assert(false && "Literal token doesn't contain the literal data");
-        std::unreachable();
+        assert::unreachable("Literal token doesn't contain the correct literal data");
     }
 
     std::unique_ptr<Expression> Parser::parse_parenthesis() {
