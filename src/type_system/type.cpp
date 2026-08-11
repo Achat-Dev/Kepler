@@ -24,12 +24,26 @@ namespace kepler {
         return nullptr;
     }
 
-    bool is_integer_type(TypeKind type_kind) {
-        return type_kind == TypeKind::I8 || type_kind == TypeKind::I16 || type_kind == TypeKind::I32 || type_kind == TypeKind::I64;
+    bool is_integer_type(Type& type) {
+        switch (type.type_kind) {
+            case TypeKind::I8:
+            case TypeKind::I16:
+            case TypeKind::I32:
+            case TypeKind::I64:
+                return true;
+            default:
+                return false;
+        }
     }
 
-    bool is_floating_point_type(TypeKind type_kind) {
-        return type_kind == TypeKind::F32 || type_kind == TypeKind::F64;
+    bool is_floating_point_type(Type& type) {
+        switch (type.type_kind) {
+            case TypeKind::F32:
+            case TypeKind::F64:
+                return true;
+            default:
+                return false;
+        }
     }
 
     StringId get_type_kind_name_id(TypeKind type_kind) {

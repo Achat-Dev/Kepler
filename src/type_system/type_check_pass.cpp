@@ -151,8 +151,8 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_for_statement(ForStatement* statement) {
         Type* variable_type = statement->loop_variable_definition->type;
-        if (!is_integer_type(variable_type->type_kind)) {
         assert::not_nullptr(variable_type);
+        if (!is_integer_type(*variable_type)) {
             const std::string message = std::format("Loop variable of a for statement has to be an integer type, got '{}'", variable_type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->loop_variable_definition->source_location);
             return typecheck_body_and_poison_for_statement(statement);
@@ -266,7 +266,7 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, Type& requested_type) const {
-        if (is_floating_point_type(requested_type.type_kind)) {
+        if (is_floating_point_type(requested_type)) {
             expression->target_type = &requested_type;
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = &requested_type};
         } else if (&requested_type == type_table.Builtins.unknown_type) {
@@ -279,7 +279,7 @@ namespace kepler {
     }
 
     TypeCheckResult TypeCheckPass::typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type& requested_type) const {
-        if (is_integer_type(requested_type.type_kind) || is_floating_point_type(requested_type.type_kind)) {
+        if (is_integer_type(requested_type) || is_floating_point_type(requested_type)) {
             expression->target_type = &requested_type;
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = &requested_type};
         } else if (&requested_type == type_table.Builtins.unknown_type) {

@@ -44,13 +44,12 @@ namespace kepler {
         StringId name_id;
         std::vector<Method> methods;
 
-        Type(TypeKind type_kind, StringId name_id, std::vector<Method> methods)
-            : type_kind(type_kind), name_id(name_id), methods(std::move(methods)) {}
         const Method* find_method(StringId identifier_id, std::vector<Type*> parameter_types) const;
     };
 
-    bool is_integer_type(TypeKind type_kind);
-    bool is_floating_point_type(TypeKind type_kind);
+    llvm::Type* get_llvm_type(Type& type, llvm::LLVMContext& context);
+    bool is_integer_type(Type& type);
+    bool is_floating_point_type(Type& type);
     StringId get_type_kind_name_id(TypeKind type_kind);
 
 }
