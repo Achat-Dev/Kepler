@@ -19,8 +19,13 @@
 #include <string_view>
 #include <utility>
 
+// Uncomment this line to disable assertions
+// With high enough optimisation levels the compiler *should* even optimise out the calls to these functions
+// #define KPL_NO_ASSERT
+
 namespace kepler::assert {
 
+#ifndef KPL_NO_ASSERT
     namespace {
         inline void print(const std::string& message, const std::source_location& location) {
             std::string_view file_path(location.file_name());
@@ -44,26 +49,33 @@ namespace kepler::assert {
             }
         }
     }
+#endif
 
     inline void that(bool condition, const std::string& message = "", const std::source_location& location = std::source_location::current()) {
+#ifndef KPL_NO_ASSERT
         if (!condition) {
             print(message, location);
             std::abort();
         }
+#endif
     }
 
     [[noreturn]]
     inline void unreachable(const std::string& message, const std::source_location& location = std::source_location::current()) {
+#ifndef KPL_NO_ASSERT
         print(message, location);
         std::unreachable();
+#endif
     }
 
     template <typename T>
     inline void not_nullptr(const T* ptr, const std::source_location& location = std::source_location::current()) {
+#ifndef KPL_NO_ASSERT
         if (ptr == nullptr) {
             print("nullptr violation", location);
             std::abort();
         }
+#endif
     }
 
 }
