@@ -160,7 +160,7 @@ namespace kepler {
 
             return context;
         } catch (const cxxopts::exceptions::exception& e) {
-            return std::unexpected(Diagnostic{.code = DiagnosticCode::CxxoptsException, .message = e.what()});
+            return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownOption, .message = e.what()});
         }
     }
 }

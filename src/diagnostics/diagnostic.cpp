@@ -25,7 +25,7 @@ namespace kepler {
             case DiagnosticCode::NoOutputFile:
             case DiagnosticCode::TooManyInputFiles:
             case DiagnosticCode::TooManyOutputFiles:
-            case DiagnosticCode::CxxoptsException:
+            case DiagnosticCode::UnknownOption:
             case DiagnosticCode::FileNotFound:
             case DiagnosticCode::FileIsADirectory:
             case DiagnosticCode::NotARegularFile:

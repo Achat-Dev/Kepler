@@ -24,7 +24,7 @@ namespace kepler {
         NoOutputFile,
         TooManyInputFiles,
         TooManyOutputFiles,
-        CxxoptsException,
+        UnknownOption,
 
         // I/O
         FileNotFound = 200,
