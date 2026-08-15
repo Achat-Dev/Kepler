@@ -154,7 +154,7 @@ namespace kepler {
                 break;
         }
 
-        assert::unreachable(std::format("Missing ast printer implementation for node of type '{}'", node->node_type));
+        KPL_ASSERT_UNREACHABLE("Missing ast printer implementation for node of type '{}'", node->node_type);
     }
 
     void ASTPrinter::print_extern(const Extern* ext, const std::string& indent) const {

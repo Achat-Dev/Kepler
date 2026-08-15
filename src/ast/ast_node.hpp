@@ -91,6 +91,6 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("VariableExpression", ctx);
         }
 
-        kepler::assert::unreachable(std::format("Missing format implementation for ast node type '{}'", static_cast<int>(ast_node_type)));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for ast node type '{}'", static_cast<int>(ast_node_type));
     }
 };

@@ -52,7 +52,7 @@ namespace kepler {
                 return DiagnosticSeverity::Unsupported;
         }
 
-        assert::unreachable(std::format("Missing format implementation for severity mapping of diagnostic code '{}'", static_cast<int>(diagnostic_code)));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for severity mapping of diagnostic code '{}'", static_cast<int>(diagnostic_code));
     }
 
 }

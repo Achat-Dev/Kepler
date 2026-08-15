@@ -72,6 +72,6 @@ struct std::formatter<kepler::Prototype::LinkageType> : std::formatter<std::stri
                 return std::formatter<std::string>::format("External", ctx);
         }
 
-        kepler::assert::unreachable(std::format("Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type)));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type));
     }
 };

@@ -12,6 +12,8 @@
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Type.h>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -75,7 +77,7 @@ struct std::formatter<kepler::Type> : std::formatter<std::string> {
 template <>
 struct std::formatter<kepler::Type*> : std::formatter<std::string> {
     auto format(const kepler::Type* type, std::format_context& ctx) const {
-        kepler::assert::not_nullptr(type);
+        KPL_ASSERT_NOT_NULLPTR(type);
         return std::formatter<std::string>::format(std::format("{}", *type), ctx);
     }
 };

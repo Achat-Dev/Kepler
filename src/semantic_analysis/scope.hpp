@@ -18,7 +18,8 @@ namespace kepler {
     struct ScopeId {
         uint32_t value = 0;
 
-        constexpr bool is_valid() const { return value != std::numeric_limits<uint32_t>::max(); }
+        bool operator==(const ScopeId& other) const = default;
+        bool operator!=(const ScopeId& other) const = default;
         static constexpr ScopeId invalid() { return ScopeId{std::numeric_limits<uint32_t>::max()}; }
     };
 

@@ -55,7 +55,7 @@ namespace kepler {
                 return 30;
         }
 
-        assert::unreachable(std::format("Missing binary operator precedence implementation for operator '{}'", static_cast<int>(operator_type)));
+        KPL_ASSERT_UNREACHABLE("Missing binary operator precedence implementation for operator '{}'", static_cast<int>(operator_type));
     }
 
     std::unique_ptr<Expression> Parser::parse_expression() {
@@ -71,12 +71,14 @@ namespace kepler {
     }
 
     std::unique_ptr<Expression> Parser::parse_binary_expression_rhs(std::unique_ptr<Expression> lhs, int expression_precedence) {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
         while (true) {
             if (current_token->type != TokenType::Operator) {
                 return lhs;
             }
 
             const SourceLocation& operator_source_location = current_token->source_location;
+            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Binary expression operator token");
             const OperatorType current_operator_type = std::get<OperatorType>(current_token->data);
             const int current_operator_precedence = get_operator_precedence(current_operator_type);
             if (current_operator_precedence < expression_precedence) {
@@ -111,6 +113,7 @@ namespace kepler {
                     operator_source_location);
             }
 
+            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Binary expression next operator token");
             const OperatorType next_operator_type = std::get<OperatorType>(current_token->data);
             const int next_operator_precedence = get_operator_precedence(next_operator_type);
             if (current_operator_precedence < next_operator_precedence) {
@@ -128,12 +131,14 @@ namespace kepler {
     }
 
     std::unique_ptr<Expression> Parser::parse_primary() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
         switch (current_token->type) {
             case TokenType::Identifier:
                 return parse_identifier();
             case TokenType::Type:
                 return parse_cast();
             case TokenType::Operator:
+                KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Mathematical negation operator token");
                 if (std::get<OperatorType>(current_token->data) == OperatorType::Minus) {
                     return parse_negative();
                 }
@@ -152,19 +157,33 @@ namespace kepler {
     }
 
     std::unique_ptr<Expression> Parser::parse_identifier() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier,
+            "Parsing identifier requires '{}' token, received '{}'",
+            TokenType::Identifier,
+            current_token->type);
         const Token* identifier_token = current_token;
         next_token(true); // eat identifier
         if (current_token->type == TokenType::BracketOpen) {
             return parse_call(identifier_token);
         }
+
+        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Identifier token");
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location);
     }
 
     std::unique_ptr<CallExpression> Parser::parse_call(const Token* identifier_token) {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen,
+            "Parsing call expression requires '{}' token, received '{}'",
+            TokenType::BracketOpen,
+            current_token->type);
+        KPL_ASSERT_NOT_NULLPTR(identifier_token);
+        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Call identifier token");
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
-        next_token(true); // eat '('
 
+        next_token(true); // eat '('
         // Call with no arguments
         if (current_token->type == TokenType::BracketClose) {
             next_token(true); // eat ')'
@@ -197,6 +216,11 @@ namespace kepler {
     }
 
     std::unique_ptr<Expression> Parser::parse_literal() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Literal,
+            "Parsing literal requires '{}' token, received '{}'",
+            TokenType::Literal,
+            current_token->type);
         const SourceLocation& source_location = current_token->source_location;
         const auto literal_data = current_token->data;
         next_token(true); // eat the literal
@@ -211,10 +235,15 @@ namespace kepler {
             return std::make_unique<BooleanLiteralExpression>(std::get<bool>(literal_data), source_location);
         }
 
-        assert::unreachable("Literal token doesn't contain the correct literal data");
+        KPL_ASSERT_UNREACHABLE("Literal token doesn't contain the correct literal data");
     }
 
     std::unique_ptr<Expression> Parser::parse_parenthesis() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen,
+            "Parsing parenthesis requires '{}' token, received '{}'",
+            TokenType::BracketOpen,
+            current_token->type);
         next_token(true); // eat '('
         std::unique_ptr<Expression> expression = parse_expression();
         if (!expression) {
@@ -225,7 +254,7 @@ namespace kepler {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ')'", current_token->source_location);
             recover(SynchronizationSet<TokenType::BracketClose, TokenType::Newline, TokenType::End>{}, SynchronizationSet<>{});
             if (current_token->type == TokenType::Newline) {
-                next_token(true);
+                next_token(true); // eat newline
                 return nullptr;
             }
             if (current_token->type == TokenType::End) {
@@ -238,6 +267,17 @@ namespace kepler {
     }
 
     std::unique_ptr<MathematicalNegationExpression> Parser::parse_negative() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Operator,
+            "Parsing mathematical negation requires '{}' token, received '{}'",
+            TokenType::Operator,
+            current_token->type);
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Mathematical negation operator token");
+        const OperatorType operator_type = std::get<OperatorType>(current_token->data);
+        KPL_ASSERT_THAT(operator_type == OperatorType::Minus,
+            "Parsing mathematical negation requires operator '{}', received operator '{}'",
+            OperatorType::Minus,
+            operator_type);
         const SourceLocation& source_location = current_token->source_location;
         next_token(true); // eat '-'
         std::unique_ptr<Expression> expression = nullptr;
@@ -271,8 +311,14 @@ namespace kepler {
     }
 
     std::unique_ptr<CastExpression> Parser::parse_cast() {
-        const SourceLocation& type_source_location = current_token->source_location;
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type,
+            "Parsing cast requires '{}' token, received '{}'",
+            TokenType::Type,
+            current_token->type);
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Cast type token");
         const StringId type_id = std::get<StringId>(current_token->data);
+        const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type
         if (current_token->type != TokenType::BracketOpen) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after type for cast", current_token->source_location);
@@ -309,6 +355,7 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
+        // TODO: Move this check to type check pass
         if (type_id == type_table.Builtins.void_type->name_id) {
             diagnostic_sink.report(DiagnosticCode::InvalidCast, "Cannot cast a value to 'void'", current_token->source_location);
             return nullptr;

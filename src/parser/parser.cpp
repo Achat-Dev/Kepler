@@ -43,20 +43,16 @@ namespace kepler {
     }
 
     void Parser::jump_to_token(size_t index) {
-        if (index < 0) {
-            log::warning("Trying to jump to token at negative index, clamping to 0 (index is '{}')", index);
-            index = 0;
-        } else if (index >= tokens.size()) {
-            log::warning("Trying to jump to token at index out of range, clamping to {} (index is '{}')", tokens.size() - 1, index);
-            index = tokens.size() - 1;
-        }
+        KPL_ASSERT_THAT(index <= tokens.size(), "Can't jump to out of range token");
         current_token_index = index;
         current_token = &tokens[current_token_index];
     }
 
     AbstractSyntaxTree Parser::parse() {
-        assert::that(tokens.back().type == TokenType::EndOfFile,
-            std::format("Parser received invalid token stream with token of type '{}' at the end", tokens.back().type));
+        KPL_ASSERT_THAT(!tokens.empty(), "Token stream must have a size > 0 for parsing");
+        KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile,
+            "Token stream must end with EOF token for parsing, received stream that ends with '{}' token",
+            tokens.back().type);
         log::verbose("Parsing token stream");
 
         AbstractSyntaxTree result;

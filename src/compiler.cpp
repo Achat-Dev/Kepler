@@ -44,8 +44,8 @@ namespace kepler {
         // Parse command line arguments
         const auto parse_result = parse_args(argc, argv);
         if (!parse_result) {
-            diagnostic_sink.report(parse_result.error().code, parse_result.error().message);
-            diagnostic_sink.flush();
+            const DiagnosticSeverity severity = get_diagnostic_severity(parse_result.error().code);
+            std::println("{}{}", severity, parse_result.error().message);
             return EXIT_FAILURE;
         }
         const CompilerContext context = *parse_result;
@@ -113,7 +113,7 @@ namespace kepler {
     void Compiler::verify_ast(const AbstractSyntaxTree& ast) const {
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
             bool is_valid_top_level_node = node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function;
-            assert::that(is_valid_top_level_node, std::format("Malformed ast with node of type '{}' on top level", node->node_type));
+            KPL_ASSERT_THAT(is_valid_top_level_node, "Malformed ast with node of type '{}' on top level", node->node_type);
         }
     }
 

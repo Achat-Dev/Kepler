@@ -14,6 +14,7 @@
 #include "io/file.hpp"
 #include "lexer/token.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/assert.h"
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
 #include <cctype>
@@ -21,7 +22,6 @@
 #include <cstdio>
 #include <filesystem>
 #include <format>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -55,26 +55,30 @@ namespace kepler {
     }
 
     std::vector<Token> Tokenizer::tokenize() {
-        const std::filesystem::path* file_path = File::get_path_by_id(file.id);
-        log::verbose("Tokenizing file '{}'", file_path->c_str());
+        const std::filesystem::path file_path = File::get_path_by_id(file.id);
+        log::verbose("Tokenizing file '{}'", file_path.c_str());
+
+        if (file.content.empty()) {
+            return {Token{.type = TokenType::EndOfFile, .source_location = {file.id, 0, 0}}};
+        }
 
         current_char = file.content[0]; // Read first char manually instead of next_char() because that would read file.content[1]
         std::vector<Token> tokens;
-        while (true) {
-            const std::optional<Token> token = read_next_token();
-            if (!token) {
-                continue;
-            }
-
-            tokens.push_back(*token);
-            if (token->type == TokenType::EndOfFile) {
-                log::verbose_no_prefix("{}Tokenizing done", log::last_indented);
-                return tokens;
+        while (position < file.content.size()) {
+            const Token token = read_next_token();
+            tokens.push_back(token);
+            if (token.type == TokenType::EndOfFile) {
+                break;
             }
         }
+
+        KPL_ASSERT_THAT(!tokens.empty(), "Tokenizer must create a token stream with at least an EOF token");
+        KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Tokenizer must create a token stream that ends with EOF token");
+        log::verbose_no_prefix("{}Tokenizing done", log::last_indented);
+        return tokens;
     }
 
-    char Tokenizer::peek_next_char() const {
+    int Tokenizer::peek_next_char() const {
         if (position + 1 < file.content.size()) {
             return file.content[position + 1];
         } else {
@@ -93,7 +97,7 @@ namespace kepler {
         if (peek_next_char() == EOF) {
             return Token{
                 .type = TokenType::EndOfFile,
-                .source_location = {FileId::invalid(), 0, 0},
+                .source_location = {file.id, position - 1, 1},
             };
         }
 
@@ -236,18 +240,22 @@ namespace kepler {
         }
 
         diagnostic_sink.report(DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", current_char), {file.id, position, 1});
-        next_char();
+        next_char(); // eat unknown char
         return read_next_token();
     }
 
     Token Tokenizer::read_identifier() {
+        int is_current_char_alpha = isalpha(current_char);
+        KPL_ASSERT_THAT(is_current_char_alpha, "Tokenizing identifier requires character, received '{}'", current_char);
         const uint32_t identifier_start_position = position;
-        next_char();
-        while (isalnum(current_char) || current_char == '_') {
+        do {
             next_char();
-        }
+        } while (isalnum(current_char) || current_char == '_');
 
         const uint32_t identifier_length = position - identifier_start_position;
+        KPL_ASSERT_THAT(identifier_length > 0, "Tokenizing identifier requires identifier length > 0");
+        KPL_ASSERT_THAT(file.content.size() > identifier_start_position + identifier_length,
+            "Tokenizing identifier requires literal to be in bounds of file content");
         const StringId identifier_id = StringPool::get().store(file.content.substr(identifier_start_position, identifier_length));
 
         if (keyword_map.contains(identifier_id)) {
@@ -264,12 +272,13 @@ namespace kepler {
     }
 
     Token Tokenizer::read_string_literal() {
+        KPL_ASSERT_THAT(current_char == '"', "Tokenizing a string literal requires current_char to be '\"', received '{}'", current_char);
         std::string literal = "";
-        next_char();
+        next_char(); // eat '"'
 
         while (current_char != '"') {
             if (current_char == '\\') {
-                next_char(); // read the character to escape
+                next_char(); // eat the character to escape
 
                 switch (current_char) {
                     case 'n': literal += '\n'; break;
@@ -300,6 +309,8 @@ namespace kepler {
     }
 
     Token Tokenizer::read_numeric_literal() {
+        int is_current_char_digit = isdigit(current_char);
+        KPL_ASSERT_THAT(is_current_char_digit, "Tokenizing numeric literal requires digit, received '{}'", current_char);
         const uint32_t literal_start_position = position;
         bool is_float = false;
         do {
@@ -310,6 +321,9 @@ namespace kepler {
         } while (isdigit(current_char) || current_char == '.');
 
         const uint32_t literal_length = position - literal_start_position;
+        KPL_ASSERT_THAT(literal_length > 0, "Tokenizing numeric literal requires literal length > 0");
+        KPL_ASSERT_THAT(file.content.size() > literal_start_position - literal_length,
+            "Tokenizing numeric literal requires literal to be in bounds of file content");
         const std::string literal = file.content.substr(literal_start_position, literal_length);
 
         if (is_float) {
@@ -328,6 +342,7 @@ namespace kepler {
     }
 
     void Tokenizer::read_comment() {
+        KPL_ASSERT_THAT(current_char == '#', "Reading comment requires '#', received '{}'", current_char);
         next_char(); // eat '#'
 
         // Two # after each other -> multiline comment

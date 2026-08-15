@@ -11,6 +11,7 @@
 #include "lexer/operator_type.hpp"
 #include "type_system/type.hpp"
 #include "utils/arena_allocator.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <string>
 #include <utility>
@@ -30,10 +31,22 @@ namespace kepler {
         if (it == existing_types.end()) {
             return nullptr;
         }
+        KPL_ASSERT_NOT_NULLPTR(it->second);
         return it->second;
     }
 
     void TypeTable::create_builtin_types() {
+        KPL_ASSERT_THAT(Builtins.unknown_type == nullptr, "Unknown type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.void_type == nullptr, "Void type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.bool_type == nullptr, "Bool type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.string_type == nullptr, "String type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.i8_type == nullptr, "i8 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.i16_type == nullptr, "i16 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.i32_type == nullptr, "i32 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.i64_type == nullptr, "i64 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.f32_type == nullptr, "f32 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.f64_type == nullptr, "f64 type can't exist when creating the builtin types");
+
         // Create the types first and fill in the methods afterwards because the methods need to reference the types
         register_builtin_type(&Builtins.unknown_type, TypeKind::Unknown);
         register_builtin_type(&Builtins.void_type, TypeKind::Void);
@@ -79,12 +92,16 @@ namespace kepler {
     }
 
     void TypeTable::register_builtin_type(Type** type_pointer, TypeKind type_kind) {
+        KPL_ASSERT_NOT_NULLPTR(type_pointer);
+        KPL_ASSERT_THAT(*type_pointer == nullptr, "Builtin type '{}' can't already exist when registering it", type_kind);
         StringId type_name_id = get_type_kind_name_id(type_kind);
+        KPL_ASSERT_THAT(!existing_types.contains(type_name_id), "Builtin type '{}' can't already be present in type map when registering it", type_kind);
         *type_pointer = allocator.allocate<Type>(type_kind, type_name_id, std::vector<Method>{});
         existing_types.emplace(type_name_id, *type_pointer);
     }
 
     void TypeTable::add_methods_to_builtin_number_type(Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(type);
         static const std::vector<Type*> number_types = {
             Builtins.i8_type,
             Builtins.i16_type,
@@ -111,6 +128,7 @@ namespace kepler {
                 common_number_methods.emplace_back(cast_identifier_id, type, std::vector<Type*>{number_type});
             }
         }
+        KPL_ASSERT_THAT(type->methods.empty(), "Methods of builtin number type '{}' must be empty in toder to add the default methods", type);
         type->methods = std::move(common_number_methods);
     }
 

@@ -55,18 +55,28 @@ namespace kepler {
     }
 
     Symbol* SymbolTable::lookup(StringId identifier_id) {
+        KPL_ASSERT_THAT(!scopes.empty(), "Can't lookup a symbol when no scopes exist");
         Scope* scope = &scopes.back();
         do {
+            KPL_ASSERT_NOT_NULLPTR(scope);
             const auto it = scope->contained_symbols.find(identifier_id);
             if (it != scope->contained_symbols.end()) {
+                KPL_ASSERT_THAT(it->second < symbols.size(),
+                    "Can't lookup symbol at out of bounds index; symbol count is {}, received index {}",
+                    symbols.size(),
+                    it->second);
                 return &symbols[it->second];
             }
 
-            if (!scope->parent_id.is_valid()) {
+            if (scope->parent_id == ScopeId::invalid()) {
                 return nullptr;
             }
+            KPL_ASSERT_THAT(scope->parent_id.value < scopes.size(),
+                "Can't access out of bounds parent scope; scope count is {}, received index {}",
+                scopes.size(),
+                scope->parent_id.value);
             scope = &scopes[scope->parent_id.value];
-        } while (scope->parent_id.is_valid());
+        } while (scope->parent_id != ScopeId::invalid());
         return nullptr;
     }
 
@@ -81,7 +91,12 @@ namespace kepler {
     }
 
     void SymbolTable::close_scope() {
-        assert::that(scopes.back().parent_id.is_valid(), "Can't close the global scope");
+        KPL_ASSERT_THAT(!scopes.empty(), "No scope to close exists");
+        KPL_ASSERT_THAT(scopes.back().parent_id != ScopeId::invalid(), "Can't close the global scope");
+        KPL_ASSERT_THAT(current_scope->parent_id.value < scopes.size(),
+            "Can't close scope with out of bounds parent id; scope count is, received index {}",
+            scopes.size(),
+            current_scope->parent_id.value);
         current_scope = &scopes[current_scope->parent_id.value];
     }
 
@@ -93,12 +108,17 @@ namespace kepler {
         SourceLocation source_location
     ) {
         // clang-format on
+        KPL_ASSERT_NOT_NULLPTR(type);
+        KPL_ASSERT_THAT(!error_identifier.empty(), "Can't create symbol when error identifier is empty");
+        KPL_ASSERT_THAT(!scopes.empty(), "Can't create symbol when no scopes exist");
+
         Scope& current_scope = scopes.back();
+        KPL_ASSERT_THAT(current_scope.id != ScopeId::invalid(), "Can't create symbol when current scope has invalid id");
+
         const auto existing_symbol = lookup_with_index(identifier_id, current_scope.id);
         uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;
-
         if (existing_symbol.first != nullptr) {
-            if (existing_symbol.first->scope_id.value == current_scope.id.value) {
+            if (existing_symbol.first->scope_id == current_scope.id) {
                 const std::string_view identifier = StringPool::get().lookup(existing_symbol.first->identifier_id);
                 return std::unexpected(SourceDiagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
@@ -124,14 +144,26 @@ namespace kepler {
     }
 
     std::pair<Symbol*, uint32_t> SymbolTable::lookup_with_index(StringId identifier_id, ScopeId scope_id) {
+        KPL_ASSERT_THAT(!scopes.empty(), "Can't lookup symbol with index when no scopes exist");
+        KPL_ASSERT_THAT(scope_id != ScopeId::invalid(), "Can't lookup symbol with index in invalid scope");
+        KPL_ASSERT_THAT(scope_id.value < scopes.size(),
+            "Can't lookup symbol with index in out of bounds scope; scope count is {}, received index {}",
+            scopes.size(),
+            scope_id.value);
         Scope* scope = &scopes[scope_id.value];
         while (true) {
+            KPL_ASSERT_NOT_NULLPTR(scope);
             const auto it = scope->contained_symbols.find(identifier_id);
             if (it != scope->contained_symbols.end()) {
+                KPL_ASSERT_THAT(it->second < symbols.size(),
+                    "Can't lookup symbol at out of bounds index; symbol count is {}, received index {}",
+                    symbols.size(),
+                    it->second);
                 return {&symbols[it->second], it->second};
             }
 
-            if (scope->parent_id.is_valid()) {
+            if (scope->parent_id != ScopeId::invalid()) {
+                KPL_ASSERT_THAT(scope->parent_id.value < scopes.size(), "Can't access out of bounds parent scope");
                 scope = &scopes[scope->parent_id.value];
             } else {
                 return {nullptr, INVALID_SYMBOL_INDEX};

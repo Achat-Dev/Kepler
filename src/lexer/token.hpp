@@ -104,7 +104,7 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("type", ctx);
         }
 
-        kepler::assert::unreachable(std::format("Missing format implementation for token type '{}'", static_cast<int>(token_type)));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for token type '{}'", static_cast<int>(token_type));
     }
 };
 
@@ -155,6 +155,6 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             }
         }
 
-        kepler::assert::unreachable(std::format("Missing format implementation for token of type '{}'", static_cast<int>(token.type)));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for token of type '{}'", static_cast<int>(token.type));
     }
 };

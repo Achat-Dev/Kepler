@@ -60,6 +60,6 @@ struct std::formatter<kepler::OperatorType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format(">=", ctx);
         }
 
-        kepler::assert::unreachable(std::format("Missing format implementation for operator type '{}'", operator_type));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for operator type '{}'", operator_type);
     }
 };

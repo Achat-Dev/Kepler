@@ -26,13 +26,13 @@
 
 namespace kepler {
 
-    void DiagnosticSink::report(DiagnosticCode code, std::string message) {
-        report(code, message, {.file_id = FileId::invalid(), .position = 0, .size = 0});
-    }
-
     void DiagnosticSink::report(DiagnosticCode code, std::string message, SourceLocation source_location) {
+        KPL_ASSERT_THAT(source_location.size > 0, "Source location of reported diagnostic must have a size > 0");
+
         const DiagnosticSeverity severity = get_diagnostic_severity(code);
         switch (severity) {
+            case DiagnosticSeverity::Note:
+                break;
             case DiagnosticSeverity::Warning:
                 warning_count++;
                 break;
@@ -42,14 +42,16 @@ namespace kepler {
             case DiagnosticSeverity::Unsupported:
                 error_count++;
                 break;
-            default:
-                break;
         }
 
         diagnostics.emplace_back(code, std::move(message), source_location);
     }
 
     void DiagnosticSink::flush() {
+        if (diagnostics.empty()) {
+            return;
+        }
+
         std::sort(diagnostics.begin(), diagnostics.end(), [](const SourceDiagnostic& a, const SourceDiagnostic& b) {
             const int severity_a = static_cast<int>(get_diagnostic_severity(a.code));
             const int severity_b = static_cast<int>(get_diagnostic_severity(b.code));
@@ -62,22 +64,10 @@ namespace kepler {
         });
 
         for (const SourceDiagnostic& diagnostic : diagnostics) {
-            const DiagnosticSeverity severity = get_diagnostic_severity(diagnostic.code);
-
-            if (diagnostic.source_location.file_id.is_valid()) {
-                std::println("{}{}", severity, diagnostic.message);
-                continue;
-            }
-
-            const std::filesystem::path* file_path = File::get_path_by_id(diagnostic.source_location.file_id);
-            if (!file_path) {
-                log::error("Failed to print diagnostics information, because how tf is the file with id '{}' unknown?", diagnostic.source_location.file_id);
-                continue;
-            }
-
-            std::ifstream file_stream(*file_path);
+            const std::filesystem::path file_path = File::get_path_by_id(diagnostic.source_location.file_id);
+            std::ifstream file_stream(file_path);
             if (!file_stream) {
-                log::error("Failed to print diagnostics information, because how tf did the file '{}' get deleted while I was compiling it?", file_path->c_str());
+                log::error("Failed to print diagnostics information for file '{}' because it doesn't exist", file_path.c_str());
                 continue;
             }
 
@@ -98,12 +88,18 @@ namespace kepler {
             const size_t start_position_in_line = diagnostic.source_location.position - current_position;
             const size_t end_position_in_line = start_position_in_line + diagnostic.source_location.size;
 
+            const DiagnosticSeverity severity = get_diagnostic_severity(diagnostic.code);
             std::println("{}{}", severity, diagnostic.message);
-            std::println("{}In '{}'", log::indented, file_path->c_str());
+            std::println("{}In '{}'", log::indented, file_path.c_str());
 
             const std::string highlight_styling = get_severity_highlight(severity);
             const std::string prefix = std::format("{}At l.{} | ", log::last_indented, line_number);
-            const std::string ending = end_position_in_line < line.size() ? line.substr(end_position_in_line) : std::string(line.size() - end_position_in_line + 1, ' ');
+            std::string ending;
+            if (end_position_in_line < line.size()) {
+                ending = line.substr(end_position_in_line);
+            } else {
+                ending = std::string(line.size() - end_position_in_line + 1, ' ');
+            }
             const std::string message = std::format("{}{}{}{}{}",
                 line.substr(0, start_position_in_line),
                 highlight_styling,
@@ -141,7 +137,7 @@ namespace kepler {
                 return ansi_codes::combine(ansi_codes::bold, ansi_codes::magenta);
         }
 
-        assert::unreachable(std::format("Missing styling implementation for severity '{}'", severity));
+        KPL_ASSERT_UNREACHABLE("Missing styling implementation for severity '{}'", severity);
     }
 
 }

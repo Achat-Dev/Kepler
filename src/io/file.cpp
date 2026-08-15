@@ -9,7 +9,7 @@
 
 #include "io/file.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "utils/log.hpp"
+#include "utils/assert.h"
 #include <algorithm>
 #include <cstdint>
 #include <expected>
@@ -51,20 +51,21 @@ namespace kepler {
             });
         }
 
-        uint32_t known_path_count = known_paths.size();
-        if (!std::ranges::contains(known_paths, path)) {
-            known_paths.push_back(path);
-        }
         const std::string content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
-        return File({known_path_count}, std::move(content));
+        const auto it = std::find(known_paths.begin(), known_paths.end(), path);
+        if (it == known_paths.end()) {
+            uint32_t known_path_count = known_paths.size();
+            known_paths.push_back(path);
+            return File({.value = known_path_count}, std::move(content));
+        } else {
+            const uint32_t path_index = std::distance(known_paths.begin(), it);
+            return File({.value = path_index}, std::move(content));
+        }
     }
 
-    const std::filesystem::path* File::get_path_by_id(FileId id) {
-        if (id.value >= known_paths.size()) {
-            log::error("File path with id '{}' doesn't exist", id);
-            return nullptr;
-        }
-        return &known_paths[id.value];
+    std::filesystem::path File::get_path_by_id(FileId id) {
+        KPL_ASSERT_THAT(id.value < known_paths.size(), "File path with id '{}' doesn't exist", id);
+        return known_paths[id.value];
     }
 
 }

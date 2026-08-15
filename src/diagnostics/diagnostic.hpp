@@ -110,6 +110,6 @@ struct std::formatter<kepler::DiagnosticSeverity> : std::formatter<std::string> 
                     ctx);
         }
 
-        kepler::assert::unreachable(std::format("Missing format implementation for severity '{}'", static_cast<int>(severity)));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for severity '{}'", static_cast<int>(severity));
     }
 };

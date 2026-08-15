@@ -70,7 +70,7 @@ namespace kepler {
                 return StringPool::get().store("f64");
         }
 
-        assert::unreachable(std::format("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind)));
+        KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind));
     }
 
 }

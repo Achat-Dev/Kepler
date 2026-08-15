@@ -10,7 +10,6 @@
 #include "lexer/operator_type.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <format>
 
 namespace kepler {
 
@@ -38,7 +37,7 @@ namespace kepler {
                 return StringPool::get().store("__greater_equals");
         }
 
-        assert::unreachable(std::format("Missing operator name id implementation for operator type '{}'", static_cast<int>(operator_type)));
+        KPL_ASSERT_UNREACHABLE("Missing operator name id implementation for operator type '{}'", static_cast<int>(operator_type));
     }
 
 }

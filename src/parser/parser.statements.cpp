@@ -31,6 +31,7 @@
 namespace kepler {
 
     std::unique_ptr<ASTNode> Parser::parse_statement() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
         switch (current_token->type) {
             case TokenType::If:
                 return parse_if();
@@ -63,19 +64,26 @@ namespace kepler {
     }
 
     std::unique_ptr<AssignmentStatement> Parser::parse_assignment(const Token* identifier_token) {
-        const SourceLocation& assignment_source_location = current_token->source_location;
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Assignment,
+            "Parsing assignment requires '{}' token, received '{}' token",
+            TokenType::Assignment,
+            current_token->type);
+        KPL_ASSERT_NOT_NULLPTR(identifier_token);
         if (current_token->type != TokenType::Assignment) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '=' after identifier in assignment", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
 
+        const SourceLocation& assignment_source_location = current_token->source_location;
         next_token(true); // eat '='
         std::unique_ptr<Expression> value_expression = parse_expression();
         if (!value_expression) {
             return nullptr; // parse_expression alredy recovered, so no need to recover here
         }
 
+        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Assignment identifier token");
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<AssignmentStatement>(std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location),
             std::move(value_expression),
@@ -83,6 +91,12 @@ namespace kepler {
     }
 
     std::unique_ptr<IfStatement> Parser::parse_if() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::If,
+            "Parsing if statement requires '{}' or '{}' token, received '{}' token",
+            TokenType::If,
+            TokenType::Elseif,
+            current_token->type);
         const Token* if_token = current_token;
 
         std::unique_ptr<Expression> condition = nullptr;
@@ -150,14 +164,22 @@ namespace kepler {
                 if (!condition || !if_body) {
                     return nullptr;
                 }
-                return std::make_unique<IfStatement>(std::move(condition), std::move(*if_body), std::vector<std::unique_ptr<ASTNode>>{}, if_token->source_location);
+                return std::make_unique<IfStatement>(std::move(condition),
+                    std::move(*if_body),
+                    std::vector<std::unique_ptr<ASTNode>>{},
+                    if_token->source_location);
             }
             default:
-                assert::unreachable("Parsing an if statement failed");
+                KPL_ASSERT_UNREACHABLE("Parsing an if statement failed");
         }
     }
 
     std::unique_ptr<ForStatement> Parser::parse_for() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::For,
+            "Parsing for statement requires '{}' token, received '{}' token",
+            TokenType::For,
+            current_token->type);
         const SourceLocation& for_source_location = current_token->source_location;
         next_token(true); // eat 'for'
         if (current_token->type != TokenType::BracketOpen) {
@@ -187,6 +209,7 @@ namespace kepler {
             return nullptr;
         }
 
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "'for' identifier token");
         const StringId identifier_id = std::get<StringId>(current_token->data);
         next_token(true); // eat identifier
         if (current_token->type != TokenType::Colon) {
@@ -273,6 +296,15 @@ namespace kepler {
         SourceLocation for_source_location
     ) {
         // clang-format on
+        KPL_ASSERT_NOT_NULLPTR(variable_type_token);
+        KPL_ASSERT_NOT_NULLPTR(start_value);
+        KPL_ASSERT_NOT_NULLPTR(end_value);
+        KPL_ASSERT_NOT_NULLPTR(step_value);
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketClose,
+            "Creating for statement requires '{}' token, received '{}' token",
+            TokenType::BracketOpen,
+            current_token->type);
         next_token(true); // eat ')'
         auto body = parse_body<TokenType::End>("'for' statement was not closed with an 'end' keyword", for_source_location);
         next_token(true); // eat 'end'
@@ -280,6 +312,7 @@ namespace kepler {
             return nullptr;
         }
 
+        KPL_ASSERT_HOLDS_ALTERNATIVE(variable_type_token->data, StringId, "'for' type token");
         const StringId variable_type_id = std::get<StringId>(variable_type_token->data);
         std::unique_ptr<VariableExpression> variable = std::make_unique<VariableExpression>(variable_identifier_id, variable_type_token->source_location);
         std::unique_ptr<AssignmentStatement> assignment_statement = std::make_unique<AssignmentStatement>(std::move(variable),
@@ -302,12 +335,17 @@ namespace kepler {
         if (current_token->type == TokenType::End) {
             next_token(true); // eat 'end'
         } else {
-            // Parse the for body to collect diagnostics for it
+            // Parse the for body to collect diagnostics for it (this also handles EOF)
             parse_body<TokenType::End>("'for' statement was not closed with an 'end' keyword", source_location);
         }
     }
 
     std::unique_ptr<ReturnStatement> Parser::parse_return() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Return,
+            "Parsing return statement requires '{}' token, received '{}'",
+            TokenType::Return,
+            current_token->type);
         const SourceLocation& return_source_location = current_token->source_location;
         next_token(true); // eat 'return' keyword
 
@@ -324,7 +362,7 @@ namespace kepler {
                 next_token(true); // eat type
                 // It's a cast if there is a open bracket next, which is allowed here, so break out if that's the case
                 if (current_token->type == TokenType::BracketOpen) {
-                    previous_token(true);
+                    previous_token(true); // Go back so the cast can be parsed
                     break;
                 }
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
@@ -347,7 +385,14 @@ namespace kepler {
     }
 
     std::unique_ptr<VariableDefinitionStatement> Parser::parse_variable_definition() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type,
+            "Parsing variable definition requires '{}' token, received '{}'",
+            TokenType::Type,
+            current_token->type);
         const SourceLocation& type_source_location = current_token->source_location;
+
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Variable definition type token");
         const StringId type_id = std::get<StringId>(current_token->data);
 
         next_token(true); // eat type
@@ -366,11 +411,13 @@ namespace kepler {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
 
+        // TODO: Move this check into the type check pass
         if (type_id == type_table.Builtins.void_type->name_id) {
             diagnostic_sink.report(DiagnosticCode::InvalidVariableType, "Cannot create a local variable of type 'void'", type_source_location);
             return nullptr;
         }
 
+        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Variable definition identifier token");
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<VariableDefinitionStatement>(type_id, identifier_id, std::move(assignment_statement), identifier_token->source_location);
     }

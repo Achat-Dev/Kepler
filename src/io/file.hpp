@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <format>
@@ -23,9 +24,6 @@ namespace kepler {
 
     struct FileId {
         uint32_t value = 0;
-
-        constexpr bool is_valid() const { return value == std::numeric_limits<uint32_t>::max(); }
-        static constexpr FileId invalid() { return FileId{std::numeric_limits<uint32_t>::max()}; }
     };
 
     struct File {
@@ -33,7 +31,7 @@ namespace kepler {
         std::string content;
 
         static std::expected<const File, Diagnostic> load(const std::filesystem::path& path);
-        static const std::filesystem::path* get_path_by_id(FileId id);
+        static std::filesystem::path get_path_by_id(FileId id);
 
     private:
         File(FileId id, std::string content)

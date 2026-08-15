@@ -15,6 +15,7 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
 #include <memory>
@@ -27,6 +28,12 @@
 namespace kepler {
 
     std::unique_ptr<Extern> Parser::parse_extern() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Extern,
+            "Parsing extern requires current token to be of type '{}', received '{}'",
+            TokenType::Extern,
+            current_token->type);
+
         const SourceLocation& extern_source_location = current_token->source_location;
         next_token(true); // eat 'extern' keyword
         if (current_token->type != TokenType::Type) {
@@ -43,6 +50,12 @@ namespace kepler {
     }
 
     std::unique_ptr<Prototype> Parser::parse_prototype(Prototype::LinkageType linkage_type) {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type,
+            "Parsing prototype requires current token to be of type '{}', received '{}'",
+            TokenType::Type,
+            current_token->type);
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype type token");
         const StringId return_type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type
@@ -52,6 +65,7 @@ namespace kepler {
             return nullptr;
         }
         const SourceLocation& identifier_source_location = current_token->source_location;
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype identifier token");
         const StringId identifier_id = std::get<StringId>(current_token->data);
 
         next_token(true); // eat identifier
@@ -71,6 +85,7 @@ namespace kepler {
         // Parse parameters
         std::vector<ParameterData> parameter_data;
         while (current_token->type == TokenType::Type) {
+            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype parameter type token");
             const StringId parameter_type_id = std::get<StringId>(current_token->data);
 
             next_token(true); // eat type
@@ -80,8 +95,11 @@ namespace kepler {
                 return nullptr;
             }
 
+            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype parameter identifier token");
             const StringId parameter_identifier_id = std::get<StringId>(current_token->data);
-            parameter_data.push_back({.type_id = parameter_type_id, .identifier_id = parameter_identifier_id, .identifier_source_location = current_token->source_location});
+            parameter_data.push_back({.type_id = parameter_type_id,
+                .identifier_id = parameter_identifier_id,
+                .identifier_source_location = current_token->source_location});
 
             next_token(true); // eat identifier
             if (current_token->type == TokenType::Comma) {
@@ -113,6 +131,12 @@ namespace kepler {
     }
 
     std::unique_ptr<ASTNode> Parser::parse_top_level_type() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type,
+            "Parsing top level type requires current token to be of type '{}', received '{}'",
+            TokenType::Type,
+            current_token->type);
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Top level type token");
         const StringId type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type
@@ -142,17 +166,23 @@ namespace kepler {
     }
 
     std::unique_ptr<Function> Parser::parse_function() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen,
+            "Parsing a function requires token of type '{}', received '{}'",
+            TokenType::BracketOpen,
+            current_token->type);
         // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
         previous_token(true);
         const Token* identifier_token = current_token;
         previous_token(true);
-
         std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::Internal);
+
+        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Function identifier token");
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         const std::string_view identifier = StringPool::get().lookup(identifier_id);
         const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", identifier);
         auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
-        next_token(true); // eat 'end'
+        next_token(true); // eat 'end' or 'EOF'
 
         if (!prototype || !body) {
             return nullptr;

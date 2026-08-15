@@ -17,6 +17,7 @@
 namespace kepler {
 
     StringId StringPool::store(std::string string) {
+        KPL_ASSERT_THAT(!string.empty(), "Cannot intern empty string");
         if (string_to_id_map.contains(string)) {
             return string_to_id_map[string];
         }
@@ -29,7 +30,7 @@ namespace kepler {
     }
 
     std::string_view StringPool::lookup(StringId id) const {
-        assert::that(id.value < strings.size(), "Looking up invalid StringId");
+        KPL_ASSERT_THAT(id.value < strings.size(), "Looking up out of bounds StringId; string count is {}, received id {}", strings.size(), id);
         return strings[id.value];
     }
 
