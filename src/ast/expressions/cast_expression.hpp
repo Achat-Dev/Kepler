@@ -21,11 +21,11 @@ namespace kepler {
 
     struct CastExpression : Expression {
         StringId target_type_id;
-        Type* target_type;
+        Type* target_type = nullptr;
         std::unique_ptr<Expression> expression;
 
         CastExpression(StringId target_type_id, std::unique_ptr<Expression> expression, SourceLocation source_location)
-            : Expression(ASTNodeType::CastExpression, std::move(source_location)), target_type_id(target_type_id), target_type(nullptr), expression(std::move(expression)) {}
+            : Expression(ASTNodeType::CastExpression, std::move(source_location)), target_type_id(target_type_id), expression(std::move(expression)) {}
     };
 
 }

@@ -58,7 +58,7 @@ namespace kepler {
         void run() override;
 
     private:
-        Type* current_function_return_type;
+        Type* current_function_return_type = nullptr;
         DiagnosticSink& diagnostic_sink;
         const TypeTable& type_table;
 

@@ -19,7 +19,7 @@ namespace kepler {
 
     struct VariableExpression : Expression {
         StringId identifier_id;
-        Symbol* symbol;
+        Symbol* symbol = nullptr;
 
         VariableExpression(StringId identifier_id, SourceLocation source_location)
             : Expression(ASTNodeType::VariableExpression, source_location), identifier_id(std::move(identifier_id)) {}

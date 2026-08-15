@@ -26,8 +26,8 @@ namespace kepler {
     struct ParameterData {
         StringId type_id;
         StringId identifier_id;
-        Type* type;
-        Symbol* symbol;
+        Type* type = nullptr;
+        Symbol* symbol = nullptr;
         SourceLocation type_source_location;
         SourceLocation identifier_source_location;
     };
@@ -42,8 +42,8 @@ namespace kepler {
         SourceLocation identifier_source_location;
         StringId identifier_id;
         StringId return_type_id;
-        Type* return_type;
-        Symbol* symbol;
+        Type* return_type = nullptr;
+        Symbol* symbol = nullptr;
         std::vector<ParameterData> parameter_data;
 
         Prototype(LinkageType linkage_type,
@@ -56,7 +56,6 @@ namespace kepler {
               linkage_type(linkage_type),
               identifier_source_location(std::move(identifier_source_location)),
               return_type_id(return_type_id),
-              return_type(nullptr),
               identifier_id(identifier_id),
               parameter_data(std::move(parameter_data)) {}
     };

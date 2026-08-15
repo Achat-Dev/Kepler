@@ -21,7 +21,7 @@ namespace kepler {
 
     struct CallExpression : Expression {
         StringId identifier_id;
-        Symbol* symbol;
+        Symbol* symbol = nullptr;
         std::vector<std::unique_ptr<Expression>> args;
 
         CallExpression(StringId identifier_id, std::vector<std::unique_ptr<Expression>> args, SourceLocation source_location)

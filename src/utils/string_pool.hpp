@@ -21,7 +21,7 @@
 namespace kepler {
 
     struct StringId {
-        uint32_t value;
+        uint32_t value = 0;
 
         bool operator==(const StringId& other) const = default;
         bool operator!=(const StringId& other) const = default;

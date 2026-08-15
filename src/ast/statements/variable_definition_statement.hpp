@@ -23,7 +23,7 @@ namespace kepler {
     struct VariableDefinitionStatement : Statement {
         StringId type_id;
         StringId identifier_id;
-        Type* type;
+        Type* type = nullptr;
         std::unique_ptr<AssignmentStatement> assignment_statement;
 
         VariableDefinitionStatement(StringId type_id,
@@ -32,7 +32,6 @@ namespace kepler {
             SourceLocation source_location)
             : Statement(ASTNodeType::VariableDefinitionStatement, source_location),
               type_id(type_id),
-              type(nullptr),
               identifier_id(identifier_id),
               assignment_statement(std::move(assignment_statement)) {}
     };
