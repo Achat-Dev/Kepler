@@ -24,8 +24,8 @@ namespace kepler {
         return nullptr;
     }
 
-    bool is_integer_type(Type& type) {
-        switch (type.type_kind) {
+    bool is_integer_type(const Type* type) {
+        switch (type->type_kind) {
             case TypeKind::I8:
             case TypeKind::I16:
             case TypeKind::I32:
@@ -36,8 +36,8 @@ namespace kepler {
         }
     }
 
-    bool is_floating_point_type(Type& type) {
-        switch (type.type_kind) {
+    bool is_floating_point_type(const Type* type) {
+        switch (type->type_kind) {
             case TypeKind::F32:
             case TypeKind::F64:
                 return true;

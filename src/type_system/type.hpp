@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
 #include <llvm/IR/LLVMContext.h>
@@ -50,8 +49,8 @@ namespace kepler {
     };
 
     llvm::Type* get_llvm_type(Type& type, llvm::LLVMContext& context);
-    bool is_integer_type(Type& type);
-    bool is_floating_point_type(Type& type);
+    bool is_integer_type(const Type* type);
+    bool is_floating_point_type(const Type* type);
     StringId get_type_kind_name_id(TypeKind type_kind);
 
 }
@@ -71,13 +70,5 @@ struct std::formatter<kepler::Type> : std::formatter<std::string> {
     auto format(const kepler::Type& type, std::format_context& ctx) const {
         const std::string_view type_name = kepler::StringPool::get().lookup(type.name_id);
         return std::formatter<std::string>::format(std::format("{}", type_name), ctx);
-    }
-};
-
-template <>
-struct std::formatter<kepler::Type*> : std::formatter<std::string> {
-    auto format(const kepler::Type* type, std::format_context& ctx) const {
-        KPL_ASSERT_NOT_NULLPTR(type);
-        return std::formatter<std::string>::format(std::format("{}", *type), ctx);
     }
 };

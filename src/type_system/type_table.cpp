@@ -128,7 +128,7 @@ namespace kepler {
                 common_number_methods.emplace_back(cast_identifier_id, type, std::vector<Type*>{number_type});
             }
         }
-        KPL_ASSERT_THAT(type->methods.empty(), "Methods of builtin number type '{}' must be empty in toder to add the default methods", type);
+        KPL_ASSERT_THAT(type->methods.empty(), "Methods of builtin number type '{}' must be empty in toder to add the default methods", *type);
         type->methods = std::move(common_number_methods);
     }
 

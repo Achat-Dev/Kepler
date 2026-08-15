@@ -40,6 +40,8 @@
 
 namespace kepler {
 
+    // TODO: Update ast nodes to display types and symbols
+
     void ASTPrinter::run() {
         constexpr char title[] = " Abstract Syntax Tree ";
         std::string horizontal_line;
@@ -172,7 +174,7 @@ namespace kepler {
             const std::string_view type_name = StringPool::get().lookup(prototype->return_type_id);
             std::println("{}{}Type: {}", indent, item, type_name);
         } else {
-            std::println("{}{}Type: {}", indent, item, prototype->return_type);
+            std::println("{}{}Type: {}", indent, item, *prototype->return_type);
         }
         const std::string_view identifier = StringPool::get().lookup(prototype->identifier_id);
         std::println("{}{}Identifier: {}", indent, item, identifier);
@@ -202,7 +204,7 @@ namespace kepler {
                 const std::string_view parameter_type_name = StringPool::get().lookup(prototype->parameter_data[i].type_id);
                 std::println("{}{}Type: {}", indent + item_indent, item, parameter_type_name);
             } else {
-                std::println("{}{}Type: {}", indent + item_indent, item, parameter_type);
+                std::println("{}{}Type: {}", indent + item_indent, item, *parameter_type);
             }
             std::println("{}{}Identifier: {}", indent + item_indent, last_item, parameter_identifier);
         }
@@ -235,7 +237,7 @@ namespace kepler {
             const std::string_view type_name = StringPool::get().lookup(statement->type_id);
             std::println("{}{}Type: {}", indent, item, type_name);
         } else {
-            std::println("{}{}Type: {}", indent, item, statement->type);
+            std::println("{}{}Type: {}", indent, item, *statement->type);
         }
         const std::string_view identifier = StringPool::get().lookup(statement->identifier_id);
         std::println("{}{}Identifier: {}", indent, item, identifier);
@@ -281,7 +283,7 @@ namespace kepler {
             const std::string_view target_type_name = StringPool::get().lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item, target_type_name);
         } else {
-            std::println("{}{}Type: {}", indent, item, expression->target_type);
+            std::println("{}{}Type: {}", indent, item, *expression->target_type);
         }
         print_node(expression->expression.get(), "", indent, true);
     }
