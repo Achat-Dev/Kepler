@@ -169,7 +169,7 @@ namespace kepler {
     void NameResolutionPass::resolve_extern(Extern* ext) const {
         KPL_ASSERT_NOT_NULLPTR(ext);
         KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-        KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison, "Extern node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison, "Extern must not be poisoned for name resolution");
         symbol_table.open_scope(ScopeType::Function);
         const NameResolutionResult prototype_result = resolve_prototype(ext->prototype.get());
         symbol_table.close_scope();
@@ -181,7 +181,7 @@ namespace kepler {
     void NameResolutionPass::resolve_function(Function* function) const {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
-        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison, "Function node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison, "Function must not be poisoned for name resolution");
         symbol_table.open_scope(ScopeType::Function);
         resolve_prototype(function->prototype.get());
         resolve_nodes(function->body);
@@ -192,7 +192,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         // Normally this assert would be there,
         // but because function overloading isn't implemented yet, prototypes poison themselves when trying to overload a function
-        // KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison, "Prototype node must not be poisoned for name resolution");
+        // KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison, "Prototype must not be poisoned for name resolution");
 
         for (ParameterData& parameter : prototype->parameter_data) {
             KPL_ASSERT_NOT_NULLPTR(parameter.type);
@@ -213,7 +213,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
         KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "AssignmentStatement node must not be posioned for name resolution");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "AssignmentStatement must not be posioned for name resolution");
         const NameResolutionResult variable_nrr = resolve_variable_expression(statement->variable_expression.get());
         const NameResolutionResult value_nrr = resolve_node(statement->value_expression.get());
         if (variable_nrr.poisoned || value_nrr.poisoned) {
@@ -227,7 +227,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement must not be poisoned for name resolution");
         symbol_table.open_scope(ScopeType::Block);
         const NameResolutionResult definition_nrr = resolve_variable_definition_statement(statement->loop_variable_definition.get());
         const NameResolutionResult end_nrr = resolve_node(statement->end_value.get());
@@ -248,7 +248,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_if_statement(IfStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "IfStatement node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "IfStatement must not be poisoned for name resolution");
         const NameResolutionResult condition_nrr = resolve_node(statement->condition.get());
 
         symbol_table.open_scope(ScopeType::Block);
@@ -268,7 +268,7 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_return_statement(ReturnStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ReturnStatement node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ReturnStatement must not be poisoned for name resolution");
         if (statement->expression == nullptr) {
             return {.poisoned = false};
         }
@@ -284,7 +284,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "VariableDefinitionStatement node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "VariableDefinitionStatement must not be poisoned for name resolution");
         Type* type = type_table.lookup(statement->type_id);
         if (type == nullptr) {
             report_unknown_type(statement->type_id, statement->source_location);
@@ -314,7 +314,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression must not be poisoned for name resolution");
         const NameResolutionResult lhs_nrr = resolve_node(expression->lhs.get());
         const NameResolutionResult rhs_nrr = resolve_node(expression->rhs.get());
         if (lhs_nrr.poisoned || rhs_nrr.poisoned) {
@@ -326,7 +326,7 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CallExpression node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CallExpression must not be poisoned for name resolution");
         Symbol* prototype_symbol = symbol_table.lookup(expression->identifier_id);
         if (prototype_symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
@@ -367,7 +367,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression must not be poisoned for name resolution");
         Type* target_type = type_table.lookup(expression->target_type_id);
         if (!target_type) {
             report_unknown_type(expression->target_type_id, expression->source_location);
@@ -388,7 +388,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression must not be poisoned for name resolution");
         const NameResolutionResult resolution_result = resolve_node(expression->expression.get());
         if (resolution_result.poisoned) {
             expression->node_type = ASTNodeType::Poison;
@@ -398,7 +398,7 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "VariableExpression node must not be poisoned for name resolution");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "VariableExpression must not be poisoned for name resolution");
         Symbol* symbol = symbol_table.lookup(expression->identifier_id);
         if (symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);

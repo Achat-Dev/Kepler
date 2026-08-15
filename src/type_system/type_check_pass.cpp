@@ -127,7 +127,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_NOT_NULLPTR(function->prototype->return_type);
-        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison, "Function node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison, "Function must not be poisoned for type checking");
         KPL_ASSERT_THAT(current_function_return_type == nullptr, "Current function return type must be nullptr for type checking function");
         current_function_return_type = function->prototype->return_type;
         // Typecheck the body without poisoning the function so that the unpoisoned part of the body can still be accessed by later passes
@@ -139,7 +139,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "AssignmentStatement node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "AssignmentStatement must not be poisoned for type checking");
 
         const Symbol* variable_symbol = statement->variable_expression->symbol;
         KPL_ASSERT_NOT_NULLPTR(variable_symbol);
@@ -166,7 +166,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement node must not be posioned for type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement must not be posioned for type checking");
 
         Type* variable_type = statement->loop_variable_definition->type;
         KPL_ASSERT_NOT_NULLPTR(variable_type);
@@ -218,7 +218,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_body_and_poison_for_statement(ForStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement node must not be poisoned when poisoning it");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement must not be poisoned when poisoning it");
         statement->node_type = ASTNodeType::Poison;
         typecheck_nodes(statement->body);
         return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
@@ -227,7 +227,7 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_if_statement(IfStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "IfStatement node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "IfStatement must not be poisoned for type checking");
 
         const TypeCheckResult condition_tcr = typecheck_node(statement->condition.get(), type_table.Builtins.bool_type);
         KPL_ASSERT_NOT_NULLPTR(condition_tcr.type);
@@ -249,7 +249,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_return_statement(ReturnStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ReturnStatement node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ReturnStatement must not be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(current_function_return_type);
         KPL_ASSERT_THAT(current_function_return_type != type_table.Builtins.unknown_type, "Invalid function return type of unknown");
 
@@ -285,7 +285,7 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_variable_definition_statement(VariableDefinitionStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "VariableDefinitionStatement node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "VariableDefinitionStatement must not be poisoned for type checking");
 
         const TypeCheckResult typecheck_result = typecheck_assignment_statement(statement->assignment_statement.get());
         KPL_ASSERT_NOT_NULLPTR(typecheck_result.type);
@@ -300,7 +300,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, const Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BooleanLiteralExpression node must be poisoned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BooleanLiteralExpression must be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         if (requested_type == type_table.Builtins.bool_type || requested_type == type_table.Builtins.unknown_type) {
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.bool_type};
@@ -314,7 +314,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of FloatingPointLiteralExpression must be nullptr for type checking");
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "FloatingPointLiteralExpression node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "FloatingPointLiteralExpression must not be poisoned for type checking");
         if (is_floating_point_type(requested_type)) {
             expression->target_type = requested_type;
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = requested_type};
@@ -330,7 +330,7 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of IntegerLiteralExpression must be nullptr for type checking");
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "IntegerLiteralExpression node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "IntegerLiteralExpression must not be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         if (is_integer_type(requested_type) || is_floating_point_type(requested_type)) {
             expression->target_type = requested_type;
@@ -346,7 +346,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_string_literal_expression(StringLiteralExpression* expression, const Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "StringLiteralExpression node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "StringLiteralExpression must not be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         if (requested_type == type_table.Builtins.string_type || requested_type == type_table.Builtins.unknown_type) {
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.string_type};
@@ -360,7 +360,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression node must node be poisoned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression must node be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         TypeCheckResult lhs_tcr;
@@ -425,10 +425,10 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(binary_expression);
-        KPL_ASSERT_THAT(binary_expression->node_type != ASTNodeType::Poison, "BinaryExpression node must not be poisoned for type checking side expression");
+        KPL_ASSERT_THAT(binary_expression->node_type != ASTNodeType::Poison, "BinaryExpression must not be poisoned for type checking side expression");
         KPL_ASSERT_NOT_NULLPTR(side_expression);
         KPL_ASSERT_THAT(side_expression->node_type != ASTNodeType::Poison,
-            "Side expression of BinaryExpression node must not be poisoned for type checking");
+            "Side expression of BinaryExpression must not be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         const TypeCheckResult typecheck_result = typecheck_node(side_expression, requested_type);
@@ -447,7 +447,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_call_expression(CallExpression* expression, const Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CallExpression node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CallExpression must not be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         const Symbol* prototype_symbol = expression->symbol;
         KPL_ASSERT_NOT_NULLPTR(prototype_symbol);
@@ -489,7 +489,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression node must not be posioned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression must not be posioned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         if (requested_type != type_table.Builtins.unknown_type && requested_type != expression->target_type) {
@@ -527,7 +527,7 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression node must not be poisoned for type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression must not be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         TypeCheckResult typecheck_result = typecheck_node(expression->expression.get(), requested_type);

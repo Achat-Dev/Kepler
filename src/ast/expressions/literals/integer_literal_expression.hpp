@@ -19,12 +19,10 @@ namespace kepler {
 
     struct IntegerLiteralExpression : Expression {
         int64_t value;
-        Type* target_type;
+        Type* target_type = nullptr;
 
         IntegerLiteralExpression(int64_t value, SourceLocation source_location)
-            : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)),
-              value(value),
-              target_type(nullptr) {}
+            : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value(value) {}
     };
 
 }
