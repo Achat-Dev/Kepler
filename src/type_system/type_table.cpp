@@ -61,7 +61,7 @@ namespace kepler {
         register_builtin_type(&Builtins.f64_type, TypeKind::F64);
 
         // Finish bool type
-        const StringId cast_id = StringPool::get().store("new");
+        const StringId cast_id = StringPool::get().store("__cast");
         const std::vector<Method> bool_methods{
             {
                 .identifier_id = get_operator_name_id(OperatorType::Equals),
@@ -122,10 +122,10 @@ namespace kepler {
             {.identifier_id = get_operator_name_id(OperatorType::GreaterEquals), .return_type = Builtins.bool_type, .parameter_types = {type}},
             {.identifier_id = StringPool::get().store("__math_negate"), .return_type = type, .parameter_types = {type}},
         };
-        const StringId cast_identifier_id = StringPool::get().store("new");
+        const StringId cast_id = StringPool::get().store("__cast");
         for (Type* number_type : number_types) {
             if (type != number_type) {
-                common_number_methods.emplace_back(cast_identifier_id, type, std::vector<Type*>{number_type});
+                common_number_methods.emplace_back(cast_id, type, std::vector<Type*>{number_type});
             }
         }
         KPL_ASSERT_THAT(type->methods.empty(), "Methods of builtin number type '{}' must be empty in toder to add the default methods", *type);

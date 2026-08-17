@@ -508,7 +508,7 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
 
-        if (!expression->target_type->find_method(StringPool::get().store("new"), {typecheck_result.type})) {
+        if (!expression->target_type->find_method(StringPool::get().store("__cast"), {typecheck_result.type})) {
             const std::string message = std::format("Type '{}' doesn't implement cast to type '{}'", *expression->target_type, *typecheck_result.type);
             diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
