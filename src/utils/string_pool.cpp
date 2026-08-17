@@ -17,7 +17,6 @@
 namespace kepler {
 
     StringId StringPool::store(std::string string) {
-        KPL_ASSERT_THAT(!string.empty(), "Cannot intern empty string");
         if (string_to_id_map.contains(string)) {
             return string_to_id_map[string];
         }
