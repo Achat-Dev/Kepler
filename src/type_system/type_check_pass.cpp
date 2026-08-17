@@ -539,7 +539,7 @@ namespace kepler {
 
         // The data type of the expression to negate maybe doesn't support mathematical negation
         // This can be the case either if the typecheck fulfills the requested data type or the typechecks fails but doesn't report a diagnostic
-        if (typecheck_result.type->find_method(StringPool::get().store("__math_negate"), {typecheck_result.type})) {
+        if (!typecheck_result.type->find_method(StringPool::get().store("__math_negate"), {typecheck_result.type})) {
             const std::string message = std::format("Type '{}' doesn't support unary operator '-'", *typecheck_result.type);
             diagnostic_sink.report(DiagnosticCode::InvalidMathematicalNegation, message, expression->source_location);
             expression->node_type = ASTNodeType::Poison;
