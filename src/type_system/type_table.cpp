@@ -120,7 +120,7 @@ namespace kepler {
             {.identifier_id = get_operator_name_id(OperatorType::NotEquals), .return_type = Builtins.bool_type, .parameter_types = {type}},
             {.identifier_id = get_operator_name_id(OperatorType::LessEquals), .return_type = Builtins.bool_type, .parameter_types = {type}},
             {.identifier_id = get_operator_name_id(OperatorType::GreaterEquals), .return_type = Builtins.bool_type, .parameter_types = {type}},
-            {.identifier_id = StringPool::get().store("__math_negate"), .return_type = Builtins.bool_type, .parameter_types = {type}},
+            {.identifier_id = StringPool::get().store("__math_negate"), .return_type = type, .parameter_types = {type}},
         };
         const StringId cast_identifier_id = StringPool::get().store("new");
         for (Type* number_type : number_types) {
