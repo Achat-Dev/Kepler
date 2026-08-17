@@ -84,7 +84,7 @@ namespace kepler {
         if (scopes.empty()) {
             scopes.emplace_back(type, scope_id, ScopeId::invalid(), std::unordered_map<StringId, uint32_t>{});
         } else {
-            scopes.emplace_back(type, scope_id, scopes.back().id, std::unordered_map<StringId, uint32_t>{});
+            scopes.emplace_back(type, scope_id, current_scope->id, std::unordered_map<StringId, uint32_t>{});
         }
         current_scope = &scopes.back();
     }
