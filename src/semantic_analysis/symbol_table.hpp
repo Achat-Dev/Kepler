@@ -17,6 +17,7 @@
 #include "type_system/type.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
+#include <deque>
 #include <expected>
 #include <string>
 #include <utility>
@@ -41,7 +42,8 @@ namespace kepler {
         void close_scope();
 
     private:
-        std::vector<Symbol> symbols;
+        // TODO: Look at the usage if std::deque again, that was a quick fix but maybe not the best choice
+        std::deque<Symbol> symbols;
         std::vector<Scope> scopes;
         Scope* current_scope;
 
