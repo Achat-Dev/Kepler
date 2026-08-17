@@ -90,7 +90,7 @@ namespace kepler {
                 typecheck_function(static_cast<Function*>(node));
                 return {.status = TypeCheckResult::Status::RequestFulfilled, .type = nullptr};
             case ASTNodeType::Prototype:
-                break;
+                KPL_ASSERT_UNREACHABLE("Cannot typecheck a prototype");
             case ASTNodeType::AssignmentStatement:
                 return typecheck_assignment_statement(static_cast<AssignmentStatement*>(node));
             case ASTNodeType::ForStatement:
@@ -120,7 +120,7 @@ namespace kepler {
             case ASTNodeType::VariableExpression:
                 return typecheck_variable_expression(static_cast<VariableExpression*>(node), requested_type);
         }
-        KPL_ASSERT_UNREACHABLE("Missing type check implementation for node type '{}'", node->node_type);
+        KPL_ASSERT_UNREACHABLE("Missing typecheck implementation for node type '{}'", node->node_type);
     }
 
     void TypeCheckPass::typecheck_function(Function* function) {
@@ -383,7 +383,23 @@ namespace kepler {
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             }
 
-            rhs_tcr = typecheck_node(expression->rhs.get(), type_table.Builtins.unknown_type);
+            // If the lhs is an integer or a floating point type and the rhs is an according literal, the expression should generate a specific type
+            // Otherwise, it's up to the expression to determine it's type
+            // This system is probably going to break later on as more features are added to language, but works fine for now
+            // Also, need to use dynamic_cast here, otherwise it doesn't work correctly
+            if (is_integer_type(lhs_tcr.type) && dynamic_cast<IntegerLiteralExpression*>(expression->rhs.get())) {
+                rhs_tcr = typecheck_node(expression->rhs.get(), lhs_tcr.type);
+            }
+            // clang-format off
+            else if (is_floating_point_type(lhs_tcr.type)
+                && (dynamic_cast<IntegerLiteralExpression*>(expression->rhs.get())
+                    || dynamic_cast<FloatingPointLiteralExpression*>(expression->rhs.get()))) {
+                // clang-format on
+                rhs_tcr = typecheck_node(expression->rhs.get(), lhs_tcr.type);
+            } else {
+                rhs_tcr = typecheck_node(expression->rhs.get(), type_table.Builtins.unknown_type);
+            }
+
             KPL_ASSERT_NOT_NULLPTR(rhs_tcr.type);
             KPL_ASSERT_THAT(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
                 "The rhs expression of a BinaryExpression must not poison itself without a diagnostic for type checking");
