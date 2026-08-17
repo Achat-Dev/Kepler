@@ -57,7 +57,7 @@ namespace kepler {
     Symbol* SymbolTable::lookup(StringId identifier_id) {
         KPL_ASSERT_THAT(!scopes.empty(), "Can't lookup a symbol when no scopes exist");
         Scope* scope = &scopes.back();
-        do {
+        while (true) {
             KPL_ASSERT_NOT_NULLPTR(scope);
             const auto it = scope->contained_symbols.find(identifier_id);
             if (it != scope->contained_symbols.end()) {
@@ -76,8 +76,7 @@ namespace kepler {
                 scopes.size(),
                 scope->parent_id.value);
             scope = &scopes[scope->parent_id.value];
-        } while (scope->parent_id != ScopeId::invalid());
-        return nullptr;
+        }
     }
 
     void SymbolTable::open_scope(ScopeType type) {
