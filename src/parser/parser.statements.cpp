@@ -10,6 +10,7 @@
 #include "parser/parser.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
+#include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/for_statement.hpp"
@@ -232,7 +233,8 @@ namespace kepler {
 
         // Only end value is given, start and step are implicit
         if (current_token->type == TokenType::BracketClose) {
-            return create_for_statement(identifier_id, type_token, nullptr, std::move(first_value), nullptr, for_source_location);
+            std::unique_ptr<IntegerLiteralExpression> start_value = std::make_unique<IntegerLiteralExpression>(0, type_token->source_location);
+            return create_for_statement(identifier_id, type_token, std::move(start_value), std::move(first_value), nullptr, for_source_location);
         } else if (current_token->type != TokenType::Comma) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after first expression in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
@@ -299,7 +301,6 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(variable_type_token);
         KPL_ASSERT_NOT_NULLPTR(start_value);
         KPL_ASSERT_NOT_NULLPTR(end_value);
-        KPL_ASSERT_NOT_NULLPTR(step_value);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::BracketClose,
             "Creating for statement requires '{}' token, received '{}' token",
@@ -341,6 +342,7 @@ namespace kepler {
     }
 
     std::unique_ptr<ReturnStatement> Parser::parse_return() {
+        // TODO: If the return type of the function is void, this function still parses the next expression as part of the return statement, which is wrong
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Return,
             "Parsing return statement requires '{}' token, received '{}'",
