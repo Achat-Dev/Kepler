@@ -56,7 +56,7 @@ namespace kepler {
 
     Symbol* SymbolTable::lookup(StringId identifier_id) {
         KPL_ASSERT_THAT(!scopes.empty(), "Can't lookup a symbol when no scopes exist");
-        Scope* scope = &scopes.back();
+        Scope* scope = current_scope;
         while (true) {
             KPL_ASSERT_NOT_NULLPTR(scope);
             const auto it = scope->contained_symbols.find(identifier_id);
@@ -110,14 +110,13 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(type);
         KPL_ASSERT_THAT(!error_identifier.empty(), "Can't create symbol when error identifier is empty");
         KPL_ASSERT_THAT(!scopes.empty(), "Can't create symbol when no scopes exist");
+        KPL_ASSERT_NOT_NULLPTR(current_scope);
+        KPL_ASSERT_THAT(current_scope->id != ScopeId::invalid(), "Can't create symbol when current scope has invalid id");
 
-        Scope& current_scope = scopes.back();
-        KPL_ASSERT_THAT(current_scope.id != ScopeId::invalid(), "Can't create symbol when current scope has invalid id");
-
-        const auto existing_symbol = lookup_with_index(identifier_id, current_scope.id);
+        const auto existing_symbol = lookup_with_index(identifier_id, current_scope->id);
         uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;
         if (existing_symbol.first != nullptr) {
-            if (existing_symbol.first->scope_id == current_scope.id) {
+            if (existing_symbol.first->scope_id == current_scope->id) {
                 const std::string_view identifier = StringPool::get().lookup(existing_symbol.first->identifier_id);
                 return std::unexpected(SourceDiagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
@@ -136,9 +135,9 @@ namespace kepler {
             symbol_index_to_shadow = existing_symbol.second;
         }
 
-        bool can_be_shadowed = current_scope.type != ScopeType::Function && current_scope.type != ScopeType::Block;
-        current_scope.contained_symbols.emplace(identifier_id, symbols.size());
-        symbols.emplace_back(current_scope.id, type, identifier_id, can_be_shadowed, symbol_index_to_shadow, std::move(data));
+        bool can_be_shadowed = current_scope->type != ScopeType::Function && current_scope->type != ScopeType::Block;
+        current_scope->contained_symbols.emplace(identifier_id, symbols.size());
+        symbols.emplace_back(current_scope->id, type, identifier_id, can_be_shadowed, symbol_index_to_shadow, std::move(data));
         return &symbols.back();
     }
 
@@ -149,7 +148,7 @@ namespace kepler {
             "Can't lookup symbol with index in out of bounds scope; scope count is {}, received index {}",
             scopes.size(),
             scope_id.value);
-        Scope* scope = &scopes[scope_id.value];
+        Scope* scope = current_scope;
         while (true) {
             KPL_ASSERT_NOT_NULLPTR(scope);
             const auto it = scope->contained_symbols.find(identifier_id);
