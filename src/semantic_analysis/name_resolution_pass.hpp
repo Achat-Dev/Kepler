@@ -34,7 +34,7 @@
 namespace kepler {
 
     struct NameResolutionResult {
-        bool poisoned;
+        bool poisoned = false;
     };
 
     class NameResolutionPass : public ASTPass<void> {

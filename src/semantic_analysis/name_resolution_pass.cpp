@@ -381,8 +381,9 @@ namespace kepler {
         const NameResolutionResult resolution_result = resolve_node(expression->expression.get());
         if (resolution_result.poisoned) {
             expression->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
         }
-        return resolution_result;
+        return {.poisoned = false};
     }
 
     NameResolutionResult NameResolutionPass::resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const {

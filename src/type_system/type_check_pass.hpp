@@ -44,7 +44,7 @@ namespace kepler {
         };
 
         Status status;
-        Type* type;
+        Type* type = nullptr;
 
         bool is_poisoned() const {
             return status == Status::PoisonedWithDiagnostic || status == Status::PoisonedWithoutDiagnostic;
