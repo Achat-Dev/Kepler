@@ -20,6 +20,7 @@
 #include "lexer/tokenizer.hpp"
 #include "parser/parser.hpp"
 #include "semantic_analysis/name_resolution_pass.hpp"
+#include "semantic_analysis/return_check_pass.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_check_pass.hpp"
 #include "type_system/type_table.hpp"
@@ -83,6 +84,8 @@ namespace kepler {
         // AST passes
         // Currently there are only builtin types so there is no need to do any type resolution before name resolution
         // Once user defined types are implemented the first pass should be a type resolution pass which creates the type objects for all user defined types
+        ReturnCheckPass return_check_pass(ast, diagnostic_sink);
+        return_check_pass.run();
         NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table, type_table);
         name_resolution_pass.run();
         ast_printer.run();

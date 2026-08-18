@@ -48,7 +48,9 @@ namespace kepler {
         UsingStatementAsExpression,
 
         // Semantic analysis
-        UndefinedSymbol = 500,
+        UnreachableCode = 500,
+        MissingReturn,
+        UndefinedSymbol,
         SymbolAlreadyExists,
         UnknownType,
         InvalidFunctionCall,

@@ -20,6 +20,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/parser/parser.statements.cpp
     src/parser/parser.top_level.cpp
     src/semantic_analysis/name_resolution_pass.cpp
+    src/semantic_analysis/return_check_pass.cpp
     src/semantic_analysis/symbol_table.cpp
     src/type_system/type.cpp
     src/type_system/type_check_pass.cpp

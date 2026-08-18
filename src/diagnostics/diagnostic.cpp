@@ -19,6 +19,7 @@ namespace kepler {
 
             case DiagnosticCode::MultilineCommentNotClosed:
             case DiagnosticCode::RedundantCast:
+            case DiagnosticCode::UnreachableCode:
                 return DiagnosticSeverity::Warning;
 
             case DiagnosticCode::NoInputFile:
@@ -40,6 +41,7 @@ namespace kepler {
             case DiagnosticCode::InvalidMathematicalNegation:
             case DiagnosticCode::MissingEndKeyword:
             case DiagnosticCode::UsingStatementAsExpression:
+            case DiagnosticCode::MissingReturn:
             case DiagnosticCode::UndefinedSymbol:
             case DiagnosticCode::SymbolAlreadyExists:
             case DiagnosticCode::UnknownType:
