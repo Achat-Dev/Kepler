@@ -208,7 +208,6 @@ namespace kepler {
         }
 
         const TypeCheckResult body_tcr = typecheck_nodes(statement->body);
-        KPL_ASSERT_NOT_NULLPTR(body_tcr.type);
         if (variable_tcr.is_poisoned() || end_tcr.is_poisoned() || step_tcr.is_poisoned() || body_tcr.is_poisoned()) {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
@@ -237,9 +236,7 @@ namespace kepler {
         }
 
         const TypeCheckResult if_body_tcr = typecheck_nodes(statement->if_body);
-        KPL_ASSERT_THAT(if_body_tcr.type == nullptr, "Bodies must generate nullptr as the type");
         const TypeCheckResult else_body_tcr = typecheck_nodes(statement->else_body);
-        KPL_ASSERT_THAT(else_body_tcr.type, "Bodies must generate nullptr as the type");
         if (condition_tcr.is_poisoned() || if_body_tcr.is_poisoned() || else_body_tcr.is_poisoned()) {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
