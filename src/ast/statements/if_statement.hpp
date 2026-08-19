@@ -21,16 +21,16 @@ namespace kepler {
 
     struct IfStatement : Statement {
         std::unique_ptr<Expression> condition;
-        std::vector<std::unique_ptr<ASTNode>> if_body;
-        std::vector<std::unique_ptr<ASTNode>> else_body;
+        NodeBody if_body;
+        NodeBody else_body;
 
         IfStatement(std::unique_ptr<Expression> condition,
             std::vector<std::unique_ptr<ASTNode>> if_body,
             std::vector<std::unique_ptr<ASTNode>> else_body,
             SourceLocation source_location)
             : Statement(ASTNodeType::IfStatement, source_location), condition(std::move(condition)),
-              if_body(std::move(if_body)),
-              else_body(std::move(else_body)) {}
+              if_body{.nodes = std::move(if_body)},
+              else_body{.nodes = std::move(else_body)} {}
     };
 
 }

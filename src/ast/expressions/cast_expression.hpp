@@ -21,6 +21,7 @@ namespace kepler {
 
     struct CastExpression : Expression {
         StringId target_type_id;
+        Type* original_type = nullptr;
         Type* target_type = nullptr;
         std::unique_ptr<Expression> expression;
 

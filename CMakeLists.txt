@@ -9,6 +9,7 @@ find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
     src/ast/ast_printer.cpp
+    src/ast/prototype.cpp
     src/codegen/codegen_pass.cpp
     src/diagnostics/diagnostic.cpp
     src/diagnostics/diagnostic_sink.cpp

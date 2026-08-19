@@ -184,7 +184,7 @@ namespace kepler {
         KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison, "Function must not be poisoned for name resolution");
         symbol_table.open_scope(ScopeType::Function);
         resolve_prototype(function->prototype.get());
-        resolve_nodes(function->body);
+        resolve_nodes(function->body.nodes);
         symbol_table.close_scope();
     }
 
@@ -235,7 +235,7 @@ namespace kepler {
         if (statement->step_value != nullptr) {
             step_nrr = resolve_node(statement->step_value.get());
         }
-        const NameResolutionResult body_nrr = resolve_nodes(statement->body);
+        const NameResolutionResult body_nrr = resolve_nodes(statement->body.nodes);
         symbol_table.close_scope();
 
         if (definition_nrr.poisoned || end_nrr.poisoned || step_nrr.poisoned || body_nrr.poisoned) {
@@ -252,11 +252,11 @@ namespace kepler {
         const NameResolutionResult condition_nrr = resolve_node(statement->condition.get());
 
         symbol_table.open_scope(ScopeType::Block);
-        const NameResolutionResult if_body_nrr = resolve_nodes(statement->if_body);
+        const NameResolutionResult if_body_nrr = resolve_nodes(statement->if_body.nodes);
         symbol_table.close_scope();
 
         symbol_table.open_scope(ScopeType::Block);
-        const NameResolutionResult else_body_nrr = resolve_nodes(statement->else_body);
+        const NameResolutionResult else_body_nrr = resolve_nodes(statement->else_body.nodes);
         symbol_table.close_scope();
 
         if (condition_nrr.poisoned || if_body_nrr.poisoned || else_body_nrr.poisoned) {

@@ -11,6 +11,7 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
+#include "type_system/type.hpp"
 #include <memory>
 #include <utility>
 
@@ -18,6 +19,7 @@ namespace kepler {
 
     struct MathematicalNegationExpression : Expression {
         std::unique_ptr<Expression> expression;
+        Type* target_type = nullptr;
 
         MathematicalNegationExpression(std::unique_ptr<Expression> expression, SourceLocation source_location)
             : Expression(ASTNodeType::MathematicalNegationExpression, std::move(source_location)), expression(std::move(expression)) {}

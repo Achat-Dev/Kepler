@@ -17,6 +17,8 @@
 namespace kepler::ansi_codes {
 
     inline constexpr char reset[] = "\033[0m";
+    inline constexpr char reset_bold_and_dim[] = "\033[22m";
+    inline constexpr char reset_italic[] = "\033[23m";
 
     // Styles
     inline constexpr char bold[] = "\033[1m";

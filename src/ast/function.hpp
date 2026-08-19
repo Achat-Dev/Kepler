@@ -20,10 +20,10 @@ namespace kepler {
 
     struct Function : ASTNode {
         std::unique_ptr<Prototype> prototype;
-        std::vector<std::unique_ptr<ASTNode>> body;
+        NodeBody body;
 
         Function(std::unique_ptr<Prototype> prototype, std::vector<std::unique_ptr<ASTNode>> body, SourceLocation source_location)
-            : ASTNode(ASTNodeType::Function, std::move(source_location)), prototype(std::move(prototype)), body(std::move(body)) {}
+            : ASTNode(ASTNodeType::Function, std::move(source_location)), prototype(std::move(prototype)), body{.nodes = std::move(body)} {}
     };
 
 }

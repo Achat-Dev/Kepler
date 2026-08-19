@@ -131,7 +131,7 @@ namespace kepler {
         KPL_ASSERT_THAT(current_function_return_type == nullptr, "Current function return type must be nullptr for type checking function");
         current_function_return_type = function->prototype->return_type;
         // Typecheck the body without poisoning the function so that the unpoisoned part of the body can still be accessed by later passes
-        typecheck_nodes(function->body);
+        typecheck_nodes(function->body.nodes);
         current_function_return_type = nullptr;
     }
 
@@ -207,7 +207,7 @@ namespace kepler {
             return typecheck_body_and_poison_for_statement(statement);
         }
 
-        const TypeCheckResult body_tcr = typecheck_nodes(statement->body);
+        const TypeCheckResult body_tcr = typecheck_nodes(statement->body.nodes);
         if (variable_tcr.is_poisoned() || end_tcr.is_poisoned() || step_tcr.is_poisoned() || body_tcr.is_poisoned()) {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
@@ -219,7 +219,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement must not be poisoned when poisoning it");
         statement->node_type = ASTNodeType::Poison;
-        typecheck_nodes(statement->body);
+        typecheck_nodes(statement->body.nodes);
         return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
     }
 
@@ -235,8 +235,8 @@ namespace kepler {
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->condition->source_location);
         }
 
-        const TypeCheckResult if_body_tcr = typecheck_nodes(statement->if_body);
-        const TypeCheckResult else_body_tcr = typecheck_nodes(statement->else_body);
+        const TypeCheckResult if_body_tcr = typecheck_nodes(statement->if_body.nodes);
+        const TypeCheckResult else_body_tcr = typecheck_nodes(statement->else_body.nodes);
         if (condition_tcr.is_poisoned() || if_body_tcr.is_poisoned() || else_body_tcr.is_poisoned()) {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
@@ -357,6 +357,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
+        KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of BinaryExpression must be nullptr for type checking");
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression must node be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
@@ -433,7 +434,9 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
 
-        return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
+        // Use lhs_tcr.type instead of requested_type because that could be unknown
+        expression->target_type = lhs_tcr.type;
+        return {.status = TypeCheckResult::Status::RequestFulfilled, .type = lhs_tcr.type};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, Type* requested_type) {
@@ -502,6 +505,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
+        KPL_ASSERT_THAT(expression->original_type == nullptr, "Original type of CastExpression must be nullptr for type checking");
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression must not be posioned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
@@ -520,6 +524,7 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
+        expression->original_type = typecheck_result.type;
 
         if (!expression->target_type->find_method(StringPool::get().store("__cast"), {typecheck_result.type})) {
             const std::string message = std::format("Type '{}' doesn't implement cast to type '{}'", *expression->target_type, *typecheck_result.type);
@@ -528,7 +533,6 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
 
-        // TODO: This information has to be stored inside the cast expression
         if (expression->target_type == typecheck_result.type) {
             const std::string message = std::format("Redundant cast of type '{}' to itself (the cast will be discarded)", *typecheck_result.type);
             diagnostic_sink.report(DiagnosticCode::RedundantCast, std::move(message), expression->source_location);
@@ -540,6 +544,7 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
+        KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of MathematicalNegationExpression must be nullptr for type checking");
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression must not be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
@@ -549,6 +554,7 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
         }
+        expression->target_type = typecheck_result.type;
 
         // The data type of the expression to negate maybe doesn't support mathematical negation
         // This can be the case either if the typecheck fulfills the requested data type or the typechecks fails but doesn't report a diagnostic

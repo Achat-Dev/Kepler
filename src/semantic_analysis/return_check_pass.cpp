@@ -32,14 +32,20 @@ namespace kepler {
             KPL_ASSERT_THAT(node->node_type != ASTNodeType::Poison, "All top level nodes must be unpoisoned for return checking");
             switch (node->node_type) {
                 case ASTNodeType::Function: {
-                    const Function* function = static_cast<const Function*>(node.get());
-                    const ReturnCheckResult return_result = check_body(function->body, ReturnCheckBodyType::FunctionBody);
-                    KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                    KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.void_type);
-                    if (!return_result.contains_return && function->prototype->return_type_id != TypeTable::Builtins.void_type->name_id) {
-                        const std::string_view identifier = StringPool::get().lookup(function->prototype->identifier_id);
-                        const std::string message = std::format("Not all code paths of function '{}' contain a return statement", identifier);
-                        diagnostic_sink.report(DiagnosticCode::MissingReturn, std::move(message), function->source_location);
+                    Function* function = static_cast<Function*>(node.get());
+                    KPL_ASSERT_THAT(function->body.contains_return == false,
+                        "Flag whether a function body contains a 'return' statement must be false for return checking");
+                    const ReturnCheckResult return_result = check_body(function->body.nodes, ReturnCheckBodyType::FunctionBody);
+                    if (return_result.contains_return) {
+                        function->body.contains_return = true;
+                    } else {
+                        KPL_ASSERT_NOT_NULLPTR(function->prototype);
+                        KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.void_type);
+                        if (function->prototype->return_type_id != TypeTable::Builtins.void_type->name_id) {
+                            const std::string_view identifier = StringPool::get().lookup(function->prototype->identifier_id);
+                            const std::string message = std::format("Not all code paths of function '{}' contain a return statement", identifier);
+                            diagnostic_sink.report(DiagnosticCode::MissingReturn, std::move(message), function->source_location);
+                        }
                     }
                     break;
                 }
@@ -55,8 +61,18 @@ namespace kepler {
             switch (nodes[i]->node_type) {
                 case ASTNodeType::IfStatement: {
                     IfStatement* if_statement = static_cast<IfStatement*>(nodes[i].get());
-                    const ReturnCheckResult if_body_rcr = check_body(if_statement->if_body, ReturnCheckBodyType::IfBody);
-                    const ReturnCheckResult else_body_rcr = check_body(if_statement->else_body, ReturnCheckBodyType::ElseBody);
+                    KPL_ASSERT_THAT(if_statement->if_body.contains_return == false,
+                        "Flag whether an if body contains a 'return' statement must be false for return checking");
+                    KPL_ASSERT_THAT(if_statement->else_body.contains_return == false,
+                        "Flag whether an if body contains a 'return' statement must be false for return checking");
+                    const ReturnCheckResult if_body_rcr = check_body(if_statement->if_body.nodes, ReturnCheckBodyType::IfBody);
+                    const ReturnCheckResult else_body_rcr = check_body(if_statement->else_body.nodes, ReturnCheckBodyType::ElseBody);
+                    if (if_body_rcr.contains_return) {
+                        if_statement->if_body.contains_return = true;
+                    }
+                    if (else_body_rcr.contains_return) {
+                        if_statement->else_body.contains_return = true;
+                    }
                     if (if_body_rcr.contains_return && else_body_rcr.contains_return) {
                         return handle_return(i, nodes, body_type);
                     }
@@ -64,8 +80,11 @@ namespace kepler {
                 }
                 case ASTNodeType::ForStatement: {
                     ForStatement* for_statement = static_cast<ForStatement*>(nodes[i].get());
-                    const ReturnCheckResult for_body_rcr = check_body(for_statement->body, ReturnCheckBodyType::ForBody);
+                    KPL_ASSERT_THAT(for_statement->body.contains_return == false,
+                        "Flag whether a for body contains a 'return' statement must be false for return checking");
+                    const ReturnCheckResult for_body_rcr = check_body(for_statement->body.nodes, ReturnCheckBodyType::ForBody);
                     if (for_body_rcr.contains_return) {
+                        for_statement->body.contains_return = true;
                         return handle_return(i, nodes, body_type);
                     }
                     break;

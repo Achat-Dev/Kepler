@@ -15,6 +15,7 @@
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
+#include <llvm/IR/Function.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -59,6 +60,8 @@ namespace kepler {
               identifier_id(identifier_id),
               parameter_data(std::move(parameter_data)) {}
     };
+
+    llvm::Function::LinkageTypes get_llvm_linkage_type(Prototype::LinkageType linkage_type);
 
 }
 

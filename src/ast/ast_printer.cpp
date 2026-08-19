@@ -41,8 +41,6 @@
 
 namespace kepler {
 
-    // TODO: Update ast nodes to display types and symbols
-
     void ASTPrinter::run() {
         constexpr char title[] = " Abstract Syntax Tree ";
         std::string horizontal_line;
@@ -169,7 +167,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison, "Function must not be poisoned for printing");
         print_node(function->prototype.get(), "", indent, false);
-        print_nodes(function->body, "Body", indent, true);
+        print_body(function->body, "Body", indent, true);
     }
 
     void ASTPrinter::print_prototype(const Prototype* prototype, std::string indent) const {
@@ -253,7 +251,7 @@ namespace kepler {
         } else {
             print_node(statement->step_value.get(), "Step: ", indent, false);
         }
-        print_nodes(statement->body, "Body", indent, true);
+        print_body(statement->body, "Body", indent, true);
     }
 
     void ASTPrinter::print_if_statement(const IfStatement* statement, const std::string& indent) const {
@@ -261,8 +259,8 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "IfStatement must not be poisoned for printing");
         print_node(statement->condition.get(), "", indent, false);
-        print_nodes(statement->if_body, "If body", indent, false);
-        print_nodes(statement->else_body, "Else body", indent, true);
+        print_body(statement->if_body, "If body", indent, false);
+        print_body(statement->else_body, "Else body", indent, true);
     }
 
     void ASTPrinter::print_return_statement(const ReturnStatement* statement, const std::string& indent) const {
@@ -330,12 +328,18 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression must not be poisoned for printing");
         std::println("{}{}Operator: {}", indent, item_prefix, expression->operator_type);
+        if (expression->target_type == nullptr) {
+            std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
+        }
         print_node(expression->lhs.get(), "lhs: ", indent, false);
         print_node(expression->rhs.get(), "rhs: ", indent, true);
     }
 
     void ASTPrinter::print_call_expression(const CallExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_NOT_NULLPTR(expression->symbol);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CallExpression must not be poisoned for printing");
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
@@ -358,11 +362,16 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression must not be poisoned for printing");
+        if (expression->original_type == nullptr) {
+            std::println("{}{}Original type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            std::println("{}{}Original type: {}", indent, item_prefix, *expression->original_type);
+        }
         if (expression->target_type == nullptr) {
             const std::string_view target_type_name = StringPool::get().lookup(expression->target_type_id);
-            std::println("{}{}Type: {}", indent, item_prefix, target_type_name);
+            std::println("{}{}Target type: {}", indent, item_prefix, target_type_name);
         } else {
-            std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
+            std::println("{}{}Target type: {}", indent, item_prefix, *expression->target_type);
         }
         print_node(expression->expression.get(), "", indent, true);
     }
@@ -370,7 +379,13 @@ namespace kepler {
     void ASTPrinter::print_mathematical_negation_expression(const MathematicalNegationExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
+        KPL_ASSERT_NOT_NULLPTR(expression->target_type);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression must not be poisoned for printing");
+        if (expression->target_type == nullptr) {
+            std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
+        }
         print_node(expression->expression.get(), "", indent, true);
     }
 
@@ -386,6 +401,18 @@ namespace kepler {
             const std::string_view symbol_identifier = StringPool::get().lookup(expression->symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, last_item_prefix, symbol_identifier);
         }
+    }
+
+    void ASTPrinter::print_body(const NodeBody& body, const std::string& prefix, std::string indent, bool is_last) const {
+        if (is_last) {
+            std::println("{}{}{}:", indent, last_item_prefix, prefix);
+            indent += space;
+        } else {
+            std::println("{}{}{}:", indent, item_prefix, prefix);
+            indent += vertical_line;
+        }
+        std::println("{}{}Contains return: {}", indent, item_prefix, body.contains_return);
+        print_nodes(body.nodes, "Nodes", indent, true);
     }
 
 }

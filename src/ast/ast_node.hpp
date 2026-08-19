@@ -12,8 +12,10 @@
 #include "diagnostics/source_location.hpp"
 #include "utils/assert.h"
 #include <format>
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace kepler {
 
@@ -45,6 +47,11 @@ namespace kepler {
         ASTNode(ASTNodeType node_type, SourceLocation source_location)
             : node_type(node_type), source_location(std::move(source_location)) {}
         virtual ~ASTNode() = default;
+    };
+
+    struct NodeBody {
+        std::vector<std::unique_ptr<ASTNode>> nodes;
+        bool contains_return = false;
     };
 
 }

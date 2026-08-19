@@ -9,10 +9,13 @@
 
 #pragma once
 
+#include "lexer/operator_type.hpp"
 #include "utils/string_pool.hpp"
 #include <format>
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -48,10 +51,22 @@ namespace kepler {
         const Method* find_method(StringId identifier_id, std::vector<Type*> parameter_types) const;
     };
 
-    llvm::Type* get_llvm_type(Type& type, llvm::LLVMContext& context);
+    llvm::Type* get_llvm_type(const Type* type, llvm::LLVMContext& context);
     bool is_integer_type(const Type* type);
     bool is_floating_point_type(const Type* type);
     StringId get_type_kind_name_id(TypeKind type_kind);
+
+    llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_mul(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_div(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_less_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_greater_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_not_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_less_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_greater_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
+    llvm::Value* create_cast(llvm::Value* value, const Type* original_type, const Type* target_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder);
 
 }
 

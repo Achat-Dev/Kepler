@@ -31,6 +31,7 @@
 #include <expected>
 #include <filesystem>
 #include <format>
+#include <llvm/IR/Module.h>
 #include <memory>
 #include <print>
 #include <string>
@@ -79,7 +80,7 @@ namespace kepler {
         AbstractSyntaxTree ast = parser.parse();
         verify_ast(ast);
         ASTPrinter ast_printer(ast);
-        ast_printer.run();
+        // ast_printer.run();
 
         // AST passes
         // Currently there are only builtin types so there is no need to do any type resolution before name resolution
@@ -88,27 +89,45 @@ namespace kepler {
         return_check_pass.run();
         NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table, type_table);
         name_resolution_pass.run();
-        ast_printer.run();
         TypeCheckPass type_check_pass(ast, diagnostic_sink, type_table);
         type_check_pass.run();
+        // ast_printer.run();
 
         // Print diagnostics and abort if any of the passes encountered errors
         if (diagnostic_sink.get_error_count() > 0) {
             diagnostic_sink.flush();
-            std::println("{}{}[ This one's on you ]{}{}: Compilation failed with {} error(s) and {} warning(s){}",
+            std::println("{}{}[ This one's on you ]{}: Compilation failed with {} error(s) and {} warning(s){}",
                 ansi_codes::bold,
                 ansi_codes::bg_red,
-                ansi_codes::reset,
-                ansi_codes::bg_red,
-                diagnostic_sink.get_error_count(),
+                ansi_codes::reset_bold_and_dim,
                 diagnostic_sink.get_warning_count(),
+                diagnostic_sink.get_error_count(),
                 ansi_codes::reset);
             return EXIT_FAILURE;
         }
 
         // Do the actual code generation and compilation
-        CodegenPass codegen_pass(ast);
-        codegen_pass.run();
+        CodegenPass codegen_pass(ast, symbol_table, type_table);
+        const std::unique_ptr<llvm::Module> codegen_result = codegen_pass.run();
+
+        // Print final compilation result
+        if (diagnostic_sink.get_warning_count() > 0) {
+            diagnostic_sink.flush();
+            std::println("{}{}{}[ There's room for improvement ]{}: Compilation succeeded, but with {} warning(s){}",
+                ansi_codes::bold,
+                ansi_codes::black,
+                ansi_codes::bg_yellow,
+                ansi_codes::reset_bold_and_dim,
+                diagnostic_sink.get_warning_count(),
+                ansi_codes::reset);
+        } else {
+            std::println("{}{}{}[ You're a god damn genius ]{}: Compilation succeeded{}",
+                ansi_codes::bold,
+                ansi_codes::black,
+                ansi_codes::bg_green,
+                ansi_codes::reset_bold_and_dim,
+                ansi_codes::reset);
+        }
 
         return EXIT_SUCCESS;
     }
