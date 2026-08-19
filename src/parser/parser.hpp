@@ -38,7 +38,7 @@
 
 namespace kepler {
 
-    // TODO: Replace unique_ptr with raw pointers and an arena allocator once the architecture rework is finished
+    // TODO (improvement): Replace unique_ptr with raw pointers and an arena allocator once the architecture rework is finished
     class Parser {
     public:
         Parser(const std::vector<Token>& tokens, const File& file, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
@@ -51,6 +51,7 @@ namespace kepler {
         DiagnosticSink& diagnostic_sink;
         const TypeTable& type_table;
         const Token* current_token;
+        std::optional<StringId> current_function_return_type_id = std::nullopt;
         size_t current_token_index = 0;
 
         int get_operator_precedence(OperatorType operator_type) const;

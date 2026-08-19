@@ -342,14 +342,19 @@ namespace kepler {
     }
 
     std::unique_ptr<ReturnStatement> Parser::parse_return() {
-        // TODO: If the return type of the function is void, this function still parses the next expression as part of the return statement, which is wrong
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Return,
             "Parsing return statement requires '{}' token, received '{}'",
             TokenType::Return,
             current_token->type);
+        KPL_ASSERT_THAT(current_function_return_type_id.has_value(), "Function return type id must have a value for parsing a 'return' statement");
+
         const SourceLocation& return_source_location = current_token->source_location;
         next_token(true); // eat 'return' keyword
+
+        if (current_function_return_type_id == type_table.Builtins.void_type->name_id) {
+            return std::make_unique<ReturnStatement>(nullptr, return_source_location);
+        }
 
         switch (current_token->type) {
             case TokenType::If:
@@ -413,7 +418,7 @@ namespace kepler {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
 
-        // TODO: Move this check into the type check pass
+        // TODO (improvement): Move this check into the type check pass
         if (type_id == type_table.Builtins.void_type->name_id) {
             diagnostic_sink.report(DiagnosticCode::InvalidVariableType, "Cannot create a local variable of type 'void'", type_source_location);
             return nullptr;

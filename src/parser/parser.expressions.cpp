@@ -355,7 +355,7 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
-        // TODO: Move this check to type check pass
+        // TODO (improvement): Move this check to type check pass
         if (type_id == type_table.Builtins.void_type->name_id) {
             diagnostic_sink.report(DiagnosticCode::InvalidCast, "Cannot cast a value to 'void'", current_token->source_location);
             return nullptr;

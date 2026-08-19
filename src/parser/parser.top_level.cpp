@@ -171,11 +171,13 @@ namespace kepler {
             "Parsing a function requires token of type '{}', received '{}'",
             TokenType::BracketOpen,
             current_token->type);
+        KPL_ASSERT_THAT(!current_function_return_type_id.has_value(), "Function return type id must be nullopt for parsing a function");
         // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
         previous_token(true);
         const Token* identifier_token = current_token;
         previous_token(true);
         std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::Internal);
+        current_function_return_type_id = prototype->return_type_id;
 
         KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Function identifier token");
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
@@ -184,6 +186,7 @@ namespace kepler {
         auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end' or 'EOF'
 
+        current_function_return_type_id = std::nullopt;
         if (!prototype || !body) {
             return nullptr;
         }

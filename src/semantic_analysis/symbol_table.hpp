@@ -35,14 +35,14 @@ namespace kepler {
             std::vector<Type*> parameter_types,
             SourceLocation identifier_source_location);
 
-        // TODO: Maybe create a method to disable lookup after name resolution
+        // TODO (check): Maybe create a method to disable lookup after name resolution
         // Note: This method should only be used during name resolution.
         Symbol* lookup(StringId identifier_id);
         void open_scope(ScopeType type);
         void close_scope();
 
     private:
-        // TODO: Look at the usage of std::deque again, that was a quick fix but maybe not the best choice
+        // TODO (check): Look at the usage of std::deque again, that was a quick fix but maybe not the best choice
         std::deque<Symbol> symbols;
         std::vector<Scope> scopes;
         Scope* current_scope;

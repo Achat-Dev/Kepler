@@ -16,7 +16,7 @@
 
 namespace kepler {
 
-    // TODO: Add unary operators
+    // TODO (improvement): Add unary operators
     enum class OperatorType {
         Plus,
         Minus,

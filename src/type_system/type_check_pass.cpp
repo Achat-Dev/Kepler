@@ -250,11 +250,16 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(current_function_return_type);
         KPL_ASSERT_THAT(current_function_return_type != type_table.Builtins.unknown_type, "Invalid function return type of unknown");
 
-        if (current_function_return_type == type_table.Builtins.void_type && statement->expression != nullptr) {
-            diagnostic_sink.report(DiagnosticCode::InvalidReturn, "Cannot return a value from void function", statement->source_location);
-            statement->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
-        } else if (current_function_return_type != type_table.Builtins.void_type && statement->expression == nullptr) {
+        if (current_function_return_type == type_table.Builtins.void_type) {
+            if (statement->expression != nullptr) {
+                diagnostic_sink.report(DiagnosticCode::InvalidReturn, "Cannot return a value from void function", statement->source_location);
+                statement->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
+        }
+
+        if (statement->expression == nullptr) {
             diagnostic_sink.report(DiagnosticCode::InvalidReturn,
                 "Expected expression after 'return' (non-void function needs a return value)",
                 statement->source_location);
