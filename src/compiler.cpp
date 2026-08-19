@@ -11,6 +11,7 @@
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "codegen/codegen_pass.hpp"
+#include "codegen/optimizer.hpp"
 #include "cxxopts.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
@@ -91,7 +92,7 @@ namespace kepler {
         name_resolution_pass.run();
         TypeCheckPass type_check_pass(ast, diagnostic_sink, type_table);
         type_check_pass.run();
-        ast_print_pass.run();
+        // ast_print_pass.run();
 
         // Print diagnostics and abort if any of the passes encountered errors
         if (diagnostic_sink.get_error_count() > 0) {
@@ -108,7 +109,8 @@ namespace kepler {
 
         // Do the actual code generation and compilation
         CodegenPass codegen_pass(ast, symbol_table, type_table);
-        const std::unique_ptr<llvm::Module> codegen_result = codegen_pass.run();
+        const std::unique_ptr<llvm::Module> llvm_module = codegen_pass.run();
+        optimize_module(llvm_module);
 
         // Print final compilation result
         if (diagnostic_sink.get_warning_count() > 0) {

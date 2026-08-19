@@ -176,7 +176,9 @@ namespace kepler {
         previous_token(true);
         const Token* identifier_token = current_token;
         previous_token(true);
-        std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::Internal);
+        // TODO (hack): Currently everything uses external linkage because the user can't explicitely mark functions with a body as external yet
+        // Otherwise everything will be removed by the optimizer
+        std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::External);
         current_function_return_type_id = prototype->return_type_id;
 
         KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Function identifier token");
