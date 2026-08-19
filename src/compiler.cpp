@@ -10,7 +10,6 @@
 #include "compiler.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
-#include "ast/ast_printer.hpp"
 #include "codegen/codegen_pass.hpp"
 #include "cxxopts.hpp"
 #include "diagnostics/diagnostic.hpp"
@@ -26,6 +25,7 @@
 #include "type_system/type_table.hpp"
 #include "utils/ansi_codes.hpp"
 #include "utils/assert.h"
+#include "utils/ast_print_pass.hpp"
 #include "utils/log.hpp"
 #include <cstdlib>
 #include <expected>
@@ -79,8 +79,8 @@ namespace kepler {
         Parser parser(std::move(tokens), *file, diagnostic_sink, type_table);
         AbstractSyntaxTree ast = parser.parse();
         verify_ast(ast);
-        ASTPrinter ast_printer(ast);
-        // ast_printer.run();
+        ASTPrintPass ast_print_pass(ast);
+        // ast_print_pass.run();
 
         // AST passes
         // Currently there are only builtin types so there is no need to do any type resolution before name resolution
@@ -91,7 +91,7 @@ namespace kepler {
         name_resolution_pass.run();
         TypeCheckPass type_check_pass(ast, diagnostic_sink, type_table);
         type_check_pass.run();
-        // ast_printer.run();
+        ast_print_pass.run();
 
         // Print diagnostics and abort if any of the passes encountered errors
         if (diagnostic_sink.get_error_count() > 0) {

@@ -35,9 +35,9 @@
 
 namespace kepler {
 
-    class ASTPrinter : ASTPass<void> {
+    class ASTPrintPass : ASTPass<void> {
     public:
-        explicit ASTPrinter(AbstractSyntaxTree& ast) : ASTPass(ast) {}
+        explicit ASTPrintPass(AbstractSyntaxTree& ast) : ASTPass(ast) {}
         void run() override;
 
     private:

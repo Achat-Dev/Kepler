@@ -8,7 +8,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
-    src/ast/ast_printer.cpp
     src/ast/prototype.cpp
     src/codegen/codegen_pass.cpp
     src/diagnostics/diagnostic.cpp
@@ -27,6 +26,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/type_system/type_check_pass.cpp
     src/type_system/type_table.cpp
     src/utils/arena_allocator.cpp
+    src/utils/ast_print_pass.cpp
     src/utils/string_pool.cpp
     src/compiler.cpp
     src/main.cpp)
