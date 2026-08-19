@@ -22,7 +22,6 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
-#include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
@@ -355,11 +354,6 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
-        // TODO (improvement): Move this check to type check pass
-        if (type_id == type_table.Builtins.void_type->name_id) {
-            diagnostic_sink.report(DiagnosticCode::InvalidCast, "Cannot cast a value to 'void'", current_token->source_location);
-            return nullptr;
-        }
         return std::make_unique<CastExpression>(type_id, std::move(expression_to_cast), type_source_location);
     }
 }

@@ -293,7 +293,7 @@ namespace kepler {
         if (statement->type == type_table.Builtins.void_type) {
             diagnostic_sink.report(DiagnosticCode::InvalidVariableType, "Cannot create a variable of type 'void'", statement->source_location);
             statement->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.void_type};
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
 
         const TypeCheckResult typecheck_result = typecheck_assignment_statement(statement->assignment_statement.get());
@@ -520,6 +520,12 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->original_type == nullptr, "Original type of CastExpression must be nullptr for type checking");
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression must not be posioned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
+
+        if (expression->target_type == type_table.Builtins.void_type) {
+            diagnostic_sink.report(DiagnosticCode::InvalidCast, "Cannot cast a value to type 'void'", expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+        }
 
         if (requested_type != type_table.Builtins.unknown_type && requested_type != expression->target_type) {
             const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", *requested_type, *expression->target_type);
