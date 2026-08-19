@@ -41,7 +41,6 @@ namespace kepler {
         UnexpectedToken = 400,
         InvalidCast,
         InvalidReturn,
-        InvalidVariableType,
         InvalidLoopVariableType,
         InvalidMathematicalNegation,
         MissingEndKeyword,
@@ -53,8 +52,9 @@ namespace kepler {
         UndefinedSymbol,
         SymbolAlreadyExists,
         UnknownType,
-        InvalidFunctionCall,
+        InvalidVariableType,
         TypeMismatch,
+        InvalidFunctionCall,
         UnsupportedMathematicalOperation,
         RedundantCast,
 

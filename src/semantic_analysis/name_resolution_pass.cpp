@@ -24,6 +24,7 @@
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/diagnostic.hpp"
+#include "diagnostics/source_location.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
@@ -295,7 +296,10 @@ namespace kepler {
             statement->type = type;
         }
 
-        const auto symbol = symbol_table.create_variable(type, statement->identifier_id, statement->source_location);
+        KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement->variable_expression);
+        const auto symbol = symbol_table.create_variable(type,
+            statement->identifier_id,
+            statement->assignment_statement->variable_expression->source_location);
         if (!symbol) {
             const SourceDiagnostic& diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);

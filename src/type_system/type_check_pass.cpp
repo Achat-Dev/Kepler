@@ -289,6 +289,13 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "VariableDefinitionStatement must not be poisoned for type checking");
 
+        KPL_ASSERT_NOT_NULLPTR(statement->type);
+        if (statement->type == type_table.Builtins.void_type) {
+            diagnostic_sink.report(DiagnosticCode::InvalidVariableType, "Cannot create a variable of type 'void'", statement->source_location);
+            statement->node_type = ASTNodeType::Poison;
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.void_type};
+        }
+
         const TypeCheckResult typecheck_result = typecheck_assignment_statement(statement->assignment_statement.get());
         KPL_ASSERT_NOT_NULLPTR(typecheck_result.type);
         KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,

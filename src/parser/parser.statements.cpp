@@ -418,15 +418,9 @@ namespace kepler {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
 
-        // TODO (improvement): Move this check into the type check pass
-        if (type_id == type_table.Builtins.void_type->name_id) {
-            diagnostic_sink.report(DiagnosticCode::InvalidVariableType, "Cannot create a local variable of type 'void'", type_source_location);
-            return nullptr;
-        }
-
         KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Variable definition identifier token");
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
-        return std::make_unique<VariableDefinitionStatement>(type_id, identifier_id, std::move(assignment_statement), identifier_token->source_location);
+        return std::make_unique<VariableDefinitionStatement>(type_id, identifier_id, std::move(assignment_statement), type_source_location);
     }
 
 }
