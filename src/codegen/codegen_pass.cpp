@@ -61,6 +61,18 @@ namespace kepler {
     std::unique_ptr<llvm::Module> CodegenPass::run() {
         forward_declare_prototypes(ast.top_level_nodes);
         codegen_nodes(ast.top_level_nodes);
+
+        // Check ir for errors
+        std::string error;
+        llvm::raw_string_ostream raw_string_ostream(error);
+        bool is_invalid_function = llvm::verifyModule(*module, &raw_string_ostream);
+        raw_string_ostream.flush();
+        if (is_invalid_function) {
+            log::error("Invalid llvm function ir:\n{}", error);
+            module->print(llvm::errs(), nullptr);
+            return nullptr;
+        }
+
         return std::move(module);
     }
 
@@ -203,18 +215,6 @@ namespace kepler {
         // If it ever becomes necessary to call the method, this is the place to do so
         // llvm::EliminateUnreachableBlocks(*llvm_function);
         builder.ClearInsertionPoint();
-
-        // Check ir for errors
-        std::string error;
-        llvm::raw_string_ostream raw_string_ostream(error);
-        bool is_invalid_function = llvm::verifyFunction(*llvm_function, &raw_string_ostream);
-        raw_string_ostream.flush();
-
-        if (is_invalid_function) {
-            log::error("Invalid llvm function ir:\n{}", error);
-            llvm_function->print(llvm::errs());
-            llvm_function->eraseFromParent();
-        }
     }
 
     llvm::AllocaInst* CodegenPass::create_entry_block_alloca(llvm::Function* function, llvm::Type* type, StringId identifier_id) {
