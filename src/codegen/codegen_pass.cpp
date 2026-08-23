@@ -420,10 +420,9 @@ namespace kepler {
         const std::string_view string_value = StringPool::get().lookup(expression->value);
         // Constant array that holds the string data (null terminated)
         llvm::Constant* data = llvm::ConstantDataArray::getString(context, string_value);
-        llvm::Type* llvm_string_type = get_llvm_type(type_table.Builtins.string_type, context);
         // Global pointer that points to the constant array
         // This is owned by the llvm module and doesn't have to be freed manually
-        llvm::GlobalVariable* global_variable = new llvm::GlobalVariable(*module, llvm_string_type, true, llvm::GlobalValue::PrivateLinkage, data);
+        llvm::GlobalVariable* global_variable = new llvm::GlobalVariable(*module, data->getType(), true, llvm::GlobalValue::PrivateLinkage, data);
 
         // Optimisation: tell llvm that the pointer is never going to be compared
         // (only the value of the string is going to be compared, never the reference to the string)
@@ -432,7 +431,7 @@ namespace kepler {
         // Create i8* to the first element of the constant array
         llvm::Constant* zero = llvm::ConstantInt::get(get_llvm_type(type_table.Builtins.i32_type, context), 0);
         llvm::Constant* indices[] = {zero, zero};
-        llvm::Constant* value = llvm::ConstantExpr::getInBoundsGetElementPtr(llvm_string_type, global_variable, indices);
+        llvm::Constant* value = llvm::ConstantExpr::getInBoundsGetElementPtr(data->getType(), global_variable, indices);
 
         // If strings should be character arrays, the global_variable could be returned (that copies the data)
         return {.llvm_value = value, .returns = false};
