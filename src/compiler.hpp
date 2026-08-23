@@ -12,13 +12,14 @@
 #include "ast/abstract_syntax_tree.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include <expected>
+#include <filesystem>
 #include <string>
 
 namespace kepler {
 
     struct CompilerContext {
-        std::string input_file_path;
-        std::string output_file_path;
+        std::filesystem::path input_path;
+        std::filesystem::path output_path;
         bool log_verbose;
         bool help_requested;
         std::string help;

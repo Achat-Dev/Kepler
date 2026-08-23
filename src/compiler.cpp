@@ -28,6 +28,7 @@
 #include "utils/assert.h"
 #include "utils/ast_print_pass.hpp"
 #include "utils/log.hpp"
+#include <cstddef>
 #include <cstdlib>
 #include <expected>
 #include <filesystem>
@@ -60,11 +61,12 @@ namespace kepler {
         log::config.should_log_verbose = context.log_verbose;
         log::verbose("Compiling project with the following context:\n{}-i (input file name): '{}'\n{}-o (output file name): '{}",
             log::indented,
-            context.input_file_path,
+            context.input_path.string(),
             log::last_indented,
-            context.input_file_path);
+            context.output_path.string());
 
         const auto file = File::load(context.input_file_path);
+        const auto file = File::load(context.input_path);
         if (!file) {
             DiagnosticSeverity severity = get_diagnostic_severity(file.error().code);
             std::println("{}{}", severity, file.error().message);
@@ -157,10 +159,15 @@ namespace kepler {
             // Input option
             const int input_count = parse_result.count("input");
             if (input_count == 1) {
-                context.input_file_path = parse_result["input"].as<std::string>();
+                context.input_path = parse_result["input"].as<std::string>();
+                const std::string extension = context.input_path.extension();
+                if (extension != ".kpl") {
+                    const std::string message = std::format("Input file (-i) must be a '.kpl' file, received '{}'", extension);
+                    return std::unexpected(Diagnostic{.code = DiagnosticCode::WrongFileFormat, .message = message});
+                }
             } else if (input_count > 1) {
                 const std::string message = std::format("Input file (-i) can only be specified once, but was specified {} times", input_count);
-                return std::unexpected(Diagnostic{.code = DiagnosticCode::TooManyInputFiles, .message = message});
+                return std::unexpected(Diagnostic{.code = DiagnosticCode::OptionUsedTooOften, .message = message});
             } else {
                 return std::unexpected(Diagnostic{.code = DiagnosticCode::NoInputFile, .message = "Missing input file (-i)"});
             }
@@ -168,10 +175,10 @@ namespace kepler {
             // Output option
             const int output_count = parse_result.count("output");
             if (output_count == 1) {
-                context.output_file_path = parse_result["output"].as<std::string>();
+                context.output_path = parse_result["output"].as<std::string>();
             } else if (input_count > 1) {
                 const std::string message = std::format("Output file (-o) can only be specified once, but was specified {} times", output_count);
-                return std::unexpected(Diagnostic{.code = DiagnosticCode::TooManyOutputFiles, .message = message});
+                return std::unexpected(Diagnostic{.code = DiagnosticCode::OptionUsedTooOften, .message = message});
             } else {
                 return std::unexpected(Diagnostic{.code = DiagnosticCode::NoOutputFile, .message = "Missing output file (-o)"});
             }

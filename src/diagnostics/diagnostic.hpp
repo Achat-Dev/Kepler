@@ -22,8 +22,8 @@ namespace kepler {
         HelpRequested = 100,
         NoInputFile,
         NoOutputFile,
-        TooManyInputFiles,
-        TooManyOutputFiles,
+        WrongFileFormat,
+        OptionUsedTooOften,
         UnknownOption,
 
         // I/O
