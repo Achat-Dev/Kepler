@@ -134,7 +134,7 @@ namespace kepler {
         // It's important for optimization to set the data layout before running the optimizer
         llvm_module->setTargetTriple(target_machine->getTargetTriple());
         llvm_module->setDataLayout(target_machine->createDataLayout());
-        optimize_module(llvm_module);
+        optimize_module(llvm_module, context.optimization_level);
 
         // TOOD (bug): This works for now, but when multiple input files are introduced the object files will allways override each other
         std::filesystem::path object_output_path = context.output_path;
@@ -144,7 +144,10 @@ namespace kepler {
             return EXIT_FAILURE;
         }
 
-        const bool executable_linking_successful = link_to_executable(object_output_path, context.additional_paths, context.output_path);
+        const bool executable_linking_successful = link_to_executable(object_output_path,
+            context.additional_paths,
+            context.optimization_level,
+            context.output_path);
         if (!executable_linking_successful) {
             return EXIT_FAILURE;
         }
@@ -171,7 +174,6 @@ namespace kepler {
         return EXIT_SUCCESS;
     }
 
-    // TODO (feature): Add optimisation levels to arguments
     std::expected<CompilerContext, Diagnostic> Compiler::parse_args(int argc, char** argv) const {
         try {
             cxxopts::Options options("kepler", "The compiler for the kepler programming language");
@@ -179,14 +181,23 @@ namespace kepler {
             options.add_options()
                 ("i,input", "The .kpl input file", cxxopts::value<std::string>())
                 ("o,output", "The output file", cxxopts::value<std::string>())
+                ("O,optimization-level",
+                    "The optimization level to use. Possible values for arg:\n"
+                        "- 0: No optimization\n"
+                        "- 1: Optimize quickly without destroying debuggability\n"
+                        "- 2: Optimize for fast execution as much as possible without triggering significant incremental compile time or code size growth\n"
+                        "- 3: Optimize for fast execution as much as possible no matter the compilation cost\n"
+                        "- s: Similar to 2 but tries to optimize for small code size instead of fast execution\n"
+                        "- z: A very specialized mode that will optimize for code size at any and all costs",
+                    cxxopts::value<std::string>())
                 ("a,additional-files", "Additional .c or .o files, separated by ','", cxxopts::value<std::vector<std::string>>())
                 ("v,verbose", "Enable verbose logging", cxxopts::value<bool>())
-                ("h,help", "Print help");
+                ("h,help", "Print help", cxxopts::value<bool>());
             // clang-format on
             cxxopts::ParseResult parse_result = options.parse(argc, argv);
 
             CompilerContext context;
-            // Input option
+            // Input file
             const int input_count = parse_result.count("input");
             if (input_count == 1) {
                 context.input_path = parse_result["input"].as<std::string>();
@@ -202,20 +213,20 @@ namespace kepler {
                 return std::unexpected(Diagnostic{.code = DiagnosticCode::NoInputFile, .message = "Missing input file (-i)"});
             }
 
-            // Output option
+            // Output file
             const int output_count = parse_result.count("output");
             if (output_count == 1) {
                 context.output_path = parse_result["output"].as<std::string>();
-            } else if (input_count > 1) {
+            } else if (output_count > 1) {
                 const std::string message = std::format("Output file (-o) can only be specified once, but was specified {} times", output_count);
                 return std::unexpected(Diagnostic{.code = DiagnosticCode::OptionUsedTooOften, .message = message});
             } else {
                 return std::unexpected(Diagnostic{.code = DiagnosticCode::NoOutputFile, .message = "Missing output file (-o)"});
             }
 
-            // Additional option
+            // Additional files
             const int additional_count = parse_result.count("additional-files");
-            if (output_count == 1) {
+            if (additional_count == 1) {
                 const std::vector<std::string> additional_paths = parse_result["additional-files"].as<std::vector<std::string>>();
                 context.additional_paths.reserve(additional_paths.size());
                 for (size_t i = 0; i < additional_paths.size(); i++) {
@@ -226,11 +237,41 @@ namespace kepler {
                         return std::unexpected(Diagnostic{.code = DiagnosticCode::WrongFileFormat, .message = message});
                     }
                 }
-            } else if (input_count > 1) {
-                const std::string message = std::format("Additional files (-a) can only be specified once, but was specified {} times", output_count);
+            } else if (additional_count > 1) {
+                const std::string message = std::format("Additional files (-a) can only be specified once, but was specified {} times", additional_count);
                 return std::unexpected(Diagnostic{.code = DiagnosticCode::OptionUsedTooOften, .message = message});
             }
 
+            // Optimization level
+            const int optimization_level_count = parse_result.count("optimization-level");
+            if (optimization_level_count > 1) {
+                const std::string message = std::format("Optimization level (-O) can only be specified once, but was specified {} times",
+                    optimization_level_count);
+                return std::unexpected(Diagnostic{.code = DiagnosticCode::OptionUsedTooOften, .message = message});
+            } else {
+                std::string optimization_level = "2";
+                if (optimization_level_count == 1) {
+                    optimization_level = parse_result["optimization-level"].as<std::string>();
+                }
+                if (optimization_level == "0") {
+                    context.optimization_level = OptimizationLevel::O0;
+                } else if (optimization_level == "1") {
+                    context.optimization_level = OptimizationLevel::O1;
+                } else if (optimization_level == "2") {
+                    context.optimization_level = OptimizationLevel::O2;
+                } else if (optimization_level == "3") {
+                    context.optimization_level = OptimizationLevel::O3;
+                } else if (optimization_level == "s") {
+                    context.optimization_level = OptimizationLevel::Os;
+                } else if (optimization_level == "z") {
+                    context.optimization_level = OptimizationLevel::Oz;
+                } else {
+                    const std::string message = std::format("Unknown optimization level '{}', available options are 0, 1, 2, 3, s and z", optimization_level);
+                    return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownOptimizationLevel, .message = message});
+                }
+            }
+
+            // Other options
             context.log_verbose = parse_result.contains("verbose");
             context.help_requested = parse_result.contains("help");
             if (context.help_requested) {
@@ -313,6 +354,7 @@ namespace kepler {
     // clang-format off
     bool Compiler::link_to_executable(const std::filesystem::path& object_path,
         const std::vector<std::filesystem::path>& additional_paths,
+        OptimizationLevel optimization_level,
         const std::filesystem::path& output_path) const
     {
         // clang-format on
@@ -329,8 +371,7 @@ namespace kepler {
             }
             command += " \"" + additional_path.string() + "\" ";
         }
-        // TODO (improvement): -O2 should be specifiable via the command line options
-        command += +" -O2  -o \"" + output_path.string() + "\"";
+        command += std::format(" -{} -o \"{}\"", optimization_level, output_path.string());
         const int command_result = std::system(command.c_str());
         if (command_result == 0) {
             return true;

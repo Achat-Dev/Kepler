@@ -24,6 +24,7 @@ namespace kepler {
         NoOutputFile,
         WrongFileFormat,
         OptionUsedTooOften,
+        UnknownOptimizationLevel,
         UnknownOption,
 
         // I/O

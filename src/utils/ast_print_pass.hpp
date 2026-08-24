@@ -41,10 +41,10 @@ namespace kepler {
         void run() override;
 
     private:
-        constexpr static char space[] = "   ";
-        constexpr static char vertical_line[] = " \u2502 ";
-        constexpr static char item_prefix[] = " \u251C\u2500 ";
-        constexpr static char last_item_prefix[] = " \u2514\u2500 ";
+        constexpr static const char space[] = "   ";
+        constexpr static const char vertical_line[] = " \u2502 ";
+        constexpr static const char item_prefix[] = " \u251C\u2500 ";
+        constexpr static const char last_item_prefix[] = " \u2514\u2500 ";
 
         // TODO (improvement): Some of the const string& arguments could be turned into string_views or const char*, which would avoid memory overhead
         void print_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes, const std::string& label, std::string indent, bool is_last) const;

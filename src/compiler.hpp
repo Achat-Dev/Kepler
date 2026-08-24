@@ -10,6 +10,7 @@
 #pragma once
 
 #include "ast/abstract_syntax_tree.hpp"
+#include "codegen/optimizer.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include <expected>
 #include <filesystem>
@@ -26,6 +27,7 @@ namespace kepler {
         std::filesystem::path input_path;
         std::filesystem::path output_path;
         std::vector<std::filesystem::path> additional_paths;
+        OptimizationLevel optimization_level;
         bool log_verbose;
         bool help_requested;
         std::string help;
@@ -44,6 +46,7 @@ namespace kepler {
             const std::filesystem::path& output_path) const;
         bool link_to_executable(const std::filesystem::path& object_path,
             const std::vector<std::filesystem::path>& additional_paths,
+            OptimizationLevel optimization_level,
             const std::filesystem::path& output_path) const;
     };
 
