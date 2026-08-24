@@ -112,6 +112,9 @@ namespace kepler {
         // Do the actual code generation and compilation
         CodegenPass codegen_pass(ast, symbol_table, type_table);
         const std::unique_ptr<llvm::Module> llvm_module = codegen_pass.run();
+        if (llvm_module == nullptr) {
+            return EXIT_FAILURE;
+        }
         optimize_module(llvm_module);
 
         // Print final compilation result
