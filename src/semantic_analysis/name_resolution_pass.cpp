@@ -51,11 +51,13 @@ namespace kepler {
             switch (node->node_type) {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
+                    KPL_ASSERT_NOT_NULLPTR(ext->prototype);
                     create_prototype_symbol(ext->prototype.get());
                     break;
                 }
                 case ASTNodeType::Function: {
                     const Function* function = static_cast<Function*>(node.get());
+                    KPL_ASSERT_NOT_NULLPTR(function->prototype);
                     create_prototype_symbol(function->prototype.get());
                     break;
                 }
@@ -65,14 +67,14 @@ namespace kepler {
         }
     }
 
-    NameResolutionResult NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
+    void NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison, "Can't create prototype symbol from poisoned prototype");
         Type* return_type = type_table.lookup(prototype->return_type_id);
         if (return_type == nullptr) {
             report_unknown_type(prototype->return_type_id, prototype->source_location);
             prototype->node_type = ASTNodeType::Poison;
-            return {.poisoned = true};
+            return;
         } else {
             KPL_ASSERT_THAT(prototype->return_type == nullptr, "Return type of prototype must be nullptr when creating prototype symbol");
             prototype->return_type = return_type;
@@ -86,7 +88,7 @@ namespace kepler {
             if (parameter_type == nullptr) {
                 report_unknown_type(parameter_data.type_id, parameter_data.type_source_location);
                 prototype->node_type = ASTNodeType::Poison;
-                return {.poisoned = true};
+                return;
             }
             parameter_data.type = parameter_type;
             parameter_types.push_back(parameter_type);
@@ -101,13 +103,11 @@ namespace kepler {
             const SourceDiagnostic& diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
             prototype->node_type = ASTNodeType::Poison;
-            return {.poisoned = true};
+            return;
         } else {
             KPL_ASSERT_THAT(prototype->symbol == nullptr, "Prototype symbol must be nullptr when creating prototype symbol");
             prototype->symbol = *symbol;
         }
-
-        return {.poisoned = false};
     }
 
     NameResolutionResult NameResolutionPass::resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const {

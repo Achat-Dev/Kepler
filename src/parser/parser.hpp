@@ -38,7 +38,7 @@
 
 namespace kepler {
 
-    // TODO (improvement): Replace unique_ptr with raw pointers and an arena allocator once the architecture rework is finished
+    // TODO (improvement): Replace unique_ptr with raw pointers and an arena allocator
     class Parser {
     public:
         Parser(const std::vector<Token>& tokens, const File& file, DiagnosticSink& diagnostic_sink, TypeTable& type_table)

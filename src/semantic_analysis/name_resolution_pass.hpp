@@ -49,7 +49,7 @@ namespace kepler {
         TypeTable& type_table;
 
         void collect_prototype_symbols() const;
-        NameResolutionResult create_prototype_symbol(Prototype* prototype) const;
+        void create_prototype_symbol(Prototype* prototype) const;
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
         NameResolutionResult resolve_node(ASTNode* node) const;
         void resolve_extern(Extern* ext) const;

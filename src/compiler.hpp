@@ -13,13 +13,19 @@
 #include "diagnostics/diagnostic.hpp"
 #include <expected>
 #include <filesystem>
+#include <llvm/CodeGen/MachineFunction.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Target/TargetMachine.h>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace kepler {
 
     struct CompilerContext {
         std::filesystem::path input_path;
         std::filesystem::path output_path;
+        std::vector<std::filesystem::path> additional_paths;
         bool log_verbose;
         bool help_requested;
         std::string help;
@@ -30,8 +36,15 @@ namespace kepler {
         int run(int argc, char** argv) const;
 
     private:
-        void verify_ast(const AbstractSyntaxTree& ast) const;
         std::expected<CompilerContext, Diagnostic> parse_args(int argc, char** argv) const;
+        void verify_ast(const AbstractSyntaxTree& ast) const;
+        llvm::TargetMachine* create_target_machine() const;
+        bool emit_object_code(const std::unique_ptr<llvm::Module>& module,
+            llvm::TargetMachine* target_machine,
+            const std::filesystem::path& output_path) const;
+        bool link_to_executable(const std::filesystem::path& object_path,
+            const std::vector<std::filesystem::path>& additional_paths,
+            const std::filesystem::path& output_path) const;
     };
 
 }
