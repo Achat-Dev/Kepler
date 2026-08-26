@@ -13,7 +13,6 @@
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
-#include "utils/log.hpp"
 #include <format>
 #include <memory>
 #include <vector>
@@ -53,7 +52,6 @@ namespace kepler {
         KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile,
             "Token stream must end with EOF token for parsing, received stream that ends with '{}' token",
             tokens.back().type);
-        log::verbose("Parsing token stream");
 
         AbstractSyntaxTree result;
         while (current_token->type != TokenType::EndOfFile) {
@@ -84,7 +82,6 @@ namespace kepler {
             }
         }
 
-        log::verbose_no_prefix("{} Parsing done", log::last_indented);
         return result;
     }
 

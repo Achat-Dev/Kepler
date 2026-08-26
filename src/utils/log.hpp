@@ -16,27 +16,8 @@
 
 namespace kepler::log {
 
-    struct LogConfig {
-        bool should_log_verbose;
-    };
-
-    inline LogConfig config;
     inline constexpr char indented[] = "  \u251C\u2500 ";
     inline constexpr char last_indented[] = "  \u2514\u2500 ";
-
-    template <typename... Args>
-    void verbose(std::format_string<Args...> format, Args&&... args) {
-        if (config.should_log_verbose) {
-            std::println("{}[ Verbose ]: {}{}", ansi_codes::dim, std::format(format, std::forward<Args>(args)...), ansi_codes::reset);
-        }
-    }
-
-    template <typename... Args>
-    void verbose_no_prefix(std::format_string<Args...> format, Args&&... args) {
-        if (config.should_log_verbose) {
-            std::println("{}{}{}", ansi_codes::dim, std::format(format, std::forward<Args>(args)...), ansi_codes::reset);
-        }
-    }
 
     template <typename... Args>
     void info(std::format_string<Args...> format, Args&&... args) {

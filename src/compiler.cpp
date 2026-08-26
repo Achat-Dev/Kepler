@@ -70,13 +70,6 @@ namespace kepler {
             return EXIT_SUCCESS;
         }
 
-        log::config.should_log_verbose = context.log_verbose;
-        log::verbose("Compiling project with the following context:\n{}-i (input file name): '{}'\n{}-o (output file name): '{}",
-            log::indented,
-            context.input_path.string(),
-            log::last_indented,
-            context.output_path.string());
-
         const auto file = File::load(context.input_path);
         if (!file) {
             DiagnosticSeverity severity = get_diagnostic_severity(file.error().code);
@@ -194,7 +187,6 @@ namespace kepler {
                         "- s: Similar to 2 but tries to optimize for small code size instead of fast execution\n"
                         "- z: A very specialized mode that will optimize for code size at any and all costs",
                     cxxopts::value<std::string>())
-                ("v,verbose", "Enable verbose logging", cxxopts::value<bool>())
                 ("h,help", "Print help", cxxopts::value<bool>());
             // clang-format on
             cxxopts::ParseResult parse_result = options.parse(argc, argv);
@@ -282,8 +274,6 @@ namespace kepler {
                 }
             }
 
-            // Other options
-            context.log_verbose = parse_result.contains("verbose");
             return context;
         } catch (const cxxopts::exceptions::exception& e) {
             return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownOption, .message = e.what()});

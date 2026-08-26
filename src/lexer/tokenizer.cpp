@@ -15,7 +15,6 @@
 #include "lexer/token.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
-#include "utils/log.hpp"
 #include "utils/string_pool.hpp"
 #include <cctype>
 #include <cstdint>
@@ -56,7 +55,6 @@ namespace kepler {
 
     std::vector<Token> Tokenizer::tokenize() {
         const std::filesystem::path file_path = File::get_path_by_id(file.id);
-        log::verbose("Tokenizing file '{}'", file_path.c_str());
 
         if (file.content.empty()) {
             return {Token{.type = TokenType::EndOfFile, .source_location = {file.id, 0, 0}}};
@@ -74,7 +72,6 @@ namespace kepler {
 
         KPL_ASSERT_THAT(!tokens.empty(), "Tokenizer must create a token stream with at least an EOF token");
         KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Tokenizer must create a token stream that ends with EOF token");
-        log::verbose_no_prefix("{}Tokenizing done", log::last_indented);
         return tokens;
     }
 
