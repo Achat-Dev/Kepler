@@ -21,6 +21,7 @@ namespace kepler {
 
     struct PrototypeSymbolData {
         Prototype::LinkageType linkage_type;
+        bool is_variadic = false;
         std::vector<Type*> parameter_types;
     };
 

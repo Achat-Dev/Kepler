@@ -485,8 +485,14 @@ namespace kepler {
         }
 
         KPL_ASSERT_HOLDS_ALTERNATIVE(prototype_symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
-        const std::vector<Type*>& parameter_types = std::get<PrototypeSymbolData>(prototype_symbol->data).parameter_types;
-        KPL_ASSERT_THAT(parameter_types.size() == expression->args.size(), "Mismatching call parameter count during typechecking");
+        const PrototypeSymbolData prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
+        const std::vector<Type*>& parameter_types = prototype_symbol_data.parameter_types;
+        if (!prototype_symbol_data.is_variadic) {
+            KPL_ASSERT_THAT(parameter_types.size() == expression->args.size(), "Mismatching call parameter count during typechecking");
+        } else {
+            KPL_ASSERT_THAT(parameter_types.size() <= expression->args.size(),
+                "Call to variadic function must have the same amount or more arguments than the function defintion during typechecking");
+        }
 
         for (size_t i = 0; i < parameter_types.size(); i++) {
             KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
@@ -497,7 +503,8 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
             } else if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
-                KPL_ASSERT_THAT(typecheck_result.type != parameter_types[i], "Poisoned because of mismatching call parameter type without diagnostic");
+                KPL_ASSERT_THAT(typecheck_result.type != parameter_types[i],
+                    "An argument of a CallExpression must produce a different type than the parameter type when poisoning itself without a diagnostic");
                 const std::string_view identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
                 const std::string message = std::format("Type mismatch: Parameter no. {} of function '{}' expects type '{}', but the given argument is of type '{}'",
                     (i + 1),
@@ -507,6 +514,29 @@ namespace kepler {
                 diagnostic_sink.report(DiagnosticCode::TypeMismatch, message, expression->args[i]->source_location);
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
+            }
+        }
+
+        // Check the variadic arguments
+        if (prototype_symbol_data.is_variadic) {
+            // Since variadic arguments don't have a specific type to produce, just make sure that the aren't producing 'void'
+            for (size_t i = parameter_types.size(); i < expression->args.size(); i++) {
+                KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
+                const TypeCheckResult typecheck_result = typecheck_node(expression->args[i].get(), type_table.Builtins.unknown_type);
+                KPL_ASSERT_NOT_NULLPTR(typecheck_result.type);
+                KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
+                    "The expression of a variadic argument in a CallExpression must not poison itself without a diagnostic for type checking");
+                if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
+                    expression->node_type = ASTNodeType::Poison;
+                    return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
+                }
+                if (typecheck_result.type == type_table.Builtins.void_type) {
+                    diagnostic_sink.report(DiagnosticCode::TypeMismatch,
+                        "Type mismatch: A variadic argument can't be of type 'void'",
+                        expression->args[i]->source_location);
+                    expression->node_type = ASTNodeType::Poison;
+                    return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
+                }
             }
         }
 

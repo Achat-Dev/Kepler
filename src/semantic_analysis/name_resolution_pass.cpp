@@ -98,6 +98,7 @@ namespace kepler {
             prototype->identifier_id,
             prototype->linkage_type,
             std::move(parameter_types),
+            prototype->is_variadic,
             prototype->identifier_source_location);
         if (!symbol) {
             const SourceDiagnostic& diagnostic = symbol.error();
@@ -342,15 +343,20 @@ namespace kepler {
             expression->symbol = prototype_symbol;
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(prototype_symbol->data, PrototypeSymbolData, "PrototypeSymbolData");
+        KPL_ASSERT_HOLDS_ALTERNATIVE(prototype_symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
         const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
-        const size_t expected_parameter_count = prototype_symbol_data.parameter_types.size();
-        const size_t given_argument_count = expression->args.size();
-        if (expected_parameter_count != given_argument_count) {
-            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-            const std::string message = std::format("Function '{}' expects {} arguments, got {}", identifier, expected_parameter_count, given_argument_count);
-            diagnostic_sink.report(DiagnosticCode::InvalidFunctionCall, message, expression->source_location);
-            return {.poisoned = true};
+        if (!prototype_symbol_data.is_variadic) {
+            const size_t expected_parameter_count = prototype_symbol_data.parameter_types.size();
+            const size_t given_argument_count = expression->args.size();
+            if (expected_parameter_count != given_argument_count) {
+                const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+                const std::string message = std::format("Function '{}' expects {} arguments, got {}",
+                    identifier,
+                    expected_parameter_count,
+                    given_argument_count);
+                diagnostic_sink.report(DiagnosticCode::InvalidFunctionCall, message, expression->source_location);
+                return {.poisoned = true};
+            }
         }
 
         bool poisoned = false;

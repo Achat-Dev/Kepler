@@ -78,9 +78,10 @@ namespace kepler {
         return tokens;
     }
 
-    int Tokenizer::peek_next_char() const {
-        if (position + 1 < file.content.size()) {
-            return file.content[position + 1];
+    int Tokenizer::peek_next_char(uint32_t lookahead) const {
+        KPL_ASSERT_THAT(lookahead > 0, "Lookahead must be > 0 for peeking next character while lexing");
+        if (position + lookahead < file.content.size()) {
+            return file.content[position + lookahead];
         } else {
             return EOF;
         }
@@ -162,6 +163,19 @@ namespace kepler {
                         .source_location = {file.id, position - 1, 1},
                     };
                 }
+            case '.':
+                if (peek_next_char() == '.') {
+                    if (peek_next_char(2) == '.') {
+                        next_char();
+                        next_char();
+                        next_char();
+                        return Token{
+                            .type = TokenType::Variadic,
+                            .source_location = {file.id, position - 3, 3},
+                        };
+                    }
+                }
+                break;
             case '+':
                 next_char();
                 return Token{

@@ -136,7 +136,7 @@ namespace kepler {
         llvm_module->setDataLayout(target_machine->createDataLayout());
         optimize_module(llvm_module, context.optimization_level);
 
-        // TOOD (bug): This works for now, but when multiple input files are introduced the object files will allways override each other
+        // TOOD (bug): This works for now, but when multiple input files are introduced the object files will always override each other
         std::filesystem::path object_output_path = context.output_path;
         object_output_path.replace_extension("o");
         const bool object_code_emission_successful = emit_object_code(llvm_module, target_machine, object_output_path);
@@ -181,6 +181,10 @@ namespace kepler {
             options.add_options()
                 ("i,input", "The .kpl input file", cxxopts::value<std::string>())
                 ("o,output", "The output file", cxxopts::value<std::string>())
+                ("a,additional-files",
+                    "Additional .c or .o files, separated by ','\n"
+                        "CAUTION: These inputs are not sanitized and are passed directly to a shell command as is."
+                    , cxxopts::value<std::vector<std::string>>())
                 ("O,optimization-level",
                     "The optimization level to use. Possible values for arg:\n"
                         "- 0: No optimization\n"
@@ -190,13 +194,20 @@ namespace kepler {
                         "- s: Similar to 2 but tries to optimize for small code size instead of fast execution\n"
                         "- z: A very specialized mode that will optimize for code size at any and all costs",
                     cxxopts::value<std::string>())
-                ("a,additional-files", "Additional .c or .o files, separated by ','", cxxopts::value<std::vector<std::string>>())
                 ("v,verbose", "Enable verbose logging", cxxopts::value<bool>())
                 ("h,help", "Print help", cxxopts::value<bool>());
             // clang-format on
             cxxopts::ParseResult parse_result = options.parse(argc, argv);
 
             CompilerContext context;
+
+            // Help
+            context.help_requested = parse_result.contains("help");
+            if (context.help_requested) {
+                context.help = options.help();
+                return context;
+            }
+
             // Input file
             const int input_count = parse_result.count("input");
             if (input_count == 1) {
@@ -273,11 +284,6 @@ namespace kepler {
 
             // Other options
             context.log_verbose = parse_result.contains("verbose");
-            context.help_requested = parse_result.contains("help");
-            if (context.help_requested) {
-                context.help = options.help();
-            }
-
             return context;
         } catch (const cxxopts::exceptions::exception& e) {
             return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownOption, .message = e.what()});
@@ -350,7 +356,7 @@ namespace kepler {
         return true;
     }
 
-    // TODO (improvement): Currently doesn't escape special characters in the paths
+    // TODO (fix): This is highly unsafe because the user input is not sanitized
     // clang-format off
     bool Compiler::link_to_executable(const std::filesystem::path& object_path,
         const std::vector<std::filesystem::path>& additional_paths,

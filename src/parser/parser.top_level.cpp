@@ -61,7 +61,7 @@ namespace kepler {
         next_token(true); // eat type
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after return type of prototype", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
         const SourceLocation& identifier_source_location = current_token->source_location;
@@ -71,19 +71,20 @@ namespace kepler {
         next_token(true); // eat identifier
         if (current_token->type != TokenType::BracketOpen) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after prototype name", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
 
         next_token(true); // eat '('
-        if (current_token->type != TokenType::Type && current_token->type != TokenType::BracketClose) {
+        if (current_token->type != TokenType::Type && current_token->type != TokenType::Variadic && current_token->type != TokenType::BracketClose) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type or ')' after '(' in prototype", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
 
         // Parse parameters
         std::vector<ParameterData> parameter_data;
+        bool is_variadic = false;
         while (current_token->type == TokenType::Type) {
             KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype parameter type token");
             const StringId parameter_type_id = std::get<StringId>(current_token->data);
@@ -91,7 +92,7 @@ namespace kepler {
             next_token(true); // eat type
             if (current_token->type != TokenType::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after parameter type", current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
             }
 
@@ -104,20 +105,32 @@ namespace kepler {
             next_token(true); // eat identifier
             if (current_token->type == TokenType::Comma) {
                 next_token(true); // eat ','
-
-                if (current_token->type != TokenType::Type) {
+                // Lookahead for correct diagnostic
+                if (current_token->type != TokenType::Type && current_token->type != TokenType::Variadic) {
                     diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
                         "Expected type after ',' in prototype parameters",
                         current_token->source_location);
-                    recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+                    recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                     return nullptr;
                 }
             }
         }
 
+        // Check for variadic function
+        if (current_token->type == TokenType::Variadic) {
+            next_token(true); // eat '...'
+            is_variadic = true;
+        }
+
         if (current_token->type != TokenType::BracketClose) {
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ')' after function parameters in prototype", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            std::string message;
+            if (is_variadic) {
+                message = "Expected ')' after variadic parameter in prototype (variadic must be the last parameter)";
+            } else {
+                message = "Expected ')' after function parameters in prototype";
+            }
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::move(message), current_token->source_location);
+            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
         next_token(true); // eat ')'
@@ -126,6 +139,7 @@ namespace kepler {
             return_type_id,
             identifier_id,
             std::move(parameter_data),
+            is_variadic,
             type_source_location,
             identifier_source_location);
     }
@@ -179,6 +193,14 @@ namespace kepler {
         // TODO (hack): Currently everything uses external linkage because the user can't explicitely mark functions with a body as external yet
         // Otherwise everything will be removed by the optimizer
         std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::External);
+        if (current_token->type == TokenType::End) {
+            next_token(true); // eat 'end'
+            if (prototype == nullptr) {
+                return nullptr;
+            }
+            return std::make_unique<Function>(std::move(prototype), std::vector<std::unique_ptr<ASTNode>>{}, identifier_token->source_location);
+        }
+
         current_function_return_type_id = prototype->return_type_id;
 
         KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Function identifier token");

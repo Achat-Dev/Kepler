@@ -27,9 +27,9 @@ namespace kepler {
         std::filesystem::path input_path;
         std::filesystem::path output_path;
         std::vector<std::filesystem::path> additional_paths;
-        OptimizationLevel optimization_level;
         bool log_verbose;
-        bool help_requested;
+        OptimizationLevel optimization_level = OptimizationLevel::O2;
+        bool help_requested = false;
         std::string help;
     };
 

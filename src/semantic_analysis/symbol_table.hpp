@@ -33,6 +33,7 @@ namespace kepler {
             StringId identifier_id,
             Prototype::LinkageType linkage_type,
             std::vector<Type*> parameter_types,
+            bool is_variadic,
             SourceLocation identifier_source_location);
 
         // TODO (check): Maybe create a method to disable lookup after name resolution

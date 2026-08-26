@@ -28,7 +28,7 @@ namespace kepler {
         std::vector<Token> tokenize();
 
     private:
-        int peek_next_char() const;
+        int peek_next_char(uint32_t lookahead = 1) const;
         void next_char();
         Token read_next_token();
         Token read_identifier();

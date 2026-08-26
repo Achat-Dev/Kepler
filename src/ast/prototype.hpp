@@ -46,11 +46,13 @@ namespace kepler {
         Type* return_type = nullptr;
         Symbol* symbol = nullptr;
         std::vector<ParameterData> parameter_data;
+        bool is_variadic;
 
         Prototype(LinkageType linkage_type,
             StringId return_type_id,
             StringId identifier_id,
             std::vector<ParameterData> parameter_data,
+            bool is_variadic,
             SourceLocation type_source_location,
             SourceLocation identifier_source_location)
             : ASTNode(ASTNodeType::Prototype, std::move(type_source_location)),
@@ -58,7 +60,8 @@ namespace kepler {
               identifier_source_location(std::move(identifier_source_location)),
               return_type_id(return_type_id),
               identifier_id(identifier_id),
-              parameter_data(std::move(parameter_data)) {}
+              parameter_data(std::move(parameter_data)),
+              is_variadic(is_variadic) {}
     };
 
     llvm::Function::LinkageTypes get_llvm_linkage_type(Prototype::LinkageType linkage_type);

@@ -30,6 +30,7 @@ namespace kepler {
         Comma,
         Colon,
         Assignment,
+        Variadic,
 
         // Primary
         Identifier,
@@ -80,6 +81,8 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format(":", ctx);
             case kepler::TokenType::Assignment:
                 return std::formatter<std::string>::format("=", ctx);
+            case kepler::TokenType::Variadic:
+                return std::formatter<std::string>::format("...", ctx);
             case kepler::TokenType::Extern:
                 return std::formatter<std::string>::format("extern", ctx);
             case kepler::TokenType::Return:
@@ -119,6 +122,7 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             case kepler::TokenType::Comma:
             case kepler::TokenType::Colon:
             case kepler::TokenType::Assignment:
+            case kepler::TokenType::Variadic:
             case kepler::TokenType::Extern:
             case kepler::TokenType::Return:
             case kepler::TokenType::End:

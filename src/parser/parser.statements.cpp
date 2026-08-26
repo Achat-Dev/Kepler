@@ -413,6 +413,12 @@ namespace kepler {
 
         const Token* identifier_token = current_token;
         next_token(true); // eat identifier
+        if (current_token->type != TokenType::Assignment) {
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                "Expected '=' after identifier for variable definition", current_token->source_location);
+            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+            return nullptr;
+        }
         std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment(identifier_token);
         if (!assignment_statement) {
             return nullptr; // parse_assignment already recovered, so no need to recover here

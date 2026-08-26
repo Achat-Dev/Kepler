@@ -44,12 +44,13 @@ namespace kepler {
         StringId identifier_id,
         Prototype::LinkageType linkage_type,
         std::vector<Type*> parameter_types,
+        bool is_variadic,
         SourceLocation identifier_source_location
     ) {
         // clang-format on
         return create_symbol(type,
             identifier_id,
-            PrototypeSymbolData{.linkage_type = linkage_type, .parameter_types = std::move(parameter_types)},
+            PrototypeSymbolData{.linkage_type = linkage_type, .is_variadic = is_variadic, .parameter_types = std::move(parameter_types)},
             "Prototype",
             identifier_source_location);
     }

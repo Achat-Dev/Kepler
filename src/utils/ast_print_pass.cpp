@@ -191,6 +191,7 @@ namespace kepler {
             std::println("{}{}Symbol: {}", indent, item_prefix, prototype_symbol_identifier);
         }
 
+        std::println("{}{}Variadic: {}", indent, item_prefix, prototype->is_variadic);
         std::print("{}{}Parameters: ", indent, last_item_prefix);
         if (prototype->parameter_data.empty()) {
             std::println("{}None{}", ansi_codes::dim, ansi_codes::reset);

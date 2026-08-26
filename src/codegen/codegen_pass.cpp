@@ -108,7 +108,7 @@ namespace kepler {
         }
 
         const std::string_view prototype_name = StringPool::get().lookup(prototype->identifier_id);
-        llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type, context), parameter_types, false);
+        llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type, context), parameter_types, prototype->is_variadic);
         llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(prototype->linkage_type), prototype_name, *module);
 
 #ifndef NDEBUG
@@ -481,10 +481,16 @@ namespace kepler {
         KPL_ASSERT_THAT(llvm_values.contains(expression->symbol), "LLVM value for function must exist for codegening a CallExpression");
 
         llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol]);
-        KPL_ASSERT_THAT(llvm_function->arg_size() == expression->args.size(),
-            "Parameter count of LLVM function and CallExpression have to be the same, received {} and {}",
-            llvm_function->arg_size(),
-            expression->args.size());
+        KPL_ASSERT_HOLDS_ALTERNATIVE(expression->symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
+        bool is_variadic = std::get<PrototypeSymbolData>(expression->symbol->data).is_variadic;
+        KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(),
+            "Prototype symbol and LLVM function must have matching variadic settings for codegening a CallExpression");
+        if (!is_variadic) {
+            KPL_ASSERT_THAT(llvm_function->arg_size() == expression->args.size(),
+                "Parameter count of LLVM function and CallExpression have to be the same, received {} and {}",
+                llvm_function->arg_size(),
+                expression->args.size());
+        }
 
         std::vector<llvm::Value*> arg_values;
         for (const std::unique_ptr<Expression>& arg : expression->args) {
@@ -494,6 +500,7 @@ namespace kepler {
         }
 
         llvm::Value* value = nullptr;
+        KPL_ASSERT_NOT_NULLPTR(expression->symbol->type);
         if (expression->symbol->type == type_table.Builtins.void_type) {
             value = builder.CreateCall(llvm_function, std::move(arg_values));
         } else {

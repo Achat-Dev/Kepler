@@ -41,12 +41,12 @@ namespace kepler {
         void run() override;
 
     private:
-        constexpr static const char space[] = "   ";
-        constexpr static const char vertical_line[] = " \u2502 ";
-        constexpr static const char item_prefix[] = " \u251C\u2500 ";
-        constexpr static const char last_item_prefix[] = " \u2514\u2500 ";
+        static constexpr char space[] = "   ";
+        static constexpr char vertical_line[] = " \u2502 ";
+        static constexpr char item_prefix[] = " \u251C\u2500 ";
+        static constexpr char last_item_prefix[] = " \u2514\u2500 ";
 
-        // TODO (improvement): Some of the const string& arguments could be turned into string_views or const char*, which would avoid memory overhead
+        // TODO (improvement): Some of the const string& arguments could be turned into string_views or const char*, which could avoid some memory overhead
         void print_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes, const std::string& label, std::string indent, bool is_last) const;
         void print_node(const ASTNode* node, const std::string& prefix, std::string indent, bool is_last) const;
         void print_extern(const Extern* ext, const std::string& indent) const;
