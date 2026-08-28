@@ -332,7 +332,7 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.f32_type};
         } else {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.unknown_type};
+            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.f32_type};
         }
     }
 
@@ -349,7 +349,7 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.i32_type};
         } else {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.unknown_type};
+            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = type_table.Builtins.i32_type};
         }
     }
 
