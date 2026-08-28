@@ -40,6 +40,22 @@
 #include <utility>
 #include <vector>
 
+#ifndef KPL_NO_ASSERT
+#define KPL_ASSERT_NOT_UNKNOWN_TYPE(tcr, message)                          \
+    do {                                                                   \
+        if ((tcr).type == type_table.Builtins.unknown_type) {              \
+            kepler::internal::print_assertion(__FILE__,                    \
+                __LINE__,                                                  \
+                "{} must not produce type '{}' when not poisoning itself", \
+                message,                                                   \
+                *type_table.Builtins.unknown_type);                        \
+            std::abort();                                                  \
+        }                                                                  \
+    } while (false)
+#else
+#define KPL_ASSERT_NOT_UNKNOWN_TYPE(tcr, message) ((void)0)
+#endif
+
 namespace kepler {
 
     void TypeCheckPass::run() {
@@ -64,6 +80,11 @@ namespace kepler {
         }
 
         KPL_ASSERT_UNREACHABLE("Missing boolean operator check implementation for operator type '{}'", type);
+    }
+
+    bool TypeCheckPass::is_number_literal_expression(const Expression* expression) const {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        return expression->node_type == ASTNodeType::IntegerLiteralExpression || expression->node_type == ASTNodeType::FloatingPointLiteralExpression;
     }
 
     TypeCheckResult TypeCheckPass::typecheck_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
@@ -373,8 +394,6 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression must node be poisoned for type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
-        TypeCheckResult lhs_tcr;
-        TypeCheckResult rhs_tcr;
         if (requested_type == type_table.Builtins.bool_type) {
             if (!is_boolean_operator(expression->operator_type)) {
                 const std::string message = std::format("Type mismatch: Binary operator '{}' doesn't produce a boolean value", expression->operator_type);
@@ -382,40 +401,87 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             }
+        }
 
-            // Pass unknown as the requested type so that the expressions don't try to produce a boolean individually
-            lhs_tcr = typecheck_node(expression->lhs.get(), type_table.Builtins.unknown_type);
-            KPL_ASSERT_NOT_NULLPTR(lhs_tcr.type);
-            KPL_ASSERT_THAT(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-                "The lhs expression of a BinaryExpression must not poison itself without a diagnostic for type checking");
-            if (lhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
-                expression->node_type = ASTNodeType::Poison;
-                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
-            }
+        TypeCheckResult lhs_tcr;
+        TypeCheckResult rhs_tcr;
+        if (requested_type == type_table.Builtins.bool_type || requested_type == type_table.Builtins.unknown_type) {
+            struct BinarySideTypecheckResult {
+                ASTNode* expression = nullptr;
+                std::string name;
+            };
 
-            // If the lhs is an integer or a floating point type and the rhs is an according literal, the expression should generate a specific type
-            // Otherwise, it's up to the expression to determine it's type
-            // This system is probably going to break later on as more features are added to language, but works fine for now
-            // Also, need to use dynamic_cast here, otherwise it doesn't work correctly
-            if (is_integer_type(lhs_tcr.type) && dynamic_cast<IntegerLiteralExpression*>(expression->rhs.get())) {
-                rhs_tcr = typecheck_node(expression->rhs.get(), lhs_tcr.type);
-            }
-            // clang-format off
-            else if (is_floating_point_type(lhs_tcr.type)
-                && (dynamic_cast<IntegerLiteralExpression*>(expression->rhs.get())
-                    || dynamic_cast<FloatingPointLiteralExpression*>(expression->rhs.get()))) {
-                // clang-format on
-                rhs_tcr = typecheck_node(expression->rhs.get(), lhs_tcr.type);
+            // TODO (improvement): This could theoretically be done recursively for nested binary expressions to get better type deduction
+            // Determine which expression should be typechecked first in order to get the correct type
+            BinarySideTypecheckResult first_expression_to_typecheck;
+            BinarySideTypecheckResult second_expression_to_typecheck;
+            if (is_number_literal_expression(expression->lhs.get())) {
+                if (is_number_literal_expression(expression->rhs.get())) {
+                    // lhs and rhs are literals, so floats have to be typecheckd first
+                    if (expression->lhs->node_type == ASTNodeType::FloatingPointLiteralExpression) {
+                        // lhs is float, so typecheck lhs first
+                        first_expression_to_typecheck = {.expression = expression->lhs.get(), .name = "lhs"};
+                        second_expression_to_typecheck = {.expression = expression->rhs.get(), .name = "rhs"};
+                    } else if (expression->rhs->node_type == ASTNodeType::FloatingPointLiteralExpression) {
+                        // rhs is float, so typecheck rhs first
+                        first_expression_to_typecheck = {.expression = expression->rhs.get(), .name = "rhs"};
+                        second_expression_to_typecheck = {.expression = expression->lhs.get(), .name = "lhs"};
+                    } else {
+                        // Both are ints, order doesn't matter
+                        first_expression_to_typecheck = {.expression = expression->lhs.get(), .name = "lhs"};
+                        second_expression_to_typecheck = {.expression = expression->rhs.get(), .name = "rhs"};
+                    }
+                } else {
+                    // lhs is literal, rhs is not, so typecheck rhs first
+                    first_expression_to_typecheck = {.expression = expression->rhs.get(), .name = "rhs"};
+                    second_expression_to_typecheck = {.expression = expression->lhs.get(), .name = "lhs"};
+                }
             } else {
-                rhs_tcr = typecheck_node(expression->rhs.get(), type_table.Builtins.unknown_type);
+                // lhs is not a literal, so typecheck lhs first
+                first_expression_to_typecheck = {.expression = expression->lhs.get(), .name = "lhs"};
+                second_expression_to_typecheck = {.expression = expression->rhs.get(), .name = "rhs"};
             }
 
-            KPL_ASSERT_NOT_NULLPTR(rhs_tcr.type);
-            KPL_ASSERT_THAT(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-                "The rhs expression of a BinaryExpression must not poison itself without a diagnostic for type checking");
-            if (rhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
+            const TypeCheckResult first_tcr = typecheck_node(first_expression_to_typecheck.expression, type_table.Builtins.unknown_type);
+            KPL_ASSERT_NOT_NULLPTR(first_tcr.type);
+            KPL_ASSERT_THAT(first_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
+                "The {} expression of a BinaryExpression must not poison itself without a diagnostic for type checking",
+                first_expression_to_typecheck.name);
+            if (first_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
+            KPL_ASSERT_NOT_UNKNOWN_TYPE(first_tcr, std::format("The {} expression of a BinaryExpression", first_expression_to_typecheck.name));
+
+            const ASTNodeType second_expression_node_type = second_expression_to_typecheck.expression->node_type;
+            TypeCheckResult second_tcr = typecheck_node(second_expression_to_typecheck.expression, first_tcr.type);
+            KPL_ASSERT_NOT_NULLPTR(second_tcr.type);
+            if (second_tcr.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
+                // If the second expression can't procduce the same type as the first expression,
+                // reset the node type and typecheck it again, but leave the target type up to the expression
+                // That allows for operators that operate on different types
+                second_expression_to_typecheck.expression->node_type = second_expression_node_type;
+                second_tcr = typecheck_node(second_expression_to_typecheck.expression, type_table.Builtins.unknown_type);
+                KPL_ASSERT_NOT_NULLPTR(second_tcr.type);
+                KPL_ASSERT_THAT(second_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
+                    "The {} expression of a BinaryExpression must not poison itself without a diagnostic for type checking",
+                    second_expression_to_typecheck.name);
+                if (second_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
+                    expression->node_type = ASTNodeType::Poison;
+                    return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+                }
+            } else if (second_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
+            KPL_ASSERT_NOT_UNKNOWN_TYPE(second_tcr, std::format("The {} expression of a BinaryExpression", second_expression_to_typecheck.name));
+
+            if (first_expression_to_typecheck.expression == expression->lhs.get()) {
+                lhs_tcr = first_tcr;
+                rhs_tcr = second_tcr;
+            } else {
+                lhs_tcr = second_tcr;
+                rhs_tcr = first_tcr;
             }
         } else {
             lhs_tcr = typecheck_binary_expression_side(expression, expression->lhs.get(), requested_type);
@@ -423,21 +489,25 @@ namespace kepler {
             KPL_ASSERT_THAT(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
                 "The lhs expression of a BinaryExpression must not poison itself without a diagnostic for type checking");
             if (lhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
-                return lhs_tcr;
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = lhs_tcr.type};
             }
+            KPL_ASSERT_NOT_UNKNOWN_TYPE(lhs_tcr, "The lhs expression of a BinaryExpression");
 
             rhs_tcr = typecheck_binary_expression_side(expression, expression->rhs.get(), requested_type);
             KPL_ASSERT_NOT_NULLPTR(rhs_tcr.type);
             KPL_ASSERT_THAT(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
                 "The rhs expression of a BinaryExpression must not poison itself without a diagnostic for type checking");
             if (rhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
-                return rhs_tcr;
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = rhs_tcr.type};
             }
+            KPL_ASSERT_NOT_UNKNOWN_TYPE(rhs_tcr, "The rhs expression of a BinaryExpression");
         }
 
         const StringId operator_name_id = get_operator_name_id(expression->operator_type);
         if (!lhs_tcr.type->find_method(operator_name_id, {rhs_tcr.type})) {
-            const std::string message = std::format("No implemention of binary operator '{}' between types '{}' and '{}'",
+            const std::string message = std::format("No implementation of binary operator '{}' between types '{}' and '{}'",
                 expression->operator_type,
                 *lhs_tcr.type,
                 *rhs_tcr.type);
@@ -470,7 +540,7 @@ namespace kepler {
             binary_expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
-        return {.status = TypeCheckResult::Status::RequestFulfilled, .type = requested_type};
+        return {.status = TypeCheckResult::Status::RequestFulfilled, .type = typecheck_result.type};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_call_expression(CallExpression* expression, const Type* requested_type) {

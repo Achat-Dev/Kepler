@@ -15,6 +15,7 @@
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
 #include "ast/expressions/cast_expression.hpp"
+#include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
 #include "ast/expressions/literals/integer_literal_expression.hpp"
@@ -63,6 +64,7 @@ namespace kepler {
         const TypeTable& type_table;
 
         bool is_boolean_operator(OperatorType type) const;
+        bool is_number_literal_expression(const Expression* expression) const;
 
         TypeCheckResult typecheck_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
         TypeCheckResult typecheck_node(ASTNode* node, Type* requested_type);
