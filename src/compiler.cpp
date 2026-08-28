@@ -107,8 +107,8 @@ namespace kepler {
                 ansi_codes::bold,
                 ansi_codes::bg_red,
                 ansi_codes::reset_bold_and_dim,
-                diagnostic_sink.get_warning_count(),
                 diagnostic_sink.get_error_count(),
+                diagnostic_sink.get_warning_count(),
                 ansi_codes::reset);
             return EXIT_FAILURE;
         }
