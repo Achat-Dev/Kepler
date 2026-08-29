@@ -28,6 +28,7 @@
 #include "utils/assert.h"
 #include "utils/ast_print_pass.hpp"
 #include "utils/log.hpp"
+#include "version.hpp"
 #include <cstddef>
 #include <cstdlib>
 #include <expected>
@@ -67,6 +68,10 @@ namespace kepler {
         const CompilerContext context = *parse_result;
         if (context.help_requested) {
             std::println("{}", context.help);
+            return EXIT_SUCCESS;
+        }
+        if (context.version_requested) {
+            std::println("kepler version {}.{}.{}", version.major, version.minor, version.patch);
             return EXIT_SUCCESS;
         }
 
@@ -187,6 +192,7 @@ namespace kepler {
                         "- s: Similar to 2 but tries to optimize for small code size instead of fast execution\n"
                         "- z: A very specialized mode that will optimize for code size at any and all costs",
                     cxxopts::value<std::string>())
+                ("v,version", "Print the compiler version", cxxopts::value<bool>())
                 ("h,help", "Print help", cxxopts::value<bool>());
             // clang-format on
             cxxopts::ParseResult parse_result = options.parse(argc, argv);
@@ -197,6 +203,12 @@ namespace kepler {
             context.help_requested = parse_result.contains("help");
             if (context.help_requested) {
                 context.help = options.help();
+                return context;
+            }
+
+            // Version
+            context.version_requested = parse_result.contains("version");
+            if (context.version_requested) {
                 return context;
             }
 
