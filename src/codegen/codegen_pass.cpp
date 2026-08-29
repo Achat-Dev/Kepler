@@ -99,7 +99,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
         KPL_ASSERT_NOT_NULLPTR(prototype->symbol);
-        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison, "Prototype must not be poisoned for forward declaration");
+        KPL_ASSERT_NOT_POISONED(prototype, "codegening forward declaration");
 
         std::vector<llvm::Type*> parameter_types;
         for (const ParameterData& parameter_data : prototype->parameter_data) {
@@ -181,6 +181,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_NOT_NULLPTR(function->prototype->symbol);
+        KPL_ASSERT_NOT_POISONED(function, "code generation");
         KPL_ASSERT_THAT(llvm_values.contains(function->prototype->symbol), "LLVM Function must exist for codegening a function");
 
         // Create entry block
@@ -234,7 +235,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "AssignmentStatement must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(statement, "code generation");
 
         Symbol* variable_symbol = statement->variable_expression->symbol;
         KPL_ASSERT_NOT_NULLPTR(variable_symbol);
@@ -252,7 +253,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(statement, "code generation");
 
         const CodegenResult variable_cr = codegen_variable_definition_statement(statement->loop_variable_definition.get());
         KPL_ASSERT_NOT_NULLPTR(variable_cr.llvm_value);
@@ -323,7 +324,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_if_statement(const IfStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "IfStatement must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(statement, "code generation");
         const CodegenResult condition_cr = codegen_node(statement->condition.get());
         KPL_ASSERT_NOT_NULLPTR(condition_cr.llvm_value);
 
@@ -360,7 +361,7 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_return_statement(const ReturnStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ReturnStatement must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(statement, "code generation");
         if (statement->expression == nullptr) {
             llvm::ReturnInst* return_inst = builder.CreateRetVoid();
             return {.llvm_value = return_inst, .returns = true};
@@ -376,7 +377,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
         KPL_ASSERT_NOT_NULLPTR(statement->type);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "VariableDefinitionStatement must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(statement, "code generation");
         llvm::Function* llvm_function = builder.GetInsertBlock()->getParent();
         KPL_ASSERT_NOT_NULLPTR(llvm_function);
         llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(statement->type, context), statement->identifier_id);
@@ -391,14 +392,14 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_boolean_literal_expression(const BooleanLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BooleanLiteralExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
         return {.llvm_value = llvm::ConstantInt::getBool(context, expression->value), .returns = false};
     }
 
     CodegenResult CodegenPass::codegen_floating_point_literal_expression(const FloatingPointLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "FloatingPointLiteralExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
         llvm::Type* llvm_type = get_llvm_type(expression->target_type, context);
         return {.llvm_value = llvm::ConstantFP::get(llvm_type, expression->value), .returns = false};
     }
@@ -406,7 +407,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_integer_literal_expression(const IntegerLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "IntegerLiteralExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
         if (is_floating_point_type(expression->target_type)) {
             return {.llvm_value = llvm::ConstantFP::get(get_llvm_type(expression->target_type, context), expression->value), .returns = false};
         }
@@ -415,7 +416,7 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_string_literal_expression(const StringLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "StringLiteralExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
 
         const std::string_view string_value = StringPool::get().lookup(expression->value);
         // Constant array that holds the string data (null terminated)
@@ -442,7 +443,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
 
         const CodegenResult lhs_cr = codegen_node(expression->lhs.get());
         KPL_ASSERT_NOT_NULLPTR(lhs_cr.llvm_value);
@@ -478,7 +479,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_call_expression(const CallExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->symbol);
-        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol), "LLVM value for function must exist for codegening a CallExpression");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
 
         llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol]);
         KPL_ASSERT_HOLDS_ALTERNATIVE(expression->symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
@@ -515,7 +516,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->original_type);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
@@ -530,7 +531,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
@@ -544,7 +545,7 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_variable_expression(const VariableExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "VariableExpression must not be poisoned for code generation");
+        KPL_ASSERT_NOT_POISONED(expression, "code generation");
         Symbol* symbol = expression->symbol;
         KPL_ASSERT_NOT_NULLPTR(symbol);
         KPL_ASSERT_NOT_NULLPTR(symbol->type);

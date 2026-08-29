@@ -65,13 +65,25 @@ namespace kepler::internal {
         }                                                                               \
     } while (false)
 
-#define KPL_ASSERT_HOLDS_ALTERNATIVE(data, type, message_prefix)  \
+#define KPL_ASSERT_NOT_POISONED(node, operation_description) \
+    do {                                                     \
+        if ((node)->node_type == ASTNodeType::Poison) {      \
+            kepler::internal::print_assertion(__FILE__,      \
+                __LINE__,                                    \
+                "{} must be unpoisoned for {}",              \
+                (node)->node_type,                           \
+                operation_description);                      \
+            std::abort();                                    \
+        }                                                    \
+    } while (false)
+
+#define KPL_ASSERT_HOLDS_ALTERNATIVE(data, type, prefix)          \
     do {                                                          \
         if (!std::holds_alternative<type>((data))) {              \
             kepler::internal::print_assertion(__FILE__,           \
                 __LINE__,                                         \
                 "{} must contain '" #type "', but contains '{}'", \
-                message_prefix,                                   \
+                prefix,                                           \
                 typeid(data).name());                             \
             std::abort();                                         \
         }                                                         \
@@ -82,9 +94,11 @@ namespace kepler::internal {
         kepler::internal::print_assertion(__FILE__, __LINE__, message __VA_OPT__(, ) __VA_ARGS__); \
         std::unreachable();                                                                        \
     } while (false)
+
 #else
 #define KPL_ASSERT_THAT(expr, message, ...) ((void)0)
 #define KPL_ASSERT_NOT_NULLPTR(ptr) ((void)0)
+#define KPL_ASSERT_NOT_POISONED(node, operation_description) ((void)0)
 #define KPL_ASSERT_HOLDS_ALTERNATIVE(data, type, message) ((void)0)
 #define KPL_ASSERT_UNREACHABLE(message, ...) std::unreachable()
 #endif

@@ -158,21 +158,21 @@ namespace kepler {
     void ASTPrintPass::print_extern(const Extern* ext, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(ext);
         KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-        KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison, "Extern must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(ext, "printing");
         print_node(ext->prototype.get(), "", indent, true);
     }
 
     void ASTPrintPass::print_function(const Function* function, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
-        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison, "Function must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(function, "printing");
         print_node(function->prototype.get(), "", indent, false);
         print_body(function->body, "Body", indent, true);
     }
 
     void ASTPrintPass::print_prototype(const Prototype* prototype, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
-        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison, "Prototype must not be posioned for printing");
+        KPL_ASSERT_NOT_POISONED(prototype, "printing");
         std::println("{}{}Linkage: {}", indent, item_prefix, prototype->linkage_type);
         if (prototype->return_type == nullptr) {
             const std::string_view type_name = StringPool::get().lookup(prototype->return_type_id);
@@ -235,7 +235,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "AssignmentStatement must not be posioned for printing");
+        KPL_ASSERT_NOT_POISONED(statement, "printing");
         print_node(statement->variable_expression.get(), "", indent, false);
         print_node(statement->value_expression.get(), "Value: ", indent, true);
     }
@@ -244,7 +244,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ForStatement must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(statement, "printing");
         print_node(statement->loop_variable_definition.get(), "", indent, false);
         print_node(statement->end_value.get(), "End: ", indent, false);
         if (statement->step_value == nullptr) {
@@ -258,7 +258,7 @@ namespace kepler {
     void ASTPrintPass::print_if_statement(const IfStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "IfStatement must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(statement, "printing");
         print_node(statement->condition.get(), "", indent, false);
         print_body(statement->if_body, "If body", indent, false);
         print_body(statement->else_body, "Else body", indent, true);
@@ -266,7 +266,7 @@ namespace kepler {
 
     void ASTPrintPass::print_return_statement(const ReturnStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "ReturnStatement must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(statement, "printing");
         if (statement->expression == nullptr) {
             std::println("{}{}Expression: {}nullptr{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -276,7 +276,7 @@ namespace kepler {
 
     void ASTPrintPass::print_variable_definition_statement(const VariableDefinitionStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison, "VariableDefinitionStatement must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(statement, "printing");
         if (statement->type == nullptr) {
             const std::string_view type_name = StringPool::get().lookup(statement->type_id);
             std::println("{}{}Type: {}", indent, item_prefix, type_name);
@@ -290,13 +290,13 @@ namespace kepler {
 
     void ASTPrintPass::print_boolean_literal_expression(const BooleanLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BooleanLiteralExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         std::println("{}{}{}", indent, last_item_prefix, expression->value);
     }
 
     void ASTPrintPass::print_floating_point_literal_expression(const FloatingPointLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "FloatingPointLiteralExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         if (expression->target_type == nullptr) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -307,7 +307,7 @@ namespace kepler {
 
     void ASTPrintPass::print_integer_literal_expression(const IntegerLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "IntegerLiteralExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         if (expression->target_type == nullptr) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -318,7 +318,7 @@ namespace kepler {
 
     void ASTPrintPass::print_string_literal_expression(const StringLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "StringLiteralExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         const std::string_view str = StringPool::get().lookup(expression->value);
         std::println("{}{}{}", indent, last_item_prefix, str);
     }
@@ -327,7 +327,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "BinaryExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         std::println("{}{}Operator: {}", indent, item_prefix, expression->operator_type);
         if (expression->target_type == nullptr) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
@@ -341,7 +341,7 @@ namespace kepler {
     void ASTPrintPass::print_call_expression(const CallExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->symbol);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CallExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
 
@@ -366,7 +366,7 @@ namespace kepler {
     void ASTPrintPass::print_cast_expression(const CastExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "CastExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         if (expression->original_type == nullptr) {
             std::println("{}{}Original type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -385,7 +385,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "MathematicalNegationExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         if (expression->target_type == nullptr) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -396,7 +396,7 @@ namespace kepler {
 
     void ASTPrintPass::print_variable_expression(const VariableExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison, "VariableExpression must not be poisoned for printing");
+        KPL_ASSERT_NOT_POISONED(expression, "printing");
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}{}", indent, item_prefix, identifier);
 

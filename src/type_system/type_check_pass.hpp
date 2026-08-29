@@ -63,6 +63,9 @@ namespace kepler {
         DiagnosticSink& diagnostic_sink;
         const TypeTable& type_table;
 
+        static constexpr const char poisoned_without_diagnostic_message[] = "{} must not poison itself without a diagnostic for type checking";
+        static constexpr const char unknown_type_message[] = "{} must not evaluate to type '__unknown' without poisoning itself";
+
         bool is_boolean_operator(OperatorType type) const;
         bool is_number_literal_expression(const Expression* expression) const;
 
