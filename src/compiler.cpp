@@ -358,6 +358,7 @@ namespace kepler {
         return true;
     }
 
+    // TODO (fix): Needs to check if clang actually exists
     // TODO (fix): This is highly unsafe because the user input is not sanitized
     // clang-format off
     bool Compiler::link_to_executable(const std::filesystem::path& object_path,
