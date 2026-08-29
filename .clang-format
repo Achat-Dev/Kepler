@@ -1,0 +1,20 @@
+BasedOnStyle: LLVM
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+IndentCaseLabels: true
+IndentAccessModifiers: false
+AccessModifierOffset: -4
+NamespaceIndentation: All
+
+# Align * and & to type instead of name
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+BreakBeforeBraces: Attach
+AlignAfterOpenBracket: DontAlign
+ColumnLimit: 0
+FixNamespaceComments: false
+AllowShortCaseLabelsOnASingleLine: true
