@@ -38,7 +38,6 @@
 
 namespace kepler {
 
-    // TODO (fix): Source locations are sometimes off by a few characters (e.g. if (y + "aksljd" > 0) end, if (0 + 0 > 0 end)
     // TODO (improvement): Replace unique_ptr with raw pointers and an arena allocator
     class Parser {
     public:

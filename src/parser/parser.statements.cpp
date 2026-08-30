@@ -120,9 +120,8 @@ namespace kepler {
                 // Parse 'if' condition
                 condition = parse_expression();
                 if (condition && current_token->type != TokenType::BracketClose) {
-                    const SourceLocation source_location(current_token->source_location.file_id, current_token->source_location.position + 1, 1);
                     const std::string message = std::format("Expected ')' after condition in '{}'", if_token->type);
-                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken, message, source_location);
+                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken, message, current_token->source_location);
                     recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                     if (current_token->type == TokenType::End) {
                         next_token(true); // eat 'end'
