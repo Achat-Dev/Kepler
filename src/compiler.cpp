@@ -56,13 +56,18 @@
 namespace kepler {
 
     int Compiler::run(int argc, char** argv) const {
+        const auto dependency_result = do_dependencies_exist();
+        if (!dependency_result) {
+            print_diagnostic(dependency_result.error());
+            return EXIT_FAILURE;
+        }
+
         DiagnosticSink diagnostic_sink;
 
         // Parse command line arguments
         const auto parse_result = parse_args(argc, argv);
         if (!parse_result) {
-            const DiagnosticSeverity severity = get_diagnostic_severity(parse_result.error().code);
-            std::println("{}{}", severity, parse_result.error().message);
+            print_diagnostic(parse_result.error());
             return EXIT_FAILURE;
         }
         const CompilerContext context = *parse_result;
@@ -75,10 +80,10 @@ namespace kepler {
             return EXIT_SUCCESS;
         }
 
+        // Load file to start compilation
         const auto file = File::load(context.input_path);
         if (!file) {
-            DiagnosticSeverity severity = get_diagnostic_severity(file.error().code);
-            std::println("{}{}", severity, file.error().message);
+            print_diagnostic(file.error());
             return EXIT_FAILURE;
         }
 
@@ -170,6 +175,18 @@ namespace kepler {
         }
 
         return EXIT_SUCCESS;
+    }
+
+    std::expected<void, Diagnostic> Compiler::do_dependencies_exist() const {
+#ifdef _WIN32
+        bool does_clang_exist = std::system("where clang >nul 2>&1") == 0;
+#else
+        bool does_clang_exist = std::system("command -v clang >/dev/null 2>&1") == 0;
+#endif
+        if (!does_clang_exist) {
+            return std::unexpected(Diagnostic{.code = DiagnosticCode::MissingDependency, .message = "'clang' not found, which is needed for the compilation process. Install clang and add it to PATH (https://github.com/llvm/llvm-project/releases)"});
+        }
+        return {};
     }
 
     std::expected<CompilerContext, Diagnostic> Compiler::parse_args(int argc, char** argv) const {
@@ -358,7 +375,6 @@ namespace kepler {
         return true;
     }
 
-    // TODO (fix): Needs to check if clang actually exists
     // TODO (fix): This is highly unsafe because the user input is not sanitized
     // clang-format off
     bool Compiler::link_to_executable(const std::filesystem::path& object_path,
@@ -387,6 +403,11 @@ namespace kepler {
         } else {
             return false;
         }
+    }
+
+    void Compiler::print_diagnostic(const Diagnostic& diagnostic) const {
+        const DiagnosticSeverity severity = get_diagnostic_severity(diagnostic.code);
+        std::println("{}{}", severity, diagnostic.message);
     }
 
 }

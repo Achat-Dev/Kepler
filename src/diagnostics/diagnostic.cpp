@@ -28,6 +28,7 @@ namespace kepler {
             case DiagnosticCode::OptionUsedTooOften:
             case DiagnosticCode::UnknownOptimizationLevel:
             case DiagnosticCode::UnknownOption:
+            case DiagnosticCode::MissingDependency:
             case DiagnosticCode::FileNotFound:
             case DiagnosticCode::FileIsADirectory:
             case DiagnosticCode::NotARegularFile:

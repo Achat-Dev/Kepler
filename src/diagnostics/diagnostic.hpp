@@ -26,6 +26,7 @@ namespace kepler {
         OptionUsedTooOften,
         UnknownOptimizationLevel,
         UnknownOption,
+        MissingDependency,
 
         // I/O
         FileNotFound = 200,

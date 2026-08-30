@@ -5,7 +5,7 @@
 The compiler has to be installed from source.
 
 1. Install [CMake](https://cmake.org/download/) (the minimum required version is 3.16)
-2. Install [LLVM version 21 and Clang++](https://github.com/llvm/llvm-project/releases)
+2. Install [LLVM version 21 and Clang](https://github.com/llvm/llvm-project/releases) and add it to the `PATH`
 3. Clone this repository
 ```bash
 git clone https://github.com/Achat-Dev/Kepler.git

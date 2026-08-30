@@ -38,6 +38,7 @@ namespace kepler {
         int run(int argc, char** argv) const;
 
     private:
+        std::expected<void, Diagnostic> do_dependencies_exist() const;
         std::expected<CompilerContext, Diagnostic> parse_args(int argc, char** argv) const;
         void verify_ast(const AbstractSyntaxTree& ast) const;
         llvm::TargetMachine* create_target_machine() const;
@@ -48,6 +49,7 @@ namespace kepler {
             const std::vector<std::filesystem::path>& additional_paths,
             OptimizationLevel optimization_level,
             const std::filesystem::path& output_path) const;
+        void print_diagnostic(const Diagnostic& diagnostic) const;
     };
 
 }
