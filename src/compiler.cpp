@@ -31,6 +31,7 @@
 #include "version.hpp"
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <expected>
 #include <filesystem>
 #include <format>
@@ -52,6 +53,16 @@
 #include <system_error>
 #include <utility>
 #include <vector>
+
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <spawn.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+extern char** environ;
+#endif
 
 namespace kepler {
 
@@ -357,7 +368,7 @@ namespace kepler {
         std::error_code error_code;
         llvm::raw_fd_ostream out_stream(output_path.string(), error_code, llvm::sys::fs::OF_None);
         if (error_code) {
-            log::error("Failed to open output file '{}':\n{}", output_path.string(), error_code.message());
+            log::error("Failed to write object file '{}':\n{}{}", output_path.string(), log::last_indented, error_code.message());
             out_stream.flush();
             return false;
         }
@@ -375,7 +386,7 @@ namespace kepler {
         return true;
     }
 
-    // TODO (fix): This is highly unsafe because the user input is not sanitized
+    // TODO (fix): This is highly unsafe because the user input is not sanitized (verify functionality on windows)
     // clang-format off
     bool Compiler::link_to_executable(const std::filesystem::path& object_path,
         const std::vector<std::filesystem::path>& additional_paths,
@@ -386,7 +397,20 @@ namespace kepler {
         KPL_ASSERT_THAT(!object_path.empty(), "Object path must not be empty for executable linking");
         KPL_ASSERT_THAT(object_path.extension() == ".o", "Object path must have '.o' as the file extension for executable linking");
         KPL_ASSERT_THAT(!output_path.empty(), "Output path must not be empty for executable linking");
-        std::string command = "clang \"" + object_path.string() + "\" ";
+
+        // Construct arguments
+        std::vector<std::string> args;
+#ifdef _WIN32
+        args.push_back("clang.exe");
+#else
+        args.push_back("clang");
+#endif
+        if (!std::filesystem::exists(object_path)) {
+            log::error("File '{}', which was just created during compilation, doesn't exist", object_path.c_str());
+            return false;
+        }
+
+        args.push_back(object_path.string().data());
         for (const std::filesystem::path& additional_path : additional_paths) {
             KPL_ASSERT_THAT(additional_path.extension() == ".c" || additional_path.extension() == ".o",
                 "Additional files must have either '.c' or '.o' as the file extension for executable linking");
@@ -394,15 +418,64 @@ namespace kepler {
                 log::error("Additional file path '{}' doesn't exist", additional_path.string());
                 return false;
             }
-            command += " \"" + additional_path.string() + "\" ";
+            args.push_back(additional_path);
         }
-        command += std::format(" -{} -o \"{}\"", optimization_level, output_path.string());
-        const int command_result = std::system(command.c_str());
-        if (command_result == 0) {
-            return true;
-        } else {
+        args.push_back(std::format("-{}", optimization_level));
+        args.push_back("-o");
+        args.push_back(output_path.string().data());
+
+        std::vector<char*> argv;
+        argv.reserve(args.size());
+        for (const std::string& arg : args) {
+            argv.push_back(const_cast<char*>(arg.c_str()));
+        }
+        // Important: spawn functions expect the argument list to be null terminated
+        argv.push_back(nullptr);
+
+        // Execute shell command
+#ifdef _WIN32
+        int result = _spawnvp(_P_WAIT, "clang.exe", args.data());
+        if (result == -1) {
+            const std::string error_message = std::format("{}", DiagnosticSeverity::Error);
+            perror(error_message.c_str());
+            return false;
+        } else if (result != 0) {
+            log::error("Failed to link executable");
             return false;
         }
+        return true;
+#else
+        pid_t pid;
+        const int return_value = posix_spawnp(&pid, "clang", nullptr, nullptr, argv.data(), environ);
+        if (return_value != 0) {
+            log::error("Failed to start the linker: {}", strerror(return_value));
+            return false;
+        }
+
+        int status;
+        if (waitpid(pid, &status, 0) == -1) {
+            const std::string error_message = std::format("{} Failed to wait for the linker process", DiagnosticSeverity::Error);
+            perror(error_message.c_str());
+            return false;
+        }
+
+        if (WIFEXITED(status)) {
+            if (WEXITSTATUS(status) != 0) {
+                log::error("Failed to link executable");
+                return false;
+            }
+            return true;
+        }
+
+        if (WIFSIGNALED(status)) {
+            int signal = WTERMSIG(status);
+            log::error("Compilation process terminated with signal {} ({})", signal, strsignal(signal));
+            return false;
+        }
+
+        log::error("I have no idea what went wrong, but something did when calling clang");
+        return false;
+#endif
     }
 
     void Compiler::print_diagnostic(const Diagnostic& diagnostic) const {
