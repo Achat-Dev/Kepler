@@ -53,6 +53,7 @@ namespace kepler {
         }
     }
 
+    // TODO (fix): Tokenization fails with assertions if the file doesn't have an empty newline at the end
     std::vector<Token> Tokenizer::tokenize() {
         const std::filesystem::path file_path = File::get_path_by_id(file.id);
 

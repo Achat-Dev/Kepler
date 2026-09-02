@@ -67,7 +67,7 @@ namespace kepler {
             const std::filesystem::path file_path = File::get_path_by_id(diagnostic.source_location.file_id);
             std::ifstream file_stream(file_path);
             if (!file_stream) {
-                log::error("Failed to print diagnostics information for file '{}' because it doesn't exist", file_path.c_str());
+                log::error("Failed to print diagnostics information for file '{}' because it doesn't exist", file_path.string());
                 continue;
             }
 
@@ -90,7 +90,7 @@ namespace kepler {
 
             const DiagnosticSeverity severity = get_diagnostic_severity(diagnostic.code);
             std::println("{}{}", severity, diagnostic.message);
-            std::println("{}In '{}'", log::indented, file_path.c_str());
+            std::println("{}In '{}'", log::indented, file_path.string());
 
             const std::string highlight_styling = get_severity_highlight(severity);
             const std::string prefix = std::format("{}At l.{} | ", log::last_indented, line_number);

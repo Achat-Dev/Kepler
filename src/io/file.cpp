@@ -26,19 +26,19 @@ namespace kepler {
         if (!std::filesystem::exists(path)) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::FileNotFound,
-                .message = std::format("File '{}' not found", path.c_str()),
+                .message = std::format("File '{}' not found", path.string()),
             });
         }
         if (std::filesystem::is_directory(path)) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::FileIsADirectory,
-                .message = std::format("Path '{}' is a directory", path.c_str()),
+                .message = std::format("Path '{}' is a directory", path.string()),
             });
         }
         if (!std::filesystem::is_regular_file(path)) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::NotARegularFile,
-                .message = std::format("File '{}' is not a regular file", path.c_str()),
+                .message = std::format("File '{}' is not a regular file", path.string()),
             });
         }
 
@@ -47,7 +47,7 @@ namespace kepler {
         if (!file_stream) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::FailedToCreateFileStream,
-                .message = std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path.c_str()),
+                .message = std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path.string()),
             });
         }
 

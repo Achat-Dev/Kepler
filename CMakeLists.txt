@@ -33,9 +33,12 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/main.cpp)
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_23)
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE ${LLVM_DEFINITIONS})
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${LLVM_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/external/cxxopts/include)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE LLVM)
+llvm_map_components_to_libnames(LLVM_LIBS ${LLVM_TARGETS_TO_BUILD})
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LLVM_LIBS})
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)

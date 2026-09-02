@@ -244,9 +244,9 @@ namespace kepler {
             const int input_count = parse_result.count("input");
             if (input_count == 1) {
                 context.input_path = parse_result["input"].as<std::string>();
-                const std::string extension = context.input_path.extension();
+                const std::filesystem::path extension = context.input_path.extension();
                 if (extension != ".kpl") {
-                    const std::string message = std::format("Input file (-i) must be a '.kpl' file, received '{}'", extension);
+                    const std::string message = std::format("Input file (-i) must be a '.kpl' file, received '{}'", extension.string());
                     return std::unexpected(Diagnostic{.code = DiagnosticCode::WrongFileFormat, .message = message});
                 }
             } else if (input_count > 1) {
@@ -274,9 +274,9 @@ namespace kepler {
                 context.additional_paths.reserve(additional_paths.size());
                 for (size_t i = 0; i < additional_paths.size(); i++) {
                     context.additional_paths.push_back(additional_paths[i]);
-                    const std::string extension = context.additional_paths[i].extension();
+                    const std::filesystem::path extension = context.additional_paths[i].extension();
                     if (extension != ".o" && extension != ".c") {
-                        const std::string message = std::format("Additional files can only be '.c' and '.o' files, received '{}'", extension);
+                        const std::string message = std::format("Additional files can only be '.c' and '.o' files, received '{}'", extension.string());
                         return std::unexpected(Diagnostic{.code = DiagnosticCode::WrongFileFormat, .message = message});
                     }
                 }
@@ -406,7 +406,7 @@ namespace kepler {
         args.push_back("clang");
 #endif
         if (!std::filesystem::exists(object_path)) {
-            log::error("File '{}', which was just created during compilation, doesn't exist", object_path.c_str());
+            log::error("File '{}', which was just created during compilation, doesn't exist", object_path.string());
             return false;
         }
 
@@ -418,7 +418,7 @@ namespace kepler {
                 log::error("Additional file path '{}' doesn't exist", additional_path.string());
                 return false;
             }
-            args.push_back(additional_path);
+            args.push_back(additional_path.string());
         }
         args.push_back(std::format("-{}", optimization_level));
         args.push_back("-o");
@@ -434,7 +434,7 @@ namespace kepler {
 
         // Execute shell command
 #ifdef _WIN32
-        int result = _spawnvp(_P_WAIT, "clang.exe", args.data());
+        int result = _spawnvp(_P_WAIT, argv[0], argv.data());
         if (result == -1) {
             const std::string error_message = std::format("{}", DiagnosticSeverity::Error);
             perror(error_message.c_str());
@@ -446,7 +446,7 @@ namespace kepler {
         return true;
 #else
         pid_t pid;
-        const int return_value = posix_spawnp(&pid, "clang", nullptr, nullptr, argv.data(), environ);
+        const int return_value = posix_spawnp(&pid, argv[0], nullptr, nullptr, argv.data(), environ);
         if (return_value != 0) {
             log::error("Failed to start the linker: {}", strerror(return_value));
             return false;
