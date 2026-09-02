@@ -38,7 +38,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${LLVM_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/external/cxxopts/include)
-llvm_map_components_to_libnames(LLVM_LIBS ${LLVM_TARGETS_TO_BUILD})
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LLVM_LIBS})
-
-set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+if(TARGET LLVM)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE LLVM)
+else()
+  llvm_map_components_to_libnames(LLVM_LIBS ${LLVM_TARGETS_TO_BUILD})
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LLVM_LIBS})
+endif()
