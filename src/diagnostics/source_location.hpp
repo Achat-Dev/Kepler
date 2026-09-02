@@ -14,6 +14,9 @@
 
 namespace kepler {
 
+    // TODO (improvement): Some source locations don't point at the best positions
+    // Often, just the next avaiable source location is used, but that could be after a newline,
+    // which is a bit confusing
     struct SourceLocation {
         FileId file_id;
         uint32_t position = 0;

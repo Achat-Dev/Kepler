@@ -98,7 +98,7 @@ namespace kepler {
         if (current_char == EOF) {
             return Token{
                 .type = TokenType::EndOfFile,
-                .source_location = {file.id, static_cast<uint32_t>(file.content.size() - 1), 1},
+                .source_location = {file.id, static_cast<uint32_t>(file.content.size()), 1},
             };
         }
 
