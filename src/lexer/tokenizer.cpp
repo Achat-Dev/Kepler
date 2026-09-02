@@ -53,7 +53,6 @@ namespace kepler {
         }
     }
 
-    // TODO (fix): Tokenization fails with assertions if the file doesn't have an empty newline at the end
     std::vector<Token> Tokenizer::tokenize() {
         const std::filesystem::path file_path = File::get_path_by_id(file.id);
 
@@ -63,7 +62,7 @@ namespace kepler {
 
         current_char = file.content[0]; // Read first char manually instead of next_char() because that would read file.content[1]
         std::vector<Token> tokens;
-        while (position < file.content.size()) {
+        while (position <= file.content.size()) {
             const Token token = read_next_token();
             tokens.push_back(token);
             if (token.type == TokenType::EndOfFile) {
@@ -93,6 +92,7 @@ namespace kepler {
     }
 
     Token Tokenizer::read_next_token() {
+        // TODO (fix): This skips the last character of the file
         if (peek_next_char() == EOF) {
             return Token{
                 .type = TokenType::EndOfFile,
@@ -266,7 +266,7 @@ namespace kepler {
 
         const uint32_t identifier_length = position - identifier_start_position;
         KPL_ASSERT_THAT(identifier_length > 0, "Tokenizing identifier requires identifier length > 0");
-        KPL_ASSERT_THAT(file.content.size() > identifier_start_position + identifier_length,
+        KPL_ASSERT_THAT(file.content.size() >= identifier_start_position + identifier_length,
             "Tokenizing identifier requires literal to be in bounds of file content");
         const StringId identifier_id = StringPool::get().store(file.content.substr(identifier_start_position, identifier_length));
 
@@ -334,7 +334,7 @@ namespace kepler {
 
         const uint32_t literal_length = position - literal_start_position;
         KPL_ASSERT_THAT(literal_length > 0, "Tokenizing numeric literal requires literal length > 0");
-        KPL_ASSERT_THAT(file.content.size() > literal_start_position - literal_length,
+        KPL_ASSERT_THAT(file.content.size() >= literal_start_position + literal_length,
             "Tokenizing numeric literal requires literal to be in bounds of file content");
         const std::string literal = file.content.substr(literal_start_position, literal_length);
 

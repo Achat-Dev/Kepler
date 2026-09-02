@@ -436,7 +436,7 @@ namespace kepler {
 #ifdef _WIN32
         int result = _spawnvp(_P_WAIT, argv[0], argv.data());
         if (result == -1) {
-            const std::string error_message = std::format("{}", DiagnosticSeverity::Error);
+            const std::string error_message = std::format("{}Failed to start the linker", DiagnosticSeverity::Error);
             perror(error_message.c_str());
             return false;
         } else if (result != 0) {
@@ -454,7 +454,7 @@ namespace kepler {
 
         int status;
         if (waitpid(pid, &status, 0) == -1) {
-            const std::string error_message = std::format("{} Failed to wait for the linker process", DiagnosticSeverity::Error);
+            const std::string error_message = std::format("{}Failed to wait for the linker process", DiagnosticSeverity::Error);
             perror(error_message.c_str());
             return false;
         }
@@ -473,7 +473,7 @@ namespace kepler {
             return false;
         }
 
-        log::error("I have no idea what went wrong, but something did when calling clang");
+        log::error("I have no idea what went wrong, but something did when calling trying to link the executable");
         return false;
 #endif
     }
