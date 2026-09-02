@@ -85,18 +85,20 @@ namespace kepler {
     }
 
     void Tokenizer::next_char() {
-        if (position < file.content.size()) {
+        if (position < file.content.size() - 1) {
             position++;
             current_char = file.content[position];
+        } else {
+            position = file.content.size();
+            current_char = EOF;
         }
     }
 
     Token Tokenizer::read_next_token() {
-        // TODO (fix): This skips the last character of the file
-        if (peek_next_char() == EOF) {
+        if (current_char == EOF) {
             return Token{
                 .type = TokenType::EndOfFile,
-                .source_location = {file.id, position - 1, 1},
+                .source_location = {file.id, static_cast<uint32_t>(file.content.size() - 1), 1},
             };
         }
 
@@ -251,14 +253,14 @@ namespace kepler {
             case '"': return read_string_literal();
         }
 
-        diagnostic_sink.report(DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", current_char), {file.id, position, 1});
+        diagnostic_sink.report(DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", static_cast<char>(current_char)), {file.id, position, 1});
         next_char(); // eat unknown char
         return read_next_token();
     }
 
     Token Tokenizer::read_identifier() {
         int is_current_char_alpha = isalpha(current_char);
-        KPL_ASSERT_THAT(is_current_char_alpha, "Tokenizing identifier requires character, received '{}'", current_char);
+        KPL_ASSERT_THAT(is_current_char_alpha, "Tokenizing identifier requires character, received '{}'", static_cast<char>(current_char));
         const uint32_t identifier_start_position = position;
         do {
             next_char();

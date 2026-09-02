@@ -39,7 +39,7 @@ namespace kepler {
 
         const File& file;
         DiagnosticSink& diagnostic_sink;
-        char current_char = ' ';
+        int current_char = ' ';
         uint32_t position = 0;
 
         static std::unordered_map<StringId, Token> keyword_map;

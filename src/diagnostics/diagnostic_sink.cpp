@@ -47,6 +47,7 @@ namespace kepler {
         diagnostics.emplace_back(code, std::move(message), source_location);
     }
 
+    // TODO (fix): The source locations are sometimes off
     void DiagnosticSink::flush() {
         if (diagnostics.empty()) {
             return;
