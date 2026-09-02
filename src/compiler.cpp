@@ -386,7 +386,6 @@ namespace kepler {
         return true;
     }
 
-    // TODO (fix): This is highly unsafe because the user input is not sanitized (verify functionality on windows)
     // clang-format off
     bool Compiler::link_to_executable(const std::filesystem::path& object_path,
         const std::vector<std::filesystem::path>& additional_paths,
