@@ -5,13 +5,13 @@
 The compiler has to be installed from source.
 
 1. Install [CMake](https://cmake.org/download/) (the minimum required version is 3.16)
-2. Install [LLVM version 21 and Clang](https://github.com/llvm/llvm-project/releases) and add it to the `PATH`
+2. Install [LLVM and Clang version 21](https://github.com/llvm/llvm-project/releases?page=2#release-llvmorg-21.1.8) (make sure it's added to `PATH`)
 3. Clone this repository
 ```bash
 git clone https://github.com/Achat-Dev/Kepler.git
 cd Kepler
 ```
-4. (Optional) Enable or disable assertions: Go to `src/utils/assert.hpp` and comment line 49 `#define KPL_NO_ASSERT` to disable them (**assertions are enabled by default**)
+4. (Optional) Enable or disable assertions: Go to `src/utils/assert.hpp` and uncomment line 49 `#define KPL_NO_ASSERT` to disable them (**assertions are enabled by default**)
 5. Build the project
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
