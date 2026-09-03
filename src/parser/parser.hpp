@@ -38,7 +38,7 @@
 
 namespace kepler {
 
-    // TODO (improvement): Replace unique_ptr with raw pointers and an arena allocator
+    // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
     class Parser {
     public:
         Parser(const std::vector<Token>& tokens, const File& file, DiagnosticSink& diagnostic_sink, TypeTable& type_table)

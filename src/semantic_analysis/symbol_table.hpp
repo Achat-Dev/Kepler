@@ -43,8 +43,7 @@ namespace kepler {
         void close_scope();
 
     private:
-        // TODO (check): Look at the usage of std::deque again, that was a quick fix but maybe not the best choice
-        std::deque<Symbol> symbols;
+        std::deque<Symbol> symbols; // std::deque so that pointers to symbols aren't invalidated when symbols are added
         std::vector<Scope> scopes;
         Scope* current_scope;
 
