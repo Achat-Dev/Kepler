@@ -654,16 +654,17 @@ namespace kepler {
         KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type, unknown_type_message, "Expression of CastExpression");
         expression->original_type = typecheck_result.type;
 
+        if (expression->target_type == typecheck_result.type) {
+            const std::string message = std::format("Redundant cast of type '{}' to itself (the cast will be discarded)", *typecheck_result.type);
+            diagnostic_sink.report(DiagnosticCode::RedundantCast, std::move(message), expression->source_location);
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type = expression->target_type};
+        }
+
         if (!expression->target_type->find_method(StringPool::get().store("__cast"), {typecheck_result.type})) {
             const std::string message = std::format("Type '{}' doesn't implement cast to type '{}'", *expression->target_type, *typecheck_result.type);
             diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
-        }
-
-        if (expression->target_type == typecheck_result.type) {
-            const std::string message = std::format("Redundant cast of type '{}' to itself (the cast will be discarded)", *typecheck_result.type);
-            diagnostic_sink.report(DiagnosticCode::RedundantCast, std::move(message), expression->source_location);
         }
 
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type = expression->target_type};
