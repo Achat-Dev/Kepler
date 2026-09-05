@@ -12,17 +12,17 @@
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
 #include "type_system/type.hpp"
-#include <cstdint>
+#include "utils/string_pool.hpp"
 #include <utility>
 
 namespace kepler {
 
     struct IntegerLiteralExpression : Expression {
-        int64_t value;
+        StringId value_id;
         Type* target_type = nullptr;
 
-        IntegerLiteralExpression(int64_t value, SourceLocation source_location)
-            : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value(value) {}
+        IntegerLiteralExpression(StringId value_id, SourceLocation source_location)
+            : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value_id(value_id) {}
     };
 
 }

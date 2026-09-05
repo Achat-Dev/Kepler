@@ -313,7 +313,8 @@ namespace kepler {
         } else {
             std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
         }
-        std::println("{}{}Value: {}", indent, last_item_prefix, expression->value);
+        const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
+        std::println("{}{}Value: {}", indent, last_item_prefix, literal_string);
     }
 
     void ASTPrintPass::print_string_literal_expression(const StringLiteralExpression* expression, const std::string& indent) const {

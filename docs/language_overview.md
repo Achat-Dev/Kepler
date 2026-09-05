@@ -208,6 +208,10 @@ Currently, there are only basic builtin types and no user defined types.
 | `i16` | A 16-bit signed integer | |
 | `i32` | A 32-bit signed integer | |
 | `i64` | A 64-bit signed integer | |
+| `u8` | An 8-bit unsigned integer | |
+| `u16` | A 16-bit unsigned integer | |
+| `u32` | A 32-bit unsigned integer | |
+| `u64` | A 64-bit unsigned integer | |
 | `f32` | A 32-bit floating point value | Uses IEEE 754 semantics |
 | `f64` | A 64-bit floating point value | Uses IEEE 754 semantics |
 
@@ -217,17 +221,21 @@ Currently, there are only basic builtin types and no user defined types.
 
 The following matrix displays which types can be casted to which types (rows are the type of the value to cast, columns are the target type of the cast):
 
-| | `void` | `bool` | `string` | `i8` | `i16` | `i32` | `i64` | `f32` | `f64` |
-| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
-| `void` | | | | | | | | | |
-| `bool` | | | | | | | | | |
-| `string` | | | | | | | | | |
-| `i8` | | x | | | x | x | x | x | x |
-| `i16` | | x | | x | | x | x | x | x |
-| `i32` | | x | | x | x | | x | x | x |
-| `i64` | | x | | x | x | x | | x | x |
-| `f32` | | | | x | x | x | x | | x |
-| `f64` | | | | x | x | x | x | x | |
+|          | `void` | `bool` | `string` | `i8` | `i16` | `i32` | `i64` | `u8` | `u16` | `u32` | `u64` | `f32` | `f64` |
+| :------: | :----: | :----: | :------: | :--: | :---: | :---: | :---: | :--: | :---: | :---: | :---: | :---: | :---: |
+| `void`   |        |        |          |      |       |       |       |      |       |       |       |       |       |
+| `bool`   |        |        |          |      |       |       |       |      |       |       |       |       |       |
+| `string` |        |        |          |      |       |       |       |      |       |       |       |       |       |
+| `i8`     |        | x      |          |      | x     | x     | x     | x    | x     | x     | x     | x     | x     |
+| `i16`    |        | x      |          | x    |       | x     | x     | x    | x     | x     | x     | x     | x     |
+| `i32`    |        | x      |          | x    | x     |       | x     | x    | x     | x     | x     | x     | x     |
+| `i64`    |        | x      |          | x    | x     | x     |       | x    | x     | x     | x     | x     | x     |
+| `u8`     |        | x      |          | x    | x     | x     | x     |      | x     | x     | x     | x     | x     |
+| `u16`    |        | x      |          | x    | x     | x     | x     | x    |       | x     | x     | x     | x     |
+| `u32`    |        | x      |          | x    | x     | x     | x     | x    | x     |       | x     | x     | x     |
+| `u64`    |        | x      |          | x    | x     | x     | x     | x    | x     | x     |       | x     | x     |
+| `f32`    |        |        |          | x    | x     | x     | x     | x    | x     | x     | x     |       | x     |
+| `f64`    |        |        |          | x    | x     | x     | x     | x    | x     | x     | x     | x     |       |
 
 ## 6. Operators
 
@@ -235,19 +243,19 @@ The following matrix displays which types can be casted to which types (rows are
 
 | Operator | Precedence | Supported types |
 | :- | :- | :- |
-| < | 10 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| > | 10 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| == | 10 | `bool`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| != | 10 | `bool`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| <= | 10 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| >= | 10 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| + | 20 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| - | 20 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| * | 30 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
-| / | 30 | `i8`, `i16`, `i32`, `i64`, `f32`, `f64` |
+| < | 10 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| > | 10 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| == | 10 | `bool`, `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| != | 10 | `bool`, `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| <= | 10 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| >= | 10 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| + | 20 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| - | 20 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| * | 30 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
+| / | 30 | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64` |
 
 > [!note]
-> Floating point comparisons use the unordered llvm comparisons, which means that the operands can be QNAN (quiet Not-a-number)
+> Floating point comparisons use the unordered llvm comparisons, which means that the operands can be QNAN (quiet not-a-number)
 > -> QNAN means that operations with such a number generally don't raise exceptions
 
 ### 6.2 Unary Operators

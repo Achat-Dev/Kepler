@@ -33,6 +33,8 @@
 #include "utils/assert.h"
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
+#include <cstdint>
+#include <llvm/ADT/APInt.h>
 #include <llvm/IR/Argument.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
@@ -408,10 +410,20 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
         KPL_ASSERT_NOT_POISONED(expression, "code generation");
-        if (is_floating_point_type(expression->target_type)) {
-            return {.llvm_value = llvm::ConstantFP::get(get_llvm_type(expression->target_type, context), expression->value), .returns = false};
+        constexpr const uint8_t redix = 10;
+        const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
+        if (is_integer_type(expression->target_type)) {
+            // Both signed and unsigned integers use llvm unsigned representation
+            // This is because only the bit pattern counts: negative values are created through negation expressions,
+            // which handle the negative values
+            const uint32_t type_bitwidth = get_integer_bitwidth(expression->target_type);
+            const llvm::APInt llvm_value(type_bitwidth, literal_string, redix);
+            return {.llvm_value = llvm::ConstantInt::get(get_llvm_type(expression->target_type, context), llvm_value), .returns = false};
+        } else if (is_floating_point_type(expression->target_type)) {
+            const double value = std::stod(std::string(literal_string));
+            return {.llvm_value = llvm::ConstantFP::get(get_llvm_type(expression->target_type, context), value), .returns = false};
         }
-        return {.llvm_value = llvm::ConstantInt::getSigned(get_llvm_type(expression->target_type, context), expression->value), .returns = false};
+        KPL_ASSERT_UNREACHABLE("Target type of IntegerLiteralExpression must be either a signed integer, an unsigned integer or a floating point type");
     }
 
     CodegenResult CodegenPass::codegen_string_literal_expression(const StringLiteralExpression* expression) {

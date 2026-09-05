@@ -13,7 +13,6 @@
 #include "lexer/operator_type.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cstdint>
 #include <format>
 #include <string>
 #include <string_view>
@@ -48,12 +47,16 @@ namespace kepler {
         For,
     };
 
+    struct IntegerLiteralTokenData {
+        StringId literal_id;
+    };
+
     using TokenData = std::variant<std::monostate,
-        double,        // Floating point literals
-        int64_t,       // Integer literals
-        StringId,      // String literals, types & identifiers
-        bool,          // Boolean literals
-        OperatorType>; // Operators
+        double,                  // Floating point literals
+        StringId,                // String literals, types & identifiers
+        IntegerLiteralTokenData, // Integer literals
+        bool,                    // Boolean literals
+        OperatorType>;           // Operators
 
     struct Token {
         TokenType type;
@@ -62,6 +65,13 @@ namespace kepler {
     };
 
 }
+
+template <>
+struct std::formatter<kepler::IntegerLiteralTokenData> : std::formatter<std::string> {
+    auto format(const kepler::IntegerLiteralTokenData& data, std::format_context& ctx) const {
+        return std::formatter<std::string>::format(std::format("{}", data.literal_id), ctx);
+    }
+};
 
 template <>
 struct std::formatter<kepler::TokenType> : std::formatter<std::string> {

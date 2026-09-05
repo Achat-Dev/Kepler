@@ -48,6 +48,10 @@ namespace kepler {
             register_keyword("i16", TokenType::Type, type_table.Builtins.i16_type->name_id);
             register_keyword("i32", TokenType::Type, type_table.Builtins.i32_type->name_id);
             register_keyword("i64", TokenType::Type, type_table.Builtins.i64_type->name_id);
+            register_keyword("u8", TokenType::Type, type_table.Builtins.u8_type->name_id);
+            register_keyword("u16", TokenType::Type, type_table.Builtins.u16_type->name_id);
+            register_keyword("u32", TokenType::Type, type_table.Builtins.u32_type->name_id);
+            register_keyword("u64", TokenType::Type, type_table.Builtins.u64_type->name_id);
             register_keyword("f32", TokenType::Type, type_table.Builtins.f32_type->name_id);
             register_keyword("f64", TokenType::Type, type_table.Builtins.f64_type->name_id);
         }
@@ -253,7 +257,9 @@ namespace kepler {
             case '"': return read_string_literal();
         }
 
-        diagnostic_sink.report(DiagnosticCode::UnknownCharacter, std::format("Unknown character '{}'", static_cast<char>(current_char)), {file.id, position, 1});
+        diagnostic_sink.report(DiagnosticCode::UnknownCharacter,
+            std::format("Unknown character '{}'", static_cast<char>(current_char)),
+            {file.id, position, 1});
         next_char(); // eat unknown char
         return read_next_token();
     }
@@ -350,7 +356,7 @@ namespace kepler {
             return Token{
                 .type = TokenType::Literal,
                 .source_location = {file.id, literal_start_position, literal_length},
-                .data = std::stoll(literal.data()),
+                .data = IntegerLiteralTokenData{.literal_id = StringPool::get().store(literal)},
             };
         }
     }

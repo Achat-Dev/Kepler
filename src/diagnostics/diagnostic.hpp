@@ -54,9 +54,10 @@ namespace kepler {
         UndefinedSymbol,
         SymbolAlreadyExists,
         UnknownType,
-        InvalidVariableType,
         TypeMismatch,
+        InvalidVariableType,
         InvalidFunctionCall,
+        IntegerLiteralOutOfBounds,
         UnsupportedMathematicalOperation,
         RedundantCast,
 

@@ -232,7 +232,8 @@ namespace kepler {
 
         // Only end value is given, start and step are implicit
         if (current_token->type == TokenType::BracketClose) {
-            std::unique_ptr<IntegerLiteralExpression> start_value = std::make_unique<IntegerLiteralExpression>(0, type_token->source_location);
+            const StringId integer_value_id = StringPool::get().store("0");
+            std::unique_ptr<IntegerLiteralExpression> start_value = std::make_unique<IntegerLiteralExpression>(integer_value_id, type_token->source_location);
             return create_for_statement(identifier_id, type_token, std::move(start_value), std::move(first_value), nullptr, for_source_location);
         } else if (current_token->type != TokenType::Comma) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after first expression in 'for'", current_token->source_location);

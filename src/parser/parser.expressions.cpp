@@ -226,8 +226,8 @@ namespace kepler {
 
         if (std::holds_alternative<double>(literal_data)) {
             return std::make_unique<FloatingPointLiteralExpression>(std::get<double>(literal_data), source_location);
-        } else if (std::holds_alternative<int64_t>(literal_data)) {
-            return std::make_unique<IntegerLiteralExpression>(std::get<int64_t>(literal_data), source_location);
+        } else if (std::holds_alternative<IntegerLiteralTokenData>(literal_data)) {
+            return std::make_unique<IntegerLiteralExpression>(std::get<IntegerLiteralTokenData>(literal_data).literal_id, source_location);
         } else if (std::holds_alternative<StringId>(literal_data)) {
             return std::make_unique<StringLiteralExpression>(std::get<StringId>(literal_data), source_location);
         } else if (std::holds_alternative<bool>(literal_data)) {
@@ -289,7 +289,7 @@ namespace kepler {
                 break;
             case TokenType::Literal:
                 // If the literal cannot be mathematically negated, fall through to the default case
-                if (std::holds_alternative<double>(current_token->data) || std::holds_alternative<int64_t>(current_token->data)) {
+                if (std::holds_alternative<double>(current_token->data) || std::holds_alternative<IntegerLiteralTokenData>(current_token->data)) {
                     expression = parse_literal();
                     break;
                 }

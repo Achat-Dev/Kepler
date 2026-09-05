@@ -80,7 +80,7 @@ namespace kepler {
         TypeCheckResult typecheck_variable_definition_statement(VariableDefinitionStatement* statement);
         TypeCheckResult typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, const Type* requested_type) const;
         TypeCheckResult typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, Type* requested_type) const;
-        TypeCheckResult typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type* requested_type) const;
+        TypeCheckResult typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type* requested_type, bool is_negative) const;
         TypeCheckResult typecheck_string_literal_expression(StringLiteralExpression* expression, const Type* requested_type) const;
         TypeCheckResult typecheck_binary_expression(BinaryExpression* expression, Type* requested_type);
         TypeCheckResult typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, Type* requested_type);

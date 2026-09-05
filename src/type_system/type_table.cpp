@@ -44,6 +44,10 @@ namespace kepler {
         KPL_ASSERT_THAT(Builtins.i16_type == nullptr, "i16 type can't exist when creating the builtin types");
         KPL_ASSERT_THAT(Builtins.i32_type == nullptr, "i32 type can't exist when creating the builtin types");
         KPL_ASSERT_THAT(Builtins.i64_type == nullptr, "i64 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.u8_type == nullptr, "u8 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.u16_type == nullptr, "u16 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.u32_type == nullptr, "u32 type can't exist when creating the builtin types");
+        KPL_ASSERT_THAT(Builtins.u64_type == nullptr, "u64 type can't exist when creating the builtin types");
         KPL_ASSERT_THAT(Builtins.f32_type == nullptr, "f32 type can't exist when creating the builtin types");
         KPL_ASSERT_THAT(Builtins.f64_type == nullptr, "f64 type can't exist when creating the builtin types");
 
@@ -57,6 +61,10 @@ namespace kepler {
         register_builtin_type(&Builtins.i16_type, TypeKind::I16);
         register_builtin_type(&Builtins.i32_type, TypeKind::I32);
         register_builtin_type(&Builtins.i64_type, TypeKind::I64);
+        register_builtin_type(&Builtins.u8_type, TypeKind::U8);
+        register_builtin_type(&Builtins.u16_type, TypeKind::U16);
+        register_builtin_type(&Builtins.u32_type, TypeKind::U32);
+        register_builtin_type(&Builtins.u64_type, TypeKind::U64);
         register_builtin_type(&Builtins.f32_type, TypeKind::F32);
         register_builtin_type(&Builtins.f64_type, TypeKind::F64);
 
@@ -77,6 +85,10 @@ namespace kepler {
             {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.i16_type}},
             {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.i32_type}},
             {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.i64_type}},
+            {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.u8_type}},
+            {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.u16_type}},
+            {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.u32_type}},
+            {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.u64_type}},
             {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.f32_type}},
             {.identifier_id = cast_id, .return_type = Builtins.bool_type, .parameter_types = {Builtins.f64_type}},
         };
@@ -87,6 +99,10 @@ namespace kepler {
         add_methods_to_builtin_number_type(Builtins.i16_type);
         add_methods_to_builtin_number_type(Builtins.i32_type);
         add_methods_to_builtin_number_type(Builtins.i64_type);
+        add_methods_to_builtin_number_type(Builtins.u8_type);
+        add_methods_to_builtin_number_type(Builtins.u16_type);
+        add_methods_to_builtin_number_type(Builtins.u32_type);
+        add_methods_to_builtin_number_type(Builtins.u64_type);
         add_methods_to_builtin_number_type(Builtins.f32_type);
         add_methods_to_builtin_number_type(Builtins.f64_type);
     }
@@ -107,6 +123,10 @@ namespace kepler {
             Builtins.i16_type,
             Builtins.i32_type,
             Builtins.i64_type,
+            Builtins.u8_type,
+            Builtins.u16_type,
+            Builtins.u32_type,
+            Builtins.u64_type,
             Builtins.f32_type,
             Builtins.f64_type};
         std::vector<Method> common_number_methods{

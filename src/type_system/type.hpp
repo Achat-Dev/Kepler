@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "lexer/operator_type.hpp"
 #include "utils/string_pool.hpp"
+#include <cstdint>
 #include <format>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -31,6 +31,10 @@ namespace kepler {
         I16,
         I32,
         I64,
+        U8,
+        U16,
+        U32,
+        U64,
         F32,
         F64,
     };
@@ -53,8 +57,11 @@ namespace kepler {
 
     llvm::Type* get_llvm_type(const Type* type, llvm::LLVMContext& context);
     bool is_integer_type(const Type* type);
+    bool is_signed_integer_type(const Type* type);
+    bool is_unsigned_integer_type(const Type* type);
     bool is_floating_point_type(const Type* type);
     StringId get_type_kind_name_id(TypeKind type_kind);
+    uint32_t get_integer_bitwidth(const Type* type);
 
     llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
     llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);

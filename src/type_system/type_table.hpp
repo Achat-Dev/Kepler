@@ -26,6 +26,10 @@ namespace kepler {
             Type* i16_type;
             Type* i32_type;
             Type* i64_type;
+            Type* u8_type;
+            Type* u16_type;
+            Type* u32_type;
+            Type* u64_type;
             Type* f32_type;
             Type* f64_type;
         } Builtins{};

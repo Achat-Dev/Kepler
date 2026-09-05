@@ -38,7 +38,6 @@ namespace kepler {
             case DiagnosticCode::UnexpectedToken:
             case DiagnosticCode::InvalidCast:
             case DiagnosticCode::InvalidReturn:
-            case DiagnosticCode::InvalidVariableType:
             case DiagnosticCode::InvalidLoopVariableType:
             case DiagnosticCode::InvalidMathematicalNegation:
             case DiagnosticCode::MissingEndKeyword:
@@ -47,8 +46,10 @@ namespace kepler {
             case DiagnosticCode::UndefinedSymbol:
             case DiagnosticCode::SymbolAlreadyExists:
             case DiagnosticCode::UnknownType:
-            case DiagnosticCode::InvalidFunctionCall:
             case DiagnosticCode::TypeMismatch:
+            case DiagnosticCode::InvalidVariableType:
+            case DiagnosticCode::InvalidFunctionCall:
+            case DiagnosticCode::IntegerLiteralOutOfBounds:
             case DiagnosticCode::UnsupportedMathematicalOperation:
                 return DiagnosticSeverity::Error;
 

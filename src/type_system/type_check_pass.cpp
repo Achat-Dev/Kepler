@@ -33,7 +33,9 @@
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <format>
+#include <llvm/ADT/APInt.h>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -111,7 +113,7 @@ namespace kepler {
             case ASTNodeType::FloatingPointLiteralExpression:
                 return typecheck_floating_point_literal_expression(static_cast<FloatingPointLiteralExpression*>(node), requested_type);
             case ASTNodeType::IntegerLiteralExpression:
-                return typecheck_integer_literal_expression(static_cast<IntegerLiteralExpression*>(node), requested_type);
+                return typecheck_integer_literal_expression(static_cast<IntegerLiteralExpression*>(node), requested_type, false);
             case ASTNodeType::StringLiteralExpression:
                 return typecheck_string_literal_expression(static_cast<StringLiteralExpression*>(node), requested_type);
             case ASTNodeType::BinaryExpression:
@@ -356,12 +358,57 @@ namespace kepler {
         }
     }
 
-    TypeCheckResult TypeCheckPass::typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type* requested_type) const {
+    TypeCheckResult TypeCheckPass::typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type* requested_type, bool is_negative) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of IntegerLiteralExpression must be nullptr for type checking");
         KPL_ASSERT_NOT_POISONED(expression, "type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
-        if (is_integer_type(requested_type) || is_floating_point_type(requested_type)) {
+        constexpr const uint8_t radix = 10;
+        if (is_integer_type(requested_type)) {
+            const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
+            const uint32_t type_bitwidth = get_integer_bitwidth(requested_type);
+            // Represents the bits needed for the *absolute* value of the literal
+            const uint32_t needed_bitwidth = llvm::APInt::getBitsNeeded(literal_string, radix);
+            if (needed_bitwidth > type_bitwidth) {
+                const std::string message = std::format("Out of bounds integer literal: {}{} is too big for type '{}'",
+                    is_negative ? "-" : "",
+                    literal_string,
+                    *requested_type);
+                diagnostic_sink.report(DiagnosticCode::IntegerLiteralOutOfBounds, std::move(message), expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
+
+            if (is_signed_integer_type(requested_type) && needed_bitwidth == type_bitwidth) {
+                // If a signed integer needs all bits, it has to be the minimum negative value
+                if (!is_negative) {
+                    const std::string message = std::format("Out of bounds integer literal: {} is too big for type '{}'", literal_string, *requested_type);
+                    diagnostic_sink.report(DiagnosticCode::IntegerLiteralOutOfBounds, std::move(message), expression->source_location);
+                    expression->node_type = ASTNodeType::Poison;
+                    return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+                }
+
+                const llvm::APInt absolute_llvm_value(type_bitwidth, literal_string, radix);
+                if (absolute_llvm_value != llvm::APInt::getSignMask(type_bitwidth)) {
+                    const std::string message = std::format("Out of bounds integer literal: -{} is too small for type '{}'",
+                        literal_string,
+                        *requested_type);
+                    diagnostic_sink.report(DiagnosticCode::IntegerLiteralOutOfBounds, std::move(message), expression->source_location);
+                    expression->node_type = ASTNodeType::Poison;
+                    return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+                }
+            } else if (is_unsigned_integer_type(requested_type) && is_negative) {
+                const std::string message = std::format("Out of bounds integer literal: negative value -{} can't be assigned to unsigned type '{}'",
+                    literal_string,
+                    *requested_type);
+                diagnostic_sink.report(DiagnosticCode::IntegerLiteralOutOfBounds, std::move(message), expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
+            }
+
+            expression->target_type = requested_type;
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type = requested_type};
+        } else if (is_floating_point_type(requested_type)) {
             expression->target_type = requested_type;
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = requested_type};
         } else if (requested_type == type_table.Builtins.unknown_type) {
@@ -677,7 +724,12 @@ namespace kepler {
         KPL_ASSERT_NOT_POISONED(expression, "type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
-        TypeCheckResult typecheck_result = typecheck_node(expression->expression.get(), requested_type);
+        TypeCheckResult typecheck_result;
+        if (expression->expression->node_type == ASTNodeType::IntegerLiteralExpression) {
+            typecheck_result = typecheck_integer_literal_expression(static_cast<IntegerLiteralExpression*>(expression->expression.get()), requested_type, true);
+        } else {
+            typecheck_result = typecheck_node(expression->expression.get(), requested_type);
+        }
         KPL_ASSERT_NOT_NULLPTR(typecheck_result.type);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
             expression->node_type = ASTNodeType::Poison;
