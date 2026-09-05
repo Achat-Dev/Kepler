@@ -392,7 +392,7 @@ namespace kepler {
             } else if (is_unsigned_integer_type(original_type)) {
                 return builder.CreateUIToFP(value, get_llvm_type(original_type, context));
             } else if (original_type == TypeTable::Builtins.f64_type) {
-                return builder.CreateFPExt(value, get_llvm_type(original_type, context));
+                return builder.CreateFPTrunc(value, get_llvm_type(original_type, context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f32 implementation for original type '{}'", *original_type);
         }
@@ -408,7 +408,7 @@ namespace kepler {
             } else if (is_unsigned_integer_type(original_type)) {
                 return builder.CreateUIToFP(value, get_llvm_type(original_type, context));
             } else if (original_type == TypeTable::Builtins.f32_type) {
-                return builder.CreateFPTrunc(value, get_llvm_type(original_type, context));
+                return builder.CreateFPExt(value, get_llvm_type(original_type, context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f64 implementation for original type '{}'", *original_type);
         }
