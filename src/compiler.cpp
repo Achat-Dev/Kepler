@@ -15,7 +15,7 @@
 #include "cxxopts.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
-#include "io/file.hpp"
+#include "io/file_manager.hpp"
 #include "lexer/token.hpp"
 #include "lexer/tokenizer.hpp"
 #include "parser/parser.hpp"
@@ -92,7 +92,7 @@ namespace kepler {
         }
 
         // Load file to start compilation
-        const auto file = File::load(context.input_path);
+        const auto file = FileManager::get().load(context.input_path);
         if (!file) {
             print_diagnostic(file.error());
             return EXIT_FAILURE;
@@ -104,7 +104,7 @@ namespace kepler {
         // AST creation
         Tokenizer tokenizer(*file, diagnostic_sink, type_table);
         std::vector<Token> tokens = tokenizer.tokenize();
-        Parser parser(std::move(tokens), *file, diagnostic_sink, type_table);
+        Parser parser(std::move(tokens), diagnostic_sink, type_table);
         AbstractSyntaxTree ast = parser.parse();
         verify_ast(ast);
         ASTPrintPass ast_print_pass(ast);

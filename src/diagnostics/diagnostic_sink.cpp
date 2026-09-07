@@ -11,18 +11,21 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
+#include "io/file_manager.hpp"
 #include "utils/ansi_codes.hpp"
 #include "utils/assert.h"
 #include "utils/log.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <format>
-#include <fstream>
+#include <iterator>
 #include <print>
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace kepler {
 
@@ -47,6 +50,20 @@ namespace kepler {
         diagnostics.emplace_back(code, std::move(message), source_location);
     }
 
+    auto DiagnosticSink::find_line_info(const std::vector<LineInfo>& line_infos, uint32_t position) {
+        auto it = std::lower_bound(line_infos.begin(),
+            line_infos.end(),
+            position,
+            [](const LineInfo& line_info, uint32_t position) {
+                return line_info.start_position < position;
+            });
+
+        if (it != line_infos.begin() && (it == line_infos.end() || it->start_position != position)) {
+            it--;
+        }
+        return it;
+    }
+
     void DiagnosticSink::flush() {
         if (diagnostics.empty()) {
             return;
@@ -63,53 +80,94 @@ namespace kepler {
                        b.source_location.position);
         });
 
+        File* file = FileManager::get().lookup(diagnostics[0].source_location.file_id);
+        std::vector<LineInfo> line_infos = get_line_infos(file);
         for (const SourceDiagnostic& diagnostic : diagnostics) {
-            const std::filesystem::path file_path = File::get_path_by_id(diagnostic.source_location.file_id);
-            std::ifstream file_stream(file_path);
-            if (!file_stream) {
-                log::error("Failed to print diagnostics information for file '{}' because it doesn't exist", file_path.string());
-                continue;
+            if (diagnostic.source_location.file_id != file->id) {
+                file = FileManager::get().lookup(diagnostic.source_location.file_id);
+                line_infos = get_line_infos(file);
             }
 
-            std::string line;
-            size_t line_number = 1;
-            size_t current_position = 0;
-
-            while (std::getline(file_stream, line)) {
-                size_t line_length = line.size() + 1; // +1 because getline removes the '\n'
-                current_position += line_length;
-                if (current_position > diagnostic.source_location.position) {
-                    current_position -= line_length; // Backtrack the current_position to the start of the line
-                    break;
-                }
-                line_number += 1;
-            }
-
-            const size_t start_position_in_line = diagnostic.source_location.position - current_position;
-            const size_t end_position_in_line = start_position_in_line + diagnostic.source_location.size;
-
+            // Print diagnsotic
             const DiagnosticSeverity severity = get_diagnostic_severity(diagnostic.code);
             std::println("{}{}", severity, diagnostic.message);
-            std::println("{}In '{}'", log::indented, file_path.string());
+            std::println("{}In '{}'", log::indented, file->path.string());
 
+            // Print lines
             const std::string highlight_styling = get_severity_highlight(severity);
-            const std::string prefix = std::format("{}At l.{} | ", log::last_indented, line_number);
-            std::string ending;
-            if (end_position_in_line < line.size()) {
-                ending = line.substr(end_position_in_line);
-            } else {
-                ending = std::string(line.size() - end_position_in_line + 1, ' ');
-            }
-            const std::string message = std::format("{}{}{}{}{}",
-                line.substr(0, start_position_in_line),
-                highlight_styling,
-                line.substr(start_position_in_line, diagnostic.source_location.size),
-                ansi_codes::reset,
-                ending);
-            std::println("{}{}", prefix, message);
+            const uint32_t diagnostic_end_position = diagnostic.source_location.position + diagnostic.source_location.size;
+            auto start_it = find_line_info(line_infos, diagnostic.source_location.position);
+            auto end_it = find_line_info(line_infos, diagnostic_end_position);
+            auto it = start_it;
+            do {
+                uint32_t line_end_position = it->start_position + it->size;
+                if (diagnostic.source_location.position < it->start_position) {
+                    // There were previous lines
+                    if (diagnostic_end_position > line_end_position) {
+                        // There are more lines coming afterwards
+                        const std::string prefix = std::format("{}At l.{} | ", log::indented, it->line_number);
+                        const std::string line = file->content.substr(it->start_position, it->size);
+                        std::print("{}{}{}{}", prefix, highlight_styling, line, ansi_codes::reset);
 
-            const std::string arrows(diagnostic.source_location.size, '^');
-            std::println("{}{}{}{}", std::string(strlen_utf8(prefix) + start_position_in_line, ' '), highlight_styling, arrows, ansi_codes::reset);
+                        if (it->size > 1) {
+                            const std::string arrows(strlen_utf8(line) - 1, '^'); // -1 because of the newline character
+                            std::println("{}{}{}{}", std::string(strlen_utf8(prefix), ' '), highlight_styling, arrows, ansi_codes::reset);
+                        }
+                    } else {
+                        // This is the last line
+                        const std::string prefix = std::format("{}At l.{} | ", log::last_indented, it->line_number);
+                        const uint32_t diagnostic_size = diagnostic_end_position - it->start_position;
+                        const uint32_t line_end_size = line_end_position - diagnostic_end_position;
+                        const std::string diagnostic_string = file->content.substr(it->start_position, diagnostic_size);
+                        std::print("{}{}{}{}{}",
+                            prefix,
+                            highlight_styling,
+                            diagnostic_string,
+                            ansi_codes::reset,
+                            file->content.substr(diagnostic_end_position, line_end_size));
+
+                        const uint32_t leading_space_count = diagnostic_string.find_first_not_of(" \t");
+                        const std::string arrows(strlen_utf8(diagnostic_string) - leading_space_count, '^');
+                        std::println("{}{}{}{}", std::string(strlen_utf8(prefix) + leading_space_count, ' '), highlight_styling, arrows, ansi_codes::reset);
+                    }
+                } else {
+                    // This is the first line
+                    const uint32_t line_start_size = diagnostic.source_location.position - start_it->start_position;
+                    const std::string line_start = file->content.substr(start_it->start_position, line_start_size);
+
+                    if (diagnostic_end_position > line_end_position) {
+                        // There are more lines coming afterwards
+                        const std::string prefix = std::format("{}At l.{} | ", log::indented, it->line_number);
+                        const uint32_t line_end_size = line_end_position - diagnostic.source_location.position;
+                        const std::string diagnostic_string = file->content.substr(diagnostic.source_location.position, line_end_size);
+                        std::print("{}{}{}{}", prefix, line_start, highlight_styling, diagnostic_string, ansi_codes::reset);
+
+                        const std::string arrows(strlen_utf8(diagnostic_string) - 1, '^'); // -1 because of the newline character
+                        std::println("{}{}{}{}", std::string(strlen_utf8(prefix) + strlen_utf8(line_start), ' '), highlight_styling, arrows, ansi_codes::reset);
+                    } else {
+                        // This is also the last line, so it's the only line
+                        const std::string prefix = std::format("{}At l.{} | ", log::last_indented, it->line_number);
+                        const uint32_t line_end_size = (start_it->start_position + start_it->size) - diagnostic_end_position;
+                        const std::string diagnostic_string = file->content.substr(diagnostic.source_location.position, diagnostic.source_location.size);
+                        std::print("{}{}{}{}{}{}",
+                            prefix,
+                            line_start,
+                            highlight_styling,
+                            diagnostic_string,
+                            ansi_codes::reset,
+                            file->content.substr(diagnostic_end_position, line_end_size));
+
+                        std::string arrows = "";
+                        if (diagnostic_string.ends_with('\n')) {
+                            arrows = std::string(strlen_utf8(diagnostic_string) - 1, '^'); // -1 because of newline character
+                        } else {
+                            arrows = std::string(strlen_utf8(diagnostic_string), '^');
+                        }
+                        std::println("{}{}{}{}", std::string(strlen_utf8(prefix) + strlen_utf8(line_start), ' '), highlight_styling, arrows, ansi_codes::reset);
+                    }
+                }
+                it++;
+            } while (it != std::next(end_it));
         }
 
         diagnostics.clear();
@@ -117,10 +175,21 @@ namespace kepler {
 
     size_t DiagnosticSink::strlen_utf8(const std::string& string) const {
         size_t count = 0;
-        for (unsigned char c : string) {
-            if ((c & 0xC0) != 0x80) {
-                count++;
+        for (size_t i = 0; i < string.size();) {
+            unsigned char c = string[i];
+            if (c < 0x80) {
+                i += 1; // ASCII
+            } else if ((c & 0xE0) == 0xC0) {
+                i += 2; // 2-byte UTF-8
+            } else if ((c & 0xF0) == 0xE0) {
+                i += 3; // 3-byte UTF-8
+            } else if ((c & 0xF8) == 0xF0) {
+                i += 4; // 4-byte UTF-8
+            } else {
+                log::error("Invalid UTF8 character '{}' when trying to print diagnostic, diagnostic arrows might be off", c);
+                return 0;
             }
+            count += 1;
         }
         return count;
     }
@@ -139,5 +208,4 @@ namespace kepler {
 
         KPL_ASSERT_UNREACHABLE("Missing styling implementation for severity '{}'", severity);
     }
-
 }

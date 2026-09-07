@@ -24,7 +24,6 @@
 #include "ast/statements/return_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
-#include "io/file.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
 #include "type_system/type_table.hpp"
@@ -41,13 +40,12 @@ namespace kepler {
     // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
     class Parser {
     public:
-        Parser(const std::vector<Token>& tokens, const File& file, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
-            : tokens(tokens), file(file), diagnostic_sink(diagnostic_sink), type_table(type_table), current_token(&tokens[0]) {}
+        Parser(const std::vector<Token>& tokens, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
+            : tokens(tokens), diagnostic_sink(diagnostic_sink), type_table(type_table), current_token(&tokens[0]) {}
         AbstractSyntaxTree parse();
 
     private:
         const std::vector<Token>& tokens;
-        const File& file;
         DiagnosticSink& diagnostic_sink;
         const TypeTable& type_table;
         const Token* current_token;

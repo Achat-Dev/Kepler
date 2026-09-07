@@ -24,7 +24,7 @@ namespace kepler {
 
     class Tokenizer {
     public:
-        Tokenizer(const File& file, DiagnosticSink& diagnostic_sink, const TypeTable& type_table);
+        Tokenizer(const File* file, DiagnosticSink& diagnostic_sink, const TypeTable& type_table);
         std::vector<Token> tokenize();
 
     private:
@@ -37,7 +37,7 @@ namespace kepler {
         void read_comment();
         void register_keyword(const std::string& keyword, TokenType token_type, TokenData token_data = std::monostate{});
 
-        const File& file;
+        const File* file;
         DiagnosticSink& diagnostic_sink;
         int current_char = ' ';
         uint32_t position = 0;

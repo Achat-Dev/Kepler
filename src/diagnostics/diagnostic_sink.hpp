@@ -32,6 +32,7 @@ namespace kepler {
 
         size_t strlen_utf8(const std::string& string) const;
         std::string get_severity_highlight(DiagnosticSeverity severity) const;
+        auto find_line_info(const std::vector<LineInfo>& line_infos, uint32_t position);
     };
 
 }

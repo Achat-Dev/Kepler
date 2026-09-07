@@ -14,6 +14,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/diagnostics/diagnostic.cpp
     src/diagnostics/diagnostic_sink.cpp
     src/io/file.cpp
+    src/io/file_manager.cpp
     src/lexer/operator_type.cpp
     src/lexer/tokenizer.cpp
     src/parser/parser.cpp

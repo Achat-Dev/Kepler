@@ -19,7 +19,6 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
-#include <filesystem>
 #include <format>
 #include <string>
 #include <unordered_map>
@@ -30,7 +29,9 @@ namespace kepler {
 
     std::unordered_map<StringId, Token> Tokenizer::keyword_map;
 
-    Tokenizer::Tokenizer(const File& file, DiagnosticSink& diagnostic_sink, const TypeTable& type_table) : file(file), diagnostic_sink(diagnostic_sink) {
+    Tokenizer::Tokenizer(const File* file, DiagnosticSink& diagnostic_sink, const TypeTable& type_table)
+        : file(file), diagnostic_sink(diagnostic_sink) {
+        KPL_ASSERT_NOT_NULLPTR(file);
         if (keyword_map.empty()) {
             register_keyword("extern", TokenType::Extern);
             register_keyword("return", TokenType::Return);
@@ -58,15 +59,13 @@ namespace kepler {
     }
 
     std::vector<Token> Tokenizer::tokenize() {
-        const std::filesystem::path file_path = File::get_path_by_id(file.id);
-
-        if (file.content.empty()) {
-            return {Token{.type = TokenType::EndOfFile, .source_location = {file.id, 0, 0}}};
+        if (file->content.empty()) {
+            return {Token{.type = TokenType::EndOfFile, .source_location = {file->id, 0, 0}}};
         }
 
-        current_char = file.content[0]; // Read first char manually instead of next_char() because that would read file.content[1]
+        current_char = file->content[0]; // Read first char manually instead of next_char() because that would read file->content[1]
         std::vector<Token> tokens;
-        while (position <= file.content.size()) {
+        while (position <= file->content.size()) {
             const Token token = read_next_token();
             tokens.push_back(token);
             if (token.type == TokenType::EndOfFile) {
@@ -81,19 +80,19 @@ namespace kepler {
 
     int Tokenizer::peek_next_char(uint32_t lookahead) const {
         KPL_ASSERT_THAT(lookahead > 0, "Lookahead must be > 0 for peeking next character while lexing");
-        if (position + lookahead < file.content.size()) {
-            return file.content[position + lookahead];
+        if (position + lookahead < file->content.size()) {
+            return file->content[position + lookahead];
         } else {
             return EOF;
         }
     }
 
     void Tokenizer::next_char() {
-        if (position < file.content.size() - 1) {
+        if (position < file->content.size() - 1) {
             position++;
-            current_char = file.content[position];
+            current_char = file->content[position];
         } else {
-            position = file.content.size();
+            position = file->content.size();
             current_char = EOF;
         }
     }
@@ -102,7 +101,7 @@ namespace kepler {
         if (current_char == EOF) {
             return Token{
                 .type = TokenType::EndOfFile,
-                .source_location = {file.id, static_cast<uint32_t>(file.content.size()), 1},
+                .source_location = {file->id, static_cast<uint32_t>(file->content.size()), 1},
             };
         }
 
@@ -111,7 +110,7 @@ namespace kepler {
                 next_char();
                 return Token{
                     .type = TokenType::Newline,
-                    .source_location = {file.id, position, 1},
+                    .source_location = {file->id, position, 1},
                 };
             }
             next_char();
@@ -132,25 +131,25 @@ namespace kepler {
                 next_char();
                 return Token{
                     .type = TokenType::Comma,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                 };
             case ':':
                 next_char();
                 return Token{
                     .type = TokenType::Colon,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                 };
             case '(':
                 next_char();
                 return Token{
                     .type = TokenType::BracketOpen,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                 };
             case ')':
                 next_char();
                 return Token{
                     .type = TokenType::BracketClose,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                 };
             case '=':
                 next_char();
@@ -158,13 +157,13 @@ namespace kepler {
                     next_char();
                     return Token{
                         .type = TokenType::Operator,
-                        .source_location = {file.id, position - 2, 2},
+                        .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::Equals,
                     };
                 } else {
                     return Token{
                         .type = TokenType::Assignment,
-                        .source_location = {file.id, position - 1, 1},
+                        .source_location = {file->id, position - 1, 1},
                     };
                 }
             case '.':
@@ -175,7 +174,7 @@ namespace kepler {
                         next_char();
                         return Token{
                             .type = TokenType::Variadic,
-                            .source_location = {file.id, position - 3, 3},
+                            .source_location = {file->id, position - 3, 3},
                         };
                     }
                 }
@@ -184,28 +183,28 @@ namespace kepler {
                 next_char();
                 return Token{
                     .type = TokenType::Operator,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Plus,
                 };
             case '-':
                 next_char();
                 return Token{
                     .type = TokenType::Operator,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Minus,
                 };
             case '*':
                 next_char();
                 return Token{
                     .type = TokenType::Operator,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Multiplication,
                 };
             case '/':
                 next_char();
                 return Token{
                     .type = TokenType::Operator,
-                    .source_location = {file.id, position - 1, 1},
+                    .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Division,
                 };
             case '<':
@@ -214,13 +213,13 @@ namespace kepler {
                     next_char();
                     return Token{
                         .type = TokenType::Operator,
-                        .source_location = {file.id, position - 2, 2},
+                        .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::LessEquals,
                     };
                 } else {
                     return Token{
                         .type = TokenType::Operator,
-                        .source_location = {file.id, position - 1, 1},
+                        .source_location = {file->id, position - 1, 1},
                         .data = OperatorType::LessThan,
                     };
                 }
@@ -230,13 +229,13 @@ namespace kepler {
                     next_char();
                     return Token{
                         .type = TokenType::Operator,
-                        .source_location = {file.id, position - 2, 2},
+                        .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::GreaterEquals,
                     };
                 } else {
                     return Token{
                         .type = TokenType::Operator,
-                        .source_location = {file.id, position - 1, 1},
+                        .source_location = {file->id, position - 1, 1},
                         .data = OperatorType::GreaterThan,
                     };
                 }
@@ -246,11 +245,11 @@ namespace kepler {
                     next_char();
                     return Token{
                         .type = TokenType::Operator,
-                        .source_location = {file.id, position - 2, 2},
+                        .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::NotEquals,
                     };
                 } else {
-                    diagnostic_sink.report(DiagnosticCode::Unsupported, "Logical negation with '!' is not supported yet", {file.id, position - 1, 1});
+                    diagnostic_sink.report(DiagnosticCode::Unsupported, "Logical negation with '!' is not supported yet", {file->id, position - 1, 1});
                     next_char();
                     return read_next_token();
                 }
@@ -259,7 +258,7 @@ namespace kepler {
 
         diagnostic_sink.report(DiagnosticCode::UnknownCharacter,
             std::format("Unknown character '{}'", static_cast<char>(current_char)),
-            {file.id, position, 1});
+            {file->id, position, 1});
         next_char(); // eat unknown char
         return read_next_token();
     }
@@ -274,9 +273,9 @@ namespace kepler {
 
         const uint32_t identifier_length = position - identifier_start_position;
         KPL_ASSERT_THAT(identifier_length > 0, "Tokenizing identifier requires identifier length > 0");
-        KPL_ASSERT_THAT(file.content.size() >= identifier_start_position + identifier_length,
+        KPL_ASSERT_THAT(file->content.size() >= identifier_start_position + identifier_length,
             "Tokenizing identifier requires literal to be in bounds of file content");
-        const StringId identifier_id = StringPool::get().store(file.content.substr(identifier_start_position, identifier_length));
+        const StringId identifier_id = StringPool::get().store(file->content.substr(identifier_start_position, identifier_length));
 
         if (keyword_map.contains(identifier_id)) {
             Token token = keyword_map[identifier_id];
@@ -286,7 +285,7 @@ namespace kepler {
 
         return Token{
             .type = TokenType::Identifier,
-            .source_location = {file.id, identifier_start_position, identifier_length},
+            .source_location = {file->id, identifier_start_position, identifier_length},
             .data = identifier_id,
         };
     }
@@ -308,7 +307,7 @@ namespace kepler {
                     default:
                         diagnostic_sink.report(DiagnosticCode::UnknownEscapeSequence,
                             std::format("Unknown escape sequence '\\{}' in string", current_char),
-                            {file.id, position - 1, 2});
+                            {file->id, position - 1, 2});
                         break;
                 }
             } else {
@@ -323,7 +322,7 @@ namespace kepler {
         const StringId literal_id = StringPool::get().store(std::move(literal));
         return Token{
             .type = TokenType::Literal,
-            .source_location = {file.id, position - literal_length - 1, literal_length + 2}, // -1 for opening " and +2 for opening and closing "
+            .source_location = {file->id, position - literal_length - 2, literal_length + 2}, // -2 and +2 for opening and closing "
             .data = literal_id,
         };
     }
@@ -342,20 +341,20 @@ namespace kepler {
 
         const uint32_t literal_length = position - literal_start_position;
         KPL_ASSERT_THAT(literal_length > 0, "Tokenizing numeric literal requires literal length > 0");
-        KPL_ASSERT_THAT(file.content.size() >= literal_start_position + literal_length,
+        KPL_ASSERT_THAT(file->content.size() >= literal_start_position + literal_length,
             "Tokenizing numeric literal requires literal to be in bounds of file content");
-        const std::string literal = file.content.substr(literal_start_position, literal_length);
+        const std::string literal = file->content.substr(literal_start_position, literal_length);
 
         if (is_float) {
             return Token{
                 .type = TokenType::Literal,
-                .source_location = {file.id, literal_start_position, literal_length},
+                .source_location = {file->id, literal_start_position, literal_length},
                 .data = std::stod(literal.data()),
             };
         } else {
             return Token{
                 .type = TokenType::Literal,
-                .source_location = {file.id, literal_start_position, literal_length},
+                .source_location = {file->id, literal_start_position, literal_length},
                 .data = IntegerLiteralTokenData{.literal_id = StringPool::get().store(literal)},
             };
         }
@@ -372,7 +371,7 @@ namespace kepler {
                 if (peek_next_char() == EOF) {
                     diagnostic_sink.report(DiagnosticCode::MultilineCommentNotClosed,
                         "Multiline comment is not closed. This file may stil compile without issues, but consider closing the comment.",
-                        {file.id, comment_start_position, 2});
+                        {file->id, comment_start_position, 2});
                     return;
                 }
 
@@ -400,7 +399,7 @@ namespace kepler {
             keyword_id,
             Token{
                 .type = token_type,
-                .source_location = {file.id, 0, static_cast<uint32_t>(keyword.size())},
+                .source_location = {file->id, 0, static_cast<uint32_t>(keyword.size())},
                 .data = token_data,
             });
     }

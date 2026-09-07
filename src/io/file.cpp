@@ -8,64 +8,39 @@
  */
 
 #include "io/file.hpp"
-#include "diagnostics/diagnostic.hpp"
 #include "utils/assert.h"
-#include <algorithm>
 #include <cstdint>
-#include <expected>
-#include <filesystem>
-#include <format>
-#include <fstream>
-#include <iterator>
 #include <string>
-#include <utility>
+#include <vector>
 
 namespace kepler {
 
-    std::expected<const File, Diagnostic> File::load(const std::filesystem::path& path) {
-        if (!std::filesystem::exists(path)) {
-            return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::FileNotFound,
-                .message = std::format("File '{}' not found", path.string()),
-            });
-        }
-        if (std::filesystem::is_directory(path)) {
-            return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::FileIsADirectory,
-                .message = std::format("Path '{}' is a directory", path.string()),
-            });
-        }
-        if (!std::filesystem::is_regular_file(path)) {
-            return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::NotARegularFile,
-                .message = std::format("File '{}' is not a regular file", path.string()),
-            });
+    std::vector<LineInfo> get_line_infos(const File* file) {
+        KPL_ASSERT_NOT_NULLPTR(file);
+        uint32_t line_number = 1;
+        uint32_t current_position = 0;
+        uint32_t last_line_start_position = 0;
+        std::vector<LineInfo> result;
+
+        while (current_position < file->content.size()) {
+            if (file->content[current_position] == '\n') {
+                const uint32_t line_size = (current_position + 1) - last_line_start_position; // +1 because the newline also counts towards the size
+                result.push_back({.line_number = line_number, .start_position = last_line_start_position, .size = line_size});
+                line_number += 1;
+                current_position += 1;
+                last_line_start_position = current_position;
+            } else {
+                current_position += 1;
+            }
         }
 
-        // Read file contents into string
-        std::ifstream file_stream(path);
-        if (!file_stream) {
-            return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::FailedToCreateFileStream,
-                .message = std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path.string()),
-            });
+        // Last line didn't end with a newline, so add the final line
+        if (last_line_start_position != current_position) {
+            const uint32_t line_size = current_position - last_line_start_position;
+            result.push_back({.line_number = line_number, .start_position = last_line_start_position, .size = line_size});
         }
 
-        const std::string content = std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
-        const auto it = std::find(known_paths.begin(), known_paths.end(), path);
-        if (it == known_paths.end()) {
-            uint32_t known_path_count = known_paths.size();
-            known_paths.push_back(path);
-            return File({.value = known_path_count}, std::move(content));
-        } else {
-            const uint32_t path_index = std::distance(known_paths.begin(), it);
-            return File({.value = path_index}, std::move(content));
-        }
-    }
-
-    std::filesystem::path File::get_path_by_id(FileId id) {
-        KPL_ASSERT_THAT(id.value < known_paths.size(), "File path with id '{}' doesn't exist", id);
-        return known_paths[id.value];
+        return result;
     }
 
 }

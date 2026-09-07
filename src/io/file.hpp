@@ -9,38 +9,45 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <expected>
 #include <filesystem>
 #include <format>
+#include <functional>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace kepler {
 
-    // Forward declare to avoid circular include (file.hpp -> diagnostic.hpp -> source_location.hpp -> file.hpp ...)
-    struct Diagnostic;
-
     struct FileId {
         uint32_t value = 0;
+
+        bool operator==(const FileId& other) const = default;
+        bool operator!=(const FileId& other) const = default;
     };
 
     struct File {
         FileId id;
+        std::filesystem::path path;
         std::string content;
-
-        static std::expected<const File, Diagnostic> load(const std::filesystem::path& path);
-        static std::filesystem::path get_path_by_id(FileId id);
-
-    private:
-        File(FileId id, std::string content)
-            : id(id), content(std::move(content)) {}
-
-        inline static std::vector<std::filesystem::path> known_paths{};
     };
 
+    struct LineInfo {
+        uint32_t line_number = 0;
+        uint32_t start_position = 0;
+        uint32_t size = 0;
+    };
+
+    std::vector<LineInfo> get_line_infos(const File* file);
+
 }
+
+template <>
+struct std::hash<kepler::FileId> {
+    size_t operator()(const kepler::FileId& id) const noexcept {
+        return hash<uint32_t>{}(id.value);
+    }
+};
 
 template <>
 struct std::formatter<kepler::FileId> : std::formatter<std::string> {
