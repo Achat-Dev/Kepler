@@ -291,6 +291,13 @@ namespace kepler {
                 // If the literal cannot be mathematically negated, fall through to the default case
                 if (std::holds_alternative<double>(current_token->data) || std::holds_alternative<IntegerLiteralTokenData>(current_token->data)) {
                     expression = parse_literal();
+                    // Adjust the source location of the literal to include the minus sign
+                    const uint32_t source_location_size = (expression->source_location.position + expression->source_location.size) - source_location.position;
+                    expression->source_location = {
+                        .file_id = expression->source_location.file_id,
+                        .position = source_location.position,
+                        .size = source_location_size,
+                    };
                     break;
                 }
             default:
