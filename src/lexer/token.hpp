@@ -69,7 +69,7 @@ namespace kepler {
 template <>
 struct std::formatter<kepler::IntegerLiteralTokenData> : std::formatter<std::string> {
     auto format(const kepler::IntegerLiteralTokenData& data, std::format_context& ctx) const {
-        return std::formatter<std::string>::format(std::format("{}", data.literal_id), ctx);
+        return std::formatter<std::string>::format(std::format("{}", kepler::StringPool::get().lookup(data.literal_id)), ctx);
     }
 };
 
@@ -154,6 +154,12 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
                     using ValueType = std::decay_t<decltype(value)>;
                     if constexpr (std::is_same_v<ValueType, std::monostate>) {
                         return std::format("{}", token.type);
+                    } else if constexpr (std::is_same_v<ValueType, kepler::IntegerLiteralTokenData>) {
+                        const std::string_view literal = kepler::StringPool::get().lookup(value.literal_id);
+                        return std::format("{}({})", token.type, literal);
+                    } else if constexpr (std::is_same_v<ValueType, kepler::StringId>) {
+                        const std::string_view literal = kepler::StringPool::get().lookup(value);
+                        return std::format("{}({})", token.type, literal);
                     } else {
                         return std::format("{}({})", token.type, value);
                     }
