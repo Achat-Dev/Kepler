@@ -19,6 +19,6 @@ namespace kepler {
         uint32_t patch;
     };
 
-    inline constexpr Version version{.major = 0, .minor = 1, .patch = 0};
+    inline constexpr Version version{.major = 0, .minor = 2, .patch = 0};
 
 }
