@@ -301,11 +301,8 @@ namespace kepler {
                     break;
                 }
             default:
-                const size_t recovery_token_index = current_token_index;
-                previous_token(true);
                 const std::string message = std::format("Mathematical negation of '{}' is not supported", *current_token);
-                diagnostic_sink.report(DiagnosticCode::InvalidMathematicalNegation, message, current_token->source_location);
-                jump_to_token(recovery_token_index);
+                diagnostic_sink.report(DiagnosticCode::InvalidMathematicalNegation, message, source_location);
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
         }
