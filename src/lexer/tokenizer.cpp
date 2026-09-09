@@ -33,6 +33,7 @@ namespace kepler {
         : file(file), diagnostic_sink(diagnostic_sink) {
         KPL_ASSERT_NOT_NULLPTR(file);
         if (keyword_map.empty()) {
+            register_keyword("module", TokenType::Module);
             register_keyword("extern", TokenType::Extern);
             register_keyword("return", TokenType::Return);
             register_keyword("end", TokenType::End);
@@ -135,10 +136,18 @@ namespace kepler {
                 };
             case ':':
                 next_char();
-                return Token{
-                    .type = TokenType::Colon,
-                    .source_location = {file->id, position - 1, 1},
-                };
+                if (current_char == ':') {
+                    next_char();
+                    return Token{
+                        .type = TokenType::DoubleColon,
+                        .source_location = {file->id, position - 2, 2},
+                    };
+                } else {
+                    return Token{
+                        .type = TokenType::Colon,
+                        .source_location = {file->id, position - 1, 1},
+                    };
+                }
             case '(':
                 next_char();
                 return Token{
@@ -279,6 +288,7 @@ namespace kepler {
 
         if (keyword_map.contains(identifier_id)) {
             Token token = keyword_map[identifier_id];
+            token.source_location.file_id = file->id;
             token.source_location.position = identifier_start_position;
             return token;
         }

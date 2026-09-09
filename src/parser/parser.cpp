@@ -13,8 +13,10 @@
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
+#include "utils/string_pool.hpp"
 #include <format>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace kepler {
@@ -53,6 +55,7 @@ namespace kepler {
             "Token stream must end with EOF token for parsing, received stream that ends with '{}' token",
             tokens.back().type);
 
+        const StringId empty_string_id = StringPool::get().store("");
         AbstractSyntaxTree result;
         while (current_token->type != TokenType::EndOfFile) {
             switch (current_token->type) {
@@ -60,6 +63,20 @@ namespace kepler {
                     std::unique_ptr<ASTNode> ast_node = parse_top_level_type();
                     if (ast_node) {
                         result.top_level_nodes.push_back(std::move(ast_node));
+                    }
+                    break;
+                }
+                case TokenType::Module: {
+                    const auto parse_result = parse_module();
+                    if (parse_result) {
+                        if (!result.module_identifier_ids.empty()) {
+                            diagnostic_sink.report(DiagnosticCode::ModuleRedefinition,
+                                "Module redefinition: module can only be specified once per file",
+                                parse_result->source_location);
+                            break;
+                        }
+
+                        result.module_identifier_ids = std::move(parse_result->identifier_ids);
                     }
                     break;
                 }

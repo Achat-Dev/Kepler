@@ -37,6 +37,11 @@
 
 namespace kepler {
 
+    struct ModuleParseResult {
+        std::vector<StringId> identifier_ids;
+        SourceLocation source_location;
+    };
+
     // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
     class Parser {
     public:
@@ -58,6 +63,7 @@ namespace kepler {
         void jump_to_token(size_t index);
 
         // Top level
+        std::optional<ModuleParseResult> parse_module();
         std::unique_ptr<Extern> parse_extern();
         std::unique_ptr<Prototype> parse_prototype(Prototype::LinkageType linkage_type);
         std::unique_ptr<ASTNode> parse_top_level_type();

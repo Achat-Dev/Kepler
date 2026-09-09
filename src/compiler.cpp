@@ -15,6 +15,7 @@
 #include "cxxopts.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
+#include "io/file.hpp"
 #include "io/file_manager.hpp"
 #include "lexer/token.hpp"
 #include "lexer/tokenizer.hpp"
@@ -28,6 +29,7 @@
 #include "utils/assert.h"
 #include "utils/ast_print_pass.hpp"
 #include "utils/log.hpp"
+#include "utils/string_pool.hpp"
 #include "version.hpp"
 #include <cstddef>
 #include <cstdlib>
@@ -106,7 +108,7 @@ namespace kepler {
         std::vector<Token> tokens = tokenizer.tokenize();
         Parser parser(std::move(tokens), diagnostic_sink, type_table);
         AbstractSyntaxTree ast = parser.parse();
-        verify_ast(ast);
+        verify_ast(ast, *file);
         ASTPrintPass ast_print_pass(ast);
         // ast_print_pass.run();
 
@@ -320,7 +322,13 @@ namespace kepler {
         }
     }
 
-    void Compiler::verify_ast(const AbstractSyntaxTree& ast) const {
+    void Compiler::verify_ast(AbstractSyntaxTree& ast, const File* file) const {
+        KPL_ASSERT_NOT_NULLPTR(file);
+        if (ast.module_identifier_ids.empty()) {
+            // Use the file path as the module identifier if no module identifier is specified
+            ast.module_identifier_ids = {StringPool::get().store("__file://" + file->path.string())};
+        }
+
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
             bool is_valid_top_level_node = node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function;
             KPL_ASSERT_THAT(is_valid_top_level_node, "Malformed ast with node of type '{}' on top level", node->node_type);

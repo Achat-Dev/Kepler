@@ -47,9 +47,11 @@ namespace kepler {
         InvalidMathematicalNegation,
         MissingEndKeyword,
         UsingStatementAsExpression,
+        ModuleRedefinition,
 
         // Semantic analysis
         UnreachableCode = 500,
+        MissingModuleDefinition,
         MissingReturn,
         UndefinedSymbol,
         SymbolAlreadyExists,

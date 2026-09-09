@@ -12,6 +12,7 @@
 #include "ast/abstract_syntax_tree.hpp"
 #include "codegen/optimizer.hpp"
 #include "diagnostics/diagnostic.hpp"
+#include "io/file.hpp"
 #include <expected>
 #include <filesystem>
 #include <llvm/CodeGen/MachineFunction.h>
@@ -40,7 +41,7 @@ namespace kepler {
     private:
         std::expected<void, Diagnostic> do_dependencies_exist() const;
         std::expected<CompilerContext, Diagnostic> parse_args(int argc, char** argv) const;
-        void verify_ast(const AbstractSyntaxTree& ast) const;
+        void verify_ast(AbstractSyntaxTree& ast, const File* file) const;
         llvm::TargetMachine* create_target_machine() const;
         bool emit_object_code(const std::unique_ptr<llvm::Module>& module,
             llvm::TargetMachine* target_machine,

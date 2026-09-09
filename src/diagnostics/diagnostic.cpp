@@ -42,6 +42,8 @@ namespace kepler {
             case DiagnosticCode::InvalidMathematicalNegation:
             case DiagnosticCode::MissingEndKeyword:
             case DiagnosticCode::UsingStatementAsExpression:
+            case DiagnosticCode::ModuleRedefinition:
+            case DiagnosticCode::MissingModuleDefinition:
             case DiagnosticCode::MissingReturn:
             case DiagnosticCode::UndefinedSymbol:
             case DiagnosticCode::SymbolAlreadyExists:

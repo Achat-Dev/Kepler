@@ -27,6 +27,44 @@
 
 namespace kepler {
 
+    std::optional<ModuleParseResult> Parser::parse_module() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Module,
+            "Parsing module requires current token to be of type '{}', received '{}'",
+            TokenType::Module,
+            current_token->type);
+        const SourceLocation& module_source_location = current_token->source_location;
+        next_token(true); // eat 'module' keyword
+        if (current_token->type != TokenType::Identifier) {
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'module'", current_token->source_location);
+            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            return std::nullopt;
+        }
+
+        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Module identifier token");
+        std::vector<StringId> module_identifier_ids{
+            std::get<StringId>(current_token->data),
+        };
+        next_token(true); // eat identifier
+        while (current_token->type == TokenType::DoubleColon) {
+            const SourceLocation& doublecolon_source_location = current_token->source_location;
+            next_token(true); // eat '::'
+            if (current_token->type != TokenType::Identifier) {
+                previous_token(true); // jump back to '::' because otherwise the next line will be skipped because of the revocery
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                    "Expected identifier after '::' in module definition",
+                    doublecolon_source_location);
+                recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+                return std::nullopt;
+            }
+            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Submodule identifier token");
+            module_identifier_ids.push_back(std::get<StringId>(current_token->data));
+            next_token(true); // eat identifier
+        }
+
+        return ModuleParseResult{.identifier_ids = std::move(module_identifier_ids), .source_location = module_source_location};
+    }
+
     std::unique_ptr<Extern> Parser::parse_extern() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Extern,
