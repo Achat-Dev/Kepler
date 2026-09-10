@@ -93,7 +93,7 @@ namespace kepler {
 
     std::unique_ptr<IfStatement> Parser::parse_if() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::If,
+        KPL_ASSERT_THAT(current_token->type == TokenType::If || current_token->type == TokenType::Elseif,
             "Parsing if statement requires '{}' or '{}' token, received '{}' token",
             TokenType::If,
             TokenType::Elseif,
