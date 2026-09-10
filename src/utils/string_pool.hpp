@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -21,10 +22,11 @@
 namespace kepler {
 
     struct StringId {
-        uint32_t value = 0;
+        uint32_t value = std::numeric_limits<uint32_t>::max();
 
         bool operator==(const StringId& other) const = default;
         bool operator!=(const StringId& other) const = default;
+        static constexpr StringId invalid() { return StringId{}; }
     };
 
     class StringPool {

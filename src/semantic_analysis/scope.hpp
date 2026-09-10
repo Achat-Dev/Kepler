@@ -18,11 +18,11 @@ namespace kepler {
     struct SymbolId;
 
     struct ScopeId {
-        uint32_t value = 0;
+        uint32_t value = std::numeric_limits<uint32_t>::max();
 
         bool operator==(const ScopeId& other) const = default;
         bool operator!=(const ScopeId& other) const = default;
-        static constexpr ScopeId invalid() { return ScopeId{std::numeric_limits<uint32_t>::max()}; }
+        static constexpr ScopeId invalid() { return ScopeId{}; }
     };
 
     enum class ScopeType {

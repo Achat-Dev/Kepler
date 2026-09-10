@@ -12,12 +12,15 @@
 #include "semantic_analysis/scope.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 namespace kepler {
 
     struct ModuleId {
-        uint32_t value;
+        uint32_t value = std::numeric_limits<uint32_t>::max();
+
+        static constexpr ModuleId invalid() { return ModuleId{}; }
     };
 
     struct Module {
