@@ -42,6 +42,7 @@
 namespace kepler {
 
     void NameResolutionPass::run() {
+        module_id = symbol_table.create_module(ast.module_identifier_ids);
         collect_prototype_symbols();
         resolve_nodes(ast.top_level_nodes);
     }
@@ -69,6 +70,7 @@ namespace kepler {
 
     void NameResolutionPass::create_prototype_symbol(Prototype* prototype) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
+        KPL_ASSERT_THAT(prototype->symbol_id == SymbolId::invalid(), "Symbol id of prototype must be invalid when creating prototype symbol");
         KPL_ASSERT_NOT_POISONED(prototype, "creating prototype symbol");
         Type* return_type = type_table.lookup(prototype->return_type_id);
         if (return_type == nullptr) {
@@ -94,7 +96,8 @@ namespace kepler {
             parameter_types.push_back(parameter_type);
         }
 
-        const auto symbol = symbol_table.create_prototype(return_type,
+        const auto symbol = symbol_table.create_prototype(module_id,
+            return_type,
             prototype->identifier_id,
             prototype->linkage_type,
             std::move(parameter_types),
@@ -106,8 +109,7 @@ namespace kepler {
             prototype->node_type = ASTNodeType::Poison;
             return;
         } else {
-            KPL_ASSERT_THAT(prototype->symbol == nullptr, "Prototype symbol must be nullptr when creating prototype symbol");
-            prototype->symbol = *symbol;
+            prototype->symbol_id = *symbol;
         }
     }
 
@@ -172,9 +174,9 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(ext);
         KPL_ASSERT_NOT_NULLPTR(ext->prototype);
         KPL_ASSERT_NOT_POISONED(ext, "name resolution");
-        symbol_table.open_scope(ScopeType::Function);
+        symbol_table.open_scope(module_id, ScopeType::Function);
         const NameResolutionResult prototype_result = resolve_prototype(ext->prototype.get());
-        symbol_table.close_scope();
+        symbol_table.close_scope(module_id);
         if (prototype_result.poisoned) {
             ext->node_type = ASTNodeType::Poison;
         }
@@ -184,10 +186,10 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_NOT_POISONED(function, "name resolution");
-        symbol_table.open_scope(ScopeType::Function);
+        symbol_table.open_scope(module_id, ScopeType::Function);
         resolve_prototype(function->prototype.get());
         resolve_nodes(function->body.nodes);
-        symbol_table.close_scope();
+        symbol_table.close_scope(module_id);
     }
 
     NameResolutionResult NameResolutionPass::resolve_prototype(Prototype* prototype) const {
@@ -198,14 +200,14 @@ namespace kepler {
 
         for (ParameterData& parameter : prototype->parameter_data) {
             KPL_ASSERT_NOT_NULLPTR(parameter.type);
-            const auto symbol = symbol_table.create_variable(parameter.type, parameter.identifier_id, parameter.identifier_source_location);
+            KPL_ASSERT_THAT(parameter.symbol_id == SymbolId::invalid(), "Symbol id of parameter must be invalid for name resolution");
+            const auto symbol = symbol_table.create_variable(module_id, parameter.type, parameter.identifier_id, parameter.identifier_source_location);
             if (!symbol) {
                 const SourceDiagnostic& diagnostic = symbol.error();
                 diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
                 prototype->node_type = ASTNodeType::Poison;
             } else {
-                KPL_ASSERT_THAT(parameter.symbol == nullptr, "Symbol of prototype parameter must be nullptr for name resolution");
-                parameter.symbol = *symbol;
+                parameter.symbol_id = *symbol;
             }
         }
         return {.poisoned = prototype->node_type == ASTNodeType::Poison};
@@ -230,7 +232,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
         KPL_ASSERT_NOT_POISONED(statement, "name resolution");
-        symbol_table.open_scope(ScopeType::Block);
+        symbol_table.open_scope(module_id, ScopeType::Block);
         const NameResolutionResult definition_nrr = resolve_variable_definition_statement(statement->loop_variable_definition.get());
         const NameResolutionResult end_nrr = resolve_node(statement->end_value.get());
         NameResolutionResult step_nrr{.poisoned = false};
@@ -238,7 +240,7 @@ namespace kepler {
             step_nrr = resolve_node(statement->step_value.get());
         }
         const NameResolutionResult body_nrr = resolve_nodes(statement->body.nodes);
-        symbol_table.close_scope();
+        symbol_table.close_scope(module_id);
 
         if (definition_nrr.poisoned || end_nrr.poisoned || step_nrr.poisoned || body_nrr.poisoned) {
             statement->node_type = ASTNodeType::Poison;
@@ -253,13 +255,13 @@ namespace kepler {
         KPL_ASSERT_NOT_POISONED(statement, "name resolution");
         const NameResolutionResult condition_nrr = resolve_node(statement->condition.get());
 
-        symbol_table.open_scope(ScopeType::Block);
+        symbol_table.open_scope(module_id, ScopeType::Block);
         const NameResolutionResult if_body_nrr = resolve_nodes(statement->if_body.nodes);
-        symbol_table.close_scope();
+        symbol_table.close_scope(module_id);
 
-        symbol_table.open_scope(ScopeType::Block);
+        symbol_table.open_scope(module_id, ScopeType::Block);
         const NameResolutionResult else_body_nrr = resolve_nodes(statement->else_body.nodes);
-        symbol_table.close_scope();
+        symbol_table.close_scope(module_id);
 
         if (condition_nrr.poisoned || if_body_nrr.poisoned || else_body_nrr.poisoned) {
             statement->node_type = ASTNodeType::Poison;
@@ -298,7 +300,8 @@ namespace kepler {
         }
 
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement->variable_expression);
-        const auto symbol = symbol_table.create_variable(type,
+        const auto symbol = symbol_table.create_variable(module_id,
+            type,
             statement->identifier_id,
             statement->assignment_statement->variable_expression->source_location);
         if (!symbol) {
@@ -331,16 +334,16 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid(), "Symbol id of CallExpression must be invalid for name resolution");
         KPL_ASSERT_NOT_POISONED(expression, "name resolution");
-        Symbol* prototype_symbol = symbol_table.lookup(expression->identifier_id);
+        Symbol* prototype_symbol = symbol_table.find(module_id, expression->identifier_id);
         if (prototype_symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         } else {
-            KPL_ASSERT_THAT(expression->symbol == nullptr, "CallExpression symbol must be nullptr for name resolution");
-            expression->symbol = prototype_symbol;
+            expression->symbol_id = prototype_symbol->id;
         }
 
         KPL_ASSERT_HOLDS_ALTERNATIVE(prototype_symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
@@ -409,16 +412,16 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid(), "Symbol id of VariableExpression must be invalid for name resolution");
         KPL_ASSERT_NOT_POISONED(expression, "name resolution");
-        Symbol* symbol = symbol_table.lookup(expression->identifier_id);
+        Symbol* symbol = symbol_table.find(module_id, expression->identifier_id);
         if (symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         } else {
-            KPL_ASSERT_THAT(expression->symbol == nullptr, "Symbol of VariableExpression must be nullptr for name resolution");
-            expression->symbol = symbol;
+            expression->symbol_id = symbol->id;
         }
 
         return {.poisoned = false};

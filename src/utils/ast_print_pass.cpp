@@ -183,10 +183,10 @@ namespace kepler {
         const std::string_view identifier = StringPool::get().lookup(prototype->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
 
-        const Symbol* prototype_symbol = prototype->symbol;
-        if (prototype_symbol == nullptr) {
+        if (prototype->symbol_id == SymbolId::invalid()) {
             std::println("{}{}Symbol: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
+            const Symbol* prototype_symbol = symbol_table.lookup(prototype->symbol_id);
             const std::string_view prototype_symbol_identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, item_prefix, prototype_symbol_identifier);
         }
@@ -221,10 +221,10 @@ namespace kepler {
             }
             std::println("{}{}Identifier: {}", indent + item_indent, item_prefix, parameter_identifier);
 
-            const Symbol* parameter_symbol = prototype->parameter_data[i].symbol;
-            if (parameter_symbol == nullptr) {
+            if (prototype->parameter_data[i].symbol_id == SymbolId::invalid()) {
                 std::println("{}{}Symbol: {}nullptr{}", indent + item_indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
             } else {
+                const Symbol* parameter_symbol = symbol_table.lookup(prototype->parameter_data[i].symbol_id);
                 const std::string_view parameter_symbol_identifier = StringPool::get().lookup(parameter_symbol->identifier_id);
                 std::println("{}{}Symbol: {}", indent + item_indent, last_item_prefix, parameter_symbol_identifier);
             }
@@ -341,7 +341,6 @@ namespace kepler {
 
     void ASTPrintPass::print_call_expression(const CallExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->symbol);
         KPL_ASSERT_NOT_POISONED(expression, "printing");
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
@@ -356,10 +355,11 @@ namespace kepler {
             }
         }
 
-        if (expression->symbol == nullptr) {
+        if (expression->symbol_id == SymbolId::invalid()) {
             std::println("{}{}Symbol: {}nullptr{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            const std::string_view symbol_identifier = StringPool::get().lookup(expression->symbol->identifier_id);
+            const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
+            const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, last_item_prefix, symbol_identifier);
         }
     }
@@ -401,10 +401,11 @@ namespace kepler {
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}{}", indent, item_prefix, identifier);
 
-        if (expression->symbol == nullptr) {
+        if (expression->symbol_id == SymbolId::invalid()) {
             std::println("{}{}Symbol: {}nullptr{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            const std::string_view symbol_identifier = StringPool::get().lookup(expression->symbol->identifier_id);
+            const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
+            const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, last_item_prefix, symbol_identifier);
         }
     }

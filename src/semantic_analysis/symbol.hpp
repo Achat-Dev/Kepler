@@ -9,18 +9,30 @@
 
 #pragma once
 
-#include "ast/prototype.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "type_system/type.hpp"
 #include "utils/string_pool.hpp"
+#include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <limits>
 #include <variant>
 #include <vector>
 
 namespace kepler {
 
+    struct SymbolId {
+        uint32_t value = std::numeric_limits<uint32_t>::max();
+
+        bool operator==(const SymbolId& other) const = default;
+        bool operator!=(const SymbolId& other) const = default;
+        static constexpr SymbolId invalid() { return SymbolId{}; }
+    };
+
+    enum class PrototypeLinkageType;
+
     struct PrototypeSymbolData {
-        Prototype::LinkageType linkage_type;
+        PrototypeLinkageType linkage_type;
         bool is_variadic = false;
         std::vector<Type*> parameter_types;
     };
@@ -28,6 +40,7 @@ namespace kepler {
     using SymbolData = std::variant<std::monostate, PrototypeSymbolData>;
 
     struct Symbol {
+        SymbolId id;
         ScopeId scope_id;
         Type* type;
         StringId identifier_id;
@@ -37,3 +50,10 @@ namespace kepler {
     };
 
 }
+
+template <>
+struct std::hash<kepler::SymbolId> {
+    size_t operator()(const kepler::SymbolId& id) const noexcept {
+        return hash<uint32_t>{}(id.value);
+    }
+};

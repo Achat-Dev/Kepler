@@ -51,7 +51,7 @@ namespace kepler {
 
     class CodegenPass : ASTPass<std::unique_ptr<llvm::Module>> {
     public:
-        CodegenPass(AbstractSyntaxTree& ast, const SymbolTable& symbol_table, const TypeTable& type_table)
+        CodegenPass(AbstractSyntaxTree& ast, SymbolTable& symbol_table, const TypeTable& type_table)
             : ASTPass(ast),
               symbol_table(symbol_table),
               type_table(type_table),
@@ -60,12 +60,12 @@ namespace kepler {
         std::unique_ptr<llvm::Module> run() override;
 
     private:
-        const SymbolTable& symbol_table;
+        SymbolTable& symbol_table;
         const TypeTable& type_table;
         llvm::LLVMContext context;
         llvm::IRBuilder<> builder;
         std::unique_ptr<llvm::Module> module;
-        std::unordered_map<Symbol*, llvm::Value*> llvm_values;
+        std::unordered_map<SymbolId, llvm::Value*> llvm_values;
 
         void forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
         void codegen_forward_declaration(const Prototype* prototype);

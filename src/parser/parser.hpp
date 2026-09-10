@@ -65,7 +65,7 @@ namespace kepler {
         // Top level
         std::optional<ModuleParseResult> parse_module();
         std::unique_ptr<Extern> parse_extern();
-        std::unique_ptr<Prototype> parse_prototype(Prototype::LinkageType linkage_type);
+        std::unique_ptr<Prototype> parse_prototype(PrototypeLinkageType linkage_type);
         std::unique_ptr<ASTNode> parse_top_level_type();
         std::unique_ptr<Function> parse_function();
 

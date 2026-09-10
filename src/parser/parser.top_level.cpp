@@ -80,14 +80,14 @@ namespace kepler {
             return nullptr;
         }
 
-        std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::External);
+        std::unique_ptr<Prototype> prototype = parse_prototype(PrototypeLinkageType::External);
         if (!prototype) {
             return nullptr;
         }
         return std::make_unique<Extern>(std::move(prototype), extern_source_location);
     }
 
-    std::unique_ptr<Prototype> Parser::parse_prototype(Prototype::LinkageType linkage_type) {
+    std::unique_ptr<Prototype> Parser::parse_prototype(PrototypeLinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Type,
             "Parsing prototype requires current token to be of type '{}', received '{}'",
@@ -230,7 +230,7 @@ namespace kepler {
         previous_token(true);
         // TODO (hack): Currently everything uses external linkage because the user can't explicitely mark functions with a body as external yet
         // Otherwise everything will be removed by the optimizer
-        std::unique_ptr<Prototype> prototype = parse_prototype(Prototype::LinkageType::External);
+        std::unique_ptr<Prototype> prototype = parse_prototype(PrototypeLinkageType::External);
         if (current_token->type == TokenType::End) {
             next_token(true); // eat 'end'
             if (prototype == nullptr) {

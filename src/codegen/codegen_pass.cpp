@@ -100,7 +100,7 @@ namespace kepler {
     void CodegenPass::codegen_forward_declaration(const Prototype* prototype) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
-        KPL_ASSERT_NOT_NULLPTR(prototype->symbol);
+        KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid(), "Symbol id of Prototype must not be invalid for code generation");
         KPL_ASSERT_NOT_POISONED(prototype, "codegening forward declaration");
 
         std::vector<llvm::Type*> parameter_types;
@@ -121,8 +121,8 @@ namespace kepler {
         }
 #endif
 
-        KPL_ASSERT_THAT(!llvm_values.contains(prototype->symbol), "LLVM value for prototype symbol already exists");
-        llvm_values[prototype->symbol] = function;
+        KPL_ASSERT_THAT(!llvm_values.contains(prototype->symbol_id), "LLVM value for prototype symbol already exists");
+        llvm_values[prototype->symbol_id] = function;
     }
 
     void CodegenPass::codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
@@ -182,12 +182,12 @@ namespace kepler {
     void CodegenPass::codegen_function(const Function* function) {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
-        KPL_ASSERT_NOT_NULLPTR(function->prototype->symbol);
+        KPL_ASSERT_THAT(function->prototype->symbol_id != SymbolId::invalid(), "Prototype symbol id of Function must not be invalid for code generation");
         KPL_ASSERT_NOT_POISONED(function, "code generation");
-        KPL_ASSERT_THAT(llvm_values.contains(function->prototype->symbol), "LLVM Function must exist for codegening a function");
+        KPL_ASSERT_THAT(llvm_values.contains(function->prototype->symbol_id), "LLVM Function must exist for codegening a function");
 
         // Create entry block
-        llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[function->prototype->symbol]);
+        llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[function->prototype->symbol_id]);
         llvm::BasicBlock* entry_block = llvm::BasicBlock::Create(context, "entry", llvm_function);
         builder.SetInsertPoint(entry_block);
 
@@ -197,9 +197,10 @@ namespace kepler {
             llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, arg.getType(), function->prototype->identifier_id);
             builder.CreateStore(&arg, alloca);
 
-            Symbol* parameter_symbol = function->prototype->parameter_data[index].symbol;
-            KPL_ASSERT_THAT(!llvm_values.contains(parameter_symbol), "LLVM value for function parameter can't exist for codegening a function");
-            llvm_values[parameter_symbol] = alloca;
+            SymbolId parameter_symbol_id = function->prototype->parameter_data[index].symbol_id;
+            KPL_ASSERT_THAT(parameter_symbol_id != SymbolId::invalid(), "Symbol id of parameter must not be invalid for code generation");
+            KPL_ASSERT_THAT(!llvm_values.contains(parameter_symbol_id), "LLVM value for function parameter can't exist for codegening a function");
+            llvm_values[parameter_symbol_id] = alloca;
             index++;
         }
 
@@ -239,15 +240,14 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
         KPL_ASSERT_NOT_POISONED(statement, "code generation");
 
-        Symbol* variable_symbol = statement->variable_expression->symbol;
-        KPL_ASSERT_NOT_NULLPTR(variable_symbol);
-        KPL_ASSERT_THAT(llvm_values.contains(variable_symbol),
-            "LLVM value for variable must exist for codegening an AssignmentStatement");
+        SymbolId variable_symbol_id = statement->variable_expression->symbol_id;
+        KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid(), "Variable symbol id of AssignmentStatement must not be invalid for code generation");
+        KPL_ASSERT_THAT(llvm_values.contains(variable_symbol_id), "LLVM value for variable must exist for codegening an AssignmentStatement");
 
         // Don't codegen the VariableExpression because that would just unnecessarilly load it
         const CodegenResult codegen_result = codegen_node(statement->value_expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
-        builder.CreateStore(codegen_result.llvm_value, llvm_values[variable_symbol]);
+        builder.CreateStore(codegen_result.llvm_value, llvm_values[variable_symbol_id]);
         return {.llvm_value = nullptr, .returns = false};
     }
 
@@ -384,10 +384,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(llvm_function);
         llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(statement->type, context), statement->identifier_id);
 
-        Symbol* variable_symbol = statement->assignment_statement->variable_expression->symbol;
-        KPL_ASSERT_NOT_NULLPTR(variable_symbol);
-        KPL_ASSERT_THAT(!llvm_values.contains(variable_symbol), "LLVM value for variable can't exist for codegening a VariableDefinitionStatement");
-        llvm_values.emplace(variable_symbol, alloca);
+        SymbolId variable_symbol_id = statement->assignment_statement->variable_expression->symbol_id;
+        KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid(),
+            "Variable symbol id of VariableDefinitionStatement must not be invalid for code generation");
+        KPL_ASSERT_THAT(!llvm_values.contains(variable_symbol_id), "LLVM value for variable can't exist for codegening a VariableDefinitionStatement");
+        llvm_values.emplace(variable_symbol_id, alloca);
         codegen_assignment_statement(statement->assignment_statement.get());
         return {.llvm_value = alloca, .returns = false};
     }
@@ -490,12 +491,14 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_call_expression(const CallExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->symbol);
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of CallExpression must not be invalid for code generation");
         KPL_ASSERT_NOT_POISONED(expression, "code generation");
-
-        llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol]);
-        KPL_ASSERT_HOLDS_ALTERNATIVE(expression->symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
-        bool is_variadic = std::get<PrototypeSymbolData>(expression->symbol->data).is_variadic;
+        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id), "LLVM value for prototype must exist for codegening a CallExpression");
+        llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol_id]);
+        const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
+        KPL_ASSERT_NOT_NULLPTR(symbol);
+        KPL_ASSERT_HOLDS_ALTERNATIVE(symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
+        bool is_variadic = std::get<PrototypeSymbolData>(symbol->data).is_variadic;
         KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(),
             "Prototype symbol and LLVM function must have matching variadic settings for codegening a CallExpression");
         if (!is_variadic) {
@@ -513,8 +516,8 @@ namespace kepler {
         }
 
         llvm::Value* value = nullptr;
-        KPL_ASSERT_NOT_NULLPTR(expression->symbol->type);
-        if (expression->symbol->type == type_table.Builtins.void_type) {
+        KPL_ASSERT_NOT_NULLPTR(symbol->type);
+        if (symbol->type == type_table.Builtins.void_type) {
             value = builder.CreateCall(llvm_function, std::move(arg_values));
         } else {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
@@ -536,7 +539,14 @@ namespace kepler {
             // Redundant cast, so just return the original value
             return {.llvm_value = codegen_result.llvm_value, .returns = false};
         }
-        return {.llvm_value = create_cast(codegen_result.llvm_value, expression->original_type, expression->target_type, context, builder), .returns = false};
+        return {
+            .llvm_value = create_cast(codegen_result.llvm_value,
+                expression->original_type,
+                expression->target_type,
+                context,
+                builder),
+            .returns = false,
+        };
     }
 
     CodegenResult CodegenPass::codegen_mathematical_negation_expression(const MathematicalNegationExpression* expression) {
@@ -558,16 +568,18 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_variable_expression(const VariableExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_POISONED(expression, "code generation");
-        Symbol* symbol = expression->symbol;
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of VariableExpression must not be invalid for code generation");
+        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id), "LLVM value for variable must exist for codegening a VariableExpression");
+        KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->symbol_id]), "LLVM value for variable must be an AllocaInst");
+
+        const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(symbol);
         KPL_ASSERT_NOT_NULLPTR(symbol->type);
-        KPL_ASSERT_THAT(llvm_values.contains(symbol), "LLVM value for variable must exist for codegening a VariableExpression");
-        KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[symbol]), "LLVM value for variable must be an AllocaInst");
 #ifndef NDEBUG
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-        llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type, context), llvm_values[symbol], identifier);
+        llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type, context), llvm_values[expression->symbol_id], identifier);
 #else
-        llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type, context), llvm_values[symbol]);
+        llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type, context), llvm_values[expression->symbol_id]);
 #endif
         return {.llvm_value = value, .returns = false};
     }

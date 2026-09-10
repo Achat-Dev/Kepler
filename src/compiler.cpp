@@ -109,7 +109,7 @@ namespace kepler {
         Parser parser(std::move(tokens), diagnostic_sink, type_table);
         AbstractSyntaxTree ast = parser.parse();
         verify_ast(ast, *file);
-        ASTPrintPass ast_print_pass(ast);
+        ASTPrintPass ast_print_pass(ast, symbol_table);
         // ast_print_pass.run();
 
         // AST passes
@@ -119,7 +119,7 @@ namespace kepler {
         return_check_pass.run();
         NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table, type_table);
         name_resolution_pass.run();
-        TypeCheckPass type_check_pass(ast, diagnostic_sink, type_table);
+        TypeCheckPass type_check_pass(ast, diagnostic_sink, symbol_table, type_table);
         type_check_pass.run();
         // ast_print_pass.run();
 

@@ -11,6 +11,7 @@
 
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
+#include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
@@ -22,33 +23,31 @@
 
 namespace kepler {
 
-    struct Symbol;
+    enum class PrototypeLinkageType {
+        Internal,
+        External,
+    };
 
     struct ParameterData {
         StringId type_id;
         StringId identifier_id;
         Type* type = nullptr;
-        Symbol* symbol = nullptr;
+        SymbolId symbol_id;
         SourceLocation type_source_location;
         SourceLocation identifier_source_location;
     };
 
     struct Prototype : ASTNode {
-        enum class LinkageType {
-            Internal,
-            External,
-        };
-
-        LinkageType linkage_type;
+        PrototypeLinkageType linkage_type;
         SourceLocation identifier_source_location;
         StringId identifier_id;
         StringId return_type_id;
         Type* return_type = nullptr;
-        Symbol* symbol = nullptr;
+        SymbolId symbol_id;
         std::vector<ParameterData> parameter_data;
         bool is_variadic;
 
-        Prototype(LinkageType linkage_type,
+        Prototype(PrototypeLinkageType linkage_type,
             StringId return_type_id,
             StringId identifier_id,
             std::vector<ParameterData> parameter_data,
@@ -64,17 +63,17 @@ namespace kepler {
               is_variadic(is_variadic) {}
     };
 
-    llvm::Function::LinkageTypes get_llvm_linkage_type(Prototype::LinkageType linkage_type);
+    llvm::Function::LinkageTypes get_llvm_linkage_type(PrototypeLinkageType linkage_type);
 
 }
 
 template <>
-struct std::formatter<kepler::Prototype::LinkageType> : std::formatter<std::string> {
-    auto format(const kepler::Prototype::LinkageType& linkage_type, std::format_context& ctx) const {
+struct std::formatter<kepler::PrototypeLinkageType> : std::formatter<std::string> {
+    auto format(const kepler::PrototypeLinkageType& linkage_type, std::format_context& ctx) const {
         switch (linkage_type) {
-            case kepler::Prototype::LinkageType::Internal:
+            case kepler::PrototypeLinkageType::Internal:
                 return std::formatter<std::string>::format("Internal", ctx);
-            case kepler::Prototype::LinkageType::External:
+            case kepler::PrototypeLinkageType::External:
                 return std::formatter<std::string>::format("External", ctx);
         }
 

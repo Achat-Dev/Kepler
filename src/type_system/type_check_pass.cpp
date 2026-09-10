@@ -145,10 +145,12 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_assignment_statement(AssignmentStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
+        KPL_ASSERT_THAT(statement->variable_expression->symbol_id != SymbolId::invalid(),
+            "Variable symbol id of AssignmentStatement must not be invalid for type checking");
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
         KPL_ASSERT_NOT_POISONED(statement, "type checking");
 
-        const Symbol* variable_symbol = statement->variable_expression->symbol;
+        const Symbol* variable_symbol = symbol_table.lookup(statement->variable_expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(variable_symbol);
         KPL_ASSERT_NOT_NULLPTR(variable_symbol->type);
 
@@ -597,9 +599,10 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_call_expression(CallExpression* expression, const Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of CallExpression must not be invalid for type checking");
         KPL_ASSERT_NOT_POISONED(expression, "type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
-        const Symbol* prototype_symbol = expression->symbol;
+        const Symbol* prototype_symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(prototype_symbol);
         if (requested_type != prototype_symbol->type && requested_type != type_table.Builtins.unknown_type) {
             expression->node_type = ASTNodeType::Poison;
@@ -752,21 +755,24 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = typecheck_result.type};
         }
-        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type, unknown_type_message, "Expression of MathematicalNegationExpression");
+        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type,
+            unknown_type_message,
+            "Expression of MathematicalNegationExpression");
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type = typecheck_result.type};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_variable_expression(VariableExpression* expression, const Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->symbol);
-        KPL_ASSERT_NOT_NULLPTR(expression->symbol->type);
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of VariableExpression must not be invalid for type checking");
         KPL_ASSERT_NOT_POISONED(expression, "type checking");
         KPL_ASSERT_NOT_NULLPTR(requested_type);
-        if (requested_type == expression->symbol->type || requested_type == type_table.Builtins.unknown_type) {
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .type = expression->symbol->type};
+        const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
+        KPL_ASSERT_NOT_NULLPTR(symbol->type);
+        if (requested_type == symbol->type || requested_type == type_table.Builtins.unknown_type) {
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type = symbol->type};
         } else {
             expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = expression->symbol->type};
+            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = symbol->type};
         }
     }
 }

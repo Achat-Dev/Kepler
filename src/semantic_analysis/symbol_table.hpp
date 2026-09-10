@@ -12,47 +12,47 @@
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
+#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "utils/string_pool.hpp"
-#include <cstdint>
-#include <deque>
 #include <expected>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace kepler {
 
     class SymbolTable {
     public:
-        SymbolTable();
-        std::expected<Symbol*, SourceDiagnostic> create_variable(Type* type, StringId identifier_id, SourceLocation source_location);
-        std::expected<Symbol*, SourceDiagnostic> create_prototype(Type* type,
+        ModuleId create_module(std::vector<StringId> identifier_ids);
+        std::expected<SymbolId, SourceDiagnostic> create_variable(ModuleId module_id, Type* type, StringId identifier_id, SourceLocation source_location);
+        std::expected<SymbolId, SourceDiagnostic> create_prototype(ModuleId module_id,
+            Type* type,
             StringId identifier_id,
-            Prototype::LinkageType linkage_type,
+            PrototypeLinkageType linkage_type,
             std::vector<Type*> parameter_types,
             bool is_variadic,
             SourceLocation identifier_source_location);
 
-        // TODO (check): Maybe create a method to disable lookup after name resolution
+        Symbol* lookup(SymbolId symbol_id);
+        // TODO (check): Maybe create a method to disable finding after name resolution
         // Note: This method should only be used during name resolution.
-        Symbol* lookup(StringId identifier_id);
-        void open_scope(ScopeType type);
-        void close_scope();
+        Symbol* find(ModuleId module_id, StringId identifier_id);
+        void open_scope(ModuleId module_id, ScopeType type);
+        void close_scope(ModuleId module_id);
 
     private:
-        std::deque<Symbol> symbols; // std::deque so that pointers to symbols aren't invalidated when symbols are added
+        std::vector<Module> modules;
+        std::vector<Symbol> symbols;
         std::vector<Scope> scopes;
-        Scope* current_scope;
 
-        std::expected<Symbol*, SourceDiagnostic> create_symbol(Type* type,
+        std::expected<SymbolId, SourceDiagnostic> create_symbol(ModuleId module_id,
+            Type* type,
             StringId identifier_id,
             SymbolData&& symbol_data,
             const std::string& error_identifier,
             SourceLocation source_location);
-        std::pair<Symbol*, uint32_t> lookup_with_index(StringId identifier_id, ScopeId scope_id);
     };
 
 }

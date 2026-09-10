@@ -29,6 +29,7 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "semantic_analysis/symbol_table.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -37,10 +38,13 @@ namespace kepler {
 
     class ASTPrintPass : ASTPass<void> {
     public:
-        explicit ASTPrintPass(AbstractSyntaxTree& ast) : ASTPass(ast) {}
+        explicit ASTPrintPass(AbstractSyntaxTree& ast, SymbolTable& symbol_table)
+            : ASTPass(ast), symbol_table(symbol_table) {}
         void run() override;
 
     private:
+        SymbolTable& symbol_table;
+
         static constexpr char space[] = "   ";
         static constexpr char vertical_line[] = " \u2502 ";
         static constexpr char item_prefix[] = " \u251C\u2500 ";

@@ -30,6 +30,7 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "lexer/operator_type.hpp"
+#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include <memory>
@@ -54,13 +55,14 @@ namespace kepler {
 
     class TypeCheckPass : ASTPass<void> {
     public:
-        TypeCheckPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, const TypeTable& type_table)
-            : ASTPass(ast), diagnostic_sink(diagnostic_sink), type_table(type_table) {}
+        TypeCheckPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, const TypeTable& type_table)
+            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
         void run() override;
 
     private:
         Type* current_function_return_type = nullptr;
         DiagnosticSink& diagnostic_sink;
+        SymbolTable& symbol_table;
         const TypeTable& type_table;
 
         static constexpr const char poisoned_without_diagnostic_message[] = "{} must not poison itself without a diagnostic for type checking";

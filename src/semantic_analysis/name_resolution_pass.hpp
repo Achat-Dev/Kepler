@@ -27,6 +27,7 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
+#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
@@ -47,6 +48,7 @@ namespace kepler {
         DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
         TypeTable& type_table;
+        ModuleId module_id;
 
         void collect_prototype_symbols() const;
         void create_prototype_symbol(Prototype* prototype) const;

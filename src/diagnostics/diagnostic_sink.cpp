@@ -64,6 +64,8 @@ namespace kepler {
         return it;
     }
 
+    // TODO (bug): Line prefixes don't pad the line number,
+    // so if the magnitude of the line number changes during a multiline diagnostic, the lines are not aligned
     void DiagnosticSink::flush() {
         if (diagnostics.empty()) {
             return;

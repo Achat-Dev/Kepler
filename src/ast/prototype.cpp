@@ -14,11 +14,11 @@
 
 namespace kepler {
 
-    llvm::Function::LinkageTypes get_llvm_linkage_type(Prototype::LinkageType linkage_type) {
+    llvm::Function::LinkageTypes get_llvm_linkage_type(PrototypeLinkageType linkage_type) {
         switch (linkage_type) {
-            case Prototype::LinkageType::Internal:
+            case PrototypeLinkageType::Internal:
                 return llvm::Function::InternalLinkage;
-            case Prototype::LinkageType::External:
+            case PrototypeLinkageType::External:
                 return llvm::Function::ExternalLinkage;
         }
 
