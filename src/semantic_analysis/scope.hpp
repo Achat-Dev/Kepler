@@ -15,6 +15,8 @@
 
 namespace kepler {
 
+    struct SymbolId;
+
     struct ScopeId {
         uint32_t value = 0;
 
@@ -33,7 +35,7 @@ namespace kepler {
         ScopeType type;
         ScopeId id;
         ScopeId parent_id;
-        std::unordered_map<StringId, uint32_t> contained_symbols;
+        std::unordered_map<StringId, SymbolId> contained_symbols;
     };
 
 }

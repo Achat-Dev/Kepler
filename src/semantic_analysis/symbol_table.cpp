@@ -90,8 +90,8 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(scope);
             const auto it = scope->contained_symbols.find(identifier_id);
             if (it != scope->contained_symbols.end()) {
-                KPL_ASSERT_THAT(it->second < symbols.size(), "Can't find symbol with out of bounds index");
-                return &symbols[it->second];
+                KPL_ASSERT_THAT(it->second.value < symbols.size(), "Can't find symbol with out of bounds index");
+                return &symbols[it->second.value];
             }
 
             if (scope->parent_id == ScopeId::invalid()) {
@@ -107,9 +107,9 @@ namespace kepler {
         const ScopeId scope_id = {.value = static_cast<uint32_t>(scopes.size())};
         Module& module = modules[module_id.value];
         if (scopes.empty()) {
-            scopes.emplace_back(type, scope_id, ScopeId::invalid(), std::unordered_map<StringId, uint32_t>{});
+            scopes.emplace_back(type, scope_id, ScopeId::invalid(), std::unordered_map<StringId, SymbolId>{});
         } else {
-            scopes.emplace_back(type, scope_id, module.current_scope_id, std::unordered_map<StringId, uint32_t>{});
+            scopes.emplace_back(type, scope_id, module.current_scope_id, std::unordered_map<StringId, SymbolId>{});
         }
         module.scope_ids.push_back(scope_id);
         module.current_scope_id = scope_id;
