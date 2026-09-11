@@ -20,12 +20,15 @@ namespace kepler {
     enum class DiagnosticCode {
         // Usage
         HelpRequested = 100,
+        UnknownOption,
+        InvalidOptionFormat,
+        InvalidOptionValue,
+        MissingOptionValue,
         NoInputFile,
         NoOutputFile,
         WrongFileFormat,
         OptionUsedTooOften,
         UnknownOptimizationLevel,
-        UnknownOption,
         MissingDependency,
 
         // I/O

@@ -14,14 +14,6 @@ The architecture of the project is based on the [official LLVM tutorial](https:/
 > - Changed `functions`, `if` and `for` expressions to have bodies
 > - Changed parsing and lexing to fit the architecture of the project
 
-## Included dependencies
-
-**cxxopts** - 3.3.1
-
-> Copyright (c) 2014 Jarryd Beck\
-> Licensed under the MIT license\
-> See the [license](./external/cxxopts/include/LICENSE) for more details
-
 ## Dependencies that are not included but need to be pre-installed
 
 **LLVM** - 21.0.0git or newer

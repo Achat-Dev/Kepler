@@ -9,7 +9,7 @@
 
 #include "compiler.hpp"
 
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
     kepler::Compiler compiler;
     return compiler.run(argc, argv);
 }

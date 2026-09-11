@@ -22,12 +22,15 @@ namespace kepler {
             case DiagnosticCode::UnreachableCode:
                 return DiagnosticSeverity::Warning;
 
+            case DiagnosticCode::UnknownOption:
+            case DiagnosticCode::InvalidOptionFormat:
+            case DiagnosticCode::InvalidOptionValue:
+            case DiagnosticCode::MissingOptionValue:
             case DiagnosticCode::NoInputFile:
             case DiagnosticCode::NoOutputFile:
             case DiagnosticCode::WrongFileFormat:
             case DiagnosticCode::OptionUsedTooOften:
             case DiagnosticCode::UnknownOptimizationLevel:
-            case DiagnosticCode::UnknownOption:
             case DiagnosticCode::MissingDependency:
             case DiagnosticCode::FileNotFound:
             case DiagnosticCode::FileIsADirectory:

@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Definition of module name in source file
+
+### Changed
+
+- Values of the `-a` option are now separated by spaces instead of commas
+- Everything now uses `SymbolId` instead if `Symbol*`, which avoids a dependency on the underlying container type of the symbol table
+- Parsing cmd options now uses an internal utility instead of `cxxopts`
+
+### Removed
+
+- Dependency on `cxxopts`
+
+### Fixed
+
+- Wrong assertion in `elseif` parsing
+
 ## [0.2.0] - 2026-09-09
 
 ### Added
