@@ -212,7 +212,7 @@ namespace kepler {
             "Additional .c or .o files, separated by spaces");
         cmd_parser.add_option(&optimization_level_string, 'O', "optimization-level",
             "The optimization level to use. Possible values for <arg>:\n"
-            "- 0: No optimization\n"
+            "- 0: (Almost) no optimization\n"
             "- 1: Optimize quickly without destroying debuggability\n"
             "- 2: Optimize for fast execution as much as possible without triggering significant incremental compile time or code size growth\n"
             "- 3: Optimize for fast execution as much as possible no matter the compilation cost\n"

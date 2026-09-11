@@ -13,8 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Changed
 
 - Values of the `-a` option are now separated by spaces instead of commas
-- Everything now uses `SymbolId` instead if `Symbol*`, which avoids a dependency on the underlying container type of the symbol table
-- Parsing cmd options now uses an internal utility instead of `cxxopts`
+- Improved formatting of help (`-h` option)
 
 ### Removed
 
@@ -32,7 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Changed
 
-- Files are now cached after the first load to avoid multiple loads during diagnostic printing
+- Lowered memory usage by caching files after the first load to avoid multiple loads during diagnostic printing
 - Diagnostics can span across multiple lines now
 - Diagnostics for mathematical negations now include the minus sign
 
@@ -52,7 +51,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Options for different optimization levels:
   - `-O 0`: (Almost) no optimization
   - `-O 1`: Optimize quickly without destroying debuggability
-  - `-O 2`: Optimize for fast execution as much as possible without triggering significant incremental compile time or code size growth
+  - `-O 2`: (Default value) Optimize for fast execution as much as possible without triggering significant incremental compile time or code size growth
   - `-O 3`: Optimize for fast execution as much as possible no matter the compilation cost
   - `-O s`: Similar to `-O 2` but tries to optimize for small code size instead of fast execution
   - `-O z`: A very specialized mode that will optimize for code size at any and all costs
@@ -64,16 +63,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Diagnostics are now collected and printed in their entirety at a specific point instead of terminating after the first diagnostic
 - Improved diagnostic messages
 - Functions can now be called before they are defined
-- Reworked the architecture to a multi-pass compiler instead of a single-pass compiler
-  - Moved ... from lexer, parser and ASTNodes into the following, separate passes
-    - Missing return & unreachable code detection
-    - Name resolution
-    - Type checking
-    - Code generation
-  - Type checking now uses a proper type table
-  - Name resolution now uses a proper symbol table
 - Strings are now interned during the compilation to lower memory usage and increase performance
-- Split assertions into multiple macros (and added a shit load of assertions)
 
 ### Removed
 
