@@ -15,12 +15,14 @@
 #include "utils/string_pool.hpp"
 #include "utils/string_utils.hpp"
 #include "version.hpp"
+#include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <expected>
 #include <format>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace kepler {
@@ -31,7 +33,7 @@ namespace kepler {
             const StringId help_id = StringPool::get().store("help");
             CmdOption* help_option = find_option(help_id);
             if (help_option != nullptr) {
-                return help_option->set_value({"true"}, 0);
+                return help_option->set_value({"true"}, help_option, 0);
             }
             return {};
         }
@@ -53,7 +55,7 @@ namespace kepler {
                 if (option == nullptr) {
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::UnknownOption,
-                        .message = std::format("Unknown cmd option '{}'\n{}", arg, get_args_with_highlighted_error(index)),
+                        .message = std::format("Unknown cmd option '{}'\n{}", arg, get_arg_string_with_highlighted_error({index})),
                     });
                 }
             } else if (arg.starts_with('-')) {
@@ -61,7 +63,7 @@ namespace kepler {
                 if (short_arg_name_string.size() != 1) {
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::InvalidOptionFormat,
-                        .message = std::format("Unknown cmd option '{}'\n{}", arg, get_args_with_highlighted_error(index)),
+                        .message = std::format("Unknown cmd option '{}'\n{}", arg, get_arg_string_with_highlighted_error({index})),
                     });
                 }
 
@@ -69,9 +71,9 @@ namespace kepler {
                 if (!std::isalpha(short_arg_name)) {
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::InvalidOptionFormat,
-                        .message = std::format("Short version of cmd option must be a character, received '{}'\n{}",
+                        .message = std::format("Short version of cmd option must be a alphabetical character, received '{}'\n{}",
                             short_arg_name,
-                            get_args_with_highlighted_error(index)),
+                            get_arg_string_with_highlighted_error({index})),
                     });
                 }
 
@@ -79,26 +81,26 @@ namespace kepler {
                 if (option == nullptr) {
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::UnknownOption,
-                        .message = std::format("Unknown cmd option '-{}'\n{}", short_arg_name, get_args_with_highlighted_error(index)),
+                        .message = std::format("Unknown cmd option '{}'\n{}", arg, get_arg_string_with_highlighted_error({index})),
                     });
                 }
             }
 
             KPL_ASSERT_NOT_NULLPTR(option);
-            if (option->option_used) {
+            if (option->original_arg_index != -1) {
                 return std::unexpected(Diagnostic{
                     .code = DiagnosticCode::OptionUsedTooOften,
                     .message = std::format("Cmd option '-{}/--{}' can only be used once\n{}",
                         option->short_name,
                         StringPool::get().lookup(option->long_name_id),
-                        get_args_with_highlighted_error(index)),
+                        get_arg_string_with_highlighted_error({option->original_arg_index, index})),
                 });
             }
-            option->option_used = true;
+            option->original_arg_index = index;
 
             switch (option->value_type) {
                 case CmdOptionValueType::NoValue: {
-                    const auto set_result = option->set_value({"true"}, 0);
+                    const auto set_result = option->set_value({"true"}, option, index);
                     if (!set_result) {
                         return std::unexpected(set_result.error());
                     }
@@ -109,7 +111,7 @@ namespace kepler {
                                 .message = std::format("Cmd option '-{}/--{}' doesn't take a value\n{}",
                                     option->short_name,
                                     StringPool::get().lookup(option->long_name_id),
-                                    get_args_with_highlighted_error(index)),
+                                    get_arg_string_with_highlighted_error({index})),
                             });
                         }
                     }
@@ -122,7 +124,7 @@ namespace kepler {
                             .message = std::format("Cmd option '-{}'/'--{}' needs a value\n{}",
                                 option->short_name,
                                 StringPool::get().lookup(option->long_name_id),
-                                get_args_with_highlighted_error(index)),
+                                get_arg_string_with_highlighted_error({index})),
                         });
                     }
 
@@ -133,22 +135,33 @@ namespace kepler {
                             .message = std::format("Cmd option '-{}'/'--{}' needs a value\n{}",
                                 option->short_name,
                                 StringPool::get().lookup(option->long_name_id),
-                                get_args_with_highlighted_error(index)),
+                                get_arg_string_with_highlighted_error({index})),
                         });
                     }
-                    const auto set_result = option->set_value({std::string(argv[index])}, index);
+                    const auto set_result = option->set_value({std::string(argv[index])}, option, index);
                     if (!set_result) {
                         return std::unexpected(set_result.error());
                     }
 
                     if (index + 1 <= argc - 1) {
                         if (argv[index + 1][0] != '-') {
+                            std::vector<int> faulty_arg_indices{option->original_arg_index, index};
+                            index += 1;
+                            while (index < argc) {
+                                if (argv[index][0] == '-') {
+                                    break;
+                                }
+                                faulty_arg_indices.push_back(index);
+                                index += 1;
+                            }
+                            const int faulty_arg_count = faulty_arg_indices.size() - 1; // -1 because the arg option is also part of the vector
                             return std::unexpected(Diagnostic{
                                 .code = DiagnosticCode::InvalidOptionValue,
-                                .message = std::format("Cmd option '-{}'/'--{}' only takes one value, received multiple values\n{}",
+                                .message = std::format("Cmd option '-{}/--{}' only takes one value, received {} values\n{}",
                                     option->short_name,
                                     StringPool::get().lookup(option->long_name_id),
-                                    get_args_with_highlighted_error(index)),
+                                    faulty_arg_count,
+                                    get_arg_string_with_highlighted_error(std::move(faulty_arg_indices))),
                             });
                         }
                     }
@@ -161,7 +174,7 @@ namespace kepler {
                             .message = std::format("Cmd option '-{}'/'--{}' needs a value\n{}",
                                 option->short_name,
                                 StringPool::get().lookup(option->long_name_id),
-                                get_args_with_highlighted_error(index)),
+                                get_arg_string_with_highlighted_error({index})),
                         });
                     }
 
@@ -172,7 +185,7 @@ namespace kepler {
                             .message = std::format("Cmd option '-{}'/'--{}' needs a value\n{}",
                                 option->short_name,
                                 StringPool::get().lookup(option->long_name_id),
-                                get_args_with_highlighted_error(index)),
+                                get_arg_string_with_highlighted_error({index})),
                         });
                     }
 
@@ -184,7 +197,7 @@ namespace kepler {
                         args.push_back(std::string(argv[index]));
                         index += 1;
                     }
-                    const auto set_result = option->set_value({args}, index);
+                    const auto set_result = option->set_value({args}, option, index);
                     if (!set_result) {
                         return std::unexpected(set_result.error());
                     }
@@ -219,7 +232,7 @@ namespace kepler {
                     result += " <args...>\n";
                     break;
             }
-            result += get_indent_wrapped_text(std::string(StringPool::get().lookup(option.description_id)), 80, "        ");
+            result += get_indent_wrapped_text(std::string(StringPool::get().lookup(option.description_id)), wrapped_text_width, "        ");
             if (!result.ends_with('\n')) {
                 result += '\n';
             }
@@ -251,27 +264,28 @@ namespace kepler {
         return nullptr;
     }
 
-    std::string CmdParser::get_args_with_highlighted_error(int index_to_highlight) {
+    std::string CmdParser::get_arg_string_with_highlighted_error(std::vector<int> indices_to_highlight) {
         const std::string prefix = std::string(log::last_indented) + "Used command: ";
-        std::string result = original_args[0];
-        int position = 0;
-        int size = 0;
+        std::string command = prefix + original_args[0];
+        std::string arrows = std::string(strlen_utf8(prefix) + strlen_utf8(original_args[0]), ' ');
+        int last_arrow_index = -1;
         for (int i = 1; i < original_args.size(); i++) {
-            if (i == index_to_highlight) {
-                position = result.size() + 1; // +1 for the following space
-                size = original_args[i].size();
-                result += std::format(" {}{}{}", get_severity_highlight(DiagnosticSeverity::Error), original_args[i], ansi_codes::reset);
+            if (std::find(indices_to_highlight.begin(), indices_to_highlight.end(), i) == indices_to_highlight.end()) {
+                command += ' ' + original_args[i];
+                arrows += std::string(strlen_utf8(original_args[i]) + 1, ' '); // +1 for the space
             } else {
-                result += ' ' + original_args[i];
+                const std::string severity_highlight = get_severity_highlight(DiagnosticSeverity::Error);
+                command += std::format(" {}{}{}", severity_highlight, original_args[i], ansi_codes::reset);
+                if (last_arrow_index == i - 1) {
+                    // Both the last and this arg are errors, so also highlight the space between
+                    arrows += std::format("{}{}{}", severity_highlight, std::string(strlen_utf8(original_args[i]) + 1, '^'), ansi_codes::reset);
+                } else {
+                    arrows += std::format(" {}{}{}", severity_highlight, std::string(strlen_utf8(original_args[i]), '^'), ansi_codes::reset);
+                }
+                last_arrow_index = i;
             }
         }
-        return std::format("{}{}\n{}{}{}{}",
-            prefix,
-            result,
-            std::string(strlen_utf8(prefix) + position, ' '),
-            get_severity_highlight(DiagnosticSeverity::Error),
-            std::string(size, '^'),
-            ansi_codes::reset);
+        return command + '\n' + arrows;
     }
 
     std::string CmdParser::get_indent_wrapped_text(const std::string& text, uint32_t width, const std::string& indent) const {
