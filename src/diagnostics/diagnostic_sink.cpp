@@ -15,8 +15,8 @@
 #include "utils/ansi_codes.hpp"
 #include "utils/assert.h"
 #include "utils/log.hpp"
+#include "utils/string_utils.hpp"
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -175,39 +175,4 @@ namespace kepler {
         diagnostics.clear();
     }
 
-    size_t DiagnosticSink::strlen_utf8(const std::string& string) const {
-        size_t count = 0;
-        for (size_t i = 0; i < string.size();) {
-            unsigned char c = string[i];
-            if (c < 0x80) {
-                i += 1; // ASCII
-            } else if ((c & 0xE0) == 0xC0) {
-                i += 2; // 2-byte UTF-8
-            } else if ((c & 0xF0) == 0xE0) {
-                i += 3; // 3-byte UTF-8
-            } else if ((c & 0xF8) == 0xF0) {
-                i += 4; // 4-byte UTF-8
-            } else {
-                log::error("Invalid UTF8 character '{}' when trying to print diagnostic, diagnostic arrows might be off", c);
-                return 0;
-            }
-            count += 1;
-        }
-        return count;
-    }
-
-    std::string DiagnosticSink::get_severity_highlight(DiagnosticSeverity severity) const {
-        switch (severity) {
-            case DiagnosticSeverity::Note:
-                return ansi_codes::bold;
-            case DiagnosticSeverity::Warning:
-                return ansi_codes::combine(ansi_codes::bold, ansi_codes::yellow);
-            case DiagnosticSeverity::Error:
-                return ansi_codes::combine(ansi_codes::bold, ansi_codes::red);
-            case DiagnosticSeverity::Unsupported:
-                return ansi_codes::combine(ansi_codes::bold, ansi_codes::magenta);
-        }
-
-        KPL_ASSERT_UNREACHABLE("Missing styling implementation for severity '{}'", severity);
-    }
 }

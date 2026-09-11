@@ -32,13 +32,13 @@ namespace kepler {
     };
 
     struct CmdOption {
-        bool option_defined;
-        char short_name;
+        bool option_used = false;
+        char short_name = ' ';
         StringId long_name_id;
         StringId description_id;
         CmdOptionValueType value_type;
 
-        std::function<std::expected<void, Diagnostic>(const std::vector<std::string>&)> set_value;
+        std::function<std::expected<void, Diagnostic>(const std::vector<std::string>&, int original_arg_index)> set_value;
     };
 
     template <typename T>
@@ -75,23 +75,25 @@ namespace kepler {
             }
 
             options.push_back(CmdOption{
-                .option_defined = false,
+                .option_used = false,
                 .short_name = short_name,
                 .long_name_id = long_name_id,
                 .description_id = StringPool::get().store(std::move(description)),
                 .value_type = value_type,
-                .set_value = [this, value](const std::vector<std::string>& args) {
-                    return set_value(*value, args);
+                .set_value = [this, value](const std::vector<std::string>& args, int original_arg_index) {
+                    return set_value(*value, args, original_arg_index);
                 }});
         }
 
     private:
         const StringId program_description_id;
+        std::vector<std::string> original_args;
         std::vector<CmdOption> options;
 
         CmdOption* find_option(char short_name);
         CmdOption* find_option(StringId long_name_id);
-        std::string wrap_text_with_indentation(const std::string& text, uint32_t width, const std::string& indent) const;
+        std::string get_args_with_highlighted_error(int index_to_highlight);
+        std::string get_indent_wrapped_text(const std::string& text, uint32_t width, const std::string& indent) const;
 
         template <typename T>
             requires std::is_integral_v<T> || std::is_floating_point_v<T>
@@ -101,7 +103,7 @@ namespace kepler {
         }
 
         template <typename T>
-        std::expected<void, Diagnostic> set_value(T& value, const std::vector<std::string>& args) {
+        std::expected<void, Diagnostic> set_value(T& value, const std::vector<std::string>& args, int original_arg_index) {
             if constexpr (std::is_same_v<T, bool>) {
                 KPL_ASSERT_THAT(args.size() == 1, "Setting boolean cmd option requires one argument");
                 KPL_ASSERT_THAT(args[0] == "true", "Setting boolean cmd option requires argument to be true");
@@ -110,7 +112,7 @@ namespace kepler {
                 KPL_ASSERT_THAT(args.size() > 0, "Setting vector cmd option requires at least argument");
                 using TValueType = typename is_vector<T>::value_type;
                 for (const auto& arg : args) {
-                    const auto result = parse_arg<TValueType>(arg);
+                    const auto result = parse_value<TValueType>(arg, original_arg_index);
                     if (!result) {
                         return std::unexpected(result.error());
                     }
@@ -118,7 +120,7 @@ namespace kepler {
                 }
             } else {
                 KPL_ASSERT_THAT(args.size() == 1, "Setting cmd option requires exactly one argument");
-                const auto result = parse_arg<T>(args[0]);
+                const auto result = parse_value<T>(args[0], original_arg_index);
                 if (!result) {
                     return std::unexpected(result.error());
                 }
@@ -128,7 +130,7 @@ namespace kepler {
         }
 
         template <typename T>
-        std::expected<T, Diagnostic> parse_arg(const std::string& text) {
+        std::expected<T, Diagnostic> parse_value(const std::string& text, int original_arg_index) {
             if constexpr (std::is_same_v<T, std::string>) {
                 return text;
             } else if constexpr (std::is_same_v<T, std::filesystem::path>) {
@@ -138,7 +140,7 @@ namespace kepler {
                 if (!try_parse(text, result)) {
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::InvalidOptionValue,
-                        .message = std::format("Cmd option value '{}' is not an integer", text),
+                        .message = std::format("Cmd option value '{}' is not an integer\n{}", text, get_args_with_highlighted_error(original_arg_index)),
                     });
                 }
                 return result;

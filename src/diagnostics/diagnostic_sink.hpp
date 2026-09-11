@@ -11,7 +11,6 @@
 
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
-#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -30,8 +29,6 @@ namespace kepler {
         uint32_t error_count = 0;
         std::vector<SourceDiagnostic> diagnostics;
 
-        size_t strlen_utf8(const std::string& string) const;
-        std::string get_severity_highlight(DiagnosticSeverity severity) const;
         auto find_line_info(const std::vector<LineInfo>& line_infos, uint32_t position);
     };
 

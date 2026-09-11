@@ -65,4 +65,19 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing format implementation for severity mapping of diagnostic code '{}'", static_cast<int>(diagnostic_code));
     }
 
+    std::string get_severity_highlight(DiagnosticSeverity severity) {
+        switch (severity) {
+            case DiagnosticSeverity::Note:
+                return ansi_codes::bold;
+            case DiagnosticSeverity::Warning:
+                return ansi_codes::combine(ansi_codes::bold, ansi_codes::yellow);
+            case DiagnosticSeverity::Error:
+                return ansi_codes::combine(ansi_codes::bold, ansi_codes::red);
+            case DiagnosticSeverity::Unsupported:
+                return ansi_codes::combine(ansi_codes::bold, ansi_codes::magenta);
+        }
+
+        KPL_ASSERT_UNREACHABLE("Missing styling implementation for severity '{}'", severity);
+    }
+
 }

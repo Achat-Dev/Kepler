@@ -88,6 +88,7 @@ namespace kepler {
     };
 
     DiagnosticSeverity get_diagnostic_severity(DiagnosticCode diagnostic_code);
+    std::string get_severity_highlight(DiagnosticSeverity severity);
 
 }
 
