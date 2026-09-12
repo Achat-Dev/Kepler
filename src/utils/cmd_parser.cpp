@@ -307,7 +307,7 @@ namespace kepler {
                     const uint32_t word_size = word.size() + 1; // +1 for the extra space after the word
                     if (current_width + word_size <= width) {
                         result += word + ' ';
-                        current_width += word.size();
+                        current_width += word_size;
                     } else {
                         result += '\n' + indent + word + ' ';
                         current_width = indent_size + word_size;
