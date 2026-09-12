@@ -30,7 +30,7 @@
 namespace kepler {
 
     void DiagnosticSink::report(DiagnosticCode code, std::string message, SourceLocation source_location) {
-        KPL_ASSERT_THAT(source_location.size > 0, "Source location of reported diagnostic must have a size > 0");
+        KPL_ASSERT_THAT(source_location.size > 0);
 
         const DiagnosticSeverity severity = get_diagnostic_severity(code);
         switch (severity) {

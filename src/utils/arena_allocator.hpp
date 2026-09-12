@@ -35,8 +35,8 @@ namespace kepler {
         template <typename T, typename... Args>
             requires(!std::is_array_v<T>)
         T* allocate(Args&&... args) {
-            KPL_ASSERT_THAT(blocks.size() > 0, "Can't call 'allocate' on freed ArenaAllocator");
-            KPL_ASSERT_THAT(sizeof(T) <= block_size, "Can't allocate an object that is bigger than the blocksize of an ArenaAllocator");
+            KPL_ASSERT_THAT(blocks.size() > 0);
+            KPL_ASSERT_THAT(sizeof(T) <= block_size, "Block size: {}, requested allocation size: {}", block_size, sizeof(T));
 
             void* memory = current_block->allocate(sizeof(T), alignof(T));
 

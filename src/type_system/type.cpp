@@ -75,6 +75,7 @@ namespace kepler {
     }
 
     bool is_integer_type(const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(type);
         switch (type->type_kind) {
             case TypeKind::I8:
             case TypeKind::I16:
@@ -91,6 +92,7 @@ namespace kepler {
     }
 
     bool is_signed_integer_type(const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(type);
         switch (type->type_kind) {
             case TypeKind::I8:
             case TypeKind::I16:
@@ -103,6 +105,7 @@ namespace kepler {
     }
 
     bool is_unsigned_integer_type(const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(type);
         switch (type->type_kind) {
             case TypeKind::U8:
             case TypeKind::U16:
@@ -115,6 +118,7 @@ namespace kepler {
     }
 
     bool is_floating_point_type(const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(type);
         switch (type->type_kind) {
             case TypeKind::F32:
             case TypeKind::F64:
@@ -160,7 +164,7 @@ namespace kepler {
 
     uint32_t get_integer_bitwidth(const Type* type) {
         KPL_ASSERT_NOT_NULLPTR(type);
-        KPL_ASSERT_THAT(is_integer_type(type), "Can only get bit width of integer type");
+        KPL_ASSERT_THAT(is_integer_type(type), "Required integer type, received: {}", *type);
         switch (type->type_kind) {
             case kepler::TypeKind::I8:
                 return 8;
@@ -344,8 +348,8 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
             KPL_ASSERT_NOT_NULLPTR(target_type);
-            KPL_ASSERT_THAT(original_type != target_type, "Original type and target type must be different for creating cast from float to int");
-            // Clamp the value of the float to the integer boundaries because llvm poisons the result if the value isout of bounds
+            KPL_ASSERT_THAT(original_type != target_type);
+            // Clamp the value of the float to the integer boundaries because llvm poisons the result if the value is out of bounds
             llvm::Type* llvm_float_type = get_llvm_type(original_type, context);
             llvm::Value* min = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::lowest()));
             llvm::Value* max = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::max()));
@@ -372,7 +376,7 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
             KPL_ASSERT_NOT_NULLPTR(target_type);
-            KPL_ASSERT_THAT(original_type != target_type, "Can't create redundant cast for type '{}'", *original_type);
+            KPL_ASSERT_THAT(original_type != target_type);
             if (is_integer_type(original_type)) {
                 return builder.CreateIntCast(value, get_llvm_type(target_type, context), is_signed);
             } else if (is_floating_point_type(original_type)) {
@@ -386,7 +390,7 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(original_type);
             KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f32_type);
             KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f64_type);
-            KPL_ASSERT_THAT(original_type != TypeTable::Builtins.f32_type, "Can't create redundant cast for type '{}'", *original_type);
+            KPL_ASSERT_THAT(original_type != TypeTable::Builtins.f32_type);
             if (is_signed_integer_type(original_type)) {
                 return builder.CreateSIToFP(value, get_llvm_type(original_type, context));
             } else if (is_unsigned_integer_type(original_type)) {
@@ -402,7 +406,7 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(original_type);
             KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f32_type);
             KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f64_type);
-            KPL_ASSERT_THAT(original_type != TypeTable::Builtins.f64_type, "Can't create redundant cast for type '{}'", *original_type);
+            KPL_ASSERT_THAT(original_type != TypeTable::Builtins.f64_type);
             if (is_integer_type(original_type)) {
                 return builder.CreateSIToFP(value, get_llvm_type(original_type, context));
             } else if (is_unsigned_integer_type(original_type)) {
@@ -418,7 +422,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(value);
         KPL_ASSERT_NOT_NULLPTR(original_type);
         KPL_ASSERT_NOT_NULLPTR(target_type);
-        KPL_ASSERT_THAT(original_type != target_type, "Can't create redundant cast for type '{}'", *original_type);
+        KPL_ASSERT_THAT(original_type != target_type);
         switch (target_type->type_kind) {
             case TypeKind::Unknown:
             case TypeKind::Void:

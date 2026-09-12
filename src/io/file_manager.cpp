@@ -62,8 +62,8 @@ namespace kepler {
         };
         id_to_path_map.emplace(file.id, path);
         const auto [it, emplaced] = files.emplace(path, std::move(file));
-        KPL_ASSERT_THAT(emplaced, "File has to be emplaced into file cache if it isn't already present");
-        KPL_ASSERT_THAT(id_to_path_map.size() == files.size(), "FileId to path map and file cache must have the same size after emplacing new file");
+        KPL_ASSERT_THAT(emplaced);
+        KPL_ASSERT_THAT(id_to_path_map.size() == files.size(), "Id count: {}, file count: {}", id_to_path_map.size(), files.size());
         return &it->second;
     }
 

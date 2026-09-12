@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace kepler {
@@ -84,7 +85,7 @@ namespace kepler {
             return nullptr; // parse_expression alredy recovered, so no need to recover here
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Assignment identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<AssignmentStatement>(std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location),
             std::move(value_expression),
@@ -209,7 +210,7 @@ namespace kepler {
             return nullptr;
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "'for' identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId identifier_id = std::get<StringId>(current_token->data);
         next_token(true); // eat identifier
         if (current_token->type != TokenType::Colon) {
@@ -313,7 +314,7 @@ namespace kepler {
             return nullptr;
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(variable_type_token->data, StringId, "'for' type token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(variable_type_token->data));
         const StringId variable_type_id = std::get<StringId>(variable_type_token->data);
         std::unique_ptr<VariableExpression> variable = std::make_unique<VariableExpression>(variable_identifier_id, variable_type_token->source_location);
         std::unique_ptr<AssignmentStatement> assignment_statement = std::make_unique<AssignmentStatement>(std::move(variable),
@@ -347,7 +348,7 @@ namespace kepler {
             "Parsing return statement requires '{}' token, received '{}'",
             TokenType::Return,
             current_token->type);
-        KPL_ASSERT_THAT(current_function_return_type_id.has_value(), "Function return type id must have a value for parsing a 'return' statement");
+        KPL_ASSERT_THAT(current_function_return_type_id.has_value());
 
         const SourceLocation& return_source_location = current_token->source_location;
         next_token(true); // eat 'return' keyword
@@ -399,7 +400,7 @@ namespace kepler {
             current_token->type);
         const SourceLocation& type_source_location = current_token->source_location;
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Variable definition type token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
 
         next_token(true); // eat type
@@ -424,7 +425,7 @@ namespace kepler {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Variable definition identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<VariableDefinitionStatement>(type_id, identifier_id, std::move(assignment_statement), type_source_location);
     }

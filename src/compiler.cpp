@@ -94,6 +94,7 @@ namespace kepler {
         }
 
         // Load file to start compilation
+        KPL_ASSERT_THAT(context.input_path.extension() == ".kpl", "Required extension: '.kpl', received: '{}'", context.input_path.extension().string());
         const auto file = FileManager::get().load(context.input_path);
         if (!file) {
             print_diagnostic(file.error());
@@ -334,8 +335,8 @@ namespace kepler {
         // clang-format on
         KPL_ASSERT_NOT_NULLPTR(module);
         KPL_ASSERT_NOT_NULLPTR(target_machine);
-        KPL_ASSERT_THAT(!output_path.empty(), "Output path must not be empty for object code emission");
-        KPL_ASSERT_THAT(output_path.extension() == ".o", "Output path must end with '.o' for object code emission");
+        KPL_ASSERT_THAT(!output_path.empty());
+        KPL_ASSERT_THAT(output_path.extension() == ".o", "Required extension: '.o', received: '{}'", output_path.extension().string());
         std::error_code error_code;
         llvm::raw_fd_ostream out_stream(output_path.string(), error_code, llvm::sys::fs::OF_None);
         if (error_code) {
@@ -364,9 +365,9 @@ namespace kepler {
         const std::filesystem::path& output_path) const
     {
         // clang-format on
-        KPL_ASSERT_THAT(!object_path.empty(), "Object path must not be empty for executable linking");
-        KPL_ASSERT_THAT(object_path.extension() == ".o", "Object path must have '.o' as the file extension for executable linking");
-        KPL_ASSERT_THAT(!output_path.empty(), "Output path must not be empty for executable linking");
+        KPL_ASSERT_THAT(!object_path.empty());
+        KPL_ASSERT_THAT(object_path.extension() == ".o", "Required extension: '.o', received: '{}'", object_path.extension().string());
+        KPL_ASSERT_THAT(!output_path.empty());
 
         // Construct arguments
         std::vector<std::string> args;
@@ -383,7 +384,8 @@ namespace kepler {
         args.push_back(object_path.string().data());
         for (const std::filesystem::path& additional_path : additional_paths) {
             KPL_ASSERT_THAT(additional_path.extension() == ".c" || additional_path.extension() == ".o",
-                "Additional files must have either '.c' or '.o' as the file extension for executable linking");
+                "Required extension: '.c' or '.o', received: '{}'",
+                additional_path.extension().string());
             if (!std::filesystem::exists(additional_path)) {
                 log::error("Additional file path '{}' doesn't exist", additional_path.string());
                 return false;

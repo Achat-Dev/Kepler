@@ -60,9 +60,9 @@ namespace kepler {
         template <typename T>
         void add_option(T* value, char short_name, std::string long_name, std::string description) {
             KPL_ASSERT_NOT_NULLPTR(value);
-            KPL_ASSERT_THAT(!find_option(short_name), "Option with short name '{}' is already registered", short_name);
+            KPL_ASSERT_THAT(find_option(short_name) == nullptr, "Option '-{}' is already added", short_name);
             const StringId long_name_id = StringPool::get().store(long_name);
-            KPL_ASSERT_THAT(!find_option(long_name_id), "Option with long name '{}' is already registered", long_name);
+            KPL_ASSERT_THAT(find_option(long_name_id) == nullptr, "Option '--{}' is already added", long_name);
             CmdOptionValueType value_type = CmdOptionValueType::OneValue;
             if constexpr (std::is_same_v<T, bool>) {
                 value_type = CmdOptionValueType::NoValue;
@@ -107,11 +107,11 @@ namespace kepler {
         std::expected<void, Diagnostic> set_value(T& value, const std::vector<std::string>& args, const CmdOption* option, int value_arg_index) {
             KPL_ASSERT_NOT_NULLPTR(option);
             if constexpr (std::is_same_v<T, bool>) {
-                KPL_ASSERT_THAT(args.size() == 1, "Setting boolean cmd option requires one argument");
-                KPL_ASSERT_THAT(args[0] == "true", "Setting boolean cmd option requires argument to be true");
+                KPL_ASSERT_THAT(args.size() == 1);
+                KPL_ASSERT_THAT(args[0] == "true");
                 value = true;
             } else if constexpr (is_vector<T>::value) {
-                KPL_ASSERT_THAT(args.size() > 0, "Setting vector cmd option requires at least argument");
+                KPL_ASSERT_THAT(args.size() > 0);
                 using TValueType = typename is_vector<T>::value_type;
                 for (const auto& arg : args) {
                     const auto result = parse_value<TValueType>(arg, option, value_arg_index);
@@ -121,7 +121,7 @@ namespace kepler {
                     value.push_back(*result);
                 }
             } else {
-                KPL_ASSERT_THAT(args.size() == 1, "Setting cmd option requires exactly one argument");
+                KPL_ASSERT_THAT(args.size() == 1);
                 const auto result = parse_value<T>(args[0], option, value_arg_index);
                 if (!result) {
                     return std::unexpected(result.error());

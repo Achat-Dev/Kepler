@@ -56,6 +56,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace kepler {
@@ -100,8 +101,8 @@ namespace kepler {
     void CodegenPass::codegen_forward_declaration(const Prototype* prototype) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
-        KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid(), "Symbol id of Prototype must not be invalid for code generation");
-        KPL_ASSERT_NOT_POISONED(prototype, "codegening forward declaration");
+        KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
 
         std::vector<llvm::Type*> parameter_types;
         for (const ParameterData& parameter_data : prototype->parameter_data) {
@@ -121,7 +122,7 @@ namespace kepler {
         }
 #endif
 
-        KPL_ASSERT_THAT(!llvm_values.contains(prototype->symbol_id), "LLVM value for prototype symbol already exists");
+        KPL_ASSERT_THAT(!llvm_values.contains(prototype->symbol_id));
         llvm_values[prototype->symbol_id] = function;
     }
 
@@ -182,9 +183,9 @@ namespace kepler {
     void CodegenPass::codegen_function(const Function* function) {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
-        KPL_ASSERT_THAT(function->prototype->symbol_id != SymbolId::invalid(), "Prototype symbol id of Function must not be invalid for code generation");
-        KPL_ASSERT_NOT_POISONED(function, "code generation");
-        KPL_ASSERT_THAT(llvm_values.contains(function->prototype->symbol_id), "LLVM Function must exist for codegening a function");
+        KPL_ASSERT_THAT(function->prototype->symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(llvm_values.contains(function->prototype->symbol_id));
 
         // Create entry block
         llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[function->prototype->symbol_id]);
@@ -198,8 +199,8 @@ namespace kepler {
             builder.CreateStore(&arg, alloca);
 
             SymbolId parameter_symbol_id = function->prototype->parameter_data[index].symbol_id;
-            KPL_ASSERT_THAT(parameter_symbol_id != SymbolId::invalid(), "Symbol id of parameter must not be invalid for code generation");
-            KPL_ASSERT_THAT(!llvm_values.contains(parameter_symbol_id), "LLVM value for function parameter can't exist for codegening a function");
+            KPL_ASSERT_THAT(parameter_symbol_id != SymbolId::invalid());
+            KPL_ASSERT_THAT(!llvm_values.contains(parameter_symbol_id));
             llvm_values[parameter_symbol_id] = alloca;
             index++;
         }
@@ -238,11 +239,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_NOT_POISONED(statement, "code generation");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         SymbolId variable_symbol_id = statement->variable_expression->symbol_id;
-        KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid(), "Variable symbol id of AssignmentStatement must not be invalid for code generation");
-        KPL_ASSERT_THAT(llvm_values.contains(variable_symbol_id), "LLVM value for variable must exist for codegening an AssignmentStatement");
+        KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(llvm_values.contains(variable_symbol_id));
 
         // Don't codegen the VariableExpression because that would just unnecessarilly load it
         const CodegenResult codegen_result = codegen_node(statement->value_expression.get());
@@ -255,11 +256,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_NOT_POISONED(statement, "code generation");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         const CodegenResult variable_cr = codegen_variable_definition_statement(statement->loop_variable_definition.get());
         KPL_ASSERT_NOT_NULLPTR(variable_cr.llvm_value);
-        KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(variable_cr.llvm_value), "LLVM value of loop variable must be an AllocaInst");
+        KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(variable_cr.llvm_value));
         const CodegenResult end_cr = codegen_node(statement->end_value.get());
         KPL_ASSERT_NOT_NULLPTR(end_cr.llvm_value);
 
@@ -326,7 +327,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_if_statement(const IfStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_NOT_POISONED(statement, "code generation");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         const CodegenResult condition_cr = codegen_node(statement->condition.get());
         KPL_ASSERT_NOT_NULLPTR(condition_cr.llvm_value);
 
@@ -363,7 +364,7 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_return_statement(const ReturnStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_NOT_POISONED(statement, "code generation");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         if (statement->expression == nullptr) {
             llvm::ReturnInst* return_inst = builder.CreateRetVoid();
             return {.llvm_value = return_inst, .returns = true};
@@ -379,15 +380,14 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
         KPL_ASSERT_NOT_NULLPTR(statement->type);
-        KPL_ASSERT_NOT_POISONED(statement, "code generation");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         llvm::Function* llvm_function = builder.GetInsertBlock()->getParent();
         KPL_ASSERT_NOT_NULLPTR(llvm_function);
         llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(statement->type, context), statement->identifier_id);
 
         SymbolId variable_symbol_id = statement->assignment_statement->variable_expression->symbol_id;
-        KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid(),
-            "Variable symbol id of VariableDefinitionStatement must not be invalid for code generation");
-        KPL_ASSERT_THAT(!llvm_values.contains(variable_symbol_id), "LLVM value for variable can't exist for codegening a VariableDefinitionStatement");
+        KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(!llvm_values.contains(variable_symbol_id));
         llvm_values.emplace(variable_symbol_id, alloca);
         codegen_assignment_statement(statement->assignment_statement.get());
         return {.llvm_value = alloca, .returns = false};
@@ -395,14 +395,14 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_boolean_literal_expression(const BooleanLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         return {.llvm_value = llvm::ConstantInt::getBool(context, expression->value), .returns = false};
     }
 
     CodegenResult CodegenPass::codegen_floating_point_literal_expression(const FloatingPointLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         llvm::Type* llvm_type = get_llvm_type(expression->target_type, context);
         return {.llvm_value = llvm::ConstantFP::get(llvm_type, expression->value), .returns = false};
     }
@@ -410,15 +410,15 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_integer_literal_expression(const IntegerLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
-        constexpr const uint8_t redix = 10;
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        constexpr const uint8_t radix = 10; // This is basically the base for the llvm values -> base 10
         const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
         if (is_integer_type(expression->target_type)) {
             // Both signed and unsigned integers use llvm unsigned representation
             // This is because only the bit pattern counts: negative values are created through negation expressions,
             // which handle the negative values
             const uint32_t type_bitwidth = get_integer_bitwidth(expression->target_type);
-            const llvm::APInt llvm_value(type_bitwidth, literal_string, redix);
+            const llvm::APInt llvm_value(type_bitwidth, literal_string, radix);
             return {.llvm_value = llvm::ConstantInt::get(get_llvm_type(expression->target_type, context), llvm_value), .returns = false};
         } else if (is_floating_point_type(expression->target_type)) {
             const double value = std::stod(std::string(literal_string));
@@ -429,7 +429,7 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_string_literal_expression(const StringLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const std::string_view string_value = StringPool::get().lookup(expression->value);
         // Constant array that holds the string data (null terminated)
@@ -456,7 +456,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult lhs_cr = codegen_node(expression->lhs.get());
         KPL_ASSERT_NOT_NULLPTR(lhs_cr.llvm_value);
@@ -491,21 +491,20 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_call_expression(const CallExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of CallExpression must not be invalid for code generation");
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
-        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id), "LLVM value for prototype must exist for codegening a CallExpression");
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
         llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol_id]);
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(symbol);
-        KPL_ASSERT_HOLDS_ALTERNATIVE(symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
+        KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(symbol->data));
         bool is_variadic = std::get<PrototypeSymbolData>(symbol->data).is_variadic;
-        KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(),
-            "Prototype symbol and LLVM function must have matching variadic settings for codegening a CallExpression");
+        KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(), "Internal variadic: {}, LLVM variadic: {}", is_variadic, llvm_function->isVarArg());
         if (!is_variadic) {
-            KPL_ASSERT_THAT(llvm_function->arg_size() == expression->args.size(),
-                "Parameter count of LLVM function and CallExpression have to be the same, received {} and {}",
-                llvm_function->arg_size(),
-                expression->args.size());
+            KPL_ASSERT_THAT(expression->args.size() == llvm_function->arg_size(),
+                "Internal arg count: {}, LLVM arg count: {}",
+                expression->args.size(),
+                llvm_function->arg_size());
         }
 
         std::vector<llvm::Value*> arg_values;
@@ -531,7 +530,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->original_type);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
@@ -553,7 +552,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
@@ -567,10 +566,10 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_variable_expression(const VariableExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_POISONED(expression, "code generation");
-        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of VariableExpression must not be invalid for code generation");
-        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id), "LLVM value for variable must exist for codegening a VariableExpression");
-        KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->symbol_id]), "LLVM value for variable must be an AllocaInst");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
+        KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->symbol_id]));
 
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(symbol);

@@ -43,50 +43,34 @@ namespace kepler::internal {
         }
     }
 
+    inline void print_assertion(const char* file_path, int line_number, const std::string& message) {
+        print_assertion(file_path, line_number, "{}", "");
+    }
+
+    inline void print_assertion(const char* file_path, int line_number) {
+        print_assertion(file_path, line_number, "{}", "");
+    }
+
 }
 
 // Uncomment the next line to disable assertions
 // #define KPL_NO_ASSERT
 
 #ifndef KPL_NO_ASSERT
-#define KPL_ASSERT_THAT(expr, message, ...)                                                            \
-    do {                                                                                               \
-        if (!(expr)) {                                                                                 \
-            kepler::internal::print_assertion(__FILE__, __LINE__, message __VA_OPT__(, ) __VA_ARGS__); \
-            std::abort();                                                                              \
-        }                                                                                              \
+#define KPL_ASSERT_THAT(expr, ...)                                                            \
+    do {                                                                                      \
+        if (!(expr)) {                                                                        \
+            kepler::internal::print_assertion(__FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__); \
+            std::abort();                                                                     \
+        }                                                                                     \
     } while (false)
 
-#define KPL_ASSERT_NOT_NULLPTR(ptr)                                                     \
-    do {                                                                                \
-        if ((ptr) == nullptr) {                                                         \
-            kepler::internal::print_assertion(__FILE__, __LINE__, "nullptr violation"); \
-            std::abort();                                                               \
-        }                                                                               \
-    } while (false)
-
-#define KPL_ASSERT_NOT_POISONED(node, operation_description) \
-    do {                                                     \
-        if ((node)->node_type == ASTNodeType::Poison) {      \
-            kepler::internal::print_assertion(__FILE__,      \
-                __LINE__,                                    \
-                "{} must be unpoisoned for {}",              \
-                (node)->node_type,                           \
-                operation_description);                      \
-            std::abort();                                    \
-        }                                                    \
-    } while (false)
-
-#define KPL_ASSERT_HOLDS_ALTERNATIVE(data, type, prefix)          \
-    do {                                                          \
-        if (!std::holds_alternative<type>((data))) {              \
-            kepler::internal::print_assertion(__FILE__,           \
-                __LINE__,                                         \
-                "{} must contain '" #type "', but contains '{}'", \
-                prefix,                                           \
-                typeid(data).name());                             \
-            std::abort();                                         \
-        }                                                         \
+#define KPL_ASSERT_NOT_NULLPTR(ptr)                                \
+    do {                                                           \
+        if ((ptr) == nullptr) {                                    \
+            kepler::internal::print_assertion(__FILE__, __LINE__); \
+            std::abort();                                          \
+        }                                                          \
     } while (false)
 
 #define KPL_ASSERT_UNREACHABLE(message, ...)                                                       \
@@ -96,9 +80,7 @@ namespace kepler::internal {
     } while (false)
 
 #else
-#define KPL_ASSERT_THAT(expr, message, ...) ((void)0)
+#define KPL_ASSERT_THAT(expr, ...) ((void)0)
 #define KPL_ASSERT_NOT_NULLPTR(ptr) ((void)0)
-#define KPL_ASSERT_NOT_POISONED(node, operation_description) ((void)0)
-#define KPL_ASSERT_HOLDS_ALTERNATIVE(data, type, message) ((void)0)
 #define KPL_ASSERT_UNREACHABLE(message, ...) std::unreachable()
 #endif

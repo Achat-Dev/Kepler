@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace kepler {
@@ -41,7 +42,7 @@ namespace kepler {
             return std::nullopt;
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Module identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         std::vector<StringId> module_identifier_ids{
             std::get<StringId>(current_token->data),
         };
@@ -57,7 +58,7 @@ namespace kepler {
                 recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
                 return std::nullopt;
             }
-            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Submodule identifier token");
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             module_identifier_ids.push_back(std::get<StringId>(current_token->data));
             next_token(true); // eat identifier
         }
@@ -93,7 +94,7 @@ namespace kepler {
             "Parsing prototype requires current token to be of type '{}', received '{}'",
             TokenType::Type,
             current_token->type);
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype type token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId return_type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type
@@ -103,7 +104,7 @@ namespace kepler {
             return nullptr;
         }
         const SourceLocation& identifier_source_location = current_token->source_location;
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId identifier_id = std::get<StringId>(current_token->data);
 
         next_token(true); // eat identifier
@@ -124,7 +125,7 @@ namespace kepler {
         std::vector<ParameterData> parameter_data;
         bool is_variadic = false;
         while (current_token->type == TokenType::Type) {
-            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype parameter type token");
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const StringId parameter_type_id = std::get<StringId>(current_token->data);
 
             next_token(true); // eat type
@@ -134,7 +135,7 @@ namespace kepler {
                 return nullptr;
             }
 
-            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Prototype parameter identifier token");
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const StringId parameter_identifier_id = std::get<StringId>(current_token->data);
             parameter_data.push_back({.type_id = parameter_type_id,
                 .identifier_id = parameter_identifier_id,
@@ -188,7 +189,7 @@ namespace kepler {
             "Parsing top level type requires current token to be of type '{}', received '{}'",
             TokenType::Type,
             current_token->type);
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Top level type token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type
@@ -223,7 +224,7 @@ namespace kepler {
             "Parsing a function requires token of type '{}', received '{}'",
             TokenType::BracketOpen,
             current_token->type);
-        KPL_ASSERT_THAT(!current_function_return_type_id.has_value(), "Function return type id must be nullopt for parsing a function");
+        KPL_ASSERT_THAT(!current_function_return_type_id.has_value());
         // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
         previous_token(true);
         const Token* identifier_token = current_token;
@@ -241,7 +242,7 @@ namespace kepler {
 
         current_function_return_type_id = prototype->return_type_id;
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Function identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         const std::string_view identifier = StringPool::get().lookup(identifier_id);
         const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", identifier);

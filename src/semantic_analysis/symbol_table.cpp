@@ -75,35 +75,35 @@ namespace kepler {
     }
 
     Symbol* SymbolTable::lookup(SymbolId symbol_id) {
-        KPL_ASSERT_THAT(symbol_id.value < symbols.size(), "Can't lookup symbol with out of bounds symbol id");
+        KPL_ASSERT_THAT(symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), symbol_id.value);
         return &symbols[symbol_id.value];
     }
 
     Symbol* SymbolTable::find(ModuleId module_id, StringId identifier_id) {
-        KPL_ASSERT_THAT(!scopes.empty(), "Can't find symbol when no scopes exist");
-        KPL_ASSERT_THAT(module_id.value < modules.size(), "Can't find symbol with out of bounds module id");
+        KPL_ASSERT_THAT(!scopes.empty());
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         const Module& module = modules[module_id.value];
 
-        KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Can't find symbol with out of bounds scope id");
+        KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
         Scope* scope = &scopes[module.current_scope_id.value];
         while (true) {
             KPL_ASSERT_NOT_NULLPTR(scope);
             const auto it = scope->contained_symbols.find(identifier_id);
             if (it != scope->contained_symbols.end()) {
-                KPL_ASSERT_THAT(it->second.value < symbols.size(), "Can't find symbol with out of bounds index");
+                KPL_ASSERT_THAT(it->second.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), it->second.value);
                 return &symbols[it->second.value];
             }
 
             if (scope->parent_id == ScopeId::invalid()) {
                 return nullptr;
             }
-            KPL_ASSERT_THAT(scope->parent_id.value < scopes.size(), "Can't access out of bounds parent scope");
+            KPL_ASSERT_THAT(scope->parent_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), scope->parent_id.value);
             scope = &scopes[scope->parent_id.value];
         }
     }
 
     void SymbolTable::open_scope(ModuleId module_id, ScopeType type) {
-        KPL_ASSERT_THAT(module_id.value < modules.size(), "Can't open scope with out of bounds module id");
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         const ScopeId scope_id = {.value = static_cast<uint32_t>(scopes.size())};
         Module& module = modules[module_id.value];
         if (scopes.empty()) {
@@ -116,12 +116,12 @@ namespace kepler {
     }
 
     void SymbolTable::close_scope(ModuleId module_id) {
-        KPL_ASSERT_THAT(module_id.value < modules.size(), "Can't close scope with out of bounds module id");
-        KPL_ASSERT_THAT(!scopes.empty(), "No scope to close exists");
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(!scopes.empty());
         Module& module = modules[module_id.value];
-        KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Can't close scope with out of bounds scope id");
+        KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
         const Scope& scope = scopes[module.current_scope_id.value];
-        KPL_ASSERT_THAT(scope.parent_id.value < scopes.size(), "Can't close scope with out of bounds parent id");
+        KPL_ASSERT_THAT(scope.parent_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), scope.parent_id.value);
         module.current_scope_id = scope.parent_id;
     }
 
@@ -134,13 +134,13 @@ namespace kepler {
         SourceLocation source_location
     ) {
         // clang-format on
-        KPL_ASSERT_THAT(!scopes.empty(), "Can't create symbol when no scopes exist");
-        KPL_ASSERT_THAT(module_id.value < modules.size(), "Can't create symbol with out of bounds module id");
+        KPL_ASSERT_THAT(!scopes.empty());
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_NOT_NULLPTR(type);
-        KPL_ASSERT_THAT(!error_identifier.empty(), "Can't create symbol when error identifier is empty");
+        KPL_ASSERT_THAT(!error_identifier.empty());
 
         Module& module = modules[module_id.value];
-        KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Can't create symbol with out of bounds scope id");
+        KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
 
         const Symbol* existing_symbol = find(module_id, identifier_id);
         uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;

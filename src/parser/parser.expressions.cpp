@@ -77,7 +77,7 @@ namespace kepler {
             }
 
             const SourceLocation& operator_source_location = current_token->source_location;
-            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Binary expression operator token");
+            KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
             const OperatorType current_operator_type = std::get<OperatorType>(current_token->data);
             const int current_operator_precedence = get_operator_precedence(current_operator_type);
             if (current_operator_precedence < expression_precedence) {
@@ -112,7 +112,7 @@ namespace kepler {
                     operator_source_location);
             }
 
-            KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Binary expression next operator token");
+            KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
             const OperatorType next_operator_type = std::get<OperatorType>(current_token->data);
             const int next_operator_precedence = get_operator_precedence(next_operator_type);
             if (current_operator_precedence < next_operator_precedence) {
@@ -137,7 +137,7 @@ namespace kepler {
             case TokenType::Type:
                 return parse_cast();
             case TokenType::Operator:
-                KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Mathematical negation operator token");
+                KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
                 if (std::get<OperatorType>(current_token->data) == OperatorType::Minus) {
                     return parse_negative();
                 }
@@ -167,7 +167,7 @@ namespace kepler {
             return parse_call(identifier_token);
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location);
     }
@@ -179,7 +179,7 @@ namespace kepler {
             TokenType::BracketOpen,
             current_token->type);
         KPL_ASSERT_NOT_NULLPTR(identifier_token);
-        KPL_ASSERT_HOLDS_ALTERNATIVE(identifier_token->data, StringId, "Call identifier token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
 
         next_token(true); // eat '('
@@ -271,7 +271,7 @@ namespace kepler {
             "Parsing mathematical negation requires '{}' token, received '{}'",
             TokenType::Operator,
             current_token->type);
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, OperatorType, "Mathematical negation operator token");
+        KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
         const OperatorType operator_type = std::get<OperatorType>(current_token->data);
         KPL_ASSERT_THAT(operator_type == OperatorType::Minus,
             "Parsing mathematical negation requires operator '{}', received operator '{}'",
@@ -319,7 +319,7 @@ namespace kepler {
             "Parsing cast requires '{}' token, received '{}'",
             TokenType::Type,
             current_token->type);
-        KPL_ASSERT_HOLDS_ALTERNATIVE(current_token->data, StringId, "Cast type token");
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type

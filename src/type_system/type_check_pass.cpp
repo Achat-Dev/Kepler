@@ -40,6 +40,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace kepler {
@@ -134,8 +135,8 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_NOT_NULLPTR(function->prototype->return_type);
-        KPL_ASSERT_NOT_POISONED(function, "type checking");
-        KPL_ASSERT_THAT(current_function_return_type == nullptr, "Current function return type must be nullptr for type checking function");
+        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(current_function_return_type == nullptr);
         current_function_return_type = function->prototype->return_type;
         // Typecheck the body without poisoning the function so that the unpoisoned part of the body can still be accessed by later passes
         typecheck_nodes(function->body.nodes);
@@ -145,10 +146,9 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_assignment_statement(AssignmentStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
-        KPL_ASSERT_THAT(statement->variable_expression->symbol_id != SymbolId::invalid(),
-            "Variable symbol id of AssignmentStatement must not be invalid for type checking");
+        KPL_ASSERT_THAT(statement->variable_expression->symbol_id != SymbolId::invalid());
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_NOT_POISONED(statement, "type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         const Symbol* variable_symbol = symbol_table.lookup(statement->variable_expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(variable_symbol);
@@ -167,9 +167,7 @@ namespace kepler {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
         }
-        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type,
-            unknown_type_message,
-            "The expression of an AssignmentStatement");
+        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type);
 
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type = variable_symbol->type};
     }
@@ -178,7 +176,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_NOT_POISONED(statement, "type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         Type* variable_type = statement->loop_variable_definition->type;
         KPL_ASSERT_NOT_NULLPTR(variable_type);
@@ -190,13 +188,11 @@ namespace kepler {
 
         const TypeCheckResult variable_tcr = typecheck_variable_definition_statement(statement->loop_variable_definition.get());
         KPL_ASSERT_NOT_NULLPTR(variable_tcr.type);
-        KPL_ASSERT_THAT(variable_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-            poisoned_without_diagnostic_message,
-            "VariableDefinitionStatement of ForStatement");
+        KPL_ASSERT_THAT(variable_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
         if (variable_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
             return typecheck_body_and_poison_for_statement(statement);
         }
-        KPL_ASSERT_THAT(variable_tcr.type != type_table.Builtins.unknown_type, unknown_type_message, "VariableDefinitionStatement of ForStatement");
+        KPL_ASSERT_THAT(variable_tcr.type != type_table.Builtins.unknown_type);
 
         const TypeCheckResult end_tcr = typecheck_node(statement->end_value.get(), variable_type);
         KPL_ASSERT_NOT_NULLPTR(end_tcr.type);
@@ -207,7 +203,7 @@ namespace kepler {
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->end_value->source_location);
             return typecheck_body_and_poison_for_statement(statement);
         }
-        KPL_ASSERT_THAT(end_tcr.type != type_table.Builtins.unknown_type, unknown_type_message, "End expression of ForStatement");
+        KPL_ASSERT_THAT(end_tcr.type != type_table.Builtins.unknown_type);
 
         // Default value for the typecheck result of the step_value in case the step doesn't exist
         TypeCheckResult step_tcr{.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
@@ -222,7 +218,7 @@ namespace kepler {
                 diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->step_value->source_location);
                 return typecheck_body_and_poison_for_statement(statement);
             }
-            KPL_ASSERT_THAT(step_tcr.type != type_table.Builtins.unknown_type, unknown_type_message, "Step expression of ForStatement");
+            KPL_ASSERT_THAT(step_tcr.type != type_table.Builtins.unknown_type);
         }
 
         const TypeCheckResult body_tcr = typecheck_nodes(statement->body.nodes);
@@ -235,7 +231,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_body_and_poison_for_statement(ForStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_NOT_POISONED(statement, "poisoning it");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         statement->node_type = ASTNodeType::Poison;
         typecheck_nodes(statement->body.nodes);
         return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
@@ -244,7 +240,7 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_if_statement(IfStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_NOT_POISONED(statement, "type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         const TypeCheckResult condition_tcr = typecheck_node(statement->condition.get(), type_table.Builtins.bool_type);
         KPL_ASSERT_NOT_NULLPTR(condition_tcr.type);
@@ -259,15 +255,15 @@ namespace kepler {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
-        KPL_ASSERT_THAT(condition_tcr.type != type_table.Builtins.unknown_type, unknown_type_message, "Condition of an IfStatement");
+        KPL_ASSERT_THAT(condition_tcr.type != type_table.Builtins.unknown_type);
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_return_statement(ReturnStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_NOT_POISONED(statement, "type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(current_function_return_type);
-        KPL_ASSERT_THAT(current_function_return_type != type_table.Builtins.unknown_type, "Invalid function return type of unknown");
+        KPL_ASSERT_THAT(current_function_return_type != type_table.Builtins.unknown_type);
 
         if (current_function_return_type == type_table.Builtins.void_type) {
             if (statement->expression != nullptr) {
@@ -299,7 +295,7 @@ namespace kepler {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
-        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type, unknown_type_message, "Expression of a ReturnStatement");
+        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type);
 
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.unknown_type};
     }
@@ -307,7 +303,7 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_variable_definition_statement(VariableDefinitionStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
-        KPL_ASSERT_NOT_POISONED(statement, "type checking");
+        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         KPL_ASSERT_NOT_NULLPTR(statement->type);
         if (statement->type == type_table.Builtins.void_type) {
@@ -318,22 +314,18 @@ namespace kepler {
 
         const TypeCheckResult typecheck_result = typecheck_assignment_statement(statement->assignment_statement.get());
         KPL_ASSERT_NOT_NULLPTR(typecheck_result.type);
-        KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-            poisoned_without_diagnostic_message,
-            "The AssignmentStatement of a VariableDefinitionStatement");
+        KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = typecheck_result.type};
         }
-        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type,
-            unknown_type_message,
-            "AssignmentStatement of a VariableDefinitionStatement");
+        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type);
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type = statement->type};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, const Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         if (requested_type == type_table.Builtins.bool_type || requested_type == type_table.Builtins.unknown_type) {
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.bool_type};
@@ -345,8 +337,8 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of FloatingPointLiteralExpression must be nullptr for type checking");
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->target_type == nullptr);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         if (is_floating_point_type(requested_type)) {
             expression->target_type = requested_type;
@@ -362,8 +354,8 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type* requested_type, bool is_negative) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of IntegerLiteralExpression must be nullptr for type checking");
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->target_type == nullptr);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         constexpr const uint8_t radix = 10;
         if (is_integer_type(requested_type)) {
@@ -424,7 +416,7 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_string_literal_expression(StringLiteralExpression* expression, const Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         if (requested_type == type_table.Builtins.string_type || requested_type == type_table.Builtins.unknown_type) {
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type = type_table.Builtins.string_type};
@@ -438,8 +430,8 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
-        KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of BinaryExpression must be nullptr for type checking");
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->target_type == nullptr);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         if (requested_type == type_table.Builtins.bool_type) {
@@ -492,16 +484,12 @@ namespace kepler {
 
             const TypeCheckResult first_tcr = typecheck_node(first_expression_to_typecheck.expression, type_table.Builtins.unknown_type);
             KPL_ASSERT_NOT_NULLPTR(first_tcr.type);
-            KPL_ASSERT_THAT(first_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-                poisoned_without_diagnostic_message,
-                std::format("The {} expression of a BinaryExpression", first_expression_to_typecheck.name));
+            KPL_ASSERT_THAT(first_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
             if (first_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             }
-            KPL_ASSERT_THAT(first_tcr.type != type_table.Builtins.unknown_type,
-                unknown_type_message,
-                std::format("The {} expression of a BinaryExpression", first_expression_to_typecheck.name));
+            KPL_ASSERT_THAT(first_tcr.type != type_table.Builtins.unknown_type);
 
             const ASTNodeType second_expression_node_type = second_expression_to_typecheck.expression->node_type;
             TypeCheckResult second_tcr = typecheck_node(second_expression_to_typecheck.expression, first_tcr.type);
@@ -513,9 +501,7 @@ namespace kepler {
                 second_expression_to_typecheck.expression->node_type = second_expression_node_type;
                 second_tcr = typecheck_node(second_expression_to_typecheck.expression, type_table.Builtins.unknown_type);
                 KPL_ASSERT_NOT_NULLPTR(second_tcr.type);
-                KPL_ASSERT_THAT(second_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-                    poisoned_without_diagnostic_message,
-                    std::format("The {} expression of a BinaryExpression", second_expression_to_typecheck.name));
+                KPL_ASSERT_THAT(second_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
                 if (second_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                     expression->node_type = ASTNodeType::Poison;
                     return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
@@ -524,9 +510,7 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
             }
-            KPL_ASSERT_THAT(second_tcr.type != type_table.Builtins.unknown_type,
-                unknown_type_message,
-                std::format("The {} expression of a BinaryExpression", second_expression_to_typecheck.name));
+            KPL_ASSERT_THAT(second_tcr.type != type_table.Builtins.unknown_type);
 
             if (first_expression_to_typecheck.expression == expression->lhs.get()) {
                 lhs_tcr = first_tcr;
@@ -538,25 +522,21 @@ namespace kepler {
         } else {
             lhs_tcr = typecheck_binary_expression_side(expression, expression->lhs.get(), requested_type);
             KPL_ASSERT_NOT_NULLPTR(lhs_tcr.type);
-            KPL_ASSERT_THAT(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-                poisoned_without_diagnostic_message,
-                "The lhs expression of a BinaryExpression");
+            KPL_ASSERT_THAT(lhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
             if (lhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = lhs_tcr.type};
             }
-            KPL_ASSERT_THAT(lhs_tcr.type != type_table.Builtins.unknown_type, unknown_type_message, "The lhs expression of a BinaryExpression");
+            KPL_ASSERT_THAT(lhs_tcr.type != type_table.Builtins.unknown_type);
 
             rhs_tcr = typecheck_binary_expression_side(expression, expression->rhs.get(), requested_type);
             KPL_ASSERT_NOT_NULLPTR(rhs_tcr.type);
-            KPL_ASSERT_THAT(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-                poisoned_without_diagnostic_message,
-                "The rhs expression of a BinaryExpression");
+            KPL_ASSERT_THAT(rhs_tcr.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
             if (rhs_tcr.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = rhs_tcr.type};
             }
-            KPL_ASSERT_THAT(rhs_tcr.type != type_table.Builtins.unknown_type, unknown_type_message, "The rhs expression of a BinaryExpression");
+            KPL_ASSERT_THAT(rhs_tcr.type != type_table.Builtins.unknown_type);
         }
 
         const StringId operator_name_id = get_operator_name_id(expression->operator_type);
@@ -577,10 +557,9 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(binary_expression);
-        KPL_ASSERT_NOT_POISONED(binary_expression, "type checking binary side expression");
+        KPL_ASSERT_THAT(binary_expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(side_expression);
-        KPL_ASSERT_THAT(side_expression->node_type != ASTNodeType::Poison,
-            "Side expression of BinaryExpression must not be poisoned for type checking");
+        KPL_ASSERT_THAT(side_expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         const TypeCheckResult typecheck_result = typecheck_node(side_expression, requested_type);
@@ -599,8 +578,8 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_call_expression(CallExpression* expression, const Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of CallExpression must not be invalid for type checking");
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         const Symbol* prototype_symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(prototype_symbol);
@@ -609,14 +588,13 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = prototype_symbol->type};
         }
 
-        KPL_ASSERT_HOLDS_ALTERNATIVE(prototype_symbol->data, PrototypeSymbolData, "Prototype symbol of CallExpression");
+        KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(prototype_symbol->data));
         const PrototypeSymbolData prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
         const std::vector<Type*>& parameter_types = prototype_symbol_data.parameter_types;
         if (!prototype_symbol_data.is_variadic) {
-            KPL_ASSERT_THAT(parameter_types.size() == expression->args.size(), "Mismatching call parameter count during typechecking");
+            KPL_ASSERT_THAT(parameter_types.size() == expression->args.size());
         } else {
-            KPL_ASSERT_THAT(parameter_types.size() <= expression->args.size(),
-                "Call to variadic function must have the same amount or more arguments than the function defintion during typechecking");
+            KPL_ASSERT_THAT(parameter_types.size() <= expression->args.size());
         }
 
         for (size_t i = 0; i < parameter_types.size(); i++) {
@@ -628,8 +606,7 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
             } else if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
-                KPL_ASSERT_THAT(typecheck_result.type != parameter_types[i],
-                    "An argument of CallExpression must produce a different type than the parameter type when poisoning itself without a diagnostic");
+                KPL_ASSERT_THAT(typecheck_result.type != parameter_types[i]);
                 const std::string_view identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
                 const std::string message = std::format("Type mismatch: Parameter no. {} of function '{}' expects type '{}', but the given argument is of type '{}'",
                     (i + 1),
@@ -640,7 +617,7 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
             }
-            KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type, unknown_type_message, "Argument of CallExpression");
+            KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type);
         }
 
         // Check the variadic arguments
@@ -650,14 +627,12 @@ namespace kepler {
                 KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
                 const TypeCheckResult typecheck_result = typecheck_node(expression->args[i].get(), type_table.Builtins.unknown_type);
                 KPL_ASSERT_NOT_NULLPTR(typecheck_result.type);
-                KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-                    poisoned_without_diagnostic_message,
-                    "The expression of a variadic argument in a CallExpression");
+                KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
                 if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                     expression->node_type = ASTNodeType::Poison;
                     return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = prototype_symbol->type};
                 }
-                KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type, unknown_type_message, "Variadic argument of CallExpression");
+                KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type);
                 if (typecheck_result.type == type_table.Builtins.void_type) {
                     diagnostic_sink.report(DiagnosticCode::TypeMismatch,
                         "Type mismatch: A variadic argument can't be of type 'void'",
@@ -675,8 +650,8 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(expression->target_type);
-        KPL_ASSERT_THAT(expression->original_type == nullptr, "Original type of CastExpression must be nullptr for type checking");
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->original_type == nullptr);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         if (expression->target_type == type_table.Builtins.void_type) {
@@ -694,14 +669,12 @@ namespace kepler {
 
         const TypeCheckResult typecheck_result = typecheck_node(expression->expression.get(), type_table.Builtins.unknown_type);
         KPL_ASSERT_NOT_NULLPTR(typecheck_result.type);
-        KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic,
-            poisoned_without_diagnostic_message,
-            "The expression of a CastExpression");
+        KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type = type_table.Builtins.unknown_type};
         }
-        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type, unknown_type_message, "Expression of CastExpression");
+        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type);
         expression->original_type = typecheck_result.type;
 
         if (expression->target_type == typecheck_result.type) {
@@ -723,8 +696,8 @@ namespace kepler {
     TypeCheckResult TypeCheckPass::typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, Type* requested_type) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->target_type == nullptr, "Target type of MathematicalNegationExpression must be nullptr for type checking");
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->target_type == nullptr);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
 
         TypeCheckResult typecheck_result;
@@ -755,16 +728,14 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type = typecheck_result.type};
         }
-        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type,
-            unknown_type_message,
-            "Expression of MathematicalNegationExpression");
+        KPL_ASSERT_THAT(typecheck_result.type != type_table.Builtins.unknown_type);
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type = typecheck_result.type};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_variable_expression(VariableExpression* expression, const Type* requested_type) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid(), "Symbol id of VariableExpression must not be invalid for type checking");
-        KPL_ASSERT_NOT_POISONED(expression, "type checking");
+        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_NOT_NULLPTR(requested_type);
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(symbol->type);

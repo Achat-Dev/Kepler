@@ -29,12 +29,11 @@ namespace kepler {
 
     void ReturnCheckPass::run() {
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
-            KPL_ASSERT_THAT(node->node_type != ASTNodeType::Poison, "All top level nodes must be unpoisoned for return checking");
+            KPL_ASSERT_THAT(node->node_type != ASTNodeType::Poison);
             switch (node->node_type) {
                 case ASTNodeType::Function: {
                     Function* function = static_cast<Function*>(node.get());
-                    KPL_ASSERT_THAT(function->body.contains_return == false,
-                        "Flag whether a function body contains a 'return' statement must be false for return checking");
+                    KPL_ASSERT_THAT(function->body.contains_return == false);
                     const ReturnCheckResult return_result = check_body(function->body.nodes, ReturnCheckBodyType::FunctionBody);
                     if (return_result.contains_return) {
                         function->body.contains_return = true;
@@ -56,14 +55,12 @@ namespace kepler {
 
     ReturnCheckResult ReturnCheckPass::check_body(const std::vector<std::unique_ptr<ASTNode>>& nodes, ReturnCheckBodyType body_type) {
         for (size_t i = 0; i < nodes.size(); i++) {
-            KPL_ASSERT_THAT(nodes[i]->node_type != ASTNodeType::Poison, "All body nodes must be unpoisoned for return checking");
+            KPL_ASSERT_THAT(nodes[i]->node_type != ASTNodeType::Poison);
             switch (nodes[i]->node_type) {
                 case ASTNodeType::IfStatement: {
                     IfStatement* if_statement = static_cast<IfStatement*>(nodes[i].get());
-                    KPL_ASSERT_THAT(if_statement->if_body.contains_return == false,
-                        "Flag whether an if body contains a 'return' statement must be false for return checking");
-                    KPL_ASSERT_THAT(if_statement->else_body.contains_return == false,
-                        "Flag whether an if body contains a 'return' statement must be false for return checking");
+                    KPL_ASSERT_THAT(if_statement->if_body.contains_return == false);
+                    KPL_ASSERT_THAT(if_statement->else_body.contains_return == false);
                     const ReturnCheckResult if_body_rcr = check_body(if_statement->if_body.nodes, ReturnCheckBodyType::IfBody);
                     const ReturnCheckResult else_body_rcr = check_body(if_statement->else_body.nodes, ReturnCheckBodyType::ElseBody);
                     if (if_body_rcr.contains_return) {
@@ -79,8 +76,7 @@ namespace kepler {
                 }
                 case ASTNodeType::ForStatement: {
                     ForStatement* for_statement = static_cast<ForStatement*>(nodes[i].get());
-                    KPL_ASSERT_THAT(for_statement->body.contains_return == false,
-                        "Flag whether a for body contains a 'return' statement must be false for return checking");
+                    KPL_ASSERT_THAT(for_statement->body.contains_return == false);
                     const ReturnCheckResult for_body_rcr = check_body(for_statement->body.nodes, ReturnCheckBodyType::ForBody);
                     if (for_body_rcr.contains_return) {
                         for_statement->body.contains_return = true;

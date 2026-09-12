@@ -11,7 +11,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <functional>
 #include <limits>
 #include <string>
@@ -54,12 +53,5 @@ template <>
 struct std::hash<kepler::StringId> {
     size_t operator()(const kepler::StringId& id) const noexcept {
         return hash<uint32_t>{}(id.value);
-    }
-};
-
-template <>
-struct std::formatter<kepler::StringId> : std::formatter<std::string> {
-    auto format(const kepler::StringId& id, std::format_context& ctx) const {
-        return std::formatter<std::string>::format(std::format("{}", id.value), ctx);
     }
 };

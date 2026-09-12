@@ -29,7 +29,7 @@ namespace kepler {
     }
 
     std::string_view StringPool::lookup(StringId id) const {
-        KPL_ASSERT_THAT(id.value < strings.size(), "Looking up out of bounds StringId; string count is {}, received id {}", strings.size(), id);
+        KPL_ASSERT_THAT(id.value < strings.size(), "String count: {}, received id: {}", strings.size(), id.value);
         return strings[id.value];
     }
 

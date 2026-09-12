@@ -13,7 +13,6 @@
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
-#include "utils/string_pool.hpp"
 #include <format>
 #include <memory>
 #include <utility>
@@ -44,18 +43,15 @@ namespace kepler {
     }
 
     void Parser::jump_to_token(size_t index) {
-        KPL_ASSERT_THAT(index <= tokens.size(), "Can't jump to out of range token");
+        KPL_ASSERT_THAT(index < tokens.size());
         current_token_index = index;
         current_token = &tokens[current_token_index];
     }
 
     AbstractSyntaxTree Parser::parse() {
-        KPL_ASSERT_THAT(!tokens.empty(), "Token stream must have a size > 0 for parsing");
-        KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile,
-            "Token stream must end with EOF token for parsing, received stream that ends with '{}' token",
-            tokens.back().type);
+        KPL_ASSERT_THAT(!tokens.empty());
+        KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Final token should be EOF, received '{}'", tokens.back().type);
 
-        const StringId empty_string_id = StringPool::get().store("");
         AbstractSyntaxTree result;
         while (current_token->type != TokenType::EndOfFile) {
             switch (current_token->type) {

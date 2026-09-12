@@ -75,12 +75,12 @@ namespace kepler {
         }
 
         KPL_ASSERT_THAT(!tokens.empty(), "Tokenizer must create a token stream with at least an EOF token");
-        KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Tokenizer must create a token stream that ends with EOF token");
+        KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile);
         return tokens;
     }
 
     int Tokenizer::peek_next_char(uint32_t lookahead) const {
-        KPL_ASSERT_THAT(lookahead > 0, "Lookahead must be > 0 for peeking next character while lexing");
+        KPL_ASSERT_THAT(lookahead > 0);
         if (position + lookahead < file->content.size()) {
             return file->content[position + lookahead];
         } else {
@@ -281,9 +281,8 @@ namespace kepler {
         } while (isalnum(current_char) || current_char == '_');
 
         const uint32_t identifier_length = position - identifier_start_position;
-        KPL_ASSERT_THAT(identifier_length > 0, "Tokenizing identifier requires identifier length > 0");
-        KPL_ASSERT_THAT(file->content.size() >= identifier_start_position + identifier_length,
-            "Tokenizing identifier requires literal to be in bounds of file content");
+        KPL_ASSERT_THAT(identifier_length > 0);
+        KPL_ASSERT_THAT(file->content.size() >= identifier_start_position + identifier_length);
         const StringId identifier_id = StringPool::get().store(file->content.substr(identifier_start_position, identifier_length));
 
         if (keyword_map.contains(identifier_id)) {
@@ -350,9 +349,8 @@ namespace kepler {
         } while (isdigit(current_char) || current_char == '.');
 
         const uint32_t literal_length = position - literal_start_position;
-        KPL_ASSERT_THAT(literal_length > 0, "Tokenizing numeric literal requires literal length > 0");
-        KPL_ASSERT_THAT(file->content.size() >= literal_start_position + literal_length,
-            "Tokenizing numeric literal requires literal to be in bounds of file content");
+        KPL_ASSERT_THAT(literal_length > 0);
+        KPL_ASSERT_THAT(file->content.size() >= literal_start_position + literal_length);
         const std::string literal = file->content.substr(literal_start_position, literal_length);
 
         if (is_float) {
