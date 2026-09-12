@@ -63,13 +63,14 @@ namespace kepler {
             KPL_ASSERT_THAT(find_option(short_name) == nullptr, "Option '-{}' is already added", short_name);
             const StringId long_name_id = StringPool::get().store(long_name);
             KPL_ASSERT_THAT(find_option(long_name_id) == nullptr, "Option '--{}' is already added", long_name);
+
             CmdOptionValueType value_type = CmdOptionValueType::OneValue;
             if constexpr (std::is_same_v<T, bool>) {
                 value_type = CmdOptionValueType::NoValue;
             } else if constexpr (kepler::is_vector<std::remove_cvref_t<T>>::value) {
                 using vector_type = typename kepler::is_vector<std::remove_cvref_t<T>>::value_type;
                 if constexpr (kepler::is_vector<std::remove_cvref_t<vector_type>>::value) {
-                    KPL_ASSERT_THAT(true, "Cmd option '{}' is a nested vector, which is not supported", long_name);
+                    KPL_ASSERT_THAT(true, "Cmd option '{}' is a nested vector", long_name);
                 }
                 value_type = CmdOptionValueType::List;
             }
@@ -89,10 +90,13 @@ namespace kepler {
         const StringId program_description_id;
         std::vector<std::string> original_args;
         std::vector<CmdOption> options;
-        static constexpr uint32_t wrapped_text_width = 80;
 
         CmdOption* find_option(char short_name);
         CmdOption* find_option(StringId long_name_id);
+        std::expected<void, Diagnostic> parse_no_value_option(CmdOption* option, int argc, char** argv, int& index);
+        std::expected<void, Diagnostic> parse_one_value_option(CmdOption* option, int argc, char** argv, int& index);
+        std::expected<void, Diagnostic> parse_list_option(CmdOption* option, int argc, char** argv, int& index);
+        std::expected<void, Diagnostic> check_for_missing_value(CmdOption* option, int argc, char** argv, int& index);
         std::string get_arg_string_with_highlighted_error(std::vector<int> indices_to_highlight);
         std::string get_indent_wrapped_text(const std::string& text, uint32_t width, const std::string& indent) const;
 
@@ -105,13 +109,13 @@ namespace kepler {
 
         template <typename T>
         std::expected<void, Diagnostic> set_value(T& value, const std::vector<std::string>& args, const CmdOption* option, int value_arg_index) {
+            KPL_ASSERT_THAT(args.size() > 0);
             KPL_ASSERT_NOT_NULLPTR(option);
             if constexpr (std::is_same_v<T, bool>) {
                 KPL_ASSERT_THAT(args.size() == 1);
                 KPL_ASSERT_THAT(args[0] == "true");
                 value = true;
             } else if constexpr (is_vector<T>::value) {
-                KPL_ASSERT_THAT(args.size() > 0);
                 using TValueType = typename is_vector<T>::value_type;
                 for (const auto& arg : args) {
                     const auto result = parse_value<TValueType>(arg, option, value_arg_index);
@@ -133,6 +137,7 @@ namespace kepler {
 
         template <typename T>
         std::expected<T, Diagnostic> parse_value(const std::string& text, const CmdOption* option, int value_arg_index) {
+            KPL_ASSERT_THAT(!text.empty());
             KPL_ASSERT_NOT_NULLPTR(option);
             if constexpr (std::is_same_v<T, std::string>) {
                 return text;
@@ -143,7 +148,7 @@ namespace kepler {
                 if (!try_parse(text, result)) {
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::InvalidOptionValue,
-                        .message = std::format("Cmd option '-{}/--{}' needs an integer value. but given value '{}' is not an integer\n{}",
+                        .message = std::format("Cmd option '-{}/--{}' needs an integer value, but given value '{}' is not an integer\n{}",
                             option->short_name,
                             StringPool::get().lookup(option->long_name_id),
                             text,
