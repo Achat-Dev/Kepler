@@ -21,7 +21,6 @@ namespace kepler {
         // Usage
         HelpRequested = 100,
         UnknownOption,
-        InvalidOptionFormat,
         InvalidOptionValue,
         MissingOptionValue,
         NoInputFile,

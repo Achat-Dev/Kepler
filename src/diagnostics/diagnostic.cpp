@@ -23,7 +23,6 @@ namespace kepler {
                 return DiagnosticSeverity::Warning;
 
             case DiagnosticCode::UnknownOption:
-            case DiagnosticCode::InvalidOptionFormat:
             case DiagnosticCode::InvalidOptionValue:
             case DiagnosticCode::MissingOptionValue:
             case DiagnosticCode::NoInputFile:
