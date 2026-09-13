@@ -40,6 +40,7 @@ namespace kepler {
 
         // Keywords
         Module,
+        Import,
         Extern,
         Return,
         End,
@@ -99,6 +100,8 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("...", ctx);
             case kepler::TokenType::Module:
                 return std::formatter<std::string>::format("module", ctx);
+            case kepler::TokenType::Import:
+                return std::formatter<std::string>::format("import", ctx);
             case kepler::TokenType::Extern:
                 return std::formatter<std::string>::format("extern", ctx);
             case kepler::TokenType::Return:
@@ -141,6 +144,7 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             case kepler::TokenType::Assignment:
             case kepler::TokenType::Variadic:
             case kepler::TokenType::Module:
+            case kepler::TokenType::Import:
             case kepler::TokenType::Extern:
             case kepler::TokenType::Return:
             case kepler::TokenType::End:

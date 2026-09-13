@@ -34,6 +34,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(file);
         if (keyword_map.empty()) {
             register_keyword("module", TokenType::Module);
+            register_keyword("import", TokenType::Import);
             register_keyword("extern", TokenType::Extern);
             register_keyword("return", TokenType::Return);
             register_keyword("end", TokenType::End);

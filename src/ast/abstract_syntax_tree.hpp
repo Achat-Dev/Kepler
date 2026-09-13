@@ -18,6 +18,7 @@ namespace kepler {
 
     struct AbstractSyntaxTree {
         std::vector<StringId> module_identifier_ids;
+        std::vector<std::vector<StringId>> imported_module_identifier_ids;
         std::vector<std::unique_ptr<ASTNode>> top_level_nodes;
     };
 

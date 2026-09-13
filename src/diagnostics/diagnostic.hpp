@@ -43,13 +43,15 @@ namespace kepler {
 
         // Parser
         UnexpectedToken = 400,
+        ModuleRedefinition,
+        RedundantImport,
+        InvalidImport,
         InvalidCast,
         InvalidReturn,
         InvalidLoopVariableType,
         InvalidMathematicalNegation,
         MissingEndKeyword,
         UsingStatementAsExpression,
-        ModuleRedefinition,
 
         // Semantic analysis
         UnreachableCode = 500,

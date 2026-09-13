@@ -13,6 +13,9 @@
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
+#include "utils/string_pool.hpp"
+#include <algorithm>
+#include <cstddef>
 #include <format>
 #include <memory>
 #include <utility>
@@ -52,34 +55,64 @@ namespace kepler {
         KPL_ASSERT_THAT(!tokens.empty());
         KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Final token should be EOF, received '{}'", tokens.back().type);
 
-        AbstractSyntaxTree result;
+        AbstractSyntaxTree ast;
         while (current_token->type != TokenType::EndOfFile) {
             switch (current_token->type) {
-                case TokenType::Type: {
-                    std::unique_ptr<ASTNode> ast_node = parse_top_level_type();
-                    if (ast_node) {
-                        result.top_level_nodes.push_back(std::move(ast_node));
-                    }
-                    break;
-                }
                 case TokenType::Module: {
                     const auto parse_result = parse_module();
                     if (parse_result) {
-                        if (!result.module_identifier_ids.empty()) {
+                        KPL_ASSERT_THAT(!parse_result->identifier_ids.empty());
+                        if (!ast.module_identifier_ids.empty()) {
                             diagnostic_sink.report(DiagnosticCode::ModuleRedefinition,
-                                "Module redefinition: module can only be specified once per file",
+                                "'module' can only be specified once per file",
                                 parse_result->source_location);
                             break;
                         }
 
-                        result.module_identifier_ids = std::move(parse_result->identifier_ids);
+                        ast.module_identifier_ids = std::move(parse_result->identifier_ids);
+                    }
+                    break;
+                }
+                case TokenType::Import: {
+                    const auto parse_result = parse_import();
+                    if (parse_result) {
+                        KPL_ASSERT_THAT(!parse_result->identifier_ids.empty());
+                        const auto begin = ast.imported_module_identifier_ids.begin();
+                        const auto end = ast.imported_module_identifier_ids.end();
+                        if (std::find(begin, end, parse_result->identifier_ids) != end) {
+                            // Module is already imported
+                            std::string module_identifier;
+                            for (size_t i = 0; i < parse_result->identifier_ids.size(); i++) {
+                                module_identifier += StringPool::get().lookup(parse_result->identifier_ids[i]);
+                                if (i < parse_result->identifier_ids.size() - 1) {
+                                    module_identifier += "::";
+                                }
+                            }
+                            const std::string message = std::format("Module '{}' is already imported. Redundant imports are discarded, but consider removing them.", std::move(module_identifier));
+                            diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), parse_result->source_location);
+                            break;
+                        }
+
+                        if (ast.module_identifier_ids == parse_result->identifier_ids) {
+                            diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", parse_result->source_location);
+                            break;
+                        }
+
+                        ast.imported_module_identifier_ids.push_back(std::move(parse_result->identifier_ids));
                     }
                     break;
                 }
                 case TokenType::Extern: {
                     std::unique_ptr<ASTNode> ast_node = parse_extern();
                     if (ast_node) {
-                        result.top_level_nodes.push_back(std::move(ast_node));
+                        ast.top_level_nodes.push_back(std::move(ast_node));
+                    }
+                    break;
+                }
+                case TokenType::Type: {
+                    std::unique_ptr<ASTNode> ast_node = parse_top_level_type();
+                    if (ast_node) {
+                        ast.top_level_nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
@@ -95,7 +128,7 @@ namespace kepler {
             }
         }
 
-        return result;
+        return ast;
     }
 
 }

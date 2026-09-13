@@ -17,6 +17,7 @@
 #include "lexer/token.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
+#include <cstdint>
 #include <format>
 #include <memory>
 #include <optional>
@@ -30,11 +31,8 @@ namespace kepler {
 
     std::optional<ModuleParseResult> Parser::parse_module() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Module,
-            "Parsing module requires current token to be of type '{}', received '{}'",
-            TokenType::Module,
-            current_token->type);
-        const SourceLocation& module_source_location = current_token->source_location;
+        KPL_ASSERT_THAT(current_token->type == TokenType::Module, "Required token '{}', received '{}'", TokenType::Module, current_token->type);
+        const uint32_t source_location_start_position = current_token->source_location.position;
         next_token(true); // eat 'module' keyword
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'module'", current_token->source_location);
@@ -42,8 +40,34 @@ namespace kepler {
             return std::nullopt;
         }
 
+        const auto parse_result = parse_module_identifier(source_location_start_position, "module definition");
+        if (!parse_result) {
+            return std::nullopt;
+        }
+        return ModuleParseResult{.identifier_ids = std::move(parse_result->identifier_ids), .source_location = std::move(parse_result->source_location)};
+    }
+
+    std::optional<ModuleParseResult> Parser::parse_import() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Import, "Required token '{}', received '{}'", TokenType::Import, current_token->type);
+        const uint32_t source_location_start_position = current_token->source_location.position;
+        next_token(true); // eat 'import' keyword
+        if (current_token->type != TokenType::Identifier) {
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'import'", current_token->source_location);
+            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            return std::nullopt;
+        }
+        const auto parse_result = parse_module_identifier(source_location_start_position, "imported module definition");
+        if (!parse_result) {
+            return std::nullopt;
+        }
+        return ModuleParseResult{.identifier_ids = std::move(parse_result->identifier_ids), .source_location = std::move(parse_result->source_location)};
+    }
+
+    std::optional<ModuleParseResult> Parser::parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message) {
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        std::vector<StringId> module_identifier_ids{
+        std::vector<StringId> identifier_ids{
             std::get<StringId>(current_token->data),
         };
         next_token(true); // eat identifier
@@ -53,25 +77,30 @@ namespace kepler {
             if (current_token->type != TokenType::Identifier) {
                 previous_token(true); // jump back to '::' because otherwise the next line will be skipped because of the revocery
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                    "Expected identifier after '::' in module definition",
+                    "Expected identifier after '::' in " + diagnostic_message,
                     doublecolon_source_location);
                 recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
                 return std::nullopt;
             }
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            module_identifier_ids.push_back(std::get<StringId>(current_token->data));
+            identifier_ids.push_back(std::get<StringId>(current_token->data));
             next_token(true); // eat identifier
         }
 
-        return ModuleParseResult{.identifier_ids = std::move(module_identifier_ids), .source_location = module_source_location};
+        previous_token(true);
+        const SourceLocation source_location{
+            .file_id = current_token->source_location.file_id,
+            .position = source_location_start_position,
+            .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
+        };
+        next_token(true);
+
+        return ModuleParseResult{.identifier_ids = std::move(identifier_ids), .source_location = std::move(source_location)};
     }
 
     std::unique_ptr<Extern> Parser::parse_extern() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Extern,
-            "Parsing extern requires current token to be of type '{}', received '{}'",
-            TokenType::Extern,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Extern, "Required token '{}', received '{}'", TokenType::Extern, current_token->type);
 
         const SourceLocation& extern_source_location = current_token->source_location;
         next_token(true); // eat 'extern' keyword
@@ -90,10 +119,7 @@ namespace kepler {
 
     std::unique_ptr<Prototype> Parser::parse_prototype(PrototypeLinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type,
-            "Parsing prototype requires current token to be of type '{}', received '{}'",
-            TokenType::Type,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token '{}', received '{}'", TokenType::Type, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId return_type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
@@ -185,10 +211,7 @@ namespace kepler {
 
     std::unique_ptr<ASTNode> Parser::parse_top_level_type() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type,
-            "Parsing top level type requires current token to be of type '{}', received '{}'",
-            TokenType::Type,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token '{}', received '{}'", TokenType::Type, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
@@ -220,10 +243,7 @@ namespace kepler {
 
     std::unique_ptr<Function> Parser::parse_function() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen,
-            "Parsing a function requires token of type '{}', received '{}'",
-            TokenType::BracketOpen,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token '{}', received '{}'", TokenType::BracketOpen, current_token->type);
         KPL_ASSERT_THAT(!current_function_return_type_id.has_value());
         // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
         previous_token(true);

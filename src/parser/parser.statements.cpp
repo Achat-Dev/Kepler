@@ -67,10 +67,7 @@ namespace kepler {
 
     std::unique_ptr<AssignmentStatement> Parser::parse_assignment(const Token* identifier_token) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Assignment,
-            "Parsing assignment requires '{}' token, received '{}' token",
-            TokenType::Assignment,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Assignment, "Required token '{}', received '{}'", TokenType::Assignment, current_token->type);
         KPL_ASSERT_NOT_NULLPTR(identifier_token);
         if (current_token->type != TokenType::Assignment) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '=' after identifier in assignment", current_token->source_location);
@@ -95,7 +92,7 @@ namespace kepler {
     std::unique_ptr<IfStatement> Parser::parse_if() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::If || current_token->type == TokenType::Elseif,
-            "Parsing if statement requires '{}' or '{}' token, received '{}' token",
+            "Required token '{}' or '{}', received '{}'",
             TokenType::If,
             TokenType::Elseif,
             current_token->type);
@@ -177,10 +174,7 @@ namespace kepler {
 
     std::unique_ptr<ForStatement> Parser::parse_for() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::For,
-            "Parsing for statement requires '{}' token, received '{}' token",
-            TokenType::For,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::For, "Required token '{}', received '{}'", TokenType::For, current_token->type);
         const SourceLocation& for_source_location = current_token->source_location;
         next_token(true); // eat 'for'
         if (current_token->type != TokenType::BracketOpen) {
@@ -303,10 +297,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(start_value);
         KPL_ASSERT_NOT_NULLPTR(end_value);
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::BracketClose,
-            "Creating for statement requires '{}' token, received '{}' token",
-            TokenType::BracketOpen,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketClose, "Required token '{}', received '{}'", TokenType::BracketOpen, current_token->type);
         next_token(true); // eat ')'
         auto body = parse_body<TokenType::End>("'for' statement was not closed with an 'end' keyword", for_source_location);
         next_token(true); // eat 'end'
@@ -344,10 +335,7 @@ namespace kepler {
 
     std::unique_ptr<ReturnStatement> Parser::parse_return() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Return,
-            "Parsing return statement requires '{}' token, received '{}'",
-            TokenType::Return,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Return, "Required token '{}', received '{}'", TokenType::Return, current_token->type);
         KPL_ASSERT_THAT(current_function_return_type_id.has_value());
 
         const SourceLocation& return_source_location = current_token->source_location;
@@ -394,10 +382,7 @@ namespace kepler {
 
     std::unique_ptr<VariableDefinitionStatement> Parser::parse_variable_definition() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type,
-            "Parsing variable definition requires '{}' token, received '{}'",
-            TokenType::Type,
-            current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token '{}', received '{}'", TokenType::Type, current_token->type);
         const SourceLocation& type_source_location = current_token->source_location;
 
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));

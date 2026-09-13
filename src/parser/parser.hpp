@@ -29,6 +29,7 @@
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -64,6 +65,8 @@ namespace kepler {
 
         // Top level
         std::optional<ModuleParseResult> parse_module();
+        std::optional<ModuleParseResult> parse_import();
+        std::optional<ModuleParseResult> parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message);
         std::unique_ptr<Extern> parse_extern();
         std::unique_ptr<Prototype> parse_prototype(PrototypeLinkageType linkage_type);
         std::unique_ptr<ASTNode> parse_top_level_type();
