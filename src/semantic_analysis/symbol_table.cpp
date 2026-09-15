@@ -33,8 +33,8 @@
 
 namespace kepler {
 
-    // TODO (improvement): Right now the entire module definition is copied, which is not the best solution.
-    // Maybe create just have a shared_ptr for a module definition
+    // TODO (improvement): Right now the entire module definition is copied, which is maybe not the best solution.
+    // Maybe just use a shared_ptr for the module definition
     ModuleId SymbolTable::create_module(ModuleDefinition module_definition) {
         KPL_ASSERT_THAT(module_definition.id == ModuleId::invalid(), "Required invalid id, received: {}", module_definition.id.value);
         KPL_ASSERT_THAT(module_definition.full_identifier_id != StringId::invalid());

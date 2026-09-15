@@ -66,6 +66,9 @@ namespace kepler {
 
     void DiagnosticSink::flush() {
         if (diagnostics.empty()) {
+            KPL_ASSERT_THAT(error_count == 0);
+            KPL_ASSERT_THAT(warning_count == 0);
+            print_statistics();
             return;
         }
 
@@ -171,6 +174,7 @@ namespace kepler {
             } while (it != std::next(end_it));
         }
 
+        print_statistics();
         diagnostics.clear();
     }
 
@@ -182,6 +186,33 @@ namespace kepler {
             result += 1;
         }
         return result;
+    }
+
+    void DiagnosticSink::print_statistics() const {
+        if (error_count > 0) {
+            std::println("{}{}[ This one's on you ]{}: Compilation failed with {} error(s) and {} warning(s){}",
+                ansi_codes::bold,
+                ansi_codes::bg_red,
+                ansi_codes::reset_bold_and_dim,
+                error_count,
+                warning_count,
+                ansi_codes::reset);
+        } else if (warning_count > 0) {
+            std::println("{}{}{}[ There's room for improvement ]{}: Compilation succeeded, but with {} warning(s){}",
+                ansi_codes::bold,
+                ansi_codes::black,
+                ansi_codes::bg_yellow,
+                ansi_codes::reset_bold_and_dim,
+                warning_count,
+                ansi_codes::reset);
+        } else {
+            std::println("{}{}{}[ You're a god damn genius ]{}: Compilation succeeded{}",
+                ansi_codes::bold,
+                ansi_codes::black,
+                ansi_codes::bg_green,
+                ansi_codes::reset_bold_and_dim,
+                ansi_codes::reset);
+        }
     }
 
 }
