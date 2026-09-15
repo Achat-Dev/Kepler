@@ -34,6 +34,7 @@
 #include "utils/assert.h"
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
+#include "llvm/IR/Instruction.h"
 #include <algorithm>
 #include <cstdint>
 #include <llvm/ADT/APInt.h>
@@ -233,8 +234,11 @@ namespace kepler {
 
         // Create implicit return for void methods
         if (!function->body.contains_return && function->prototype->return_type == type_table.Builtins.void_type) {
-            KPL_ASSERT_THAT(builder.GetInsertBlock()->getTerminator() == nullptr,
-                "When body of void function doesn't contain a return statement, the generated ir isn't allowed to have a terminator after code generation");
+            const llvm::Instruction* terminator = builder.GetInsertBlock()->getTerminator();
+            if (terminator != nullptr) {
+                KPL_ASSERT_THAT(!terminator->isTerminator(),
+                    "When body of void function doesn't contain a return statement, the generated ir isn't allowed to have a terminator after code generation");
+            }
             builder.CreateRetVoid();
         }
 
