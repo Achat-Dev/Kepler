@@ -44,7 +44,7 @@ namespace kepler::internal {
     }
 
     inline void print_assertion(const char* file_path, int line_number, const std::string& message) {
-        print_assertion(file_path, line_number, "{}", "");
+        print_assertion(file_path, line_number, "{}", message);
     }
 
     inline void print_assertion(const char* file_path, int line_number) {
