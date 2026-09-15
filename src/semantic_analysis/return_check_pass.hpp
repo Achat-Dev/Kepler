@@ -37,9 +37,9 @@ namespace kepler {
 
     class ReturnCheckPass : public ASTPass<void> {
     public:
-        ReturnCheckPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, const TypeTable& type_table)
-            : ASTPass(ast), diagnostic_sink(diagnostic_sink), type_table(type_table) {}
-        void run() override;
+        ReturnCheckPass(DiagnosticSink& diagnostic_sink, const TypeTable& type_table)
+            : diagnostic_sink(diagnostic_sink), type_table(type_table) {}
+        void run(std::vector<AbstractSyntaxTree>& asts) override;
 
     private:
         DiagnosticSink& diagnostic_sink;

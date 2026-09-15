@@ -10,19 +10,15 @@
 #pragma once
 
 #include "ast/abstract_syntax_tree.hpp"
+#include <vector>
 
 namespace kepler {
 
-    // The virtual function call could be eliminated by using CRTP
     template <typename T>
     class ASTPass {
     public:
-        explicit ASTPass(AbstractSyntaxTree& ast) : ast(ast) {}
         virtual ~ASTPass() = default;
-        virtual T run() = 0;
-
-    protected:
-        AbstractSyntaxTree& ast;
+        virtual T run(std::vector<AbstractSyntaxTree>& asts) = 0;
     };
 
 }

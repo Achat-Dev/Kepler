@@ -10,15 +10,15 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
-#include "utils/string_pool.hpp"
+#include "semantic_analysis/module.hpp"
 #include <memory>
 #include <vector>
 
 namespace kepler {
 
     struct AbstractSyntaxTree {
-        std::vector<StringId> module_identifier_ids;
-        std::vector<std::vector<StringId>> imported_module_identifier_ids;
+        ModuleDefinition module_definition;
+        std::vector<ModuleDefinition> imported_module_definitions;
         std::vector<std::unique_ptr<ASTNode>> top_level_nodes;
     };
 

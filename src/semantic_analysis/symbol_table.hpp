@@ -25,7 +25,7 @@ namespace kepler {
 
     class SymbolTable {
     public:
-        ModuleId create_module(std::vector<StringId> identifier_ids);
+        ModuleId create_module(ModuleDefinition module_definition);
         std::expected<SymbolId, SourceDiagnostic> create_variable(ModuleId module_id, Type* type, StringId identifier_id, SourceLocation source_location);
         std::expected<SymbolId, SourceDiagnostic> create_prototype(ModuleId module_id,
             Type* type,

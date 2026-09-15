@@ -8,6 +8,7 @@
  */
 
 #include "type_system/type_check_pass.hpp"
+#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
@@ -45,8 +46,11 @@
 
 namespace kepler {
 
-    void TypeCheckPass::run() {
-        typecheck_nodes(ast.top_level_nodes);
+    void TypeCheckPass::run(std::vector<AbstractSyntaxTree>& asts) {
+        for (const AbstractSyntaxTree& ast : asts) {
+            current_function_return_type = nullptr;
+            typecheck_nodes(ast.top_level_nodes);
+        }
     }
 
     bool TypeCheckPass::is_boolean_operator(OperatorType type) const {

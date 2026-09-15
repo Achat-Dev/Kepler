@@ -19,6 +19,8 @@
 #include "lexer/token.hpp"
 #include "lexer/tokenizer.hpp"
 #include "parser/parser.hpp"
+#include "semantic_analysis/module.hpp"
+#include "semantic_analysis/module_creation_pass.hpp"
 #include "semantic_analysis/name_resolution_pass.hpp"
 #include "semantic_analysis/return_check_pass.hpp"
 #include "semantic_analysis/symbol_table.hpp"
@@ -31,13 +33,13 @@
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
 #include "version.hpp"
-#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <expected>
 #include <filesystem>
 #include <format>
 #include <llvm/CodeGen/MachineFunction.h>
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/MC/TargetRegistry.h>
@@ -50,6 +52,7 @@
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
 #include <memory>
+#include <optional>
 #include <print>
 #include <string>
 #include <system_error>
@@ -75,101 +78,56 @@ namespace kepler {
             return EXIT_FAILURE;
         }
 
-        DiagnosticSink diagnostic_sink;
-
         // Parse command line arguments
-        const auto parse_result = parse_args(argc, argv);
-        if (!parse_result) {
-            print_diagnostic(parse_result.error());
+        const auto args_parse_result = parse_args(argc, argv);
+        if (!args_parse_result) {
+            print_diagnostic(args_parse_result.error());
             return EXIT_FAILURE;
         }
-        const CompilerContext context = *parse_result;
-        if (context.help_requested) {
-            std::println("{}", context.help);
+        const CmdArgs cmd_args = *args_parse_result;
+        if (cmd_args.help_requested) {
+            std::println("{}", cmd_args.help);
             return EXIT_SUCCESS;
         }
-        if (context.version_requested) {
+        if (cmd_args.version_requested) {
             std::println("kepler version {}.{}.{}", version.major, version.minor, version.patch);
             return EXIT_SUCCESS;
         }
 
-        // Load file to start compilation
-        KPL_ASSERT_THAT(context.input_path.extension() == ".kpl", "Required extension: '.kpl', received: '{}'", context.input_path.extension().string());
-        const auto file = FileManager::get().load(context.input_path);
-        if (!file) {
-            print_diagnostic(file.error());
-            return EXIT_FAILURE;
-        }
-
+        DiagnosticSink diagnostic_sink;
         SymbolTable symbol_table;
         TypeTable type_table;
+        // Important: The llvm context has to have the same lifetime as the llvm modules, that's why we declare it here
+        llvm::LLVMContext llvm_context;
 
-        // AST creation
-        Tokenizer tokenizer(*file, diagnostic_sink, type_table);
-        std::vector<Token> tokens = tokenizer.tokenize();
-        Parser parser(std::move(tokens), diagnostic_sink, type_table);
-        AbstractSyntaxTree ast = parser.parse();
-        verify_ast(ast, *file);
-        ASTPrintPass ast_print_pass(ast, symbol_table);
-        // ast_print_pass.run();
-
-        // AST passes
-        // Currently there are only builtin types so there is no need to do any type resolution before name resolution
-        // Once user defined types are implemented the first pass should be a type resolution pass which creates the type objects for all user defined types
-        ReturnCheckPass return_check_pass(ast, diagnostic_sink, type_table);
-        return_check_pass.run();
-        NameResolutionPass name_resolution_pass(ast, diagnostic_sink, symbol_table, type_table);
-        name_resolution_pass.run();
-        TypeCheckPass type_check_pass(ast, diagnostic_sink, symbol_table, type_table);
-        type_check_pass.run();
-        // ast_print_pass.run();
-
-        // Print diagnostics and abort if any of the passes encountered errors
-        if (diagnostic_sink.get_error_count() > 0) {
-            diagnostic_sink.flush();
-            std::println("{}{}[ This one's on you ]{}: Compilation failed with {} error(s) and {} warning(s){}",
-                ansi_codes::bold,
-                ansi_codes::bg_red,
-                ansi_codes::reset_bold_and_dim,
-                diagnostic_sink.get_error_count(),
-                diagnostic_sink.get_warning_count(),
-                ansi_codes::reset);
+        auto asts = create_asts(cmd_args.input_paths, diagnostic_sink, type_table);
+        if (!asts) {
             return EXIT_FAILURE;
         }
-
-        // Do the actual code generation and compilation
-        CodegenPass codegen_pass(ast, symbol_table, type_table);
-        const std::unique_ptr<llvm::Module> llvm_module = codegen_pass.run();
-        if (llvm_module == nullptr) {
-            return EXIT_FAILURE;
-        }
+        ASTPrintPass ast_print_pass(symbol_table);
+        ast_print_pass.run(*asts);
 
         llvm::TargetMachine* target_machine = create_target_machine();
-        if (target_machine == nullptr) {
-            return EXIT_FAILURE;
-        }
-        // It's important for optimization to set the data layout before running the optimizer
-        llvm_module->setTargetTriple(target_machine->getTargetTriple());
-        llvm_module->setDataLayout(target_machine->createDataLayout());
-        optimize_module(llvm_module, context.optimization_level);
-
-        // TOOD (bug): This works for now, but when multiple input files are introduced the object files will always override each other
-        std::filesystem::path object_output_path = context.output_path;
-        object_output_path.replace_extension("o");
-        const bool object_code_emission_successful = emit_object_code(llvm_module, target_machine, object_output_path);
-        if (!object_code_emission_successful) {
+        if (!target_machine) {
             return EXIT_FAILURE;
         }
 
-        const bool executable_linking_successful = link_to_executable(object_output_path,
-            context.additional_paths,
-            context.optimization_level,
-            context.output_path);
-        if (!executable_linking_successful) {
+        auto llvm_modules = run_ast_passes(*asts, diagnostic_sink, symbol_table, type_table, llvm_context, target_machine, cmd_args.optimization_level);
+        if (!llvm_modules) {
+            return EXIT_FAILURE;
+        }
+
+        const bool compilation_successul = create_executable(*llvm_modules,
+            target_machine,
+            cmd_args.additional_paths,
+            cmd_args.optimization_level,
+            cmd_args.output_path);
+        if (!compilation_successul) {
             return EXIT_FAILURE;
         }
 
         // Print final compilation result
+        KPL_ASSERT_THAT(diagnostic_sink.get_error_count() == 0);
         if (diagnostic_sink.get_warning_count() > 0) {
             diagnostic_sink.flush();
             std::println("{}{}{}[ There's room for improvement ]{}: Compilation succeeded, but with {} warning(s){}",
@@ -203,11 +161,11 @@ namespace kepler {
         return {};
     }
 
-    std::expected<CompilerContext, Diagnostic> Compiler::parse_args(int argc, char** argv) const {
-        CompilerContext context;
+    std::expected<CmdArgs, Diagnostic> Compiler::parse_args(int argc, char** argv) const {
+        CmdArgs context;
         std::string optimization_level_string = "2";
         CmdParser cmd_parser("The compiler for the kepler programming language");
-        cmd_parser.add_option(&context.input_path, 'i', "input", "The .kpl input file");
+        cmd_parser.add_option(&context.input_paths, 'i', "input", "The .kpl input file");
         cmd_parser.add_option(&context.output_path, 'o', "output", "The output file");
         cmd_parser.add_option(&context.additional_paths, 'a', "additional-files",
             "Additional .c or .o files, separated by spaces");
@@ -215,7 +173,7 @@ namespace kepler {
             "The optimization level to use. Possible values for <arg>:\n"
             "- 0: (Almost) no optimization\n"
             "- 1: Optimize quickly without destroying debuggability\n"
-            "- 2: Optimize for fast execution as much as possible without triggering significant incremental compile time or code size growth\n"
+            "- 2: (Default value) Optimize for fast execution as much as possible without triggering significant incremental compile time or code size growth\n"
             "- 3: Optimize for fast execution as much as possible no matter the compilation cost\n"
             "- s: Similar to 2 but tries to optimize for small code size instead of fast execution\n"
             "- z: A very specialized mode that will optimize for code size at any and all costs");
@@ -238,13 +196,15 @@ namespace kepler {
         }
 
         // Input file
-        if (context.input_path.empty()) {
+        if (context.input_paths.empty()) {
             return std::unexpected(Diagnostic{.code = DiagnosticCode::NoInputFile, .message = "Missing input file (-i)"});
         } else {
-            const std::filesystem::path extension = context.input_path.extension();
-            if (extension != ".kpl") {
-                const std::string message = std::format("Input file (-i) must be a '.kpl' file, received '{}'", extension.string());
-                return std::unexpected(Diagnostic{.code = DiagnosticCode::WrongFileFormat, .message = message});
+            for (const std::filesystem::path& input_path : context.input_paths) {
+                const std::filesystem::path extension = input_path.extension();
+                if (extension != ".kpl") {
+                    const std::string message = std::format("Input file (-i) must be a '.kpl' file, received '{}'", extension.string());
+                    return std::unexpected(Diagnostic{.code = DiagnosticCode::WrongFileFormat, .message = message});
+                }
             }
         }
 
@@ -254,11 +214,10 @@ namespace kepler {
         }
 
         // Additional files
-        if (context.additional_paths.size() > 0) {
-            for (size_t i = 0; i < context.additional_paths.size(); i++) {
-                context.additional_paths.push_back(context.additional_paths[i]);
-                const std::filesystem::path extension = context.additional_paths[i].extension();
-                if (extension != ".o" && extension != ".c") {
+        if (!context.additional_paths.empty()) {
+            for (const std::filesystem::path& additional_path : context.additional_paths) {
+                const std::filesystem::path extension = additional_path.extension();
+                if (extension != ".c" && extension != ".o") {
                     const std::string message = std::format("Additional files can only be '.c' and '.o' files, received '{}'", extension.string());
                     return std::unexpected(Diagnostic{.code = DiagnosticCode::WrongFileFormat, .message = message});
                 }
@@ -286,17 +245,98 @@ namespace kepler {
         return context;
     }
 
+    // clang-format off
+    std::optional<std::vector<AbstractSyntaxTree>> Compiler::create_asts(const std::vector<std::filesystem::path> file_paths,
+        DiagnosticSink& diagnostic_sink,
+        TypeTable& type_table) const
+    {
+        // clang-format on
+        KPL_ASSERT_THAT(!file_paths.empty());
+        bool all_files_found = true;
+        std::vector<AbstractSyntaxTree> asts;
+        for (const std::filesystem::path file_path : file_paths) {
+            KPL_ASSERT_THAT(file_path.extension() == ".kpl", "Required extension: '.kpl', received: '{}'", file_path.extension().string());
+            const auto file = FileManager::get().load(file_path);
+            if (!file) {
+                print_diagnostic(file.error());
+                all_files_found = false;
+                continue;
+            }
+
+            Tokenizer tokenizer(*file, diagnostic_sink, type_table);
+            std::vector<Token> tokens = tokenizer.tokenize();
+            Parser parser(std::move(tokens), diagnostic_sink, type_table);
+            AbstractSyntaxTree ast = parser.parse();
+            verify_ast(ast, *file);
+            asts.push_back(std::move(ast));
+        }
+
+        if (!all_files_found) {
+            return std::nullopt;
+        }
+        return asts;
+    }
+
     void Compiler::verify_ast(AbstractSyntaxTree& ast, const File* file) const {
         KPL_ASSERT_NOT_NULLPTR(file);
-        if (ast.module_identifier_ids.empty()) {
+        if (ast.module_definition.full_identifier_id == StringId::invalid()) {
             // Use the file path as the module identifier if no module identifier is specified
-            ast.module_identifier_ids = {StringPool::get().store("__file://" + file->path.string())};
+            const StringId fallback_identifier_id = StringPool::get().store("__file://" + file->path.string());
+            ast.module_definition.full_identifier_id = fallback_identifier_id;
+            ast.module_definition.part_identifier_ids = {fallback_identifier_id};
         }
 
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
             bool is_valid_top_level_node = node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function;
             KPL_ASSERT_THAT(is_valid_top_level_node, "Malformed ast with node of type '{}' on top level", node->node_type);
         }
+    }
+
+    // clang-format off
+    std::optional<std::vector<std::unique_ptr<llvm::Module>>> Compiler::run_ast_passes(std::vector<AbstractSyntaxTree>& asts,
+        DiagnosticSink& diagnostic_sink,
+        SymbolTable& symbol_table,
+        TypeTable& type_table,
+        llvm::LLVMContext& llvm_context,
+        llvm::TargetMachine* target_machine,
+        OptimizationLevel optimization_level) const
+    {
+        // clang-format on
+        KPL_ASSERT_THAT(!asts.empty());
+        KPL_ASSERT_NOT_NULLPTR(target_machine);
+        ReturnCheckPass return_check_pass(diagnostic_sink, type_table);
+        return_check_pass.run(asts);
+        ModuleCreationPass module_creation_pass(diagnostic_sink, symbol_table, type_table);
+        module_creation_pass.run(asts);
+        NameResolutionPass name_resolution_pass(diagnostic_sink, symbol_table, type_table);
+        name_resolution_pass.run(asts);
+        TypeCheckPass type_check_pass(diagnostic_sink, symbol_table, type_table);
+        type_check_pass.run(asts);
+
+        // Print diagnostics and abort if any of the passes encountered errors
+        if (diagnostic_sink.get_error_count() > 0) {
+            diagnostic_sink.flush();
+            std::println("{}{}[ This one's on you ]{}: Compilation failed with {} error(s) and {} warning(s){}",
+                ansi_codes::bold,
+                ansi_codes::bg_red,
+                ansi_codes::reset_bold_and_dim,
+                diagnostic_sink.get_error_count(),
+                diagnostic_sink.get_warning_count(),
+                ansi_codes::reset);
+            return std::nullopt;
+        }
+
+        CodegenPass codegen_pass(symbol_table,
+            type_table,
+            llvm_context,
+            target_machine->getTargetTriple(),
+            target_machine->createDataLayout(),
+            optimization_level);
+        auto llvm_modules = codegen_pass.run(asts);
+        if (!llvm_modules) {
+            return std::nullopt;
+        }
+        return std::move(*llvm_modules);
     }
 
     llvm::TargetMachine* Compiler::create_target_machine() const {
@@ -325,6 +365,40 @@ namespace kepler {
             return nullptr;
         }
         return target_machine;
+    }
+
+    // clang-format off
+    bool Compiler::create_executable(std::vector<std::unique_ptr<llvm::Module>>& llvm_modules,
+        llvm::TargetMachine* target_machine,
+        const std::vector<std::filesystem::path>& additional_paths,
+        OptimizationLevel optimization_level,
+        const std::filesystem::path& output_path) const
+    {
+        // clang-format on
+        KPL_ASSERT_THAT(!llvm_modules.empty());
+        KPL_ASSERT_NOT_NULLPTR(target_machine);
+        KPL_ASSERT_THAT(!output_path.empty());
+        std::vector<std::filesystem::path> object_paths;
+        for (std::unique_ptr<llvm::Module>& llvm_module : llvm_modules) {
+            std::filesystem::path object_path = output_path;
+            object_path.replace_filename(llvm_module->getModuleIdentifier() + ".o");
+            std::println("{}", object_path.string());
+            const bool object_code_emission_successful = emit_object_code(llvm_module, target_machine, object_path);
+            if (!object_code_emission_successful) {
+                return false;
+            }
+            object_paths.push_back(std::move(object_path));
+        }
+
+        const bool executable_linking_successful = link_to_executable(object_paths,
+            additional_paths,
+            optimization_level,
+            output_path);
+        if (!executable_linking_successful) {
+            return false;
+        }
+
+        return true;
     }
 
     // clang-format off
@@ -359,14 +433,13 @@ namespace kepler {
     }
 
     // clang-format off
-    bool Compiler::link_to_executable(const std::filesystem::path& object_path,
+    bool Compiler::link_to_executable(const std::vector<std::filesystem::path>& object_paths,
         const std::vector<std::filesystem::path>& additional_paths,
         OptimizationLevel optimization_level,
         const std::filesystem::path& output_path) const
     {
         // clang-format on
-        KPL_ASSERT_THAT(!object_path.empty());
-        KPL_ASSERT_THAT(object_path.extension() == ".o", "Required extension: '.o', received: '{}'", object_path.extension().string());
+        KPL_ASSERT_THAT(!object_paths.empty());
         KPL_ASSERT_THAT(!output_path.empty());
 
         // Construct arguments
@@ -376,12 +449,17 @@ namespace kepler {
 #else
         args.push_back("clang");
 #endif
-        if (!std::filesystem::exists(object_path)) {
-            log::error("File '{}', which was just created during compilation, doesn't exist", object_path.string());
-            return false;
+        // Add object paths to arguments
+        for (const std::filesystem::path& object_path : object_paths) {
+            KPL_ASSERT_THAT(object_path.extension() == ".o", "Required extension: '.o', received: '{}'", object_path.extension().string());
+            if (!std::filesystem::exists(object_path)) {
+                log::error("Object file path '{}' doesn't exist", object_path.string());
+                return false;
+            }
+            args.push_back(object_path.string());
         }
 
-        args.push_back(object_path.string().data());
+        // Add additional paths to arguments
         for (const std::filesystem::path& additional_path : additional_paths) {
             KPL_ASSERT_THAT(additional_path.extension() == ".c" || additional_path.extension() == ".o",
                 "Required extension: '.c' or '.o', received: '{}'",
@@ -394,7 +472,7 @@ namespace kepler {
         }
         args.push_back(std::format("-{}", optimization_level));
         args.push_back("-o");
-        args.push_back(output_path.string().data());
+        args.push_back(output_path.string());
 
         std::vector<char*> argv;
         argv.reserve(args.size());

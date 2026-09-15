@@ -27,10 +27,12 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "codegen/optimizer.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
@@ -38,7 +40,9 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <llvm/TargetParser/Triple.h>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -49,22 +53,32 @@ namespace kepler {
         bool returns = false;
     };
 
-    class CodegenPass : ASTPass<std::unique_ptr<llvm::Module>> {
+    class CodegenPass : ASTPass<std::optional<std::vector<std::unique_ptr<llvm::Module>>>> {
     public:
-        CodegenPass(AbstractSyntaxTree& ast, SymbolTable& symbol_table, const TypeTable& type_table)
-            : ASTPass(ast),
-              symbol_table(symbol_table),
+        CodegenPass(SymbolTable& symbol_table,
+            const TypeTable& type_table,
+            llvm::LLVMContext& context,
+            const llvm::Triple& target_triple,
+            const llvm::DataLayout& data_layout,
+            OptimizationLevel optimization_level)
+            : symbol_table(symbol_table),
               type_table(type_table),
-              builder(context),
-              module(std::make_unique<llvm::Module>("main", context)) {}
-        std::unique_ptr<llvm::Module> run() override;
+              target_triple(target_triple),
+              data_layout(data_layout),
+              optimization_level(optimization_level),
+              context(context),
+              builder(context) {}
+        std::optional<std::vector<std::unique_ptr<llvm::Module>>> run(std::vector<AbstractSyntaxTree>& ast) override;
 
     private:
         SymbolTable& symbol_table;
         const TypeTable& type_table;
-        llvm::LLVMContext context;
+        const llvm::Triple& target_triple;
+        const llvm::DataLayout& data_layout;
+        const OptimizationLevel optimization_level;
+        llvm::LLVMContext& context;
         llvm::IRBuilder<> builder;
-        std::unique_ptr<llvm::Module> module;
+        std::unique_ptr<llvm::Module> llvm_module = nullptr;
         std::unordered_map<SymbolId, llvm::Value*> llvm_values;
 
         void forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes);

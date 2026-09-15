@@ -8,6 +8,7 @@
  */
 
 #include "codegen/codegen_pass.hpp"
+#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
@@ -33,6 +34,7 @@
 #include "utils/assert.h"
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <llvm/ADT/APInt.h>
 #include <llvm/IR/Argument.h>
@@ -53,6 +55,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -61,22 +64,42 @@
 
 namespace kepler {
 
-    std::unique_ptr<llvm::Module> CodegenPass::run() {
-        forward_declare_prototypes(ast.top_level_nodes);
-        codegen_nodes(ast.top_level_nodes);
+    std::optional<std::vector<std::unique_ptr<llvm::Module>>> CodegenPass::run(std::vector<AbstractSyntaxTree>& asts) {
+        KPL_ASSERT_THAT(!asts.empty());
+        std::vector<std::unique_ptr<llvm::Module>> result;
+        for (const AbstractSyntaxTree& ast : asts) {
+            KPL_ASSERT_THAT(llvm_module == nullptr);
+            KPL_ASSERT_THAT(llvm_values.empty());
+            std::string module_identifier(StringPool::get().lookup(ast.module_definition.full_identifier_id));
+            std::replace(module_identifier.begin(), module_identifier.end(), ':', '_');
+            llvm_module = std::make_unique<llvm::Module>(module_identifier, context);
+            forward_declare_prototypes(ast.top_level_nodes);
+            codegen_nodes(ast.top_level_nodes);
 
-        // Check ir for errors
-        std::string error;
-        llvm::raw_string_ostream raw_string_ostream(error);
-        bool is_invalid_function = llvm::verifyModule(*module, &raw_string_ostream);
-        raw_string_ostream.flush();
-        if (is_invalid_function) {
-            log::error("Invalid llvm function ir:\n{}", error);
-            module->print(llvm::errs(), nullptr);
-            return nullptr;
+            // Check ir for errors
+            std::string error;
+            llvm::raw_string_ostream raw_string_ostream(error);
+            bool is_invalid_function = llvm::verifyModule(*llvm_module, &raw_string_ostream);
+            raw_string_ostream.flush();
+            if (is_invalid_function) {
+                log::error("Invalid llvm function ir:\n{}", error);
+                llvm_module->print(llvm::errs(), nullptr);
+                return std::nullopt;
+            }
+
+            // Optimize module
+            // It's important for optimization to set the data layout before running the optimizer
+            llvm_module->setTargetTriple(target_triple);
+            llvm_module->setDataLayout(data_layout);
+            optimize_module(llvm_module, optimization_level);
+
+            result.push_back(std::move(llvm_module));
+
+            // Cleanup state
+            llvm_values.clear();
+            llvm_module = nullptr;
         }
-
-        return std::move(module);
+        return result;
     }
 
     void CodegenPass::forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
@@ -112,7 +135,7 @@ namespace kepler {
 
         const std::string_view prototype_name = StringPool::get().lookup(prototype->identifier_id);
         llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type, context), parameter_types, prototype->is_variadic);
-        llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(prototype->linkage_type), prototype_name, *module);
+        llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(prototype->linkage_type), prototype_name, *llvm_module);
 
 #ifndef NDEBUG
         unsigned int index = 0;
@@ -436,7 +459,7 @@ namespace kepler {
         llvm::Constant* data = llvm::ConstantDataArray::getString(context, string_value);
         // Global pointer that points to the constant array
         // This is owned by the llvm module and doesn't have to be freed manually
-        llvm::GlobalVariable* global_variable = new llvm::GlobalVariable(*module, data->getType(), true, llvm::GlobalValue::PrivateLinkage, data);
+        llvm::GlobalVariable* global_variable = new llvm::GlobalVariable(*llvm_module, data->getType(), true, llvm::GlobalValue::PrivateLinkage, data);
 
         // Optimisation: tell llvm that the pointer is never going to be compared
         // (only the value of the string is going to be compared, never the reference to the string)

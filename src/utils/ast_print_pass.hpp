@@ -38,9 +38,9 @@ namespace kepler {
 
     class ASTPrintPass : ASTPass<void> {
     public:
-        explicit ASTPrintPass(AbstractSyntaxTree& ast, SymbolTable& symbol_table)
-            : ASTPass(ast), symbol_table(symbol_table) {}
-        void run() override;
+        explicit ASTPrintPass(SymbolTable& symbol_table)
+            : symbol_table(symbol_table) {}
+        void run(std::vector<AbstractSyntaxTree>& asts) override;
 
     private:
         SymbolTable& symbol_table;

@@ -33,15 +33,21 @@
 
 namespace kepler {
 
-    ModuleId SymbolTable::create_module(std::vector<StringId> identifier_ids) {
+    // TODO (improvement): Right now the entire module definition is copied, which is not the best solution.
+    // Maybe create just have a shared_ptr for a module definition
+    ModuleId SymbolTable::create_module(ModuleDefinition module_definition) {
+        KPL_ASSERT_THAT(module_definition.id == ModuleId::invalid(), "Required invalid id, received: {}", module_definition.id.value);
+        KPL_ASSERT_THAT(module_definition.full_identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(!module_definition.part_identifier_ids.empty());
         const uint32_t module_count = modules.size();
         for (size_t i = 0; i < module_count; i++) {
-            if (modules[i].identifier_ids == identifier_ids) {
+            if (modules[i].definition.full_identifier_id == module_definition.full_identifier_id) {
                 return ModuleId{.value = static_cast<uint32_t>(i)};
             }
         }
-        modules.push_back({.identifier_ids = std::move(identifier_ids)});
         const ModuleId module_id = ModuleId{.value = module_count};
+        module_definition.id = module_id;
+        modules.push_back({.definition = std::move(module_definition)});
         open_scope(module_id, ScopeType::File);
         return module_id;
     }

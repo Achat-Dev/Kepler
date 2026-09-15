@@ -31,6 +31,7 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include <vector>
 
 namespace kepler {
 
@@ -40,9 +41,9 @@ namespace kepler {
 
     class NameResolutionPass : public ASTPass<void> {
     public:
-        NameResolutionPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, TypeTable& type_table)
-            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
-        void run() override;
+        NameResolutionPass(DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, TypeTable& type_table)
+            : diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
+        void run(std::vector<AbstractSyntaxTree>& asts) override;
 
     private:
         DiagnosticSink& diagnostic_sink;
@@ -50,8 +51,6 @@ namespace kepler {
         TypeTable& type_table;
         ModuleId module_id;
 
-        void collect_prototype_symbols() const;
-        void create_prototype_symbol(Prototype* prototype) const;
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
         NameResolutionResult resolve_node(ASTNode* node) const;
         void resolve_extern(Extern* ext) const;

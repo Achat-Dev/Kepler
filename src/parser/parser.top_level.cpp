@@ -15,8 +15,10 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
+#include "semantic_analysis/module.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <memory>
@@ -39,12 +41,7 @@ namespace kepler {
             recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
             return std::nullopt;
         }
-
-        const auto parse_result = parse_module_identifier(source_location_start_position, "module definition");
-        if (!parse_result) {
-            return std::nullopt;
-        }
-        return ModuleParseResult{.identifier_ids = std::move(parse_result->identifier_ids), .source_location = std::move(parse_result->source_location)};
+        return parse_module_identifier(source_location_start_position, "module identifier");
     }
 
     std::optional<ModuleParseResult> Parser::parse_import() {
@@ -57,11 +54,7 @@ namespace kepler {
             recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
             return std::nullopt;
         }
-        const auto parse_result = parse_module_identifier(source_location_start_position, "imported module definition");
-        if (!parse_result) {
-            return std::nullopt;
-        }
-        return ModuleParseResult{.identifier_ids = std::move(parse_result->identifier_ids), .source_location = std::move(parse_result->source_location)};
+        return parse_module_identifier(source_location_start_position, "imported module identifier");
     }
 
     std::optional<ModuleParseResult> Parser::parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message) {
@@ -95,7 +88,23 @@ namespace kepler {
         };
         next_token(true);
 
-        return ModuleParseResult{.identifier_ids = std::move(identifier_ids), .source_location = std::move(source_location)};
+        const ModuleDefinition module_definition{
+            .full_identifier_id = get_full_module_identifier(identifier_ids),
+            .part_identifier_ids = std::move(identifier_ids),
+        };
+        return ModuleParseResult{.definition = std::move(module_definition), .source_location = std::move(source_location)};
+    }
+
+    StringId Parser::get_full_module_identifier(const std::vector<StringId> identifier_ids) {
+        KPL_ASSERT_THAT(!identifier_ids.empty());
+        std::string result;
+        for (size_t i = 0; i < identifier_ids.size(); i++) {
+            result += StringPool::get().lookup(identifier_ids[i]);
+            if (i < identifier_ids.size() - 1) {
+                result += "::";
+            }
+        }
+        return StringPool::get().store(result);
     }
 
     std::unique_ptr<Extern> Parser::parse_extern() {

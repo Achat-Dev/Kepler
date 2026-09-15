@@ -26,6 +26,7 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
+#include "semantic_analysis/module.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
@@ -39,7 +40,7 @@
 namespace kepler {
 
     struct ModuleParseResult {
-        std::vector<StringId> identifier_ids;
+        ModuleDefinition definition;
         SourceLocation source_location;
     };
 
@@ -67,6 +68,7 @@ namespace kepler {
         std::optional<ModuleParseResult> parse_module();
         std::optional<ModuleParseResult> parse_import();
         std::optional<ModuleParseResult> parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message);
+        StringId get_full_module_identifier(const std::vector<StringId> identifier_ids);
         std::unique_ptr<Extern> parse_extern();
         std::unique_ptr<Prototype> parse_prototype(PrototypeLinkageType linkage_type);
         std::unique_ptr<ASTNode> parse_top_level_type();

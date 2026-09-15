@@ -12,9 +12,9 @@
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
+#include "semantic_analysis/module.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -61,44 +61,39 @@ namespace kepler {
                 case TokenType::Module: {
                     const auto parse_result = parse_module();
                     if (parse_result) {
-                        KPL_ASSERT_THAT(!parse_result->identifier_ids.empty());
-                        if (!ast.module_identifier_ids.empty()) {
+                        if (!ast.module_definition.part_identifier_ids.empty()) {
                             diagnostic_sink.report(DiagnosticCode::ModuleRedefinition,
                                 "'module' can only be specified once per file",
                                 parse_result->source_location);
                             break;
                         }
 
-                        ast.module_identifier_ids = std::move(parse_result->identifier_ids);
+                        ast.module_definition = std::move(parse_result->definition);
                     }
                     break;
                 }
                 case TokenType::Import: {
                     const auto parse_result = parse_import();
                     if (parse_result) {
-                        KPL_ASSERT_THAT(!parse_result->identifier_ids.empty());
-                        const auto begin = ast.imported_module_identifier_ids.begin();
-                        const auto end = ast.imported_module_identifier_ids.end();
-                        if (std::find(begin, end, parse_result->identifier_ids) != end) {
-                            // Module is already imported
-                            std::string module_identifier;
-                            for (size_t i = 0; i < parse_result->identifier_ids.size(); i++) {
-                                module_identifier += StringPool::get().lookup(parse_result->identifier_ids[i]);
-                                if (i < parse_result->identifier_ids.size() - 1) {
-                                    module_identifier += "::";
-                                }
+                        KPL_ASSERT_THAT(parse_result->definition.full_identifier_id != StringId::invalid());
+                        for (const ModuleDefinition imported_module_definition : ast.imported_module_definitions) {
+                            if (imported_module_definition.full_identifier_id != parse_result->definition.full_identifier_id) {
+                                continue;
                             }
-                            const std::string message = std::format("Module '{}' is already imported. Redundant imports are discarded, but consider removing them.", std::move(module_identifier));
+
+                            const std::string message = std::format("Module '{}' is already imported. Redundant imports are discarded, but consider removing them.",
+                                StringPool::get().lookup(imported_module_definition.full_identifier_id));
                             diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), parse_result->source_location);
                             break;
                         }
 
-                        if (ast.module_identifier_ids == parse_result->identifier_ids) {
+                        // TODO (fix): This currently expects the module definition to come before the import statement
+                        if (ast.module_definition.full_identifier_id == parse_result->definition.full_identifier_id) {
                             diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", parse_result->source_location);
                             break;
                         }
 
-                        ast.imported_module_identifier_ids.push_back(std::move(parse_result->identifier_ids));
+                        ast.imported_module_definitions.push_back(std::move(parse_result->definition));
                     }
                     break;
                 }

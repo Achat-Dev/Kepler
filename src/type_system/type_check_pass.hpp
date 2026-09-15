@@ -55,15 +55,15 @@ namespace kepler {
 
     class TypeCheckPass : ASTPass<void> {
     public:
-        TypeCheckPass(AbstractSyntaxTree& ast, DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, const TypeTable& type_table)
-            : ASTPass(ast), diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
-        void run() override;
+        TypeCheckPass(DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, const TypeTable& type_table)
+            : diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
+        void run(std::vector<AbstractSyntaxTree>& asts) override;
 
     private:
-        Type* current_function_return_type = nullptr;
         DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
         const TypeTable& type_table;
+        Type* current_function_return_type = nullptr;
 
         bool is_boolean_operator(OperatorType type) const;
         bool is_number_literal_expression(const Expression* expression) const;

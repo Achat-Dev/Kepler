@@ -8,6 +8,7 @@
  */
 
 #include "utils/ast_print_pass.hpp"
+#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
@@ -41,20 +42,36 @@
 
 namespace kepler {
 
-    void ASTPrintPass::run() {
-        constexpr char title[] = " Abstract Syntax Tree ";
-        std::string horizontal_line;
-        for (size_t i = 0; i < strlen(title); i++) {
-            horizontal_line += "\u2500";
-        }
-        std::println("\u250C{}\u2510", horizontal_line);
-        std::println("\u2502{}\u2502", title);
-        std::println("\u2514{}\u2518", horizontal_line);
+    void ASTPrintPass::run(std::vector<AbstractSyntaxTree>& asts) {
+        for (const AbstractSyntaxTree& ast : asts) {
+            std::string title = "Abstract Syntax Tree";
+            // TODO (improvement): This is not ideal because the asts should really be named after the file,
+            // but there currently is no access to the corresponding file from an ast
+            std::string module_identifier = std::string(StringPool::get().lookup(ast.module_definition.full_identifier_id));
+            const size_t title_size = title.size();
+            const size_t module_identifier_size = module_identifier.size();
+            size_t header_size = 0;
+            if (title_size > module_identifier_size) {
+                module_identifier.resize(title_size, ' ');
+                header_size = title_size;
+            } else {
+                title.resize(module_identifier_size, ' ');
+                header_size = module_identifier_size;
+            }
+            std::string horizontal_line;
+            for (size_t i = 0; i < header_size + 2; i++) { // +2 because of the additional spaces around the title
+                horizontal_line += "\u2500";
+            }
+            std::println("\u250C{}\u2510", horizontal_line);
+            std::println("\u2502 {} \u2502", title);
+            std::println("\u2502 {} \u2502", module_identifier);
+            std::println("\u2514{}\u2518", horizontal_line);
 
-        // Dont't use print_nodes to avoid extra 'last_item' character
-        for (size_t i = 0; i < ast.top_level_nodes.size(); i++) {
-            bool is_last = i == ast.top_level_nodes.size() - 1;
-            print_node(ast.top_level_nodes[i].get(), "", "", is_last);
+            // Dont't use print_nodes to avoid extra 'last_item' character
+            for (size_t i = 0; i < ast.top_level_nodes.size(); i++) {
+                bool is_last = i == ast.top_level_nodes.size() - 1;
+                print_node(ast.top_level_nodes[i].get(), "", "", is_last);
+            }
         }
     }
 
@@ -321,6 +338,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         const std::string_view str = StringPool::get().lookup(expression->value);
+        // TODO (fix): Trim tailing spaces and newlines
         std::println("{}{}{}", indent, last_item_prefix, str);
     }
 

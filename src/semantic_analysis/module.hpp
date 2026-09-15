@@ -20,11 +20,19 @@ namespace kepler {
     struct ModuleId {
         uint32_t value = std::numeric_limits<uint32_t>::max();
 
+        bool operator==(const ModuleId& other) const = default;
+        bool operator!=(const ModuleId& other) const = default;
         static constexpr ModuleId invalid() { return ModuleId{}; }
     };
 
+    struct ModuleDefinition {
+        ModuleId id;
+        StringId full_identifier_id;
+        std::vector<StringId> part_identifier_ids;
+    };
+
     struct Module {
-        std::vector<StringId> identifier_ids;
+        ModuleDefinition definition;
         std::vector<ScopeId> scope_ids;
         ScopeId current_scope_id;
     };
