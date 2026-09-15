@@ -382,7 +382,6 @@ namespace kepler {
         for (std::unique_ptr<llvm::Module>& llvm_module : llvm_modules) {
             std::filesystem::path object_path = output_path;
             object_path.replace_filename(llvm_module->getModuleIdentifier() + ".o");
-            std::println("{}", object_path.string());
             const bool object_code_emission_successful = emit_object_code(llvm_module, target_machine, object_path);
             if (!object_code_emission_successful) {
                 return false;

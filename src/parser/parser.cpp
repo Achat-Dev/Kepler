@@ -68,6 +68,14 @@ namespace kepler {
                             break;
                         }
 
+                        // If the module definition comes after import statements, check if self is imported
+                        for (const ImportDefinition& imported_module_defintion : ast.imported_module_definitions) {
+                            if (imported_module_defintion.module_definition.full_identifier_id == parse_result->definition.full_identifier_id) {
+                                diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", imported_module_defintion.source_location);
+                                break;
+                            }
+                        }
+
                         ast.module_definition = std::move(parse_result->definition);
                     }
                     break;
@@ -76,24 +84,29 @@ namespace kepler {
                     const auto parse_result = parse_import();
                     if (parse_result) {
                         KPL_ASSERT_THAT(parse_result->definition.full_identifier_id != StringId::invalid());
-                        for (const ModuleDefinition imported_module_definition : ast.imported_module_definitions) {
-                            if (imported_module_definition.full_identifier_id != parse_result->definition.full_identifier_id) {
+                        for (const ImportDefinition& imported_module_definition : ast.imported_module_definitions) {
+                            if (imported_module_definition.module_definition.full_identifier_id != parse_result->definition.full_identifier_id) {
                                 continue;
                             }
 
                             const std::string message = std::format("Module '{}' is already imported. Redundant imports are discarded, but consider removing them.",
-                                StringPool::get().lookup(imported_module_definition.full_identifier_id));
+                                StringPool::get().lookup(imported_module_definition.module_definition.full_identifier_id));
                             diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), parse_result->source_location);
                             break;
                         }
 
-                        // TODO (fix): This currently expects the module definition to come before the import statement
-                        if (ast.module_definition.full_identifier_id == parse_result->definition.full_identifier_id) {
-                            diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", parse_result->source_location);
-                            break;
+                        // If import statement comes after module definition, check if it imports self
+                        if (ast.module_definition.full_identifier_id != StringId::invalid()) {
+                            if (ast.module_definition.full_identifier_id == parse_result->definition.full_identifier_id) {
+                                diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", parse_result->source_location);
+                                break;
+                            }
                         }
 
-                        ast.imported_module_definitions.push_back(std::move(parse_result->definition));
+                        ast.imported_module_definitions.push_back({
+                            .module_definition = std::move(parse_result->definition),
+                            .source_location = std::move(parse_result->source_location),
+                        });
                     }
                     break;
                 }

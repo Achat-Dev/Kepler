@@ -10,15 +10,21 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
+#include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
 #include <memory>
 #include <vector>
 
 namespace kepler {
 
+    struct ImportDefinition {
+        ModuleDefinition module_definition;
+        SourceLocation source_location;
+    };
+
     struct AbstractSyntaxTree {
         ModuleDefinition module_definition;
-        std::vector<ModuleDefinition> imported_module_definitions;
+        std::vector<ImportDefinition> imported_module_definitions;
         std::vector<std::unique_ptr<ASTNode>> top_level_nodes;
     };
 
