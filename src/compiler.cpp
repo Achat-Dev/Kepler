@@ -299,12 +299,7 @@ namespace kepler {
             return std::nullopt;
         }
 
-        CodegenPass codegen_pass(symbol_table,
-            type_table,
-            llvm_context,
-            target_machine->getTargetTriple(),
-            target_machine->createDataLayout(),
-            optimization_level);
+        CodegenPass codegen_pass(symbol_table, type_table, llvm_context, target_machine, optimization_level);
         auto llvm_modules = codegen_pass.run(asts);
         if (!llvm_modules) {
             return std::nullopt;

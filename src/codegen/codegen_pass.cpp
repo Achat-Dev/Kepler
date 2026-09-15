@@ -89,8 +89,8 @@ namespace kepler {
 
             // Optimize module
             // It's important for optimization to set the data layout before running the optimizer
-            llvm_module->setTargetTriple(target_triple);
-            llvm_module->setDataLayout(data_layout);
+            llvm_module->setTargetTriple(target_machine->getTargetTriple());
+            llvm_module->setDataLayout(target_machine->createDataLayout());
             optimize_module(llvm_module, optimization_level);
 
             result.push_back(std::move(llvm_module));

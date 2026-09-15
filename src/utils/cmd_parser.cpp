@@ -107,7 +107,6 @@ namespace kepler {
     std::string CmdParser::get_help() const {
         // Get console width (default to 80)
         uint32_t console_width = 80;
-        // TODO (check): Verify functionality on Windows
 #ifdef _WIN32
         CONSOLE_SCREEN_BUFFER_INFO csbi{};
         if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {

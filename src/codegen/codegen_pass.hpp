@@ -32,6 +32,7 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include "llvm/Target/TargetMachine.h"
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
@@ -58,13 +59,11 @@ namespace kepler {
         CodegenPass(SymbolTable& symbol_table,
             const TypeTable& type_table,
             llvm::LLVMContext& context,
-            const llvm::Triple& target_triple,
-            const llvm::DataLayout& data_layout,
+            llvm::TargetMachine* target_machine,
             OptimizationLevel optimization_level)
             : symbol_table(symbol_table),
               type_table(type_table),
-              target_triple(target_triple),
-              data_layout(data_layout),
+              target_machine(target_machine),
               optimization_level(optimization_level),
               context(context),
               builder(context) {}
@@ -73,8 +72,7 @@ namespace kepler {
     private:
         SymbolTable& symbol_table;
         const TypeTable& type_table;
-        const llvm::Triple& target_triple;
-        const llvm::DataLayout& data_layout;
+        llvm::TargetMachine* target_machine;
         const OptimizationLevel optimization_level;
         llvm::LLVMContext& context;
         llvm::IRBuilder<> builder;
