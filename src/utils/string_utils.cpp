@@ -34,4 +34,11 @@ namespace kepler {
         return count;
     }
 
+    void trim_end(std::string& string) {
+        const auto pos = string.find_last_not_of(" \t\n\r");
+        if (pos != std::string::npos) {
+            string.erase(pos + 1);
+        }
+    }
+
 }

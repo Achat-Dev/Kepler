@@ -15,5 +15,6 @@
 namespace kepler {
 
     std::size_t strlen_utf8(const std::string& string);
+    void trim_end(std::string& string);
 
 }

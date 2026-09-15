@@ -31,6 +31,7 @@
 #include "utils/ansi_codes.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
+#include "utils/string_utils.hpp"
 #include <cstddef>
 #include <cstring>
 #include <format>
@@ -47,7 +48,7 @@ namespace kepler {
             std::string title = "Abstract Syntax Tree";
             // TODO (improvement): This is not ideal because the asts should really be named after the file,
             // but there currently is no access to the corresponding file from an ast
-            std::string module_identifier = std::string(StringPool::get().lookup(ast.module_definition.full_identifier_id));
+            std::string module_identifier(StringPool::get().lookup(ast.module_definition.full_identifier_id));
             const size_t title_size = title.size();
             const size_t module_identifier_size = module_identifier.size();
             size_t header_size = 0;
@@ -337,9 +338,9 @@ namespace kepler {
     void ASTPrintPass::print_string_literal_expression(const StringLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        const std::string_view str = StringPool::get().lookup(expression->value);
-        // TODO (fix): Trim tailing spaces and newlines
-        std::println("{}{}{}", indent, last_item_prefix, str);
+        std::string string(StringPool::get().lookup(expression->value));
+        trim_end(string);
+        std::println("{}{}{}", indent, last_item_prefix, string);
     }
 
     void ASTPrintPass::print_binary_expression(const BinaryExpression* expression, const std::string& indent) const {

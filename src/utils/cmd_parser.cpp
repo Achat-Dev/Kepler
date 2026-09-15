@@ -147,10 +147,7 @@ namespace kepler {
         }
 
         // Remove trailing whitespaces and newlines
-        const auto pos = result.find_last_not_of(" \t\n");
-        if (pos != std::string::npos) {
-            result.erase(pos + 1);
-        }
+        trim_end(result);
         return result;
     }
 
