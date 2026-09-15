@@ -21,7 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Fixed
 
-- Trim trailing newlines when printing string literal in ASTPrintPass
+- Trim trailing newlines when printing string literal during ast printing
+- Wrong assertion when printing MathematicalNegationExpression during ast printing
 - Wrong assertion in `elseif` parsing
 
 ## [0.2.0] - 2026-09-09

@@ -404,7 +404,6 @@ namespace kepler {
     void ASTPrintPass::print_mathematical_negation_expression(const MathematicalNegationExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->target_type);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         if (expression->target_type == nullptr) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
