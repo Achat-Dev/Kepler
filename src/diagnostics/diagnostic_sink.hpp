@@ -29,7 +29,8 @@ namespace kepler {
         uint32_t error_count = 0;
         std::vector<SourceDiagnostic> diagnostics;
 
-        auto find_line_info(const std::vector<LineInfo>& line_infos, uint32_t position);
+        auto find_line_info(const std::vector<LineInfo>& line_infos, uint32_t position) const;
+        uint32_t get_digit_count(uint32_t number) const;
     };
 
 }

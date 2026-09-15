@@ -50,7 +50,7 @@ namespace kepler {
         diagnostics.emplace_back(code, std::move(message), source_location);
     }
 
-    auto DiagnosticSink::find_line_info(const std::vector<LineInfo>& line_infos, uint32_t position) {
+    auto DiagnosticSink::find_line_info(const std::vector<LineInfo>& line_infos, uint32_t position) const {
         auto it = std::lower_bound(line_infos.begin(),
             line_infos.end(),
             position,
@@ -64,8 +64,6 @@ namespace kepler {
         return it;
     }
 
-    // TODO (bug): Line prefixes don't pad the line number,
-    // so if the magnitude of the line number changes during a multiline diagnostic, the lines are not aligned
     void DiagnosticSink::flush() {
         if (diagnostics.empty()) {
             return;
@@ -100,6 +98,7 @@ namespace kepler {
             const uint32_t diagnostic_end_position = diagnostic.source_location.position + diagnostic.source_location.size;
             auto start_it = find_line_info(line_infos, diagnostic.source_location.position);
             auto end_it = find_line_info(line_infos, diagnostic_end_position);
+            const uint32_t line_number_magnitude = get_digit_count(end_it->line_number);
             auto it = start_it;
             do {
                 uint32_t line_end_position = it->start_position + it->size;
@@ -107,7 +106,7 @@ namespace kepler {
                     // There were previous lines
                     if (diagnostic_end_position > line_end_position) {
                         // There are more lines coming afterwards
-                        const std::string prefix = std::format("{}At l.{} | ", log::indented, it->line_number);
+                        const std::string prefix = std::format("{}At l.{:>{}} | ", log::indented, it->line_number, line_number_magnitude);
                         const std::string line = file->content.substr(it->start_position, it->size);
                         std::print("{}{}{}{}", prefix, highlight_styling, line, ansi_codes::reset);
 
@@ -117,7 +116,7 @@ namespace kepler {
                         }
                     } else {
                         // This is the last line
-                        const std::string prefix = std::format("{}At l.{} | ", log::last_indented, it->line_number);
+                        const std::string prefix = std::format("{}At l.{:>{}} | ", log::last_indented, it->line_number, line_number_magnitude);
                         const uint32_t diagnostic_size = diagnostic_end_position - it->start_position;
                         const uint32_t line_end_size = line_end_position - diagnostic_end_position;
                         const std::string diagnostic_string = file->content.substr(it->start_position, diagnostic_size);
@@ -139,7 +138,7 @@ namespace kepler {
 
                     if (diagnostic_end_position > line_end_position) {
                         // There are more lines coming afterwards
-                        const std::string prefix = std::format("{}At l.{} | ", log::indented, it->line_number);
+                        const std::string prefix = std::format("{}At l.{:>{}} | ", log::indented, it->line_number, line_number_magnitude);
                         const uint32_t line_end_size = line_end_position - diagnostic.source_location.position;
                         const std::string diagnostic_string = file->content.substr(diagnostic.source_location.position, line_end_size);
                         std::print("{}{}{}{}", prefix, line_start, highlight_styling, diagnostic_string, ansi_codes::reset);
@@ -173,6 +172,16 @@ namespace kepler {
         }
 
         diagnostics.clear();
+    }
+
+    uint32_t DiagnosticSink::get_digit_count(uint32_t number) const {
+        uint32_t result = 1;
+        // Use integer division by 10 to "remove" the last digit until the value is smaller than 10, which means last digit reached
+        while (number >= 10) {
+            number /= 10;
+            result += 1;
+        }
+        return result;
     }
 
 }

@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Fixed
 
+- Misaligned line numbers in multiline diagnostics that span across line numbers with different digit counts
 - Trim trailing newlines when printing string literal during ast printing
 - Wrong assertion when printing MathematicalNegationExpression during ast printing
 - Wrong assertion in `elseif` parsing
