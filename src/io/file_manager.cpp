@@ -68,7 +68,7 @@ namespace kepler {
     }
 
     File* FileManager::lookup(FileId id) {
-        KPL_ASSERT_THAT(id.value < id_to_path_map.size(), "Looking up out of bounds FileId; file count is {}, received id {}", id_to_path_map.size(), id);
+        KPL_ASSERT_THAT(id.value < id_to_path_map.size(), "File count: {}, received id: {}", id_to_path_map.size(), id);
         const std::filesystem::path path = id_to_path_map[id];
         return &files[path];
     }

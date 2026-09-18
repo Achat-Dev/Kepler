@@ -55,10 +55,10 @@ namespace kepler {
 
         // Semantic analysis
         UnreachableCode = 500,
-        MissingModuleDefinition,
         MissingReturn,
         UndefinedSymbol,
         SymbolAlreadyExists,
+        AmbiguousSymbolImport,
         UnknownType,
         TypeMismatch,
         InvalidVariableType,

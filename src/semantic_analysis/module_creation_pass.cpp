@@ -20,16 +20,30 @@
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
+#include <utility>
 #include <vector>
 
 namespace kepler {
 
     void ModuleCreationPass::run(std::vector<AbstractSyntaxTree>& asts) {
         KPL_ASSERT_THAT(!asts.empty());
+        // Create modules
         for (AbstractSyntaxTree& ast : asts) {
-            KPL_ASSERT_THAT(ast.module_definition.id == ModuleId::invalid());
-            ast.module_definition.id = symbol_table.create_module(ast.module_definition);
-            create_prototype_symbols(ast, ast.module_definition.id);
+            KPL_ASSERT_THAT(ast.module_identifier_id != StringId::invalid());
+            const ModuleId module_id = symbol_table.create_module(ast.module_identifier_id);
+            create_prototype_symbols(ast, module_id);
+        }
+
+        // Register imported modules
+        for (AbstractSyntaxTree& ast : asts) {
+            const ModuleId module_id = symbol_table.get_module_id_by_identifier(ast.module_identifier_id);
+            KPL_ASSERT_THAT(module_id != ModuleId::invalid());
+            std::vector<StringId> imported_module_identifier_ids;
+            imported_module_identifier_ids.reserve(ast.imported_module_definitions.size());
+            for (const ImportDefinition& imported_module : ast.imported_module_definitions) {
+                imported_module_identifier_ids.push_back(imported_module.identifier_id);
+            }
+            symbol_table.register_imported_modules(module_id, std::move(imported_module_identifier_ids));
         }
     }
 
@@ -39,13 +53,13 @@ namespace kepler {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
                     KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-                    create_prototype_symbol(ext->prototype.get(), module_id);
+                    create_prototype_symbol(module_id, ext->prototype.get(), ext->linkage_type);
                     break;
                 }
                 case ASTNodeType::Function: {
                     const Function* function = static_cast<Function*>(node.get());
                     KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                    create_prototype_symbol(function->prototype.get(), module_id);
+                    create_prototype_symbol(module_id, function->prototype.get(), function->linkage_type);
                     break;
                 }
                 default:
@@ -54,7 +68,7 @@ namespace kepler {
         }
     }
 
-    void ModuleCreationPass::create_prototype_symbol(Prototype* prototype, ModuleId module_id) const {
+    void ModuleCreationPass::create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
@@ -86,7 +100,7 @@ namespace kepler {
         const auto symbol = symbol_table.create_prototype(module_id,
             return_type,
             prototype->identifier_id,
-            prototype->linkage_type,
+            linkage_type,
             std::move(parameter_types),
             prototype->is_variadic,
             prototype->identifier_source_location);

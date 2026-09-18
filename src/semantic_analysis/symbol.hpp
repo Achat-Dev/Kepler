@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "ast/ast_node.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "type_system/type.hpp"
 #include "utils/string_pool.hpp"
@@ -29,10 +30,8 @@ namespace kepler {
         static constexpr SymbolId invalid() { return SymbolId{}; }
     };
 
-    enum class PrototypeLinkageType;
-
     struct PrototypeSymbolData {
-        PrototypeLinkageType linkage_type;
+        LinkageType linkage_type;
         bool is_variadic = false;
         std::vector<Type*> parameter_types;
     };

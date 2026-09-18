@@ -11,19 +11,19 @@
 
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
-#include "semantic_analysis/module.hpp"
+#include "utils/string_pool.hpp"
 #include <memory>
 #include <vector>
 
 namespace kepler {
 
     struct ImportDefinition {
-        ModuleDefinition module_definition;
+        StringId identifier_id;
         SourceLocation source_location;
     };
 
     struct AbstractSyntaxTree {
-        ModuleDefinition module_definition;
+        StringId module_identifier_id;
         std::vector<ImportDefinition> imported_module_definitions;
         std::vector<std::unique_ptr<ASTNode>> top_level_nodes;
     };

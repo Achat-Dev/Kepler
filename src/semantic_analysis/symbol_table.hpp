@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "ast/prototype.hpp"
+#include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
@@ -25,12 +25,13 @@ namespace kepler {
 
     class SymbolTable {
     public:
-        ModuleId create_module(ModuleDefinition module_definition);
+        ModuleId create_module(StringId identifier_id);
+        void register_imported_modules(ModuleId module_id, std::vector<StringId> imported_module_identifier_ids);
         std::expected<SymbolId, SourceDiagnostic> create_variable(ModuleId module_id, Type* type, StringId identifier_id, SourceLocation source_location);
         std::expected<SymbolId, SourceDiagnostic> create_prototype(ModuleId module_id,
             Type* type,
             StringId identifier_id,
-            PrototypeLinkageType linkage_type,
+            LinkageType linkage_type,
             std::vector<Type*> parameter_types,
             bool is_variadic,
             SourceLocation identifier_source_location);
@@ -38,9 +39,10 @@ namespace kepler {
         Symbol* lookup(SymbolId symbol_id);
         // TODO (check): Maybe create a method to disable finding after name resolution
         // Note: This method should only be used during name resolution.
-        Symbol* find(ModuleId module_id, StringId identifier_id);
+        std::expected<Symbol*, Diagnostic> find(ModuleId module_id, StringId identifier_id);
         void open_scope(ModuleId module_id, ScopeType type);
         void close_scope(ModuleId module_id);
+        ModuleId get_module_id_by_identifier(StringId identifier_id) const;
 
     private:
         std::vector<Module> modules;
@@ -53,6 +55,7 @@ namespace kepler {
             SymbolData&& symbol_data,
             const std::string& error_identifier,
             SourceLocation source_location);
+        std::expected<Symbol*, Diagnostic> find(ModuleId module_id, StringId identifier_id, bool search_imported_modules);
     };
 
 }

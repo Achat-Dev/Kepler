@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(LLVM REQUIRED CONFIG)
 
 add_executable(${CMAKE_PROJECT_NAME}
-    src/ast/prototype.cpp
+    src/ast/ast_node.cpp
     src/codegen/codegen_pass.cpp
     src/codegen/optimizer.cpp
     src/diagnostics/diagnostic.cpp

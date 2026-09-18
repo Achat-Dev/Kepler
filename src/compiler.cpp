@@ -19,7 +19,6 @@
 #include "lexer/token.hpp"
 #include "lexer/tokenizer.hpp"
 #include "parser/parser.hpp"
-#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/module_creation_pass.hpp"
 #include "semantic_analysis/name_resolution_pass.hpp"
 #include "semantic_analysis/return_check_pass.hpp"
@@ -259,11 +258,10 @@ namespace kepler {
 
     void Compiler::verify_ast(AbstractSyntaxTree& ast, const File* file) const {
         KPL_ASSERT_NOT_NULLPTR(file);
-        if (ast.module_definition.full_identifier_id == StringId::invalid()) {
+        if (ast.module_identifier_id == StringId::invalid()) {
             // Use the file path as the module identifier if no module identifier is specified
             const StringId fallback_identifier_id = StringPool::get().store("__file://" + file->path.string());
-            ast.module_definition.full_identifier_id = fallback_identifier_id;
-            ast.module_definition.part_identifier_ids = {fallback_identifier_id};
+            ast.module_identifier_id = fallback_identifier_id;
         }
 
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {

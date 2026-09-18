@@ -12,7 +12,6 @@
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/token.hpp"
-#include "semantic_analysis/module.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
@@ -61,7 +60,8 @@ namespace kepler {
                 case TokenType::Module: {
                     const auto parse_result = parse_module();
                     if (parse_result) {
-                        if (!ast.module_definition.part_identifier_ids.empty()) {
+                        KPL_ASSERT_THAT(parse_result->identifier_id != StringId::invalid());
+                        if (ast.module_identifier_id != StringId::invalid()) {
                             diagnostic_sink.report(DiagnosticCode::ModuleRedefinition,
                                 "'module' can only be specified once per file",
                                 parse_result->source_location);
@@ -69,56 +69,63 @@ namespace kepler {
                         }
 
                         // If the module definition comes after import statements, check if self is imported
-                        for (const ImportDefinition& imported_module_defintion : ast.imported_module_definitions) {
-                            if (imported_module_defintion.module_definition.full_identifier_id == parse_result->definition.full_identifier_id) {
-                                diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", imported_module_defintion.source_location);
+                        for (const ImportDefinition& imported_module_definition : ast.imported_module_definitions) {
+                            if (imported_module_definition.identifier_id == parse_result->identifier_id) {
+                                diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", imported_module_definition.source_location);
                                 break;
                             }
                         }
 
-                        ast.module_definition = std::move(parse_result->definition);
+                        ast.module_identifier_id = parse_result->identifier_id;
                     }
                     break;
                 }
                 case TokenType::Import: {
                     const auto parse_result = parse_import();
                     if (parse_result) {
-                        KPL_ASSERT_THAT(parse_result->definition.full_identifier_id != StringId::invalid());
+                        KPL_ASSERT_THAT(parse_result->identifier_id != StringId::invalid());
                         for (const ImportDefinition& imported_module_definition : ast.imported_module_definitions) {
-                            if (imported_module_definition.module_definition.full_identifier_id != parse_result->definition.full_identifier_id) {
+                            if (imported_module_definition.identifier_id != parse_result->identifier_id) {
                                 continue;
                             }
 
                             const std::string message = std::format("Module '{}' is already imported. Redundant imports are discarded, but consider removing them.",
-                                StringPool::get().lookup(imported_module_definition.module_definition.full_identifier_id));
+                                StringPool::get().lookup(imported_module_definition.identifier_id));
                             diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), parse_result->source_location);
                             break;
                         }
 
                         // If import statement comes after module definition, check if it imports self
-                        if (ast.module_definition.full_identifier_id != StringId::invalid()) {
-                            if (ast.module_definition.full_identifier_id == parse_result->definition.full_identifier_id) {
+                        if (ast.module_identifier_id != StringId::invalid()) {
+                            if (ast.module_identifier_id == parse_result->identifier_id) {
                                 diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", parse_result->source_location);
                                 break;
                             }
                         }
 
                         ast.imported_module_definitions.push_back({
-                            .module_definition = std::move(parse_result->definition),
+                            .identifier_id = parse_result->identifier_id,
                             .source_location = std::move(parse_result->source_location),
                         });
                     }
                     break;
                 }
+                case TokenType::Export: {
+                    std::unique_ptr<ASTNode> ast_node = parse_export();
+                    if (ast_node) {
+                        ast.top_level_nodes.push_back(std::move(ast_node));
+                    }
+                    break;
+                }
                 case TokenType::Extern: {
-                    std::unique_ptr<ASTNode> ast_node = parse_extern();
+                    std::unique_ptr<ASTNode> ast_node = parse_extern(LinkageType::External);
                     if (ast_node) {
                         ast.top_level_nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
                 case TokenType::Type: {
-                    std::unique_ptr<ASTNode> ast_node = parse_top_level_type();
+                    std::unique_ptr<ASTNode> ast_node = parse_top_level_type(LinkageType::Internal);
                     if (ast_node) {
                         ast.top_level_nodes.push_back(std::move(ast_node));
                     }

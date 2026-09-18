@@ -37,6 +37,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -45,7 +46,8 @@ namespace kepler {
     void NameResolutionPass::run(std::vector<AbstractSyntaxTree>& asts) {
         KPL_ASSERT_THAT(!asts.empty());
         for (AbstractSyntaxTree& ast : asts) {
-            module_id = ast.module_definition.id;
+            module_id = symbol_table.get_module_id_by_identifier(ast.module_identifier_id);
+            KPL_ASSERT_THAT(module_id != ModuleId::invalid());
             resolve_nodes(ast.top_level_nodes);
         }
 
@@ -283,18 +285,25 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        Symbol* prototype_symbol = symbol_table.find(module_id, expression->identifier_id);
-        if (prototype_symbol == nullptr) {
+        const auto prototype_symbol = symbol_table.find(module_id, expression->identifier_id);
+        if (!prototype_symbol) {
+            const Diagnostic diagnostic = prototype_symbol.error();
+            diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
+        }
+
+        if (prototype_symbol.value() == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         } else {
-            expression->symbol_id = prototype_symbol->id;
+            expression->symbol_id = prototype_symbol.value()->id;
         }
 
-        KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(prototype_symbol->data));
-        const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
+        KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(prototype_symbol.value()->data));
+        const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol.value()->data);
         if (!prototype_symbol_data.is_variadic) {
             const size_t expected_parameter_count = prototype_symbol_data.parameter_types.size();
             const size_t given_argument_count = expression->args.size();
@@ -362,14 +371,20 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        Symbol* symbol = symbol_table.find(module_id, expression->identifier_id);
+        const auto symbol = symbol_table.find(module_id, expression->identifier_id);
+        if (!symbol) {
+            const Diagnostic diagnostic = symbol.error();
+            diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
+        }
         if (symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         } else {
-            expression->symbol_id = symbol->id;
+            expression->symbol_id = symbol.value()->id;
         }
 
         return {.poisoned = false};

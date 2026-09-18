@@ -76,11 +76,15 @@ namespace kepler {
         const OptimizationLevel optimization_level;
         llvm::LLVMContext& context;
         llvm::IRBuilder<> builder;
-        std::unique_ptr<llvm::Module> llvm_module = nullptr;
+        llvm::Module* current_llvm_module = nullptr;
+        std::vector<std::vector<SymbolId>> symbol_id_scopes;
         std::unordered_map<SymbolId, llvm::Value*> llvm_values;
 
+        void open_scope();
+        void close_scope();
+
         void forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
-        void codegen_forward_declaration(const Prototype* prototype);
+        void codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type);
         void codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
         CodegenResult codegen_node(const ASTNode* node);
         void codegen_function(const Function* function);

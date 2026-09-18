@@ -48,7 +48,7 @@ namespace kepler {
             std::string title = "Abstract Syntax Tree";
             // TODO (improvement): This is not ideal because the asts should really be named after the file,
             // but there currently is no access to the corresponding file from an ast
-            std::string module_identifier(StringPool::get().lookup(ast.module_definition.full_identifier_id));
+            std::string module_identifier(StringPool::get().lookup(ast.module_identifier_id));
             const size_t title_size = title.size();
             const size_t module_identifier_size = module_identifier.size();
             size_t header_size = 0;
@@ -177,6 +177,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(ext);
         KPL_ASSERT_NOT_NULLPTR(ext->prototype);
         KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison);
+        std::println("{}{}Linkage: {}", indent, item_prefix, ext->linkage_type);
         print_node(ext->prototype.get(), "", indent, true);
     }
 
@@ -184,6 +185,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
+        std::println("{}{}Linkage: {}", indent, item_prefix, function->linkage_type);
         print_node(function->prototype.get(), "", indent, false);
         print_body(function->body, "Body", indent, true);
     }
@@ -191,7 +193,6 @@ namespace kepler {
     void ASTPrintPass::print_prototype(const Prototype* prototype, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
-        std::println("{}{}Linkage: {}", indent, item_prefix, prototype->linkage_type);
         if (prototype->return_type == nullptr) {
             const std::string_view type_name = StringPool::get().lookup(prototype->return_type_id);
             std::println("{}{}Type name: {}", indent, item_prefix, type_name);

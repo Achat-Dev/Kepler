@@ -157,7 +157,7 @@ namespace kepler {
 
     std::unique_ptr<Expression> Parser::parse_identifier() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token '{}', received '{}'", TokenType::Identifier, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         const Token* identifier_token = current_token;
         next_token(true); // eat identifier
         if (current_token->type == TokenType::BracketOpen) {
@@ -171,7 +171,7 @@ namespace kepler {
 
     std::unique_ptr<CallExpression> Parser::parse_call(const Token* identifier_token) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token '{}', received '{}'", TokenType::BracketOpen, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token: '{}', received: '{}'", TokenType::BracketOpen, current_token->type);
         KPL_ASSERT_NOT_NULLPTR(identifier_token);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
@@ -210,7 +210,7 @@ namespace kepler {
 
     std::unique_ptr<Expression> Parser::parse_literal() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Literal, "Required token '{}', received '{}'", TokenType::Literal, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Literal, "Required token: '{}', received: '{}'", TokenType::Literal, current_token->type);
         const SourceLocation& source_location = current_token->source_location;
         const auto literal_data = current_token->data;
         next_token(true); // eat the literal
@@ -230,7 +230,7 @@ namespace kepler {
 
     std::unique_ptr<Expression> Parser::parse_parenthesis() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token '{}', received '{}'", TokenType::BracketOpen, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token: '{}', received: '{}'", TokenType::BracketOpen, current_token->type);
         next_token(true); // eat '('
         std::unique_ptr<Expression> expression = parse_expression();
         if (!expression) {
@@ -255,10 +255,10 @@ namespace kepler {
 
     std::unique_ptr<MathematicalNegationExpression> Parser::parse_negative() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Operator, "Required token '{}', received '{}'", TokenType::Operator, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Operator, "Required token: '{}', received: '{}'", TokenType::Operator, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
         const OperatorType operator_type = std::get<OperatorType>(current_token->data);
-        KPL_ASSERT_THAT(operator_type == OperatorType::Minus, "Required operator '{}', received '{}'", OperatorType::Minus, operator_type);
+        KPL_ASSERT_THAT(operator_type == OperatorType::Minus, "Required operator: '{}', received: '{}'", OperatorType::Minus, operator_type);
         const SourceLocation& source_location = current_token->source_location;
         next_token(true); // eat '-'
         std::unique_ptr<Expression> expression = nullptr;
@@ -297,7 +297,7 @@ namespace kepler {
 
     std::unique_ptr<CastExpression> Parser::parse_cast() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token '{}', received '{}'", TokenType::Type, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token: '{}', received: '{}'", TokenType::Type, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;

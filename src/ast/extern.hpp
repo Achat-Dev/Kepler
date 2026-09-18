@@ -12,16 +12,19 @@
 #include "ast/ast_node.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/source_location.hpp"
+#include "utils/assert.h"
 #include <memory>
 #include <utility>
 
 namespace kepler {
 
-    struct Extern : ASTNode {
+    struct Extern : ExportableNode {
         std::unique_ptr<Prototype> prototype;
 
-        Extern(std::unique_ptr<Prototype> prototype, SourceLocation source_location)
-            : ASTNode(ASTNodeType::Extern, std::move(source_location)), prototype(std::move(prototype)) {}
+        Extern(std::unique_ptr<Prototype> prototype, LinkageType linkage_type, SourceLocation source_location)
+            : ExportableNode(ASTNodeType::Extern, linkage_type, std::move(source_location)), prototype(std::move(prototype)) {
+            KPL_ASSERT_THAT(linkage_type != LinkageType::Internal);
+        }
     };
 
 }

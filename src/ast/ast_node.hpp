@@ -12,6 +12,7 @@
 #include "diagnostics/source_location.hpp"
 #include "utils/assert.h"
 #include <format>
+#include <llvm/IR/Function.h>
 #include <memory>
 #include <string>
 #include <utility>
@@ -40,6 +41,12 @@ namespace kepler {
         VariableExpression,
     };
 
+    enum class LinkageType {
+        Internal,
+        External,
+        Export,
+    };
+
     struct ASTNode {
         ASTNodeType node_type;
         SourceLocation source_location;
@@ -49,10 +56,18 @@ namespace kepler {
         virtual ~ASTNode() = default;
     };
 
+    struct ExportableNode : ASTNode {
+        LinkageType linkage_type;
+        ExportableNode(ASTNodeType node_type, LinkageType linkage_type, SourceLocation source_location)
+            : ASTNode(node_type, std::move(source_location)), linkage_type(linkage_type) {}
+    };
+
     struct NodeBody {
         std::vector<std::unique_ptr<ASTNode>> nodes;
         bool contains_return = false;
     };
+
+    llvm::Function::LinkageTypes get_llvm_linkage_type(LinkageType linkage_type);
 
 }
 
@@ -99,5 +114,21 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
         }
 
         KPL_ASSERT_UNREACHABLE("Missing format implementation for ast node type '{}'", static_cast<int>(ast_node_type));
+    }
+};
+
+template <>
+struct std::formatter<kepler::LinkageType> : std::formatter<std::string> {
+    auto format(const kepler::LinkageType& linkage_type, std::format_context& ctx) const {
+        switch (linkage_type) {
+            case kepler::LinkageType::Internal:
+                return std::formatter<std::string>::format("Internal", ctx);
+            case kepler::LinkageType::External:
+                return std::formatter<std::string>::format("External", ctx);
+            case kepler::LinkageType::Export:
+                return std::formatter<std::string>::format("Export (external)", ctx);
+        }
+
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for linkage type '{}'", static_cast<int>(linkage_type));
     }
 };

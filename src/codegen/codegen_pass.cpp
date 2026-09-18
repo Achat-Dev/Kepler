@@ -67,40 +67,72 @@ namespace kepler {
 
     std::optional<std::vector<std::unique_ptr<llvm::Module>>> CodegenPass::run(std::vector<AbstractSyntaxTree>& asts) {
         KPL_ASSERT_THAT(!asts.empty());
-        std::vector<std::unique_ptr<llvm::Module>> result;
+        std::unordered_map<StringId, std::unique_ptr<llvm::Module>> llvm_modules;
+        // Forward declare prototypes
         for (const AbstractSyntaxTree& ast : asts) {
-            KPL_ASSERT_THAT(llvm_module == nullptr);
-            KPL_ASSERT_THAT(llvm_values.empty());
-            std::string module_identifier(StringPool::get().lookup(ast.module_definition.full_identifier_id));
-            std::replace(module_identifier.begin(), module_identifier.end(), ':', '_');
-            llvm_module = std::make_unique<llvm::Module>(module_identifier, context);
+            if (llvm_modules.contains(ast.module_identifier_id)) {
+                current_llvm_module = llvm_modules[ast.module_identifier_id].get();
+            } else {
+                std::string module_identifier(StringPool::get().lookup(ast.module_identifier_id));
+                std::replace(module_identifier.begin(), module_identifier.end(), ':', '_');
+                const auto [it, emplaced] = llvm_modules.emplace(ast.module_identifier_id, std::make_unique<llvm::Module>(module_identifier, context));
+                KPL_ASSERT_THAT(emplaced);
+                current_llvm_module = it->second.get();
+            }
             forward_declare_prototypes(ast.top_level_nodes);
-            codegen_nodes(ast.top_level_nodes);
+        }
+        current_llvm_module = nullptr;
 
+        // Code generation
+        for (const AbstractSyntaxTree& ast : asts) {
+            KPL_ASSERT_THAT(llvm_modules.contains(ast.module_identifier_id));
+            current_llvm_module = llvm_modules[ast.module_identifier_id].get();
+            codegen_nodes(ast.top_level_nodes);
+        }
+        current_llvm_module = nullptr;
+
+        // IR checking and optimization
+        for (auto& [identifier_id, module] : llvm_modules) {
+            KPL_ASSERT_NOT_NULLPTR(module);
             // Check ir for errors
             std::string error;
             llvm::raw_string_ostream raw_string_ostream(error);
-            bool is_invalid_function = llvm::verifyModule(*llvm_module, &raw_string_ostream);
+            bool is_invalid_function = llvm::verifyModule(*module, &raw_string_ostream);
             raw_string_ostream.flush();
             if (is_invalid_function) {
                 log::error("Invalid llvm function ir:\n{}", error);
-                llvm_module->print(llvm::errs(), nullptr);
+                module->print(llvm::errs(), nullptr);
                 return std::nullopt;
             }
 
             // Optimize module
             // It's important for optimization to set the data layout before running the optimizer
-            llvm_module->setTargetTriple(target_machine->getTargetTriple());
-            llvm_module->setDataLayout(target_machine->createDataLayout());
-            optimize_module(llvm_module, optimization_level);
-
-            result.push_back(std::move(llvm_module));
-
-            // Cleanup state
-            llvm_values.clear();
-            llvm_module = nullptr;
+            KPL_ASSERT_NOT_NULLPTR(target_machine);
+            module->setTargetTriple(target_machine->getTargetTriple());
+            module->setDataLayout(target_machine->createDataLayout());
+            optimize_module(module, optimization_level);
         }
+
+        std::vector<std::unique_ptr<llvm::Module>> result;
+        result.reserve(llvm_modules.size());
+        for (auto& [identifier_id, module] : llvm_modules) {
+            result.push_back(std::move(module));
+        }
+        llvm_modules.clear();
         return result;
+    }
+
+    void CodegenPass::open_scope() {
+        symbol_id_scopes.push_back({});
+    }
+
+    void CodegenPass::close_scope() {
+        KPL_ASSERT_THAT(!symbol_id_scopes.empty());
+        const std::vector<SymbolId>& symbol_ids_to_remove = symbol_id_scopes.back();
+        for (SymbolId symbol_id : symbol_ids_to_remove) {
+            llvm_values.erase(symbol_id);
+        }
+        symbol_id_scopes.pop_back();
     }
 
     void CodegenPass::forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
@@ -108,12 +140,12 @@ namespace kepler {
             switch (node->node_type) {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
-                    codegen_forward_declaration(ext->prototype.get());
+                    codegen_forward_declaration(ext->prototype.get(), ext->linkage_type);
                     break;
                 }
                 case ASTNodeType::Function: {
                     const Function* function = static_cast<Function*>(node.get());
-                    codegen_forward_declaration(function->prototype.get());
+                    codegen_forward_declaration(function->prototype.get(), function->linkage_type);
                     break;
                 }
                 default:
@@ -122,7 +154,8 @@ namespace kepler {
         }
     }
 
-    void CodegenPass::codegen_forward_declaration(const Prototype* prototype) {
+    // TODO (improvement): Create a diagnostic if there is no exported main and if there are multiple exported mains
+    void CodegenPass::codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
         KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid());
@@ -136,7 +169,7 @@ namespace kepler {
 
         const std::string_view prototype_name = StringPool::get().lookup(prototype->identifier_id);
         llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type, context), parameter_types, prototype->is_variadic);
-        llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(prototype->linkage_type), prototype_name, *llvm_module);
+        llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(linkage_type), prototype_name, *current_llvm_module);
 
 #ifndef NDEBUG
         unsigned int index = 0;
@@ -217,6 +250,7 @@ namespace kepler {
         builder.SetInsertPoint(entry_block);
 
         // Create allocas for function parameters
+        open_scope();
         int index = 0;
         for (llvm::Argument& arg : llvm_function->args()) {
             llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, arg.getType(), function->prototype->identifier_id);
@@ -231,6 +265,7 @@ namespace kepler {
 
         // Codegen the body
         codegen_nodes(function->body.nodes);
+        close_scope();
 
         // Create implicit return for void methods
         if (!function->body.contains_return && function->prototype->return_type == type_table.Builtins.void_type) {
@@ -285,6 +320,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
+        open_scope();
         const CodegenResult variable_cr = codegen_variable_definition_statement(statement->loop_variable_definition.get());
         KPL_ASSERT_NOT_NULLPTR(variable_cr.llvm_value);
         KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(variable_cr.llvm_value));
@@ -336,6 +372,7 @@ namespace kepler {
         if (statement->body.contains_return) {
             increment_block->eraseFromParent();
             after_block->eraseFromParent();
+            close_scope();
             return {.llvm_value = nullptr, .returns = true};
         }
         builder.CreateBr(increment_block);
@@ -348,6 +385,7 @@ namespace kepler {
         builder.CreateBr(header_block);
 
         builder.SetInsertPoint(after_block);
+        close_scope();
         return {.llvm_value = nullptr, .returns = false};
     }
 
@@ -367,18 +405,22 @@ namespace kepler {
         builder.CreateCondBr(condition_cr.llvm_value, if_block, else_block);
 
         // Codegen 'if' body
+        open_scope();
         builder.SetInsertPoint(if_block);
         codegen_nodes(statement->if_body.nodes);
         if (!statement->if_body.contains_return) {
             builder.CreateBr(after_block);
         }
         builder.SetInsertPoint(else_block);
+        close_scope();
 
         // Codegen 'else' body
+        open_scope();
         codegen_nodes(statement->else_body.nodes);
         if (!statement->else_body.contains_return) {
             builder.CreateBr(after_block);
         }
+        close_scope();
 
         const bool returns = statement->if_body.contains_return && statement->else_body.contains_return;
         if (returns) {
@@ -416,6 +458,7 @@ namespace kepler {
         KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(!llvm_values.contains(variable_symbol_id));
         llvm_values.emplace(variable_symbol_id, alloca);
+        symbol_id_scopes.back().push_back(variable_symbol_id);
         codegen_assignment_statement(statement->assignment_statement.get());
         return {.llvm_value = alloca, .returns = false};
     }
@@ -463,7 +506,7 @@ namespace kepler {
         llvm::Constant* data = llvm::ConstantDataArray::getString(context, string_value);
         // Global pointer that points to the constant array
         // This is owned by the llvm module and doesn't have to be freed manually
-        llvm::GlobalVariable* global_variable = new llvm::GlobalVariable(*llvm_module, data->getType(), true, llvm::GlobalValue::PrivateLinkage, data);
+        llvm::GlobalVariable* global_variable = new llvm::GlobalVariable(*current_llvm_module, data->getType(), true, llvm::GlobalValue::PrivateLinkage, data);
 
         // Optimisation: tell llvm that the pointer is never going to be compared
         // (only the value of the string is going to be compared, never the reference to the string)
@@ -522,6 +565,9 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
         llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol_id]);
+        // llvm can't create a call to a function in a different module
+        // That's why we use getOrInsertFunction to create an extern declaration if it doesn't exist
+        llvm::FunctionCallee llvm_function_callee = current_llvm_module->getOrInsertFunction(llvm_function->getName(), llvm_function->getFunctionType());
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_NOT_NULLPTR(symbol);
         KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(symbol->data));
@@ -544,10 +590,10 @@ namespace kepler {
         llvm::Value* value = nullptr;
         KPL_ASSERT_NOT_NULLPTR(symbol->type);
         if (symbol->type == type_table.Builtins.void_type) {
-            value = builder.CreateCall(llvm_function, std::move(arg_values));
+            value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
         } else {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-            value = builder.CreateCall(llvm_function, std::move(arg_values), "call_" + std::string(identifier));
+            value = builder.CreateCall(llvm_function_callee, std::move(arg_values), "call_" + std::string(identifier));
         }
         return {.llvm_value = value, .returns = false};
     }

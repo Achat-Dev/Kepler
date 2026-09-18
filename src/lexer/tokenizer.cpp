@@ -35,6 +35,7 @@ namespace kepler {
         if (keyword_map.empty()) {
             register_keyword("module", TokenType::Module);
             register_keyword("import", TokenType::Import);
+            register_keyword("export", TokenType::Export);
             register_keyword("extern", TokenType::Extern);
             register_keyword("return", TokenType::Return);
             register_keyword("end", TokenType::End);

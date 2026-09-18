@@ -26,7 +26,6 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
-#include "semantic_analysis/module.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
@@ -40,7 +39,7 @@
 namespace kepler {
 
     struct ModuleParseResult {
-        ModuleDefinition definition;
+        StringId identifier_id;
         SourceLocation source_location;
     };
 
@@ -69,10 +68,11 @@ namespace kepler {
         std::optional<ModuleParseResult> parse_import();
         std::optional<ModuleParseResult> parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message);
         StringId get_full_module_identifier(const std::vector<StringId> identifier_ids);
-        std::unique_ptr<Extern> parse_extern();
-        std::unique_ptr<Prototype> parse_prototype(PrototypeLinkageType linkage_type);
-        std::unique_ptr<ASTNode> parse_top_level_type();
-        std::unique_ptr<Function> parse_function();
+        std::unique_ptr<ExportableNode> parse_export();
+        std::unique_ptr<Extern> parse_extern(LinkageType linkage_type);
+        std::unique_ptr<Prototype> parse_prototype();
+        std::unique_ptr<ExportableNode> parse_top_level_type(LinkageType linkage_type);
+        std::unique_ptr<Function> parse_function(LinkageType linkage_type);
 
         // Main body nodes
         std::unique_ptr<ASTNode> parse_statement();

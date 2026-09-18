@@ -25,15 +25,11 @@ namespace kepler {
         static constexpr ModuleId invalid() { return ModuleId{}; }
     };
 
-    struct ModuleDefinition {
-        ModuleId id;
-        StringId full_identifier_id;
-        std::vector<StringId> part_identifier_ids;
-    };
-
     struct Module {
-        ModuleDefinition definition;
+        ModuleId id;
+        StringId identifier_id;
         std::vector<ScopeId> scope_ids;
+        std::vector<ModuleId> imported_module_ids;
         ScopeId current_scope_id;
     };
 

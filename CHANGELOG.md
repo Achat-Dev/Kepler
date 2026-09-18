@@ -8,23 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Added
 
-- Definition of module name in source file
+- Base module system
 
 ### Changed
 
 - Values of the `-a` option are now separated by spaces instead of commas
 - Improved formatting of help (`-h` option)
 
-### Removed
-
-- Dependency on `cxxopts`
-
 ### Fixed
 
 - Misaligned line numbers in multiline diagnostics that span across line numbers with different digit counts
 - Trim trailing newlines when printing string literal during ast printing
+- Assertions sometimes not printing their messages
 - Wrong assertion when printing MathematicalNegationExpression during ast printing
 - Wrong assertion in `elseif` parsing
+- Wrong assertion about llvm terminator in void function
 
 ## [0.2.0] - 2026-09-09
 

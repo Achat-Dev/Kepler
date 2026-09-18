@@ -18,12 +18,17 @@
 
 namespace kepler {
 
-    struct Function : ASTNode {
+    struct Function : ExportableNode {
         std::unique_ptr<Prototype> prototype;
         NodeBody body;
 
-        Function(std::unique_ptr<Prototype> prototype, std::vector<std::unique_ptr<ASTNode>> body, SourceLocation source_location)
-            : ASTNode(ASTNodeType::Function, std::move(source_location)), prototype(std::move(prototype)), body{.nodes = std::move(body)} {}
+        Function(std::unique_ptr<Prototype> prototype,
+            std::vector<std::unique_ptr<ASTNode>> body,
+            LinkageType linkage_type,
+            SourceLocation source_location)
+            : ExportableNode(ASTNodeType::Function, linkage_type, std::move(source_location)),
+              prototype(std::move(prototype)),
+              body{.nodes = std::move(body)} {}
     };
 
 }
