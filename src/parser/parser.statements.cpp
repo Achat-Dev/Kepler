@@ -129,7 +129,7 @@ namespace kepler {
             }
         }
 
-        if (condition) {
+        if (condition && current_token->type == TokenType::BracketClose) {
             next_token(true); // eat ')'
         }
         const std::string message = std::format("'{}' statement was not closed with an 'end' keyword", if_token->type);

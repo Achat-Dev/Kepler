@@ -17,10 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Fixed
 
+- Parsing an `if` statement skipping the first token of the first statement in the `if` body when the `if` condition was not followed by a `)`, which lead to wrong diagnostics
 - Misaligned line numbers in multiline diagnostics that span across line numbers with different digit counts
 - Trim trailing newlines when printing string literal during ast printing
 - Assertions sometimes not printing their messages
-- Wrong assertion when printing MathematicalNegationExpression during ast printing
+- Wrong assertion when printing a `MathematicalNegationExpression` during ast printing
 - Wrong assertion in `elseif` parsing
 - Wrong assertion about llvm terminator in void function
 
