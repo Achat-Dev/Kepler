@@ -148,29 +148,34 @@ namespace kepler {
                     return nullptr;
                 }
 
-                std::vector<Symbol*> found_symbols;
+                std::vector<std::pair<ModuleId, Symbol*>> found_symbols;
                 for (ModuleId imported_module_id : module.imported_module_ids) {
                     const auto symbol = find(imported_module_id, identifier_id, false); // Use false here so that there are no recursive imports
                     KPL_ASSERT_THAT(symbol.has_value());                                // find only returns a diagnostic if imported symbols are searched
                     if (*symbol != nullptr) {
-                        found_symbols.push_back(*symbol);
+                        found_symbols.push_back({imported_module_id, *symbol});
                     }
                 }
 
                 if (found_symbols.empty()) {
                     return nullptr;
                 } else if (found_symbols.size() == 1) {
-                    return found_symbols[0];
+                    return found_symbols[0].second;
                 } else {
                     std::string message = std::format("Symbol '{}' found in multiple imported modules (", StringPool::get().lookup(identifier_id));
-                    for (size_t i = 0; found_symbols.size(); i++) {
-                        message += std::format("'{}'", StringPool::get().lookup(found_symbols[i]->identifier_id));
+                    for (size_t i = 0; i < found_symbols.size(); i++) {
+                        const Module& imported_module = modules[found_symbols[i].first.value];
+                        message += '\'' + std::string(StringPool::get().lookup(imported_module.identifier_id)) + '\'';
                         if (i == found_symbols.size() - 1) {
                             message += ')';
                         } else {
                             message += ',';
                         }
                     }
+                    const Module& imported_module = modules[found_symbols[0].first.value];
+                    const std::string identifier = std::string(StringPool::get().lookup(identifier_id));
+                    const std::string imported_module_identifier = std::string(StringPool::get().lookup(imported_module.identifier_id));
+                    message += ". Explicitely state which one to use (e. g. '" + std::move(imported_module_identifier) + "::" + std::move(identifier) + "')";
                     // Symbols currently don't have a way to access their source location
                     // However, the call site of this function *has* access to it, so we just return a normal Diagnostic instead of a SourceDiagnostic
                     return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousSymbolImport, .message = std::move(message)});
