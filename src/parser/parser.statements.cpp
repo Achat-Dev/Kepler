@@ -49,8 +49,9 @@ namespace kepler {
                 next_token(true); // eat identifier
                 if (current_token->type == TokenType::Assignment) {
                     return parse_assignment(identifier_token);
-                } else if (current_token->type == TokenType::BracketOpen) {
-                    return parse_call(identifier_token);
+                } else if (current_token->type == TokenType::BracketOpen || current_token->type == TokenType::DoubleColon) {
+                    previous_token(true);
+                    return parse_call();
                 }
                 previous_token(true); // Previous token for the diagnostic
                 break;

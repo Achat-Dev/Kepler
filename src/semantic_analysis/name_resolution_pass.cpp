@@ -285,7 +285,11 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        const auto prototype_symbol = symbol_table.find(module_id, expression->identifier_id);
+        ModuleId function_module_id = module_id;
+        if (expression->module_identifier_id != StringId::invalid()) {
+            function_module_id = symbol_table.get_module_id_by_identifier(expression->module_identifier_id);
+        }
+        const auto prototype_symbol = symbol_table.find(function_module_id, expression->identifier_id);
         if (!prototype_symbol) {
             const Diagnostic diagnostic = prototype_symbol.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);

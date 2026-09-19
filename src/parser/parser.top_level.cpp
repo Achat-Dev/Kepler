@@ -64,14 +64,13 @@ namespace kepler {
         };
         next_token(true); // eat identifier
         while (current_token->type == TokenType::DoubleColon) {
-            const SourceLocation& doublecolon_source_location = current_token->source_location;
             next_token(true); // eat '::'
             if (current_token->type != TokenType::Identifier) {
-                previous_token(true); // jump back to '::' because otherwise the next line will be skipped because of the revocery
+                previous_token(true); // jump back to '::' because otherwise the next line will be skipped because of the recovery
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
                     "Expected identifier after '::' in " + diagnostic_message,
-                    doublecolon_source_location);
-                recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+                    current_token->source_location);
+                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return std::nullopt;
             }
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));

@@ -84,7 +84,7 @@ namespace kepler {
         std::unique_ptr<Expression> parse_literal();
         std::unique_ptr<Expression> parse_parenthesis();
         std::unique_ptr<Expression> parse_identifier();
-        std::unique_ptr<CallExpression> parse_call(const Token* identifier_token);
+        std::unique_ptr<CallExpression> parse_call();
         std::unique_ptr<MathematicalNegationExpression> parse_negative();
         std::unique_ptr<CastExpression> parse_cast();
 

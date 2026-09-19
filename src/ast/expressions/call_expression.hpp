@@ -20,12 +20,16 @@
 namespace kepler {
 
     struct CallExpression : Expression {
+        StringId module_identifier_id;
         StringId identifier_id;
         SymbolId symbol_id;
         std::vector<std::unique_ptr<Expression>> args;
 
-        CallExpression(StringId identifier_id, std::vector<std::unique_ptr<Expression>> args, SourceLocation source_location)
-            : Expression(ASTNodeType::CallExpression, std::move(source_location)), identifier_id(identifier_id), args(std::move(args)) {}
+        CallExpression(StringId module_identifier_id, StringId identifier_id, std::vector<std::unique_ptr<Expression>> args, SourceLocation source_location)
+            : Expression(ASTNodeType::CallExpression, std::move(source_location)),
+              module_identifier_id(module_identifier_id),
+              identifier_id(identifier_id),
+              args(std::move(args)) {}
     };
 
 }
