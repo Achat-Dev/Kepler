@@ -67,7 +67,7 @@ namespace kepler {
         std::optional<ModuleParseResult> parse_module();
         std::optional<ModuleParseResult> parse_import();
         std::optional<ModuleParseResult> parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message);
-        StringId get_full_module_identifier(const std::vector<StringId> identifier_ids);
+        StringId get_full_module_identifier(const std::vector<StringId>& identifier_ids);
         std::unique_ptr<ExportableNode> parse_export();
         std::unique_ptr<Extern> parse_extern(LinkageType linkage_type);
         std::unique_ptr<Prototype> parse_prototype();

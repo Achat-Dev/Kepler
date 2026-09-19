@@ -8,6 +8,7 @@
  */
 
 #include "semantic_analysis/symbol_table.hpp"
+#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
@@ -51,14 +52,30 @@ namespace kepler {
         return module_id;
     }
 
-    void SymbolTable::register_imported_modules(ModuleId module_id, std::vector<StringId> imported_module_identifier_ids) {
+    // clang-format off
+    std::expected<void, std::vector<SourceDiagnostic>> SymbolTable::register_imported_modules(ModuleId module_id,
+        std::vector<ImportDefinition> imported_module_definitions)
+    {
+        // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         Module& module = modules[module_id.value];
-        for (StringId imported_module_identifier_id : imported_module_identifier_ids) {
-            ModuleId imported_module_id = get_module_id_by_identifier(imported_module_identifier_id);
-            KPL_ASSERT_THAT(imported_module_id != ModuleId::invalid());
-            module.imported_module_ids.push_back(imported_module_id);
+        std::vector<SourceDiagnostic> diagnostics;
+        for (const ImportDefinition& import_definition : imported_module_definitions) {
+            ModuleId imported_module_id = get_module_id_by_identifier(import_definition.identifier_id);
+            if (imported_module_id == ModuleId::invalid()) {
+                diagnostics.push_back({
+                    .code = DiagnosticCode::UnknownModule,
+                    .message = std::format("Unknown imported module '{}'", StringPool::get().lookup(import_definition.identifier_id)),
+                    .source_location = import_definition.source_location,
+                });
+            } else {
+                module.imported_module_ids.push_back(imported_module_id);
+            }
         }
+        if (!diagnostics.empty()) {
+            return std::unexpected(std::move(diagnostics));
+        }
+        return {};
     }
 
     // clang-format off
@@ -189,7 +206,7 @@ namespace kepler {
 
     ModuleId SymbolTable::get_module_id_by_identifier(StringId identifier_id) const {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        // TODO (improvement): A linear search is maybe not the most performant implemenation for this
+        // TODO (improvement): A linear search is maybe not the most performant implementation for this
         for (size_t i = 0; i < modules.size(); i++) {
             if (modules[i].identifier_id == identifier_id) {
                 return ModuleId{.value = static_cast<uint32_t>(i)};

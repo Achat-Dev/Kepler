@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
@@ -26,7 +27,8 @@ namespace kepler {
     class SymbolTable {
     public:
         ModuleId create_module(StringId identifier_id);
-        void register_imported_modules(ModuleId module_id, std::vector<StringId> imported_module_identifier_ids);
+        std::expected<void, std::vector<SourceDiagnostic>> register_imported_modules(ModuleId module_id,
+            std::vector<ImportDefinition> imported_module_definitions);
         std::expected<SymbolId, SourceDiagnostic> create_variable(ModuleId module_id, Type* type, StringId identifier_id, SourceLocation source_location);
         std::expected<SymbolId, SourceDiagnostic> create_prototype(ModuleId module_id,
             Type* type,

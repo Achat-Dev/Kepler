@@ -88,7 +88,7 @@ namespace kepler {
         return ModuleParseResult{.identifier_id = get_full_module_identifier(identifier_ids), .source_location = std::move(source_location)};
     }
 
-    StringId Parser::get_full_module_identifier(const std::vector<StringId> identifier_ids) {
+    StringId Parser::get_full_module_identifier(const std::vector<StringId>& identifier_ids) {
         KPL_ASSERT_THAT(!identifier_ids.empty());
         std::string result;
         for (size_t i = 0; i < identifier_ids.size(); i++) {

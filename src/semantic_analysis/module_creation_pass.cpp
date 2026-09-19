@@ -38,12 +38,12 @@ namespace kepler {
         for (AbstractSyntaxTree& ast : asts) {
             const ModuleId module_id = symbol_table.get_module_id_by_identifier(ast.module_identifier_id);
             KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-            std::vector<StringId> imported_module_identifier_ids;
-            imported_module_identifier_ids.reserve(ast.imported_module_definitions.size());
-            for (const ImportDefinition& imported_module : ast.imported_module_definitions) {
-                imported_module_identifier_ids.push_back(imported_module.identifier_id);
+            const auto registration_result = symbol_table.register_imported_modules(module_id, ast.imported_module_definitions);
+            if (!registration_result) {
+                for (const SourceDiagnostic& diagnostic : registration_result.error()) {
+                    diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), std::move(diagnostic.source_location));
+                }
             }
-            symbol_table.register_imported_modules(module_id, std::move(imported_module_identifier_ids));
         }
     }
 

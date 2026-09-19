@@ -308,6 +308,8 @@ namespace kepler {
 
         if (prototype_symbol.value() == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+            // TODO (improvement): Maybe create a special diagnostic message if the module is used explicitely in the call
+            // (like "Function doesn't exist in module")
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
