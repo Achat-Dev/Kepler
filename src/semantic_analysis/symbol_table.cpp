@@ -48,8 +48,13 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         Module& module = modules[module_id.value];
         for (StringId imported_module_identifier_id : imported_module_identifier_ids) {
-            const ModuleId imported_module_id = get_module_id_by_identifier(imported_module_identifier_id);
-            KPL_ASSERT_THAT(imported_module_id != ModuleId::invalid());
+            ModuleId imported_module_id = get_module_id_by_identifier(imported_module_identifier_id);
+            if (imported_module_id == ModuleId::invalid()) {
+                // We are trying to import a module that doesn't explicitely exist, but a submodule exists
+                // e. g. module foo::bar ... import foo <- foo was never explicitely defined
+                // So we create that module as an empty module
+                imported_module_id = create_module(imported_module_identifier_id);
+            }
             module.imported_module_ids.push_back(imported_module_id);
         }
     }
