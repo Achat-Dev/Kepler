@@ -41,6 +41,13 @@ namespace kepler {
         }
         modules.push_back({.id = module_id, .identifier_id = identifier_id});
         open_scope(module_id, ScopeType::File);
+        const std::string_view module_identifier = StringPool::get().lookup(identifier_id);
+        const size_t doublecolon_position = module_identifier.rfind("::");
+        if (doublecolon_position != module_identifier.npos) {
+            // This is a submodule, so create the parent module
+            const std::string parent_module_identifier = std::string(module_identifier.substr(0, doublecolon_position));
+            create_module(StringPool::get().store(std::move(parent_module_identifier)));
+        }
         return module_id;
     }
 
@@ -49,12 +56,7 @@ namespace kepler {
         Module& module = modules[module_id.value];
         for (StringId imported_module_identifier_id : imported_module_identifier_ids) {
             ModuleId imported_module_id = get_module_id_by_identifier(imported_module_identifier_id);
-            if (imported_module_id == ModuleId::invalid()) {
-                // We are trying to import a module that doesn't explicitely exist, but a submodule exists
-                // e. g. module foo::bar ... import foo <- foo was never explicitely defined
-                // So we create that module as an empty module
-                imported_module_id = create_module(imported_module_identifier_id);
-            }
+            KPL_ASSERT_THAT(imported_module_id != ModuleId::invalid());
             module.imported_module_ids.push_back(imported_module_id);
         }
     }

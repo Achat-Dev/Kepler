@@ -189,11 +189,9 @@ namespace kepler {
             // The identifier id of the parse result contains the module and function identifier (module::submodule::function)
             // That's why we have to the following shenanigans to get the actual module and function identifier ids
             const std::string_view module_and_function_identifier = StringPool::get().lookup(module_identifier_parse_result->identifier_id);
-            const size_t last_doublecolon_position = module_and_function_identifier.find_last_of("::");
+            const size_t last_doublecolon_position = module_and_function_identifier.rfind("::");
             KPL_ASSERT_THAT(last_doublecolon_position != module_and_function_identifier.npos);
-            // -1 because the position points to the index of the last character,
-            // and since we find two characters it points to the index of the second character
-            const std::string module_identifier = std::string(module_and_function_identifier.substr(0, last_doublecolon_position - 1));
+            const std::string module_identifier = std::string(module_and_function_identifier.substr(0, last_doublecolon_position));
             module_identifier_id = StringPool::get().store(module_identifier);
             module_identifier_parse_result->source_location.size -= module_and_function_identifier.size() - module_identifier.size();
             module_source_location = std::move(module_identifier_parse_result->source_location);
