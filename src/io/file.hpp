@@ -14,16 +14,18 @@
 #include <filesystem>
 #include <format>
 #include <functional>
+#include <limits>
 #include <string>
 #include <vector>
 
 namespace kepler {
 
     struct FileId {
-        uint32_t value = 0;
+        uint32_t value = std::numeric_limits<uint32_t>::max();
 
         bool operator==(const FileId& other) const = default;
         bool operator!=(const FileId& other) const = default;
+        static constexpr FileId invalid() { return FileId{}; }
     };
 
     struct File {

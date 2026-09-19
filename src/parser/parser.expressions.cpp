@@ -176,12 +176,12 @@ namespace kepler {
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const Token* identifier_token = current_token;
-
         next_token(true); // eat identifier
         StringId module_identifier_id;
+        SourceLocation module_source_location;
         if (current_token->type == TokenType::DoubleColon) {
             previous_token(true); // Go back to the identifier to start the module identifier parsing
-            const auto module_identifier_parse_result = parse_module_identifier(current_token->source_location.position, "function call");
+            auto module_identifier_parse_result = parse_module_identifier(current_token->source_location.position, "function call");
             if (!module_identifier_parse_result) {
                 return nullptr;
             }
@@ -195,6 +195,8 @@ namespace kepler {
             // and since we find two characters it points to the index of the second character
             const std::string module_identifier = std::string(module_and_function_identifier.substr(0, last_doublecolon_position - 1));
             module_identifier_id = StringPool::get().store(module_identifier);
+            module_identifier_parse_result->source_location.size -= module_and_function_identifier.size() - module_identifier.size();
+            module_source_location = std::move(module_identifier_parse_result->source_location);
 
             previous_token(true); // Go back to the last identifier, which is the name of the function
             KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
@@ -216,7 +218,8 @@ namespace kepler {
             return std::make_unique<CallExpression>(module_identifier_id,
                 identifier_id,
                 std::vector<std::unique_ptr<Expression>>{},
-                identifier_token->source_location);
+                identifier_token->source_location,
+                std::move(module_source_location));
         }
 
         // Call with arguments
@@ -241,7 +244,11 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
-        return std::make_unique<CallExpression>(module_identifier_id, identifier_id, std::move(args), identifier_token->source_location);
+        return std::make_unique<CallExpression>(module_identifier_id,
+            identifier_id,
+            std::move(args),
+            identifier_token->source_location,
+            std::move(module_source_location));
     }
 
     std::unique_ptr<Expression> Parser::parse_literal() {

@@ -48,7 +48,8 @@ namespace kepler {
             case DiagnosticCode::MissingEndKeyword:
             case DiagnosticCode::UsingStatementAsExpression:
             case DiagnosticCode::MissingReturn:
-            case DiagnosticCode::UndefinedSymbol:
+            case DiagnosticCode::UnknownModule:
+            case DiagnosticCode::UnknownSymbol:
             case DiagnosticCode::AmbiguousSymbolImport:
             case DiagnosticCode::SymbolAlreadyExists:
             case DiagnosticCode::UnknownType:

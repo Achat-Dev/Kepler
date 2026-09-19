@@ -25,6 +25,7 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
+#include "io/file.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
@@ -288,6 +289,14 @@ namespace kepler {
         ModuleId function_module_id = module_id;
         if (expression->module_identifier_id != StringId::invalid()) {
             function_module_id = symbol_table.get_module_id_by_identifier(expression->module_identifier_id);
+            if (function_module_id == ModuleId::invalid()) {
+                KPL_ASSERT_THAT(expression->module_source_location.file_id != FileId::invalid());
+                KPL_ASSERT_THAT(expression->module_source_location.size > 0);
+                const std::string message = std::format("Unknown module '{}'", StringPool::get().lookup(expression->module_identifier_id));
+                diagnostic_sink.report(DiagnosticCode::UnknownModule, std::move(message), expression->module_source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.poisoned = true};
+            }
         }
         const auto prototype_symbol = symbol_table.find(function_module_id, expression->identifier_id);
         if (!prototype_symbol) {
@@ -299,7 +308,7 @@ namespace kepler {
 
         if (prototype_symbol.value() == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-            diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
+            diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         } else {
@@ -384,7 +393,7 @@ namespace kepler {
         }
         if (symbol == nullptr) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-            diagnostic_sink.report(DiagnosticCode::UndefinedSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
+            diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         } else {
