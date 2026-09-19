@@ -161,7 +161,7 @@ namespace kepler {
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         const Token* identifier_token = current_token;
         next_token(true); // eat identifier
-        if (current_token->type == TokenType::BracketOpen) {
+        if (current_token->type == TokenType::BracketOpen || current_token->type == TokenType::DoubleColon) {
             previous_token(true);
             return parse_call();
         }
