@@ -44,8 +44,7 @@ namespace kepler {
         Type* type;
         StringId identifier_id;
         bool can_be_shadowed = false;
-        // TODO (improvement): Replace with SymbolId
-        uint32_t shadowed_symbol_index = 0;
+        SymbolId shadowed_symbol_id;
         SymbolData data = std::monostate{};
     };
 

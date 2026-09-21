@@ -21,15 +21,12 @@
 #include <cstdint>
 #include <expected>
 #include <format>
-#include <limits>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
-
-#define INVALID_SYMBOL_INDEX std::numeric_limits<uint32_t>::max()
 
 namespace kepler {
 
@@ -271,7 +268,7 @@ namespace kepler {
         const auto found_symbol = find_symbol(module_id, identifier_id, false);
         KPL_ASSERT_THAT(found_symbol.has_value());
         const Symbol* existing_symbol = *found_symbol;
-        uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;
+        SymbolId symbol_id_to_shadow;
         if (existing_symbol != nullptr) {
             if (existing_symbol->scope_id == module.current_scope_id) {
                 const std::string_view identifier = StringPool::get().lookup(existing_symbol->identifier_id);
@@ -287,7 +284,7 @@ namespace kepler {
                     .message = std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, identifier),
                 });
             }
-            symbol_index_to_shadow = existing_symbol->id.value;
+            symbol_id_to_shadow = existing_symbol->id;
         }
 
         Scope& scope = scopes[module.current_scope_id.value];
@@ -300,7 +297,7 @@ namespace kepler {
             .type = type,
             .identifier_id = identifier_id,
             .can_be_shadowed = can_be_shadowed,
-            .shadowed_symbol_index = symbol_index_to_shadow,
+            .shadowed_symbol_id = symbol_id_to_shadow,
             .data = std::move(data),
         });
         return symbol_id;
