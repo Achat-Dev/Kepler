@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Fixed
 
+- For loops only executing the first iteration (because they increased the loop variable by the end value instead of the step value)
 - Parsing an `if` statement skipping the first token of the first statement in the `if` body when the `if` condition was not followed by a `)`, which lead to wrong diagnostics
 - Misaligned line numbers in multiline diagnostics that span across line numbers with different digit counts
 - Trim trailing newlines when printing string literal during ast printing

@@ -388,7 +388,7 @@ namespace kepler {
 
         // Codegen increment
         llvm::Value* variable_load = builder.CreateLoad(variable_type, variable_cr.llvm_value);
-        llvm::Value* incremented_variable_value = create_add(variable_load, end_cr.llvm_value, statement->loop_variable_definition->type, builder);
+        llvm::Value* incremented_variable_value = create_add(variable_load, step_value, statement->loop_variable_definition->type, builder);
         builder.CreateStore(incremented_variable_value, variable_cr.llvm_value);
         builder.CreateBr(header_block);
 
