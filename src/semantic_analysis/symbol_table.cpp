@@ -10,13 +10,13 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
-#include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -78,36 +78,33 @@ namespace kepler {
             });
         }
         Module& module = modules[module_id.value];
+        // clang-format off
+        KPL_ASSERT_THAT(std::find(module.imported_module_ids.begin(),
+                            module.imported_module_ids.end(),
+                            imported_module->id) == module.imported_module_ids.end());
+        // clang-format on
         module.imported_module_ids.push_back(imported_module->id);
         return imported_module->id;
     }
 
-    // clang-format off
-    std::expected<SymbolId, SourceDiagnostic> SymbolTable::create_variable(ModuleId module_id,
-        Type* type,
-        StringId identifier_id,
-        SourceLocation source_location)
-    {
-        // clang-format on
-        return create_symbol(module_id, type, identifier_id, std::monostate{}, "Variable", source_location);
+    std::expected<SymbolId, Diagnostic> SymbolTable::create_variable(ModuleId module_id, Type* type, StringId identifier_id) {
+        return create_symbol(module_id, type, identifier_id, std::monostate{}, "Variable");
     }
 
     // clang-format off
-    std::expected<SymbolId, SourceDiagnostic> SymbolTable::create_prototype(ModuleId module_id,
+    std::expected<SymbolId, Diagnostic> SymbolTable::create_prototype(ModuleId module_id,
         Type* type,
         StringId identifier_id,
         LinkageType linkage_type,
         std::vector<Type*> parameter_types,
-        bool is_variadic,
-        SourceLocation identifier_source_location
+        bool is_variadic
     ) {
         // clang-format on
         return create_symbol(module_id,
             type,
             identifier_id,
             PrototypeSymbolData{.linkage_type = linkage_type, .is_variadic = is_variadic, .parameter_types = std::move(parameter_types)},
-            "Prototype",
-            identifier_source_location);
+            "Prototype");
     }
 
     Symbol* SymbolTable::lookup(SymbolId symbol_id) {
@@ -224,8 +221,6 @@ namespace kepler {
                         + std::move(identifier)
                         + "')";
                     // clang-format on
-                    // Symbols currently don't have a way to access their source location
-                    // However, the call site of this function *has* access to it, so we just return a normal Diagnostic instead of a SourceDiagnostic
                     return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousSymbolImport, .message = std::move(message)});
                 }
             }
@@ -258,13 +253,12 @@ namespace kepler {
     }
 
     // clang-format off
-    std::expected<SymbolId, SourceDiagnostic> SymbolTable::create_symbol(ModuleId module_id,
+    std::expected<SymbolId, Diagnostic> SymbolTable::create_symbol(ModuleId module_id,
         Type* type,
         StringId identifier_id,
         SymbolData&& data,
-        const std::string& error_identifier,
-        SourceLocation source_location
-    ) {
+        const std::string& error_identifier)
+    {
         // clang-format on
         KPL_ASSERT_THAT(!scopes.empty());
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
@@ -281,18 +275,16 @@ namespace kepler {
         if (existing_symbol != nullptr) {
             if (existing_symbol->scope_id == module.current_scope_id) {
                 const std::string_view identifier = StringPool::get().lookup(existing_symbol->identifier_id);
-                return std::unexpected(SourceDiagnostic{
+                return std::unexpected(Diagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
                     .message = std::format("{} with name '{}' already exists in the current scope", error_identifier, identifier),
-                    .source_location = source_location,
                 });
             }
             if (!existing_symbol->can_be_shadowed) {
                 const std::string_view identifier = StringPool::get().lookup(existing_symbol->identifier_id);
-                return std::unexpected(SourceDiagnostic{
+                return std::unexpected(Diagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
                     .message = std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, identifier),
-                    .source_location = source_location,
                 });
             }
             symbol_index_to_shadow = existing_symbol->id.value;

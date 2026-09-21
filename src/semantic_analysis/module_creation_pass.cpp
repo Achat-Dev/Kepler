@@ -108,11 +108,10 @@ namespace kepler {
             prototype->identifier_id,
             linkage_type,
             std::move(parameter_types),
-            prototype->is_variadic,
-            prototype->identifier_source_location);
+            prototype->is_variadic);
         if (!symbol) {
-            const SourceDiagnostic& diagnostic = symbol.error();
-            diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
+            const Diagnostic& diagnostic = symbol.error();
+            diagnostic_sink.report(diagnostic.code, diagnostic.message, prototype->identifier_source_location);
             prototype->node_type = ASTNodeType::Poison;
         } else {
             prototype->symbol_id = *symbol;

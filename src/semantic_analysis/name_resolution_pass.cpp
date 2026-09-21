@@ -153,10 +153,10 @@ namespace kepler {
         for (ParameterData& parameter : prototype->parameter_data) {
             KPL_ASSERT_NOT_NULLPTR(parameter.type);
             KPL_ASSERT_THAT(parameter.symbol_id == SymbolId::invalid());
-            const auto symbol = symbol_table.create_variable(module_id, parameter.type, parameter.identifier_id, parameter.identifier_source_location);
+            const auto symbol = symbol_table.create_variable(module_id, parameter.type, parameter.identifier_id);
             if (!symbol) {
-                const SourceDiagnostic& diagnostic = symbol.error();
-                diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
+                const Diagnostic& diagnostic = symbol.error();
+                diagnostic_sink.report(diagnostic.code, diagnostic.message, parameter.identifier_source_location);
                 prototype->node_type = ASTNodeType::Poison;
             } else {
                 parameter.symbol_id = *symbol;
@@ -255,13 +255,10 @@ namespace kepler {
         }
 
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement->variable_expression);
-        const auto symbol = symbol_table.create_variable(module_id,
-            type,
-            statement->identifier_id,
-            statement->assignment_statement->variable_expression->source_location);
+        const auto symbol = symbol_table.create_variable(module_id, type, statement->identifier_id);
         if (!symbol) {
-            const SourceDiagnostic& diagnostic = symbol.error();
-            diagnostic_sink.report(diagnostic.code, diagnostic.message, diagnostic.source_location);
+            const Diagnostic& diagnostic = symbol.error();
+            diagnostic_sink.report(diagnostic.code, diagnostic.message, statement->assignment_statement->variable_expression->source_location);
             statement->node_type = ASTNodeType::Poison;
         }
 
