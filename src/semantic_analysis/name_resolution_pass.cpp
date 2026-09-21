@@ -34,6 +34,7 @@
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
+#include <expected>
 #include <format>
 #include <memory>
 #include <string>
@@ -47,8 +48,9 @@ namespace kepler {
     void NameResolutionPass::run(std::vector<AbstractSyntaxTree>& asts) {
         KPL_ASSERT_THAT(!asts.empty());
         for (AbstractSyntaxTree& ast : asts) {
-            module_id = symbol_table.get_module_id_by_identifier(ast.module_identifier_id);
-            KPL_ASSERT_THAT(module_id != ModuleId::invalid());
+            KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
+            KPL_ASSERT_THAT(ast.module_statement->module_id != ModuleId::invalid());
+            module_id = ast.module_statement->module_id;
             resolve_nodes(ast.top_level_nodes);
         }
 
@@ -87,6 +89,10 @@ namespace kepler {
                 return resolve_for_statement(static_cast<ForStatement*>(node));
             case ASTNodeType::IfStatement:
                 return resolve_if_statement(static_cast<IfStatement*>(node));
+            case ASTNodeType::ImportStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot do name resolution for ImportStatement");
+            case ASTNodeType::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot do name resolution for ModuleStatement");
             case ASTNodeType::ReturnStatement:
                 return resolve_return_statement(static_cast<ReturnStatement*>(node));
             case ASTNodeType::VariableDefinitionStatement:
@@ -286,37 +292,35 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        ModuleId function_module_id = module_id;
-        if (expression->module_identifier_id != StringId::invalid()) {
-            function_module_id = symbol_table.get_module_id_by_identifier(expression->module_identifier_id);
-            if (function_module_id == ModuleId::invalid()) {
+        std::expected<Symbol*, Diagnostic> prototype_symbol;
+        if (expression->module_path.part_identifier_ids.empty()) {
+            prototype_symbol = symbol_table.find_symbol(module_id, expression->identifier_id);
+            if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
+                const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+                diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.poisoned = true};
+            }
+        } else {
+            prototype_symbol = symbol_table.find_symbol(module_id, expression->module_path, expression->identifier_id);
+            if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
                 KPL_ASSERT_THAT(expression->module_source_location.file_id != FileId::invalid());
                 KPL_ASSERT_THAT(expression->module_source_location.size > 0);
-                const std::string message = std::format("Unknown module '{}'", StringPool::get().lookup(expression->module_identifier_id));
+                const std::string message = std::format("Unknown module '{}'", get_full_module_identifier(expression->module_path));
                 diagnostic_sink.report(DiagnosticCode::UnknownModule, std::move(message), expression->module_source_location);
                 expression->node_type = ASTNodeType::Poison;
                 return {.poisoned = true};
             }
         }
-        const auto prototype_symbol = symbol_table.find(function_module_id, expression->identifier_id);
+
         if (!prototype_symbol) {
             const Diagnostic diagnostic = prototype_symbol.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-
-        if (prototype_symbol.value() == nullptr) {
-            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-            // TODO (improvement): Maybe create a special diagnostic message if the module is used explicitely in the call
-            // (like "Function doesn't exist in module")
-            diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
-            return {.poisoned = true};
-        } else {
-            expression->symbol_id = prototype_symbol.value()->id;
-        }
-
+        KPL_ASSERT_NOT_NULLPTR(prototype_symbol.value());
+        expression->symbol_id = prototype_symbol.value()->id;
         KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(prototype_symbol.value()->data));
         const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol.value()->data);
         if (!prototype_symbol_data.is_variadic) {
@@ -386,7 +390,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        const auto symbol = symbol_table.find(module_id, expression->identifier_id);
+        const auto symbol = symbol_table.find_symbol(module_id, expression->identifier_id);
         if (!symbol) {
             const Diagnostic diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);

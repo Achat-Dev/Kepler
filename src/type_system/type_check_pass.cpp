@@ -109,6 +109,10 @@ namespace kepler {
                 return typecheck_for_statement(static_cast<ForStatement*>(node));
             case ASTNodeType::IfStatement:
                 return typecheck_if_statement(static_cast<IfStatement*>(node));
+            case ASTNodeType::ImportStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot typecheck an ImportStatement");
+            case ASTNodeType::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot typecheck a ModuleStatement");
             case ASTNodeType::ReturnStatement:
                 return typecheck_return_statement(static_cast<ReturnStatement*>(node));
             case ASTNodeType::VariableDefinitionStatement:

@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
@@ -26,9 +25,10 @@ namespace kepler {
 
     class SymbolTable {
     public:
-        ModuleId create_module(StringId identifier_id);
-        std::expected<void, std::vector<SourceDiagnostic>> register_imported_modules(ModuleId module_id,
-            std::vector<ImportDefinition> imported_module_definitions);
+        SymbolTable();
+        ModuleId create_module(const ModulePath& module_path);
+        std::expected<ModuleId, Diagnostic> register_imported_module(ModuleId module_id, const ModulePath& imported_module_path);
+        // TODO (improvement): Just return a diagnostic, because the source location is available at the call side
         std::expected<SymbolId, SourceDiagnostic> create_variable(ModuleId module_id, Type* type, StringId identifier_id, SourceLocation source_location);
         std::expected<SymbolId, SourceDiagnostic> create_prototype(ModuleId module_id,
             Type* type,
@@ -41,10 +41,10 @@ namespace kepler {
         Symbol* lookup(SymbolId symbol_id);
         // TODO (check): Maybe create a method to disable finding after name resolution
         // Note: This method should only be used during name resolution.
-        std::expected<Symbol*, Diagnostic> find(ModuleId module_id, StringId identifier_id);
+        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id);
+        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, const ModulePath& module_path, StringId identifier_id);
         void open_scope(ModuleId module_id, ScopeType type);
         void close_scope(ModuleId module_id);
-        ModuleId get_module_id_by_identifier(StringId identifier_id) const;
 
     private:
         std::vector<Module> modules;
@@ -57,7 +57,9 @@ namespace kepler {
             SymbolData&& symbol_data,
             const std::string& error_identifier,
             SourceLocation source_location);
-        std::expected<Symbol*, Diagnostic> find(ModuleId module_id, StringId identifier_id, bool search_imported_modules);
+        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id, bool search_imported_modules);
+        Module* find_module(Module* parent_module, const ModulePath& module_path);
+        Module* get_global_module();
     };
 
 }

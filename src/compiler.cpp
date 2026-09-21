@@ -28,7 +28,6 @@
 #include "utils/assert.h"
 #include "utils/cmd_parser.hpp"
 #include "utils/log.hpp"
-#include "utils/string_pool.hpp"
 #include "version.hpp"
 #include <cstdlib>
 #include <cstring>
@@ -244,7 +243,7 @@ namespace kepler {
 
             Tokenizer tokenizer(*file, diagnostic_sink, type_table);
             std::vector<Token> tokens = tokenizer.tokenize();
-            Parser parser(std::move(tokens), diagnostic_sink, type_table);
+            Parser parser(*file, std::move(tokens), diagnostic_sink, type_table);
             AbstractSyntaxTree ast = parser.parse();
             verify_ast(ast, *file);
             asts.push_back(std::move(ast));
@@ -258,12 +257,7 @@ namespace kepler {
 
     void Compiler::verify_ast(AbstractSyntaxTree& ast, const File* file) const {
         KPL_ASSERT_NOT_NULLPTR(file);
-        if (ast.module_identifier_id == StringId::invalid()) {
-            // Use the file path as the module identifier if no module identifier is specified
-            const StringId fallback_identifier_id = StringPool::get().store("__file://" + file->path.string());
-            ast.module_identifier_id = fallback_identifier_id;
-        }
-
+        KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
             bool is_valid_top_level_node = node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function;
             KPL_ASSERT_THAT(is_valid_top_level_node, "Malformed ast with node of type '{}' on top level", node->node_type);

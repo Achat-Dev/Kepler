@@ -22,6 +22,7 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
+#include "semantic_analysis/module.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
@@ -29,7 +30,6 @@
 #include <format>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -177,30 +177,34 @@ namespace kepler {
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const Token* identifier_token = current_token;
         next_token(true); // eat identifier
-        StringId module_identifier_id;
+        ModulePath module_path;
         SourceLocation module_source_location;
         if (current_token->type == TokenType::DoubleColon) {
             previous_token(true); // Go back to the identifier to start the module identifier parsing
-            auto module_identifier_parse_result = parse_module_identifier(current_token->source_location.position, "function call");
-            if (!module_identifier_parse_result) {
+            auto module_path_parse_result = parse_module_identifier(current_token->source_location.position, "function call");
+            if (!module_path_parse_result) {
                 return nullptr;
             }
 
-            // The identifier id of the parse result contains the module and function identifier (module::submodule::function)
-            // That's why we have to the following shenanigans to get the actual module and function identifier ids
-            const std::string_view module_and_function_identifier = StringPool::get().lookup(module_identifier_parse_result->identifier_id);
-            const size_t last_doublecolon_position = module_and_function_identifier.rfind("::");
-            KPL_ASSERT_THAT(last_doublecolon_position != module_and_function_identifier.npos);
-            const std::string module_identifier = std::string(module_and_function_identifier.substr(0, last_doublecolon_position));
-            module_identifier_id = StringPool::get().store(module_identifier);
-            module_identifier_parse_result->source_location.size -= module_and_function_identifier.size() - module_identifier.size();
-            module_source_location = std::move(module_identifier_parse_result->source_location);
+            // The vector of the parse result contains the module and function identifier ids ({module, submodule, function})
+            // That's why we remove the last identifier id to only get the module path
+            const auto begin = module_path_parse_result->module_path.part_identifier_ids.begin();
+            const auto end = module_path_parse_result->module_path.part_identifier_ids.end();
+            module_path.part_identifier_ids = std::vector<StringId>(begin, end - 1);
 
+            // Calculate module source location
+            const size_t token_index_to_jump_to = current_token_index;
             previous_token(true); // Go back to the last identifier, which is the name of the function
             KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             identifier_token = current_token;
-            next_token(true); // eat identifier
+            previous_token(true); // Go back to double_colon
+            previous_token(true); // Go back to last module path identifier id
+            const size_t end_position = current_token->source_location.position + current_token->source_location.size;
+            module_source_location.file_id = file->id;
+            module_source_location.position = module_path_parse_result->source_location.position;
+            module_source_location.size = end_position - module_path_parse_result->source_location.position;
+            jump_to_token(token_index_to_jump_to);
         }
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
 
@@ -213,9 +217,10 @@ namespace kepler {
         // Call with no arguments
         if (current_token->type == TokenType::BracketClose) {
             next_token(true); // eat ')'
-            return std::make_unique<CallExpression>(module_identifier_id,
+            return std::make_unique<CallExpression>(
                 identifier_id,
                 std::vector<std::unique_ptr<Expression>>{},
+                std::move(module_path),
                 identifier_token->source_location,
                 std::move(module_source_location));
         }
@@ -242,9 +247,10 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
-        return std::make_unique<CallExpression>(module_identifier_id,
+        return std::make_unique<CallExpression>(
             identifier_id,
             std::move(args),
+            std::move(module_path),
             identifier_token->source_location,
             std::move(module_source_location));
     }

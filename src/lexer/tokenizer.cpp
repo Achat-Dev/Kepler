@@ -267,6 +267,7 @@ namespace kepler {
             case '"': return read_string_literal();
         }
 
+        // TODO (fix): This doesn't work correctly when current_char is not representable by a char, like ä, ö or ü
         diagnostic_sink.report(DiagnosticCode::UnknownCharacter,
             std::format("Unknown character '{}'", static_cast<char>(current_char)),
             {file->id, position, 1});

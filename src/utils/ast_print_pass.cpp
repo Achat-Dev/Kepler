@@ -24,8 +24,11 @@
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/for_statement.hpp"
 #include "ast/statements/if_statement.hpp"
+#include "ast/statements/import_statement.hpp"
+#include "ast/statements/module_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "utils/ansi_codes.hpp"
@@ -48,7 +51,7 @@ namespace kepler {
             std::string title = "Abstract Syntax Tree";
             // TODO (improvement): This is not ideal because the asts should really be named after the file,
             // but there currently is no access to the corresponding file from an ast
-            std::string module_identifier(StringPool::get().lookup(ast.module_identifier_id));
+            std::string module_identifier(get_full_module_identifier(ast.module_statement->module_path));
             const size_t title_size = title.size();
             const size_t module_identifier_size = module_identifier.size();
             size_t header_size = 0;
@@ -67,6 +70,23 @@ namespace kepler {
             std::println("\u2502 {} \u2502", title);
             std::println("\u2502 {} \u2502", module_identifier);
             std::println("\u2514{}\u2518", horizontal_line);
+
+            // Print module
+            std::println("{}Module: {}", item_prefix, get_full_module_identifier(ast.module_statement->module_path));
+
+            // Print imports
+            if (ast.import_statements.empty()) {
+                std::println("{}Imported modules: {}None{}", item_prefix, ansi_codes::dim, ansi_codes::reset);
+            } else {
+                std::println("{}Imported modules:", item_prefix);
+                for (size_t i = 0; i < ast.import_statements.size(); i++) {
+                    if (i == ast.import_statements.size() - 1) {
+                        std::println("{}{}{}", vertical_line, last_item_prefix, get_full_module_identifier(ast.import_statements[i]->module_path));
+                    } else {
+                        std::println("{}{}{}", vertical_line, item_prefix, get_full_module_identifier(ast.import_statements[i]->module_path));
+                    }
+                }
+            }
 
             // Dont't use print_nodes to avoid extra 'last_item' character
             for (size_t i = 0; i < ast.top_level_nodes.size(); i++) {
@@ -135,6 +155,10 @@ namespace kepler {
             case ASTNodeType::IfStatement:
                 print_if_statement(static_cast<const IfStatement*>(node), indent);
                 return;
+            case ASTNodeType::ImportStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot print an ImportStatement");
+            case ASTNodeType::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot print a ModuleStatement");
             case ASTNodeType::ReturnStatement:
                 print_return_statement(static_cast<const ReturnStatement*>(node), indent);
                 return;
@@ -363,6 +387,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+        if (!expression->module_path.part_identifier_ids.empty()) {
+            std::println("{}{}Module path: {}Empty{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            std::println("{}{}Module path: {}", indent, item_prefix, get_full_module_identifier(expression->module_path));
+        }
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
 
         if (expression->args.empty()) {

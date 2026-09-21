@@ -29,6 +29,7 @@
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
 #include "lexer/operator_type.hpp"
+#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "utils/assert.h"
@@ -67,15 +68,18 @@ namespace kepler {
 
     std::optional<std::vector<std::unique_ptr<llvm::Module>>> CodegenPass::run(std::vector<AbstractSyntaxTree>& asts) {
         KPL_ASSERT_THAT(!asts.empty());
-        std::unordered_map<StringId, std::unique_ptr<llvm::Module>> llvm_modules;
+        std::unordered_map<ModuleId, std::unique_ptr<llvm::Module>> llvm_modules;
         // Forward declare prototypes
         for (const AbstractSyntaxTree& ast : asts) {
-            if (llvm_modules.contains(ast.module_identifier_id)) {
-                current_llvm_module = llvm_modules[ast.module_identifier_id].get();
+            KPL_ASSERT_THAT(ast.module_statement->module_id != ModuleId::invalid());
+            const auto it = llvm_modules.find(ast.module_statement->module_id);
+            if (it != llvm_modules.end()) {
+                current_llvm_module = it->second.get();
             } else {
-                std::string module_identifier(StringPool::get().lookup(ast.module_identifier_id));
+                std::string module_identifier = get_full_module_identifier(ast.module_statement->module_path);
                 std::replace(module_identifier.begin(), module_identifier.end(), ':', '_');
-                const auto [it, emplaced] = llvm_modules.emplace(ast.module_identifier_id, std::make_unique<llvm::Module>(module_identifier, context));
+                const auto [it, emplaced] = llvm_modules.emplace(ast.module_statement->module_id,
+                    std::make_unique<llvm::Module>(module_identifier, context));
                 KPL_ASSERT_THAT(emplaced);
                 current_llvm_module = it->second.get();
             }
@@ -85,8 +89,8 @@ namespace kepler {
 
         // Code generation
         for (const AbstractSyntaxTree& ast : asts) {
-            KPL_ASSERT_THAT(llvm_modules.contains(ast.module_identifier_id));
-            current_llvm_module = llvm_modules[ast.module_identifier_id].get();
+            KPL_ASSERT_THAT(llvm_modules.contains(ast.module_statement->module_id));
+            current_llvm_module = llvm_modules[ast.module_statement->module_id].get();
             codegen_nodes(ast.top_level_nodes);
         }
         current_llvm_module = nullptr;
@@ -211,6 +215,10 @@ namespace kepler {
                 return codegen_for_statement(static_cast<const ForStatement*>(node));
             case ASTNodeType::IfStatement:
                 return codegen_if_statement(static_cast<const IfStatement*>(node));
+            case ASTNodeType::ImportStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot codegen an ImportStatement");
+            case ASTNodeType::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot codegen a ModuleStatement");
             case ASTNodeType::ReturnStatement:
                 return codegen_return_statement(static_cast<const ReturnStatement*>(node));
             case ASTNodeType::VariableDefinitionStatement:

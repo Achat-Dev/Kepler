@@ -8,7 +8,6 @@
  */
 
 #include "semantic_analysis/symbol_table.hpp"
-#include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
@@ -34,48 +33,53 @@
 
 namespace kepler {
 
-    ModuleId SymbolTable::create_module(StringId identifier_id) {
-        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        ModuleId module_id = get_module_id_by_identifier(identifier_id);
-        if (module_id == ModuleId::invalid()) {
-            module_id.value = static_cast<uint32_t>(modules.size());
-        }
-        modules.push_back({.id = module_id, .identifier_id = identifier_id});
-        open_scope(module_id, ScopeType::File);
-        const std::string_view module_identifier = StringPool::get().lookup(identifier_id);
-        const size_t doublecolon_position = module_identifier.rfind("::");
-        if (doublecolon_position != module_identifier.npos) {
-            // This is a submodule, so create the parent module
-            const std::string parent_module_identifier = std::string(module_identifier.substr(0, doublecolon_position));
-            create_module(StringPool::get().store(std::move(parent_module_identifier)));
-        }
-        return module_id;
+    SymbolTable::SymbolTable() {
+        // Create the global module, which contains all other modules
+        modules.push_back({.id = {.value = 0}, .identifier_id = StringPool::get().store("__global")});
     }
 
-    // clang-format off
-    std::expected<void, std::vector<SourceDiagnostic>> SymbolTable::register_imported_modules(ModuleId module_id,
-        std::vector<ImportDefinition> imported_module_definitions)
-    {
-        // clang-format on
-        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        Module& module = modules[module_id.value];
-        std::vector<SourceDiagnostic> diagnostics;
-        for (const ImportDefinition& import_definition : imported_module_definitions) {
-            ModuleId imported_module_id = get_module_id_by_identifier(import_definition.identifier_id);
-            if (imported_module_id == ModuleId::invalid()) {
-                diagnostics.push_back({
-                    .code = DiagnosticCode::UnknownModule,
-                    .message = std::format("Unknown imported module '{}'", StringPool::get().lookup(import_definition.identifier_id)),
-                    .source_location = import_definition.source_location,
+    ModuleId SymbolTable::create_module(const ModulePath& module_path) {
+        KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
+        Module* module = get_global_module();
+        // Walk the module path and create all missing modules along the way
+        for (size_t i = 0; i < module_path.part_identifier_ids.size(); i++) {
+            const StringId part_identifier_id = module_path.part_identifier_ids[i];
+            const auto it = module->submodule_ids.find(part_identifier_id);
+            if (it == module->submodule_ids.end()) {
+                const ModuleId submodule_id = {.value = static_cast<uint32_t>(modules.size())};
+                const auto [it, emplaced] = module->submodule_ids.emplace(part_identifier_id, submodule_id);
+                KPL_ASSERT_THAT(emplaced);
+                // Important: Do this last because otherwise the module pointer might be invalidated by the push
+                const auto it_begin = module_path.part_identifier_ids.begin();
+                const ModulePath partial_module_path{.part_identifier_ids = std::vector<StringId>(it_begin, it_begin + (i + 1))};
+                modules.push_back({
+                    .id = submodule_id,
+                    .identifier_id = part_identifier_id,
+                    .full_identifier_id = StringPool::get().store(get_full_module_identifier(partial_module_path)),
                 });
+                open_scope(submodule_id, ScopeType::File);
+                module = &modules[submodule_id.value];
             } else {
-                module.imported_module_ids.push_back(imported_module_id);
+                module = &modules[it->second.value];
             }
         }
-        if (!diagnostics.empty()) {
-            return std::unexpected(std::move(diagnostics));
+        KPL_ASSERT_THAT(module->id != modules[0].id);
+        return module->id;
+    }
+
+    std::expected<ModuleId, Diagnostic> SymbolTable::register_imported_module(ModuleId module_id, const ModulePath& imported_module_path) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(!imported_module_path.part_identifier_ids.empty());
+        Module* imported_module = find_module(get_global_module(), imported_module_path);
+        if (imported_module == nullptr) {
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::UnknownModule,
+                .message = std::format("Unknown imported module '{}'", get_full_module_identifier(imported_module_path)),
+            });
         }
-        return {};
+        Module& module = modules[module_id.value];
+        module.imported_module_ids.push_back(imported_module->id);
+        return imported_module->id;
     }
 
     // clang-format off
@@ -111,11 +115,49 @@ namespace kepler {
         return &symbols[symbol_id.value];
     }
 
-    std::expected<Symbol*, Diagnostic> SymbolTable::find(ModuleId module_id, StringId identifier_id) {
-        return find(module_id, identifier_id, true);
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id) {
+        return find_symbol(module_id, identifier_id, true);
     }
 
-    std::expected<Symbol*, Diagnostic> SymbolTable::find(ModuleId module_id, StringId identifier_id, bool search_imported_modules) {
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const ModulePath& module_path, StringId identifier_id) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
+        std::vector<Module*> found_modules;
+        Module* fully_qualified_module = find_module(get_global_module(), module_path);
+        if (fully_qualified_module != nullptr) {
+            found_modules.push_back(fully_qualified_module);
+        }
+
+        const Module& module = modules[module_id.value];
+        for (ModuleId imported_module_id : module.imported_module_ids) {
+            Module& imported_module = modules[imported_module_id.value];
+            Module* found_module = find_module(&imported_module, module_path);
+            if (found_module != nullptr) {
+                found_modules.push_back(found_module);
+            }
+        }
+
+        if (found_modules.empty()) {
+            return nullptr;
+        } else if (found_modules.size() == 1) {
+            return find_symbol(found_modules[0]->id, identifier_id, false);
+        } else {
+            std::string message = std::format("Module path '{}' is a submodule of multiple imported modules (",
+                get_full_module_identifier(module_path));
+            for (size_t i = 0; i < found_modules.size(); i++) {
+                message += '\'' + std::string(StringPool::get().lookup(found_modules[i]->full_identifier_id)) + '\'';
+                if (i == found_modules.size() - 1) {
+                    message += ')';
+                } else {
+                    message += ',';
+                }
+            }
+            message += ". Must use the fully qualified module path in this case.";
+            return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousModulePath, .message = std::move(message)});
+        }
+    }
+
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id, bool search_imported_modules) {
         KPL_ASSERT_THAT(!scopes.empty());
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         const Module& module = modules[module_id.value];
@@ -150,8 +192,8 @@ namespace kepler {
 
                 std::vector<std::pair<ModuleId, Symbol*>> found_symbols;
                 for (ModuleId imported_module_id : module.imported_module_ids) {
-                    const auto symbol = find(imported_module_id, identifier_id, false); // Use false here so that there are no recursive imports
-                    KPL_ASSERT_THAT(symbol.has_value());                                // find only returns a diagnostic if imported symbols are searched
+                    const auto symbol = find_symbol(imported_module_id, identifier_id, false); // Use false here so that there are no recursive imports
+                    KPL_ASSERT_THAT(symbol.has_value());                                       // find only returns a diagnostic if imported symbols are searched
                     if (*symbol != nullptr) {
                         found_symbols.push_back({imported_module_id, *symbol});
                     }
@@ -165,7 +207,7 @@ namespace kepler {
                     std::string message = std::format("Symbol '{}' found in multiple imported modules (", StringPool::get().lookup(identifier_id));
                     for (size_t i = 0; i < found_symbols.size(); i++) {
                         const Module& imported_module = modules[found_symbols[i].first.value];
-                        message += '\'' + std::string(StringPool::get().lookup(imported_module.identifier_id)) + '\'';
+                        message += '\'' + std::string(StringPool::get().lookup(imported_module.full_identifier_id)) + '\'';
                         if (i == found_symbols.size() - 1) {
                             message += ')';
                         } else {
@@ -174,8 +216,14 @@ namespace kepler {
                     }
                     const Module& imported_module = modules[found_symbols[0].first.value];
                     const std::string identifier = std::string(StringPool::get().lookup(identifier_id));
-                    const std::string imported_module_identifier = std::string(StringPool::get().lookup(imported_module.identifier_id));
-                    message += ". Explicitely state which one to use (e. g. '" + std::move(imported_module_identifier) + "::" + std::move(identifier) + "')";
+                    const std::string imported_module_identifier = std::string(StringPool::get().lookup(imported_module.full_identifier_id));
+                    // clang-format off
+                    message += ". Must use the fully qualified name in this case (e. g. '"
+                        + std::move(imported_module_identifier)
+                        + "::"
+                        + std::move(identifier)
+                        + "')";
+                    // clang-format on
                     // Symbols currently don't have a way to access their source location
                     // However, the call site of this function *has* access to it, so we just return a normal Diagnostic instead of a SourceDiagnostic
                     return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousSymbolImport, .message = std::move(message)});
@@ -209,17 +257,6 @@ namespace kepler {
         module.current_scope_id = scope.parent_id;
     }
 
-    ModuleId SymbolTable::get_module_id_by_identifier(StringId identifier_id) const {
-        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        // TODO (improvement): A linear search is maybe not the most performant implementation for this
-        for (size_t i = 0; i < modules.size(); i++) {
-            if (modules[i].identifier_id == identifier_id) {
-                return ModuleId{.value = static_cast<uint32_t>(i)};
-            }
-        }
-        return ModuleId::invalid();
-    }
-
     // clang-format off
     std::expected<SymbolId, SourceDiagnostic> SymbolTable::create_symbol(ModuleId module_id,
         Type* type,
@@ -237,7 +274,7 @@ namespace kepler {
         Module& module = modules[module_id.value];
         KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
 
-        const auto found_symbol = find(module_id, identifier_id, false);
+        const auto found_symbol = find_symbol(module_id, identifier_id, false);
         KPL_ASSERT_THAT(found_symbol.has_value());
         const Symbol* existing_symbol = *found_symbol;
         uint32_t symbol_index_to_shadow = INVALID_SYMBOL_INDEX;
@@ -277,4 +314,25 @@ namespace kepler {
         return symbol_id;
     }
 
+    Module* SymbolTable::find_module(Module* parent_module, const ModulePath& module_path) {
+        KPL_ASSERT_NOT_NULLPTR(parent_module);
+        KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
+        Module* result = parent_module;
+        for (StringId part_identifier_id : module_path.part_identifier_ids) {
+            const auto it = result->submodule_ids.find(part_identifier_id);
+            if (it == result->submodule_ids.end()) {
+                return nullptr;
+            } else {
+                result = &modules[it->second.value];
+            }
+        }
+        if (result == parent_module) {
+            return nullptr;
+        }
+        return result;
+    }
+
+    Module* SymbolTable::get_global_module() {
+        return &modules.front();
+    }
 }

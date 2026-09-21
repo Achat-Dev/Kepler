@@ -11,6 +11,7 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
+#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "utils/string_pool.hpp"
 #include <memory>
@@ -20,20 +21,20 @@
 namespace kepler {
 
     struct CallExpression : Expression {
-        StringId module_identifier_id;
         StringId identifier_id;
         SymbolId symbol_id;
         SourceLocation module_source_location;
+        ModulePath module_path;
         std::vector<std::unique_ptr<Expression>> args;
 
-        CallExpression(StringId module_identifier_id,
-            StringId identifier_id,
+        CallExpression(StringId identifier_id,
             std::vector<std::unique_ptr<Expression>> args,
+            ModulePath module_path,
             SourceLocation source_location,
             SourceLocation module_source_location)
             : Expression(ASTNodeType::CallExpression, std::move(source_location)),
-              module_identifier_id(module_identifier_id),
               identifier_id(identifier_id),
+              module_path(std::move(module_path)),
               module_source_location(std::move(module_source_location)),
               args(std::move(args)) {}
     };

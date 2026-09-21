@@ -12,6 +12,7 @@
 #include "ast/ast_node.hpp"
 #include "ast/extern.hpp"
 #include "ast/function.hpp"
+#include "ast/statements/import_statement.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
@@ -20,6 +21,7 @@
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -29,19 +31,23 @@ namespace kepler {
         KPL_ASSERT_THAT(!asts.empty());
         // Create modules
         for (AbstractSyntaxTree& ast : asts) {
-            KPL_ASSERT_THAT(ast.module_identifier_id != StringId::invalid());
-            const ModuleId module_id = symbol_table.create_module(ast.module_identifier_id);
+            KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
+            KPL_ASSERT_THAT(!ast.module_statement->module_path.part_identifier_ids.empty());
+            KPL_ASSERT_THAT(ast.module_statement->module_id == ModuleId::invalid());
+            const ModuleId module_id = symbol_table.create_module(ast.module_statement->module_path);
+            ast.module_statement->module_id = module_id;
             create_prototype_symbols(ast, module_id);
         }
 
         // Register imported modules
         for (AbstractSyntaxTree& ast : asts) {
-            const ModuleId module_id = symbol_table.get_module_id_by_identifier(ast.module_identifier_id);
-            KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-            const auto registration_result = symbol_table.register_imported_modules(module_id, ast.imported_module_definitions);
-            if (!registration_result) {
-                for (const SourceDiagnostic& diagnostic : registration_result.error()) {
-                    diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), std::move(diagnostic.source_location));
+            for (const std::unique_ptr<ImportStatement>& import_statement : ast.import_statements) {
+                KPL_ASSERT_NOT_NULLPTR(import_statement);
+                KPL_ASSERT_THAT(!import_statement->module_path.part_identifier_ids.empty());
+                const auto module_id = symbol_table.register_imported_module(ast.module_statement->module_id, import_statement->module_path);
+                if (!module_id) {
+                    diagnostic_sink.report(module_id.error().code, std::move(module_id.error().message), import_statement->source_location);
+                    continue;
                 }
             }
         }

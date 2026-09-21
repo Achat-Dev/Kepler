@@ -28,6 +28,8 @@ namespace kepler {
         AssignmentStatement,
         ForStatement,
         IfStatement,
+        ImportStatement,
+        ModuleStatement,
         ReturnStatement,
         VariableDefinitionStatement,
         BooleanLiteralExpression,
@@ -89,6 +91,10 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("ForStatement", ctx);
             case kepler::ASTNodeType::IfStatement:
                 return std::formatter<std::string>::format("IfStatement", ctx);
+            case kepler::ASTNodeType::ImportStatement:
+                return std::formatter<std::string>::format("ImportStatement", ctx);
+            case kepler::ASTNodeType::ModuleStatement:
+                return std::formatter<std::string>::format("ModuleStatement", ctx);
             case kepler::ASTNodeType::ReturnStatement:
                 return std::formatter<std::string>::format("ReturnStatement", ctx);
             case kepler::ASTNodeType::VariableDefinitionStatement:

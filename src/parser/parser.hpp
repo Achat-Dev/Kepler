@@ -21,12 +21,16 @@
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/for_statement.hpp"
 #include "ast/statements/if_statement.hpp"
+#include "ast/statements/import_statement.hpp"
+#include "ast/statements/module_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
+#include "semantic_analysis/module.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -38,19 +42,22 @@
 
 namespace kepler {
 
-    struct ModuleParseResult {
-        StringId identifier_id;
+    struct ModuleIdentifierParseResult {
+        ModulePath module_path;
         SourceLocation source_location;
     };
 
     // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
     class Parser {
     public:
-        Parser(const std::vector<Token>& tokens, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
-            : tokens(tokens), diagnostic_sink(diagnostic_sink), type_table(type_table), current_token(&tokens[0]) {}
+        Parser(const File* file, const std::vector<Token>& tokens, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
+            : file(file), tokens(tokens), diagnostic_sink(diagnostic_sink), type_table(type_table), current_token(&tokens[0]) {
+            KPL_ASSERT_NOT_NULLPTR(file);
+        }
         AbstractSyntaxTree parse();
 
     private:
+        const File* file;
         const std::vector<Token>& tokens;
         DiagnosticSink& diagnostic_sink;
         const TypeTable& type_table;
@@ -64,10 +71,9 @@ namespace kepler {
         void jump_to_token(size_t index);
 
         // Top level
-        std::optional<ModuleParseResult> parse_module();
-        std::optional<ModuleParseResult> parse_import();
-        std::optional<ModuleParseResult> parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message);
-        StringId get_full_module_identifier(const std::vector<StringId>& identifier_ids);
+        std::unique_ptr<ModuleStatement> parse_module();
+        std::unique_ptr<ImportStatement> parse_import();
+        std::optional<ModuleIdentifierParseResult> parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message);
         std::unique_ptr<ExportableNode> parse_export();
         std::unique_ptr<Extern> parse_extern(LinkageType linkage_type);
         std::unique_ptr<Prototype> parse_prototype();

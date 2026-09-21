@@ -12,12 +12,13 @@
 #include "ast/extern.hpp"
 #include "ast/function.hpp"
 #include "ast/prototype.hpp"
+#include "ast/statements/import_statement.hpp"
+#include "ast/statements/module_statement.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <memory>
@@ -30,7 +31,7 @@
 
 namespace kepler {
 
-    std::optional<ModuleParseResult> Parser::parse_module() {
+    std::unique_ptr<ModuleStatement> Parser::parse_module() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Module, "Required token: '{}', received: '{}'", TokenType::Module, current_token->type);
         const uint32_t source_location_start_position = current_token->source_location.position;
@@ -38,12 +39,19 @@ namespace kepler {
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'module'", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
-            return std::nullopt;
+            return nullptr;
         }
-        return parse_module_identifier(source_location_start_position, "module identifier");
+
+        const auto parse_result = parse_module_identifier(source_location_start_position, "module identifier");
+        if (!parse_result) {
+            return nullptr;
+        }
+        return std::make_unique<ModuleStatement>(
+            std::move(parse_result->module_path),
+            std::move(parse_result->source_location));
     }
 
-    std::optional<ModuleParseResult> Parser::parse_import() {
+    std::unique_ptr<ImportStatement> Parser::parse_import() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Import, "Required token: '{}', received: '{}'", TokenType::Import, current_token->type);
         const uint32_t source_location_start_position = current_token->source_location.position;
@@ -51,12 +59,19 @@ namespace kepler {
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'import'", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
-            return std::nullopt;
+            return nullptr;
         }
-        return parse_module_identifier(source_location_start_position, "imported module identifier");
+
+        const auto parse_result = parse_module_identifier(source_location_start_position, "imported module identifier");
+        if (!parse_result) {
+            return nullptr;
+        }
+        return std::make_unique<ImportStatement>(
+            std::move(parse_result->module_path),
+            std::move(parse_result->source_location));
     }
 
-    std::optional<ModuleParseResult> Parser::parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message) {
+    std::optional<ModuleIdentifierParseResult> Parser::parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message) {
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         std::vector<StringId> identifier_ids{
@@ -85,19 +100,10 @@ namespace kepler {
             .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
         };
         next_token(true);
-        return ModuleParseResult{.identifier_id = get_full_module_identifier(identifier_ids), .source_location = std::move(source_location)};
-    }
-
-    StringId Parser::get_full_module_identifier(const std::vector<StringId>& identifier_ids) {
-        KPL_ASSERT_THAT(!identifier_ids.empty());
-        std::string result;
-        for (size_t i = 0; i < identifier_ids.size(); i++) {
-            result += StringPool::get().lookup(identifier_ids[i]);
-            if (i < identifier_ids.size() - 1) {
-                result += "::";
-            }
-        }
-        return StringPool::get().store(result);
+        return ModuleIdentifierParseResult{
+            .module_path = {.part_identifier_ids = std::move(identifier_ids)},
+            .source_location = std::move(source_location),
+        };
     }
 
     std::unique_ptr<ExportableNode> Parser::parse_export() {

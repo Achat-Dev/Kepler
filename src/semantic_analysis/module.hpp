@@ -12,7 +12,10 @@
 #include "semantic_analysis/scope.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace kepler {
@@ -25,12 +28,30 @@ namespace kepler {
         static constexpr ModuleId invalid() { return ModuleId{}; }
     };
 
+    struct ModulePath {
+        std::vector<StringId> part_identifier_ids;
+
+        bool operator==(const ModulePath& other) const = default;
+        bool operator!=(const ModulePath& other) const = default;
+    };
+
     struct Module {
         ModuleId id;
         StringId identifier_id;
+        StringId full_identifier_id;
         std::vector<ScopeId> scope_ids;
         std::vector<ModuleId> imported_module_ids;
+        std::unordered_map<StringId, ModuleId> submodule_ids;
         ScopeId current_scope_id;
     };
 
+    std::string get_full_module_identifier(const ModulePath& module_path);
+
 }
+
+template <>
+struct std::hash<kepler::ModuleId> {
+    size_t operator()(const kepler::ModuleId& id) const noexcept {
+        return hash<uint32_t>{}(id.value);
+    }
+};

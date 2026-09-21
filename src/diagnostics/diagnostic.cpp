@@ -51,6 +51,7 @@ namespace kepler {
             case DiagnosticCode::UnknownModule:
             case DiagnosticCode::UnknownSymbol:
             case DiagnosticCode::AmbiguousSymbolImport:
+            case DiagnosticCode::AmbiguousModulePath:
             case DiagnosticCode::SymbolAlreadyExists:
             case DiagnosticCode::UnknownType:
             case DiagnosticCode::TypeMismatch:
