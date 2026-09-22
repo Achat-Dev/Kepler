@@ -95,11 +95,11 @@ namespace kepler {
         std::unique_ptr<CastExpression> parse_cast();
 
         // Statements
-        std::unique_ptr<AssignmentStatement> parse_assignment(const Token* identifier_token);
+        std::unique_ptr<AssignmentStatement> parse_assignment();
         std::unique_ptr<IfStatement> parse_if();
         std::unique_ptr<ForStatement> parse_for();
-        std::unique_ptr<ForStatement> create_for_statement(StringId identifier_id,
-            const Token* variable_type_token,
+        std::unique_ptr<ForStatement> create_for_statement(const Token* variable_type_token,
+            const Token* variable_identifier_token,
             std::unique_ptr<Expression> start_value,
             std::unique_ptr<Expression> end_value,
             std::unique_ptr<Expression> step_value,

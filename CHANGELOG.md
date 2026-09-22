@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Parsing an `if` statement skipping the first token of the first statement in the `if` body when the `if` condition was not followed by a `)`, which lead to wrong diagnostics
 - Misaligned line numbers in multiline diagnostics that span across line numbers with different digit counts
 - Diagnostics printing UTF-8 characters as '�'
+- Diagnostic pointing at the type instead of the variable identifier in a for loop if a variable with that identifier already exists
 - Trim trailing newlines when printing string literal during ast printing
 - Assertions sometimes not printing their messages
 - Wrong assertion when printing a `MathematicalNegationExpression` during ast printing

@@ -45,15 +45,14 @@ namespace kepler {
                 return parse_variable_definition();
             }
             case TokenType::Identifier: {
-                const Token* identifier_token = current_token;
                 next_token(true); // eat identifier
-                if (current_token->type == TokenType::Assignment) {
-                    return parse_assignment(identifier_token);
-                } else if (current_token->type == TokenType::BracketOpen || current_token->type == TokenType::DoubleColon) {
-                    previous_token(true);
+                const TokenType next_token_type = current_token->type;
+                previous_token(true); // Go back to the things can be parsed and the correct diagnostic can be printed
+                if (next_token_type == TokenType::Assignment) {
+                    return parse_assignment();
+                } else if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
                     return parse_call();
                 }
-                previous_token(true); // Previous token for the diagnostic
                 break;
             }
 
@@ -66,10 +65,11 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<AssignmentStatement> Parser::parse_assignment(const Token* identifier_token) {
+    std::unique_ptr<AssignmentStatement> Parser::parse_assignment() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Assignment, "Required token: '{}', received: '{}'", TokenType::Assignment, current_token->type);
-        KPL_ASSERT_NOT_NULLPTR(identifier_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
+        const Token* identifier_token = current_token;
+        next_token(true); // eat identifier
         if (current_token->type != TokenType::Assignment) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '=' after identifier in assignment", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
@@ -196,8 +196,8 @@ namespace kepler {
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
         }
-        const Token* type_token = current_token;
 
+        const Token* variable_type_token = current_token;
         next_token(true); // eat type
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after type in 'for'", current_token->source_location);
@@ -205,8 +205,7 @@ namespace kepler {
             return nullptr;
         }
 
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        const StringId identifier_id = std::get<StringId>(current_token->data);
+        const Token* variable_identifier_token = current_token;
         next_token(true); // eat identifier
         if (current_token->type != TokenType::Colon) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ':' after identifier in 'for'", current_token->source_location);
@@ -229,8 +228,13 @@ namespace kepler {
         // Only end value is given, start and step are implicit
         if (current_token->type == TokenType::BracketClose) {
             const StringId integer_value_id = StringPool::get().store("0");
-            std::unique_ptr<IntegerLiteralExpression> start_value = std::make_unique<IntegerLiteralExpression>(integer_value_id, type_token->source_location);
-            return create_for_statement(identifier_id, type_token, std::move(start_value), std::move(first_value), nullptr, for_source_location);
+            std::unique_ptr<IntegerLiteralExpression> start_value = std::make_unique<IntegerLiteralExpression>(integer_value_id, variable_type_token->source_location);
+            return create_for_statement(variable_type_token,
+                variable_identifier_token,
+                std::move(start_value),
+                std::move(first_value),
+                nullptr,
+                for_source_location);
         } else if (current_token->type != TokenType::Comma) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after first expression in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
@@ -251,7 +255,12 @@ namespace kepler {
 
         // Only start and end value are given, step is implicit
         if (current_token->type == TokenType::BracketClose) {
-            return create_for_statement(identifier_id, type_token, std::move(first_value), std::move(end_value), nullptr, for_source_location);
+            return create_for_statement(variable_type_token,
+                variable_identifier_token,
+                std::move(first_value),
+                std::move(end_value),
+                nullptr,
+                for_source_location);
         } else if (current_token->type != TokenType::Comma) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ',' or ')' after second expression in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
@@ -272,8 +281,8 @@ namespace kepler {
 
         // Start, stop and end values are given
         if (current_token->type == TokenType::BracketClose) {
-            return create_for_statement(identifier_id,
-                type_token,
+            return create_for_statement(variable_type_token,
+                variable_identifier_token,
                 std::move(first_value),
                 std::move(end_value),
                 std::move(step_value),
@@ -286,15 +295,18 @@ namespace kepler {
     }
 
     // clang-format off
-    std::unique_ptr<ForStatement> Parser::create_for_statement(StringId variable_identifier_id,
-        const Token* variable_type_token,
+    std::unique_ptr<ForStatement> Parser::create_for_statement(const Token* variable_type_token,
+        const Token* variable_identifier_token,
         std::unique_ptr<Expression> start_value,
         std::unique_ptr<Expression> end_value,
         std::unique_ptr<Expression> step_value,
-        SourceLocation for_source_location
-    ) {
+        SourceLocation for_source_location)
+    {
         // clang-format on
         KPL_ASSERT_NOT_NULLPTR(variable_type_token);
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(variable_type_token->data));
+        KPL_ASSERT_NOT_NULLPTR(variable_identifier_token);
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(variable_identifier_token->data));
         KPL_ASSERT_NOT_NULLPTR(start_value);
         KPL_ASSERT_NOT_NULLPTR(end_value);
         KPL_ASSERT_NOT_NULLPTR(current_token);
@@ -306,12 +318,13 @@ namespace kepler {
             return nullptr;
         }
 
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(variable_type_token->data));
         const StringId variable_type_id = std::get<StringId>(variable_type_token->data);
-        std::unique_ptr<VariableExpression> variable = std::make_unique<VariableExpression>(variable_identifier_id, variable_type_token->source_location);
+        const StringId variable_identifier_id = std::get<StringId>(variable_identifier_token->data);
+        std::unique_ptr<VariableExpression> variable = std::make_unique<VariableExpression>(variable_identifier_id,
+            variable_identifier_token->source_location);
         std::unique_ptr<AssignmentStatement> assignment_statement = std::make_unique<AssignmentStatement>(std::move(variable),
             std::move(start_value),
-            variable_type_token->source_location);
+            variable_identifier_token->source_location);
         std::unique_ptr<VariableDefinitionStatement> variable_definition_statement = std::make_unique<VariableDefinitionStatement>(variable_type_id,
             variable_identifier_id,
             std::move(assignment_statement),
@@ -406,7 +419,8 @@ namespace kepler {
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
-        std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment(identifier_token);
+        previous_token(true); // Go back so the assignemtn can be parsed
+        std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment();
         if (!assignment_statement) {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
