@@ -28,6 +28,7 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
@@ -59,7 +60,6 @@
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 #include <memory>
 #include <optional>
-#include <print>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -149,7 +149,6 @@ namespace kepler {
         const std::string_view identifier = StringPool::get().lookup(identifier_id);
         KPL_ASSERT_THAT(!identifier.empty());
         const std::string mangled_name = std::format("3kpl{}{}{}{}", module_identifier.size(), module_identifier, identifier.size(), identifier);
-        std::println("{}", mangled_name);
         return StringPool::get().store(mangled_name);
     }
 
@@ -180,7 +179,6 @@ namespace kepler {
         }
     }
 
-    // TODO (improvement): Create a diagnostic if there is no exported main and if there are multiple exported mains
     void CodegenPass::codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type, bool is_extern) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
@@ -196,7 +194,13 @@ namespace kepler {
         StringId identifier_id = prototype->identifier_id;
         if (is_main_method(prototype)) {
             // No name mangling, force external linkage
+            if (main_method_found) {
+                diagnostic_sink.report(DiagnosticCode::MultipleMainMethods,
+                    "'main' method is already defined and can only be defined once",
+                    prototype->identifier_source_location);
+            }
             linkage_type = LinkageType::External;
+            main_method_found = true;
         } else {
             // Only mangle name if it's not an extern
             if (!is_extern) {

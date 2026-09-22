@@ -59,6 +59,7 @@ namespace kepler {
             case DiagnosticCode::InvalidFunctionCall:
             case DiagnosticCode::IntegerLiteralOutOfBounds:
             case DiagnosticCode::UnsupportedMathematicalOperation:
+            case DiagnosticCode::MultipleMainMethods:
                 return DiagnosticSeverity::Error;
 
             case DiagnosticCode::Unsupported:

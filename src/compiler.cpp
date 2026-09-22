@@ -291,9 +291,14 @@ namespace kepler {
             return std::nullopt;
         }
 
-        CodegenPass codegen_pass(symbol_table, type_table, llvm_context, target_machine, optimization_level);
+        CodegenPass codegen_pass(diagnostic_sink, symbol_table, type_table, llvm_context, target_machine, optimization_level);
         auto llvm_modules = codegen_pass.run(asts);
         if (!llvm_modules) {
+            return std::nullopt;
+        }
+
+        if (diagnostic_sink.get_error_count() > 0) {
+            diagnostic_sink.flush();
             return std::nullopt;
         }
         return std::move(*llvm_modules);

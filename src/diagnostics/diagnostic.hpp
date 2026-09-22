@@ -68,6 +68,7 @@ namespace kepler {
         IntegerLiteralOutOfBounds,
         UnsupportedMathematicalOperation,
         RedundantCast,
+        MultipleMainMethods,
 
         Unsupported = 999,
     };

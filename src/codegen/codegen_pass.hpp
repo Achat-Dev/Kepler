@@ -29,6 +29,7 @@
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
 #include "codegen/optimizer.hpp"
+#include "diagnostics/diagnostic_sink.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
@@ -57,12 +58,14 @@ namespace kepler {
 
     class CodegenPass : ASTPass<std::optional<std::vector<std::unique_ptr<llvm::Module>>>> {
     public:
-        CodegenPass(SymbolTable& symbol_table,
+        CodegenPass(DiagnosticSink& diagnostic_sink,
+            SymbolTable& symbol_table,
             const TypeTable& type_table,
             llvm::LLVMContext& context,
             llvm::TargetMachine* target_machine,
             OptimizationLevel optimization_level)
-            : symbol_table(symbol_table),
+            : diagnostic_sink(diagnostic_sink),
+              symbol_table(symbol_table),
               type_table(type_table),
               target_machine(target_machine),
               optimization_level(optimization_level),
@@ -71,6 +74,7 @@ namespace kepler {
         std::optional<std::vector<std::unique_ptr<llvm::Module>>> run(std::vector<AbstractSyntaxTree>& ast) override;
 
     private:
+        DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
         const TypeTable& type_table;
         llvm::TargetMachine* target_machine;
@@ -80,6 +84,7 @@ namespace kepler {
         llvm::Module* current_llvm_module = nullptr;
         std::vector<std::vector<SymbolId>> symbol_id_scopes;
         std::unordered_map<SymbolId, llvm::Value*> llvm_values;
+        bool main_method_found = false;
 
         void open_scope();
         void close_scope();
