@@ -22,6 +22,7 @@
 #include "ast/expressions/mathematical_negation_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/function.hpp"
+#include "ast/prototype.hpp"
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/for_statement.hpp"
 #include "ast/statements/if_statement.hpp"
@@ -82,9 +83,11 @@ namespace kepler {
 
         void open_scope();
         void close_scope();
+        StringId create_mangled_identifier(StringId identifier_id) const;
+        bool is_main_method(const Prototype* prototype) const;
 
         void forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
-        void codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type);
+        void codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type, bool is_extern);
         void codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
         CodegenResult codegen_node(const ASTNode* node);
         void codegen_function(const Function* function);

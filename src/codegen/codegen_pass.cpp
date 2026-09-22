@@ -38,6 +38,7 @@
 #include "llvm/IR/Instruction.h"
 #include <algorithm>
 #include <cstdint>
+#include <format>
 #include <llvm/ADT/APInt.h>
 #include <llvm/IR/Argument.h>
 #include <llvm/IR/BasicBlock.h>
@@ -58,6 +59,7 @@
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 #include <memory>
 #include <optional>
+#include <print>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -139,17 +141,37 @@ namespace kepler {
         symbol_id_scopes.pop_back();
     }
 
+    StringId CodegenPass::create_mangled_identifier(StringId identifier_id) const {
+        KPL_ASSERT_NOT_NULLPTR(current_llvm_module);
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        const std::string& module_identifier = current_llvm_module->getModuleIdentifier();
+        KPL_ASSERT_THAT(!module_identifier.empty());
+        const std::string_view identifier = StringPool::get().lookup(identifier_id);
+        KPL_ASSERT_THAT(!identifier.empty());
+        const std::string mangled_name = std::format("3kpl{}{}{}{}", module_identifier.size(), module_identifier, identifier.size(), identifier);
+        std::println("{}", mangled_name);
+        return StringPool::get().store(mangled_name);
+    }
+
+    bool CodegenPass::is_main_method(const Prototype* prototype) const {
+        KPL_ASSERT_NOT_NULLPTR(prototype);
+        bool is_named_main = StringPool::get().lookup(prototype->identifier_id) == "main";
+        bool returns_i32 = prototype->return_type == type_table.Builtins.i32_type;
+        bool has_no_parameters = prototype->parameter_data.size() == 0;
+        return is_named_main && returns_i32 && has_no_parameters;
+    }
+
     void CodegenPass::forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
         for (const std::unique_ptr<ASTNode>& node : nodes) {
             switch (node->node_type) {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
-                    codegen_forward_declaration(ext->prototype.get(), ext->linkage_type);
+                    codegen_forward_declaration(ext->prototype.get(), ext->linkage_type, true);
                     break;
                 }
                 case ASTNodeType::Function: {
                     const Function* function = static_cast<Function*>(node.get());
-                    codegen_forward_declaration(function->prototype.get(), function->linkage_type);
+                    codegen_forward_declaration(function->prototype.get(), function->linkage_type, false);
                     break;
                 }
                 default:
@@ -159,7 +181,7 @@ namespace kepler {
     }
 
     // TODO (improvement): Create a diagnostic if there is no exported main and if there are multiple exported mains
-    void CodegenPass::codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type) {
+    void CodegenPass::codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type, bool is_extern) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
         KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid());
@@ -171,7 +193,21 @@ namespace kepler {
             parameter_types.push_back(get_llvm_type(parameter_data.type, context));
         }
 
-        const std::string_view prototype_name = StringPool::get().lookup(prototype->identifier_id);
+        StringId identifier_id = prototype->identifier_id;
+        if (is_main_method(prototype)) {
+            // No name mangling, force external linkage
+            linkage_type = LinkageType::External;
+        } else {
+            // Only mangle name if it's not an extern
+            if (!is_extern) {
+                identifier_id = create_mangled_identifier(prototype->identifier_id);
+                Symbol* symbol = symbol_table.lookup(prototype->symbol_id);
+                KPL_ASSERT_NOT_NULLPTR(symbol);
+                symbol->mangled_identifier_id = identifier_id;
+            }
+        }
+
+        const std::string_view prototype_name = StringPool::get().lookup(identifier_id);
         llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type, context), parameter_types, prototype->is_variadic);
         llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(linkage_type), prototype_name, *current_llvm_module);
 

@@ -43,6 +43,7 @@ namespace kepler {
         ScopeId scope_id;
         Type* type;
         StringId identifier_id;
+        StringId mangled_identifier_id;
         bool can_be_shadowed = false;
         SymbolId shadowed_symbol_id;
         SymbolData data = std::monostate{};
