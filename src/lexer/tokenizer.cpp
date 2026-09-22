@@ -16,6 +16,7 @@
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
+#include "utils/string_utils.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
@@ -267,11 +268,20 @@ namespace kepler {
             case '"': return read_string_literal();
         }
 
-        // TODO (fix): This doesn't work correctly when current_char is not representable by a char, like ä, ö or ü
+        std::string unknown_char;
+        const uint32_t start_position = position;
+        if (is_utf8_character(static_cast<unsigned char>(current_char))) {
+            while (is_utf8_character(static_cast<unsigned char>(current_char))) {
+                unknown_char += current_char;
+                next_char(); // eat unknown utf8 code point
+            }
+        } else {
+            unknown_char += current_char;
+            next_char(); // eat unknown char
+        }
         diagnostic_sink.report(DiagnosticCode::UnknownCharacter,
-            std::format("Unknown character '{}'", static_cast<char>(current_char)),
-            {file->id, position, 1});
-        next_char(); // eat unknown char
+            std::format("Unknown character '{}'", unknown_char),
+            {file->id, start_position, position - start_position});
         return read_next_token();
     }
 

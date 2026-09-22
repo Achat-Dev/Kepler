@@ -15,6 +15,7 @@
 namespace kepler {
 
     std::size_t strlen_utf8(const std::string& string);
+    bool is_utf8_character(unsigned char c);
     void trim_end(std::string& string);
 
 }

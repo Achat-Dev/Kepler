@@ -13,7 +13,6 @@
 
 namespace kepler {
 
-    // TODO (fix): This doesn't work correctly when the character is not representable by an unsigned char, like ä, ö or ü
     std::size_t strlen_utf8(const std::string& string) {
         size_t count = 0;
         for (size_t i = 0; i < string.size();) {
@@ -33,6 +32,10 @@ namespace kepler {
             count += 1;
         }
         return count;
+    }
+
+    bool is_utf8_character(unsigned char c) {
+        return c >= 0x80;
     }
 
     void trim_end(std::string& string) {

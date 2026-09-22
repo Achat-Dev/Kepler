@@ -21,11 +21,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - For loops only executing the first iteration (because they increased the loop variable by the end value instead of the step value)
 - Parsing an `if` statement skipping the first token of the first statement in the `if` body when the `if` condition was not followed by a `)`, which lead to wrong diagnostics
 - Misaligned line numbers in multiline diagnostics that span across line numbers with different digit counts
+- Diagnostics printing UTF-8 characters as '�'
 - Trim trailing newlines when printing string literal during ast printing
 - Assertions sometimes not printing their messages
 - Wrong assertion when printing a `MathematicalNegationExpression` during ast printing
 - Wrong assertion in `elseif` parsing
-- Wrong assertion about llvm terminator in void function
+- Wrong assertion about llvm terminator in `void` function
 
 ## [0.2.0] - 2026-09-09
 
