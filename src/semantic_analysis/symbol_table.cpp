@@ -122,7 +122,7 @@ namespace kepler {
     }
 
     std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id) {
-        return find_symbol(module_id, identifier_id, true);
+        return find_symbol(module_id, identifier_id, false, true);
     }
 
     std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const ModulePath& module_path, StringId identifier_id) {
@@ -146,7 +146,11 @@ namespace kepler {
         if (found_modules.empty()) {
             return nullptr;
         } else if (found_modules.size() == 1) {
-            return find_symbol(found_modules[0]->id, identifier_id, false);
+            if (found_modules[0]->id == module_id) {
+                return find_symbol(found_modules[0]->id, identifier_id, false, false);
+            } else {
+                return find_symbol(found_modules[0]->id, identifier_id, true, false);
+            }
         } else {
             std::string message = std::format("Module path '{}' is a submodule of multiple imported modules (",
                 get_full_module_identifier(module_path));
@@ -163,7 +167,13 @@ namespace kepler {
         }
     }
 
-    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id, bool search_imported_modules) {
+    // clang-format off
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id,
+        StringId identifier_id,
+        bool is_imported_module,
+        bool search_imported_modules)
+    {
+        // clang-format on
         KPL_ASSERT_THAT(!scopes.empty());
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         const Module& module = modules[module_id.value];
@@ -176,9 +186,7 @@ namespace kepler {
             if (it != scope->contained_symbols.end()) {
                 KPL_ASSERT_THAT(it->second.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), it->second.value);
                 Symbol* symbol = &symbols[it->second.value];
-                // Currently, if search_imported_modules is false, we are in an imported module
-                // That means that the symbol has to be exported in order to be found
-                if (search_imported_modules == false) {
+                if (is_imported_module) {
                     if (std::holds_alternative<PrototypeSymbolData>(symbol->data)) {
                         // TODO (improvement): Maybe create a special diagnostic if a fitting symbol is found but it is not exported
                         // (That diagnostic shouldn't be displayed immediately, but only when no fitting symbol is found in all imported modules)
@@ -198,8 +206,9 @@ namespace kepler {
 
                 std::vector<std::pair<ModuleId, Symbol*>> found_symbols;
                 for (ModuleId imported_module_id : module.imported_module_ids) {
-                    const auto symbol = find_symbol(imported_module_id, identifier_id, false); // Use false here so that there are no recursive imports
-                    KPL_ASSERT_THAT(symbol.has_value());                                       // find only returns a diagnostic if imported symbols are searched
+                    // If recursive imports are wanted, the second false here needs to be changed to true
+                    const auto symbol = find_symbol(imported_module_id, identifier_id, true, false);
+                    KPL_ASSERT_THAT(symbol.has_value()); // find only returns a diagnostic if imported symbols are searched
                     if (*symbol != nullptr) {
                         found_symbols.push_back({imported_module_id, *symbol});
                     }
@@ -277,7 +286,7 @@ namespace kepler {
         Module& module = modules[module_id.value];
         KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
 
-        const auto found_symbol = find_symbol(module_id, identifier_id, false);
+        const auto found_symbol = find_symbol(module_id, identifier_id, false, false);
         KPL_ASSERT_THAT(found_symbol.has_value());
         const Symbol* existing_symbol = *found_symbol;
         SymbolId symbol_id_to_shadow;
@@ -302,7 +311,7 @@ namespace kepler {
         Scope& scope = scopes[module.current_scope_id.value];
         bool can_be_shadowed = scope.type != ScopeType::Function && scope.type != ScopeType::Block;
         const SymbolId symbol_id{.value = static_cast<uint32_t>(symbols.size())};
-        scope.contained_symbols.emplace(identifier_id, symbol_id.value);
+        scope.contained_symbols.emplace(identifier_id, symbol_id);
         symbols.push_back({
             .id = symbol_id,
             .scope_id = scope.id,

@@ -55,7 +55,7 @@ namespace kepler {
             StringId identifier_id,
             SymbolData&& symbol_data,
             const std::string& error_identifier);
-        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id, bool search_imported_modules);
+        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id, bool is_imported_module, bool search_imported_modules);
         Module* find_module(Module* parent_module, const ModulePath& module_path);
         Module* get_global_module();
     };
