@@ -32,7 +32,7 @@ namespace kepler {
 
     SymbolTable::SymbolTable() {
         // Create the global module, which contains all other modules
-        modules.push_back({.id = {.value = 0}, .identifier_id = StringPool::get().store("__global")});
+        modules.push_back({.id = {.value = 0}, .full_identifier_id = StringPool::get().store("__global")});
     }
 
     ModuleId SymbolTable::create_module(const ModulePath& module_path) {
@@ -48,10 +48,10 @@ namespace kepler {
                 KPL_ASSERT_THAT(emplaced);
                 // Important: Do this last because otherwise the module pointer might be invalidated by the push
                 const auto it_begin = module_path.part_identifier_ids.begin();
-                const ModulePath partial_module_path{.part_identifier_ids = std::vector<StringId>(it_begin, it_begin + (i + 1))};
+                // +1 because i is the index and the vector creation needs the size
+                const ModulePath partial_module_path{.part_identifier_ids = std::vector<StringId>(it_begin, it_begin + i + 1)};
                 modules.push_back({
                     .id = submodule_id,
-                    .identifier_id = part_identifier_id,
                     .full_identifier_id = StringPool::get().store(get_full_module_identifier(partial_module_path)),
                 });
                 open_scope(submodule_id, ScopeType::File);
@@ -74,12 +74,24 @@ namespace kepler {
                 .message = std::format("Unknown imported module '{}'", get_full_module_identifier(imported_module_path)),
             });
         }
+
         Module& module = modules[module_id.value];
-        // clang-format off
-        KPL_ASSERT_THAT(std::find(module.imported_module_ids.begin(),
-                            module.imported_module_ids.end(),
-                            imported_module->id) == module.imported_module_ids.end());
-        // clang-format on
+        if (&module == imported_module) {
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::InvalidImportOfSelf,
+                .message = std::format("Can't import self. The import is discarded, but consider removing it."),
+            });
+        }
+
+        const auto it_begin = module.imported_module_ids.begin();
+        const auto it_end = module.imported_module_ids.end();
+        if (std::find(it_begin, it_end, imported_module->id) != it_end) {
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::RedundantImport,
+                .message = std::format("Module '{}' is already imported. Redundant imports are discarded, but consider removing them.",
+                    StringPool::get().lookup(imported_module->full_identifier_id)),
+            });
+        }
         module.imported_module_ids.push_back(imported_module->id);
         return imported_module->id;
     }

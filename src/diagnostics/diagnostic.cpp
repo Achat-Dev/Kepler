@@ -19,6 +19,7 @@ namespace kepler {
 
             case DiagnosticCode::MultilineCommentNotClosed:
             case DiagnosticCode::RedundantImport:
+            case DiagnosticCode::InvalidImportOfSelf:
             case DiagnosticCode::RedundantCast:
             case DiagnosticCode::UnreachableCode:
                 return DiagnosticSeverity::Warning;
@@ -40,7 +41,6 @@ namespace kepler {
             case DiagnosticCode::UnknownEscapeSequence:
             case DiagnosticCode::UnexpectedToken:
             case DiagnosticCode::ModuleRedefinition:
-            case DiagnosticCode::InvalidImport:
             case DiagnosticCode::InvalidCast:
             case DiagnosticCode::InvalidReturn:
             case DiagnosticCode::InvalidLoopVariableType:

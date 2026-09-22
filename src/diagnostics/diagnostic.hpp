@@ -45,7 +45,7 @@ namespace kepler {
         UnexpectedToken = 400,
         ModuleRedefinition,
         RedundantImport,
-        InvalidImport,
+        InvalidImportOfSelf,
         InvalidCast,
         InvalidReturn,
         InvalidLoopVariableType,

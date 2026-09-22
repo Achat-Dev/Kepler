@@ -72,16 +72,6 @@ namespace kepler {
                             break;
                         }
 
-                        // If the module definition comes after import statements, check if self is imported
-                        for (const std::unique_ptr<ImportStatement>& import_statement : ast.import_statements) {
-                            KPL_ASSERT_NOT_NULLPTR(import_statement);
-                            KPL_ASSERT_THAT(!import_statement->module_path.part_identifier_ids.empty());
-                            if (import_statement->module_path == ast_node->module_path) {
-                                diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", import_statement->source_location);
-                                break;
-                            }
-                        }
-
                         ast.module_statement = std::move(ast_node);
                     }
                     break;
@@ -89,29 +79,6 @@ namespace kepler {
                 case TokenType::Import: {
                     std::unique_ptr<ImportStatement> ast_node = parse_import();
                     if (ast_node) {
-                        KPL_ASSERT_THAT(!ast_node->module_path.part_identifier_ids.empty());
-                        for (const std::unique_ptr<ImportStatement>& import_statement : ast.import_statements) {
-                            KPL_ASSERT_NOT_NULLPTR(import_statement);
-                            KPL_ASSERT_THAT(!import_statement->module_path.part_identifier_ids.empty());
-                            if (import_statement->module_path != ast_node->module_path) {
-                                continue;
-                            }
-
-                            const std::string message = std::format("Module '{}' is already imported. Redundant imports are discarded, but consider removing them.",
-                                get_full_module_identifier(import_statement->module_path));
-                            diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), ast_node->source_location);
-                            break;
-                        }
-
-                        // If import statement comes after module definition, check if it imports self
-                        if (ast.module_statement != nullptr) {
-                            KPL_ASSERT_THAT(!ast.module_statement->module_path.part_identifier_ids.empty());
-                            if (ast.module_statement->module_path == ast_node->module_path) {
-                                diagnostic_sink.report(DiagnosticCode::InvalidImport, "Can't import self", ast_node->source_location);
-                                break;
-                            }
-                        }
-
                         ast.import_statements.push_back(std::move(ast_node));
                     }
                     break;

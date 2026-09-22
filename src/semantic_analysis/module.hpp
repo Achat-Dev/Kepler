@@ -37,7 +37,6 @@ namespace kepler {
 
     struct Module {
         ModuleId id;
-        StringId identifier_id;
         StringId full_identifier_id;
         std::vector<ScopeId> scope_ids;
         std::vector<ModuleId> imported_module_ids;
