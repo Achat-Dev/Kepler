@@ -1,6 +1,9 @@
 # Language Overview
 
 This page serves as a quick reference for examples of the base language features.
+The code shown here sometimes has function calls on the top level.
+This is not supported by the actual language and is only used for the sake of easier examples.
+
 The four most important things to keep in mind about `kepler` are:
 
 1. Everything is explicitely typed
@@ -16,40 +19,28 @@ Functions are defined after the following pattern:
 <return_type> <name>(<arguments>)
   ...
 end
-```
 
-All functions use external linkage, which means that they can easily be called from e. g. `C` code by declaring them as `extern` functions there.
-
-```
-# lib.kpl
+# example
 i32 add(i32 a, i32 b)
   return a + b
 end
-
-# main.c
-#include <stdint.h>
-
-extern int32_t add(in32_t a, int32_t b);
-
-int main() {
-  int32_t x = add(2, 2);
-  return 0;
-}
 ```
 
 ## 1.1 Extern functions
 
-Functions without a body can be declared as `extern` inside of a `.kpl` file to call external functions.
+Functions without a body can be declared as `extern` to link against external symbols.
 
+`lib.c`
 ```
-# lib.c
 #include <stdint.h>
 
 int32_t add(in32_t a, int32_t b) {
   return a + b;
 }
+```
 
-# main.kpl
+`main.kpl`
+```
 extern i32 add(i32 a, i32 b)
 
 i32 main()
@@ -193,11 +184,158 @@ i64 z = x + y       # Compile error, type mismatch
 i64 z = i64(x) + y  # Ok
 ```
 
-## 5. Type system
+## 5. Module system
+
+Kepler uses a module system for grouping functions.
+Module names can can only contain alphanumeric characters and underscores, however, they must start with an alphabetic character.
+There is no limit to the length of a module name.
+
+Every file can have up to one `module` statement.
+If no `module` statement exists, the module name is implicitely set to the file name (however, such modules cannot be imported and are only really useful when compiling a single file).
+
+A module can be spread across multiple files.
+
+`foo1.kpl`
+```
+module foo
+...
+```
+
+`foo2.kpl`
+```
+module foo
+...
+```
+
+Submodules can be created by separating module names with `::`.
+There is no limit to how deeply submodules can nest.
+
+```
+module foo::bar::baz
+```
+
+The `module` statement can be located anywhere on the top level of the file.
+
+### 5.1 Importing
+
+Importing a module can be done via an `import` statement.
+
+```
+import foo
+```
+
+Parent modules of `self` are implicitely imported.
+
+```
+module foo::bar
+
+# 'foo' is implicitely imported because it is a parent module of 'foo::bar'
+```
+
+Importing a module basically removes the need to specify the module name when calling a function.
+
+```
+# Explicit call without import
+foo::some_function()
+
+# The same call but with an import
+import foo
+some_function()
+```
+
+This also applies to submodule names.
+
+```
+# Explicit call without import
+foo::bar::some_other_function()
+
+# The same call but with an import
+import foo
+bar::some_other_function()
+```
+
+`import` statements can be located anywhere on the top level of the file.
+Functions from imported modules can be called before the respective `import` statement.
+
+```
+# Call a method from module foo
+some_function()
+
+# Import the module after the usage of the function
+import foo
+```
+
+### 5.2 Visibility
+
+By default, functions are only visible inside of the module they are defined in.
+If a function should be visible to other modules, it has to be prefixed with the `export` keyword (this also works for `extern` functions).
+
+```
+module foo
+
+export extern void printf(string s, ...)
+
+export void some_function()
+  ...
+end
+```
+
+If a module is spread across multiple files, every file can still access all non exported functions, even if they were defined in other files of the module.
+
+`foo1.kpl`
+```
+module foo
+
+void helper()
+  ...
+end
+```
+
+`foo2.kpl`
+```
+module foo
+
+...
+# Can still call helper, even though it's in another file and not exported
+helper()
+```
+
+Since parent modules are implicitely imported, all exported functions from parent modules can be called directly inside of a submodule.
+
+```
+module foo::bar
+
+...
+# Can call foo::some_function without explicitely specifying foo
+some_function()
+```
+
+Since exported functions use external linkage, they can be called from e. g. `C` code by declaring them as `extern` there.
+
+`lib.kpl`
+```
+export i32 add(i32 a, i32 b)
+  return a + b
+end
+```
+
+`main.c`
+```
+#include <stdint.h>
+
+extern int32_t add(in32_t a, int32_t b);
+
+int main() {
+  int32_t x = add(2, 2);
+  ...
+}
+```
+
+## 6. Type system
 
 Currently, there are only basic builtin types and no user defined types.
 
-### 5.1 Supported types
+### 6.1 Supported types
 
 | Name | Meaning | Additional notes |
 | :- | :- | :- |
@@ -217,7 +355,7 @@ Currently, there are only basic builtin types and no user defined types.
 
 *\*Support for these types is incomplete*
 
-### 5.2 Casting matrix
+### 6.2 Casting matrix
 
 The following matrix displays which types can be casted to which types (rows are the type of the value to cast, columns are the target type of the cast):
 
@@ -237,9 +375,9 @@ The following matrix displays which types can be casted to which types (rows are
 | `f32`    |        |        |          | x    | x     | x     | x     | x    | x     | x     | x     |       | x     |
 | `f64`    |        |        |          | x    | x     | x     | x     | x    | x     | x     | x     | x     |       |
 
-## 6. Operators
+## 7. Operators
 
-### 6.1 Binary Operators
+### 7.1 Binary Operators
 
 | Operator | Precedence | Supported types |
 | :- | :- | :- |
@@ -258,7 +396,7 @@ The following matrix displays which types can be casted to which types (rows are
 > Floating point comparisons use the unordered llvm comparisons, which means that the operands can be QNAN (quiet not-a-number)
 > -> QNAN means that operations with such a number generally don't raise exceptions
 
-### 6.2 Unary Operators
+### 7.2 Unary Operators
 
 | Operator | Supported types |
 | :- | :- |

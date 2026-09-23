@@ -8,7 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Added
 
-- Base module system
+- Module system
+  - Functions are grouped into modules
+  - Every file can be part of one module
+  - Modules can be split across multiple files
+  - Functions from other modules can either be called by using the explicit module name or by importing the module
+  - Read the [full docs](./docs/language_overview.md#5-module-system) for more information
 - Diagnostic if there are multiple main methods
 
 ### Changed
