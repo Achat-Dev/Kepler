@@ -251,7 +251,9 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         const ScopeId scope_id = {.value = static_cast<uint32_t>(scopes.size())};
         Module& module = modules[module_id.value];
-        if (scopes.empty()) {
+        // This check is theoretically not needed because module.current_scope_id is ScopeId::invalid() if no scope exists in the module
+        // But do it like this because it's more explicit
+        if (module.scope_ids.empty()) {
             scopes.emplace_back(type, scope_id, ScopeId::invalid(), std::unordered_map<StringId, SymbolId>{});
         } else {
             scopes.emplace_back(type, scope_id, module.current_scope_id, std::unordered_map<StringId, SymbolId>{});
