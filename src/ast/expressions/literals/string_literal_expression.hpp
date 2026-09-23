@@ -17,10 +17,10 @@
 namespace kepler {
 
     struct StringLiteralExpression : Expression {
-        StringId value;
+        StringId value_id;
 
         StringLiteralExpression(StringId value, SourceLocation source_location)
-            : Expression(ASTNodeType::StringLiteralExpression, std::move(source_location)), value(value) {}
+            : Expression(ASTNodeType::StringLiteralExpression, std::move(source_location)), value_id(value) {}
     };
 
 }

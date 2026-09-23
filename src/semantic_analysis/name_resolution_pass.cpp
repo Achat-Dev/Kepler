@@ -13,6 +13,7 @@
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
 #include "ast/expressions/cast_expression.hpp"
+#include "ast/expressions/expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
@@ -61,6 +62,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const {
         bool poisoned = false;
         for (const std::unique_ptr<ASTNode>& node : nodes) {
+            KPL_ASSERT_NOT_NULLPTR(node);
             const NameResolutionResult resolution_result = resolve_node(node.get());
             if (resolution_result.poisoned) {
                 poisoned = true;
@@ -71,7 +73,6 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_node(ASTNode* node) const {
         KPL_ASSERT_NOT_NULLPTR(node);
-
         switch (node->node_type) {
             case ASTNodeType::Poison:
                 return {.poisoned = true};
@@ -149,9 +150,9 @@ namespace kepler {
         // but because function overloading isn't implemented yet, prototypes poison themselves when trying to overload a function
         // KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-
         for (ParameterData& parameter : prototype->parameter_data) {
             KPL_ASSERT_NOT_NULLPTR(parameter.type);
+            KPL_ASSERT_THAT(parameter.identifier_id != StringId::invalid());
             KPL_ASSERT_THAT(parameter.symbol_id == SymbolId::invalid());
             const auto symbol = symbol_table.create_variable(module_id, parameter.type, parameter.identifier_id);
             if (!symbol) {
@@ -242,6 +243,8 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
+        KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(statement->type_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         Type* type = type_table.lookup(statement->type_id);
@@ -287,6 +290,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
+        KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         std::expected<Symbol*, Diagnostic> prototype_symbol;
@@ -335,8 +339,8 @@ namespace kepler {
         }
 
         bool poisoned = false;
-        for (const auto& arg : expression->args) {
-            KPL_ASSERT_NOT_NULLPTR(arg.get());
+        for (const std::unique_ptr<Expression>& arg : expression->args) {
+            KPL_ASSERT_NOT_NULLPTR(arg);
             const NameResolutionResult resolution_result = resolve_node(arg.get());
             if (resolution_result.poisoned) {
                 poisoned = true;
@@ -352,6 +356,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
+        KPL_ASSERT_THAT(expression->target_type_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         Type* target_type = type_table.lookup(expression->target_type_id);
         if (!target_type) {
@@ -385,6 +390,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
+        KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         const auto symbol = symbol_table.find_symbol(module_id, expression->identifier_id);
@@ -407,6 +413,7 @@ namespace kepler {
     }
 
     void NameResolutionPass::report_unknown_type(StringId type_id, SourceLocation source_location) const {
+        KPL_ASSERT_THAT(type_id != StringId::invalid());
         const std::string_view type_name = StringPool::get().lookup(type_id);
         diagnostic_sink.report(DiagnosticCode::UnknownType, std::format("Unknown type '{}'", type_name), source_location);
     }

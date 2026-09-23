@@ -140,12 +140,12 @@ namespace kepler {
     }
 
     std::expected<CmdArgs, Diagnostic> Compiler::parse_args(int argc, char** argv) const {
-        CmdArgs context;
+        CmdArgs cmd_args;
         std::string optimization_level_string = "2";
         CmdParser cmd_parser("The compiler for the kepler programming language");
-        cmd_parser.add_option(&context.input_paths, 'i', "input", "The .kpl input file");
-        cmd_parser.add_option(&context.output_path, 'o', "output", "The output file");
-        cmd_parser.add_option(&context.additional_paths, 'a', "additional-files",
+        cmd_parser.add_option(&cmd_args.input_paths, 'i', "input", "The .kpl input file");
+        cmd_parser.add_option(&cmd_args.output_path, 'o', "output", "The output file");
+        cmd_parser.add_option(&cmd_args.additional_paths, 'a', "additional-files",
             "Additional .c or .o files, separated by spaces");
         cmd_parser.add_option(&optimization_level_string, 'O', "optimization-level",
             "The optimization level to use. Possible values for <arg>:\n"
@@ -155,29 +155,29 @@ namespace kepler {
             "- 3: Optimize for fast execution as much as possible no matter the compilation cost\n"
             "- s: Similar to 2 but tries to optimize for small code size instead of fast execution\n"
             "- z: A very specialized mode that will optimize for code size at any and all costs");
-        cmd_parser.add_option(&context.version_requested, 'v', "version", "Print the compiler version");
-        cmd_parser.add_option(&context.help_requested, 'h', "help", "Print help");
+        cmd_parser.add_option(&cmd_args.version_requested, 'v', "version", "Print the compiler version");
+        cmd_parser.add_option(&cmd_args.help_requested, 'h', "help", "Print help");
         const auto parse_result = cmd_parser.parse(argc, argv);
         if (!parse_result) {
             return std::unexpected(parse_result.error());
         }
 
         // Help
-        if (context.help_requested) {
-            context.help = cmd_parser.get_help();
-            return context;
+        if (cmd_args.help_requested) {
+            cmd_args.help = cmd_parser.get_help();
+            return cmd_args;
         }
 
         // Version
-        if (context.version_requested) {
-            return context;
+        if (cmd_args.version_requested) {
+            return cmd_args;
         }
 
         // Input file
-        if (context.input_paths.empty()) {
+        if (cmd_args.input_paths.empty()) {
             return std::unexpected(Diagnostic{.code = DiagnosticCode::NoInputFile, .message = "Missing input file (-i)"});
         } else {
-            for (const std::filesystem::path& input_path : context.input_paths) {
+            for (const std::filesystem::path& input_path : cmd_args.input_paths) {
                 const std::filesystem::path extension = input_path.extension();
                 if (extension != ".kpl") {
                     const std::string message = std::format("Input file (-i) must be a '.kpl' file, received '{}'", extension.string());
@@ -187,13 +187,13 @@ namespace kepler {
         }
 
         // Output file
-        if (context.output_path.empty()) {
+        if (cmd_args.output_path.empty()) {
             return std::unexpected(Diagnostic{.code = DiagnosticCode::NoOutputFile, .message = "Missing output file (-o)"});
         }
 
         // Additional files
-        if (!context.additional_paths.empty()) {
-            for (const std::filesystem::path& additional_path : context.additional_paths) {
+        if (!cmd_args.additional_paths.empty()) {
+            for (const std::filesystem::path& additional_path : cmd_args.additional_paths) {
                 const std::filesystem::path extension = additional_path.extension();
                 if (extension != ".c" && extension != ".o") {
                     const std::string message = std::format("Additional files can only be '.c' and '.o' files, received '{}'", extension.string());
@@ -204,23 +204,23 @@ namespace kepler {
 
         // Optimization level
         if (optimization_level_string == "0") {
-            context.optimization_level = OptimizationLevel::O0;
+            cmd_args.optimization_level = OptimizationLevel::O0;
         } else if (optimization_level_string == "1") {
-            context.optimization_level = OptimizationLevel::O1;
+            cmd_args.optimization_level = OptimizationLevel::O1;
         } else if (optimization_level_string == "2") {
-            context.optimization_level = OptimizationLevel::O2;
+            cmd_args.optimization_level = OptimizationLevel::O2;
         } else if (optimization_level_string == "3") {
-            context.optimization_level = OptimizationLevel::O3;
+            cmd_args.optimization_level = OptimizationLevel::O3;
         } else if (optimization_level_string == "s") {
-            context.optimization_level = OptimizationLevel::Os;
+            cmd_args.optimization_level = OptimizationLevel::Os;
         } else if (optimization_level_string == "z") {
-            context.optimization_level = OptimizationLevel::Oz;
+            cmd_args.optimization_level = OptimizationLevel::Oz;
         } else {
             const std::string message = std::format("Unknown optimization level '{}', available values are 0, 1, 2, 3, s and z", optimization_level_string);
             return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownOptimizationLevel, .message = message});
         }
 
-        return context;
+        return cmd_args;
     }
 
     // clang-format off

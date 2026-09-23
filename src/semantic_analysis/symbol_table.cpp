@@ -41,6 +41,7 @@ namespace kepler {
         // Walk the module path and create all missing modules along the way
         for (size_t i = 0; i < module_path.part_identifier_ids.size(); i++) {
             const StringId part_identifier_id = module_path.part_identifier_ids[i];
+            KPL_ASSERT_THAT(part_identifier_id != StringId::invalid());
             const auto it = module->submodule_ids.find(part_identifier_id);
             if (it == module->submodule_ids.end()) {
                 const ModuleId submodule_id = {.value = static_cast<uint32_t>(modules.size())};
@@ -60,7 +61,7 @@ namespace kepler {
                 module = &modules[it->second.value];
             }
         }
-        KPL_ASSERT_THAT(module->id != modules[0].id);
+        KPL_ASSERT_THAT(module != get_global_module());
         return module->id;
     }
 
@@ -97,6 +98,9 @@ namespace kepler {
     }
 
     std::expected<SymbolId, Diagnostic> SymbolTable::create_variable(ModuleId module_id, Type* type, StringId identifier_id) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         return create_symbol(module_id, type, identifier_id, std::monostate{}, "Variable");
     }
 
@@ -109,6 +113,9 @@ namespace kepler {
         bool is_variadic
     ) {
         // clang-format on
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         return create_symbol(module_id,
             type,
             identifier_id,
@@ -122,12 +129,15 @@ namespace kepler {
     }
 
     std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         return find_symbol(module_id, identifier_id, false, true);
     }
 
     std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const ModulePath& module_path, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         std::vector<Module*> found_modules;
         Module* fully_qualified_module = find_module(get_global_module(), module_path);
         if (fully_qualified_module != nullptr) {
@@ -136,6 +146,7 @@ namespace kepler {
 
         const Module& module = modules[module_id.value];
         for (ModuleId imported_module_id : module.imported_module_ids) {
+            KPL_ASSERT_THAT(imported_module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), imported_module_id.value);
             Module& imported_module = modules[imported_module_id.value];
             Module* found_module = find_module(&imported_module, module_path);
             if (found_module != nullptr) {
@@ -174,8 +185,8 @@ namespace kepler {
         bool search_imported_modules)
     {
         // clang-format on
-        KPL_ASSERT_THAT(!scopes.empty());
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         const Module& module = modules[module_id.value];
 
         KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
@@ -206,6 +217,10 @@ namespace kepler {
 
                 std::vector<std::pair<ModuleId, Symbol*>> found_symbols;
                 for (ModuleId imported_module_id : module.imported_module_ids) {
+                    KPL_ASSERT_THAT(imported_module_id.value < modules.size(),
+                        "Module count: {}, received id: {}",
+                        modules.size(),
+                        imported_module_id.value);
                     // If recursive imports are wanted, the second false here needs to be changed to true
                     const auto symbol = find_symbol(imported_module_id, identifier_id, true, false);
                     KPL_ASSERT_THAT(symbol.has_value()); // find only returns a diagnostic if imported symbols are searched
@@ -264,7 +279,6 @@ namespace kepler {
 
     void SymbolTable::close_scope(ModuleId module_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_THAT(!scopes.empty());
         Module& module = modules[module_id.value];
         KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
         const Scope& scope = scopes[module.current_scope_id.value];
@@ -280,7 +294,6 @@ namespace kepler {
         const std::string& error_identifier)
     {
         // clang-format on
-        KPL_ASSERT_THAT(!scopes.empty());
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_NOT_NULLPTR(type);
         KPL_ASSERT_THAT(!error_identifier.empty());
@@ -331,6 +344,7 @@ namespace kepler {
         KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
         Module* result = parent_module;
         for (StringId part_identifier_id : module_path.part_identifier_ids) {
+            KPL_ASSERT_THAT(part_identifier_id != StringId::invalid());
             const auto it = result->submodule_ids.find(part_identifier_id);
             if (it == result->submodule_ids.end()) {
                 return nullptr;
@@ -345,6 +359,7 @@ namespace kepler {
     }
 
     Module* SymbolTable::get_global_module() {
+        KPL_ASSERT_THAT(!modules.empty());
         return &modules.front();
     }
 }

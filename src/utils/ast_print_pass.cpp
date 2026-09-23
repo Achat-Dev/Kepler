@@ -51,6 +51,7 @@ namespace kepler {
             std::string title = "Abstract Syntax Tree";
             // TODO (improvement): This is not ideal because the asts should really be named after the file,
             // but there currently is no access to the corresponding file from an ast
+            KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
             std::string module_identifier(get_full_module_identifier(ast.module_statement->module_path));
             const size_t title_size = title.size();
             const size_t module_identifier_size = module_identifier.size();
@@ -80,6 +81,7 @@ namespace kepler {
             } else {
                 std::println("{}Imported modules:", item_prefix);
                 for (size_t i = 0; i < ast.import_statements.size(); i++) {
+                    KPL_ASSERT_NOT_NULLPTR(ast.import_statements[i]);
                     if (i == ast.import_statements.size() - 1) {
                         std::println("{}{}{}", vertical_line, last_item_prefix, get_full_module_identifier(ast.import_statements[i]->module_path));
                     } else {
@@ -90,6 +92,7 @@ namespace kepler {
 
             // Dont't use print_nodes to avoid extra 'last_item' character
             for (size_t i = 0; i < ast.top_level_nodes.size(); i++) {
+                KPL_ASSERT_NOT_NULLPTR(ast.top_level_nodes[i]);
                 bool is_last = i == ast.top_level_nodes.size() - 1;
                 print_node(ast.top_level_nodes[i].get(), "", "", is_last);
             }
@@ -113,6 +116,7 @@ namespace kepler {
         }
 
         for (size_t i = 0; i < nodes.size(); i++) {
+            KPL_ASSERT_NOT_NULLPTR(nodes[i]);
             bool is_last = i == nodes.size() - 1;
             print_node(nodes[i].get(), "", indent, is_last);
         }
@@ -216,8 +220,10 @@ namespace kepler {
 
     void ASTPrintPass::print_prototype(const Prototype* prototype, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
+        KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
         if (prototype->return_type == nullptr) {
+            KPL_ASSERT_THAT(prototype->return_type_id != StringId::invalid());
             const std::string_view type_name = StringPool::get().lookup(prototype->return_type_id);
             std::println("{}{}Type name: {}", indent, item_prefix, type_name);
         } else {
@@ -244,6 +250,7 @@ namespace kepler {
 
         indent += space;
         for (size_t i = 0; i < prototype->parameter_data.size(); i++) {
+            KPL_ASSERT_THAT(prototype->parameter_data[i].identifier_id != StringId::invalid());
             bool is_last = i == prototype->parameter_data.size() - 1;
             const std::string_view parameter_identifier = StringPool::get().lookup(prototype->parameter_data[i].identifier_id);
             std::string item_indent;
@@ -257,6 +264,7 @@ namespace kepler {
 
             const Type* parameter_type = prototype->parameter_data[i].type;
             if (parameter_type == nullptr) {
+                KPL_ASSERT_THAT(prototype->parameter_data[i].type_id != StringId::invalid());
                 const std::string_view parameter_type_name = StringPool::get().lookup(prototype->parameter_data[i].type_id);
                 std::println("{}{}Type name: {}", indent + item_indent, item_prefix, parameter_type_name);
             } else {
@@ -319,8 +327,10 @@ namespace kepler {
 
     void ASTPrintPass::print_variable_definition_statement(const VariableDefinitionStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
+        KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         if (statement->type == nullptr) {
+            KPL_ASSERT_THAT(statement->type_id != StringId::invalid());
             const std::string_view type_name = StringPool::get().lookup(statement->type_id);
             std::println("{}{}Type: {}", indent, item_prefix, type_name);
         } else {
@@ -362,8 +372,9 @@ namespace kepler {
 
     void ASTPrintPass::print_string_literal_expression(const StringLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        std::string string(StringPool::get().lookup(expression->value));
+        std::string string(StringPool::get().lookup(expression->value_id));
         trim_end(string);
         std::println("{}{}{}", indent, last_item_prefix, string);
     }
@@ -385,6 +396,7 @@ namespace kepler {
 
     void ASTPrintPass::print_call_expression(const CallExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         if (!expression->module_path.part_identifier_ids.empty()) {
@@ -399,6 +411,7 @@ namespace kepler {
         } else {
             std::println("{}{}Args: ", indent, item_prefix);
             for (size_t i = 0; i < expression->args.size(); i++) {
+                KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
                 bool is_last = i == expression->args.size() - 1;
                 print_node(expression->args[i].get(), "", indent + vertical_line, is_last);
             }
@@ -423,6 +436,7 @@ namespace kepler {
             std::println("{}{}Original type: {}", indent, item_prefix, *expression->original_type);
         }
         if (expression->target_type == nullptr) {
+            KPL_ASSERT_THAT(expression->target_type_id != StringId::invalid());
             const std::string_view target_type_name = StringPool::get().lookup(expression->target_type_id);
             std::println("{}{}Target type: {}", indent, item_prefix, target_type_name);
         } else {
@@ -445,6 +459,7 @@ namespace kepler {
 
     void ASTPrintPass::print_variable_expression(const VariableExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}{}", indent, item_prefix, identifier);

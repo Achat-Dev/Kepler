@@ -24,6 +24,7 @@ namespace kepler {
         const uint32_t interned_string_count = strings.size();
         const StringId id = StringId{interned_string_count};
         const auto [it, emplaced] = string_to_id_map.emplace(std::move(string), id);
+        KPL_ASSERT_THAT(emplaced);
         strings.push_back(it->first);
         return id;
     }

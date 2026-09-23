@@ -19,6 +19,7 @@ namespace kepler {
         KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
         std::string result;
         for (size_t i = 0; i < module_path.part_identifier_ids.size(); i++) {
+            KPL_ASSERT_THAT(module_path.part_identifier_ids[i] != StringId::invalid());
             result += StringPool::get().lookup(module_path.part_identifier_ids[i]);
             if (i < module_path.part_identifier_ids.size() - 1) {
                 result += "::";

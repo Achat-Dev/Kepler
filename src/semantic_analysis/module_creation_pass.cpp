@@ -95,7 +95,9 @@ namespace kepler {
     }
 
     void ModuleCreationPass::create_prototype_symbols(const AbstractSyntaxTree& ast, ModuleId module_id) {
+        KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
+            KPL_ASSERT_NOT_NULLPTR(node);
             switch (node->node_type) {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
@@ -116,10 +118,10 @@ namespace kepler {
     }
 
     void ModuleCreationPass::create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const {
+        KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
-        KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         Type* return_type = type_table.lookup(prototype->return_type_id);
         if (return_type == nullptr) {
             report_unknown_type(prototype->return_type_id, prototype->source_location);
@@ -134,6 +136,7 @@ namespace kepler {
         parameter_types.reserve(prototype->parameter_data.size());
         for (auto& parameter_data : prototype->parameter_data) {
             KPL_ASSERT_THAT(parameter_data.type == nullptr);
+            KPL_ASSERT_THAT(parameter_data.type_id != StringId::invalid());
             Type* parameter_type = type_table.lookup(parameter_data.type_id);
             if (parameter_type == nullptr) {
                 report_unknown_type(parameter_data.type_id, parameter_data.type_source_location);
@@ -160,6 +163,7 @@ namespace kepler {
     }
 
     void ModuleCreationPass::report_unknown_type(StringId type_id, SourceLocation source_location) const {
+        KPL_ASSERT_THAT(type_id != StringId::invalid());
         const std::string_view type_name = StringPool::get().lookup(type_id);
         diagnostic_sink.report(DiagnosticCode::UnknownType, std::format("Unknown type '{}'", type_name), source_location);
     }

@@ -26,6 +26,7 @@
 namespace kepler {
 
     const Method* Type::find_method(StringId identifier_id, std::vector<Type*> parameter_types) const {
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         for (const Method& method : methods) {
             if (method.identifier_id == identifier_id && method.parameter_types == parameter_types) {
                 return &method;
@@ -36,7 +37,6 @@ namespace kepler {
 
     llvm::Type* get_llvm_type(const Type* type, llvm::LLVMContext& context) {
         KPL_ASSERT_NOT_NULLPTR(type);
-
         switch (type->type_kind) {
             case TypeKind::Unknown:
                 KPL_ASSERT_UNREACHABLE("Cannot map 'unknown' type to llvm type");
@@ -70,7 +70,6 @@ namespace kepler {
             case TypeKind::F64:
                 return llvm::Type::getDoubleTy(context);
         }
-
         KPL_ASSERT_UNREACHABLE("Missing llvm type mapping for type '{}'", *type);
     }
 

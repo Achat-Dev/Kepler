@@ -27,6 +27,7 @@ namespace kepler {
     }
 
     Type* TypeTable::lookup(StringId name_id) const {
+        KPL_ASSERT_THAT(name_id != StringId::invalid());
         const auto it = existing_types.find(name_id);
         if (it == existing_types.end()) {
             return nullptr;

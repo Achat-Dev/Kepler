@@ -64,7 +64,6 @@ namespace kepler {
                 case TokenType::Module: {
                     std::unique_ptr<ModuleStatement> ast_node = parse_module();
                     if (ast_node) {
-                        KPL_ASSERT_THAT(!ast_node->module_path.part_identifier_ids.empty());
                         if (ast.module_statement != nullptr) {
                             diagnostic_sink.report(DiagnosticCode::ModuleRedefinition,
                                 "'module' can only be specified once per file",
