@@ -12,6 +12,7 @@
 #include "ast/ast_node.hpp"
 #include "ast/statements/import_statement.hpp"
 #include "ast/statements/module_statement.hpp"
+#include "ast/struct.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
@@ -96,6 +97,13 @@ namespace kepler {
                     }
                     break;
                 }
+                case TokenType::Struct: {
+                    std::unique_ptr<Struct> ast_node = parse_struct();
+                    if (ast_node) {
+                        ast.struct_nodes.push_back(std::move(ast_node));
+                    }
+                    break;
+                }
                 case TokenType::Type: {
                     std::unique_ptr<ASTNode> ast_node = parse_top_level_type(LinkageType::Internal);
                     if (ast_node) {
@@ -108,7 +116,13 @@ namespace kepler {
                     break;
                 default:
                     diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                        std::format("Unexpected token '{}' on top level, expected 'extern' or function definition", current_token->type),
+                        std::format("Unexpected token '{}' on top level, expected '{}', '{}', '{}', '{}', '{}' or function definition",
+                            current_token->type,
+                            TokenType::Module,
+                            TokenType::Import,
+                            TokenType::Struct,
+                            TokenType::Export,
+                            TokenType::Extern),
                         current_token->source_location);
                     recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
                     break;

@@ -23,6 +23,7 @@ namespace kepler {
     enum class ASTNodeType {
         Poison,
         Extern,
+        Struct,
         Function,
         Prototype,
         AssignmentStatement,
@@ -81,6 +82,8 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("Poison", ctx);
             case kepler::ASTNodeType::Extern:
                 return std::formatter<std::string>::format("Extern", ctx);
+            case kepler::ASTNodeType::Struct:
+                return std::formatter<std::string>::format("Struct", ctx);
             case kepler::ASTNodeType::Function:
                 return std::formatter<std::string>::format("Function", ctx);
             case kepler::ASTNodeType::Prototype:

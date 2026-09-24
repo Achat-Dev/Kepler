@@ -24,6 +24,7 @@
 #include "ast/statements/import_statement.hpp"
 #include "ast/statements/module_statement.hpp"
 #include "ast/statements/return_statement.hpp"
+#include "ast/struct.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
@@ -77,6 +78,7 @@ namespace kepler {
         std::unique_ptr<ExportableNode> parse_export();
         std::unique_ptr<Extern> parse_extern(LinkageType linkage_type);
         std::unique_ptr<Prototype> parse_prototype();
+        std::unique_ptr<Struct> parse_struct();
         std::unique_ptr<ExportableNode> parse_top_level_type(LinkageType linkage_type);
         std::unique_ptr<Function> parse_function(LinkageType linkage_type);
 

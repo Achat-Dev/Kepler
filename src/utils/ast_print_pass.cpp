@@ -28,6 +28,7 @@
 #include "ast/statements/module_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "ast/struct.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
@@ -52,6 +53,7 @@ namespace kepler {
             // TODO (improvement): This is not ideal because the asts should really be named after the file,
             // but there currently is no access to the corresponding file from an ast
             KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
+            // Print header
             std::string module_identifier(get_full_module_identifier(ast.module_statement->module_path));
             const size_t title_size = title.size();
             const size_t module_identifier_size = module_identifier.size();
@@ -90,7 +92,15 @@ namespace kepler {
                 }
             }
 
-            // Dont't use print_nodes to avoid extra 'last_item' character
+            // Print structs
+            for (size_t i = 0; i < ast.struct_nodes.size(); i++) {
+                KPL_ASSERT_NOT_NULLPTR(ast.struct_nodes[i]);
+                bool is_last = ast.top_level_nodes.size() == 0 && i == ast.struct_nodes.size() - 1;
+                print_struct(static_cast<const Struct*>(ast.struct_nodes[i].get()), "", is_last);
+            }
+
+            // Print other top level nodes
+            // Dont't use print_nodes to avoid extra header with indent
             for (size_t i = 0; i < ast.top_level_nodes.size(); i++) {
                 KPL_ASSERT_NOT_NULLPTR(ast.top_level_nodes[i]);
                 bool is_last = i == ast.top_level_nodes.size() - 1;
@@ -144,6 +154,8 @@ namespace kepler {
             case ASTNodeType::Extern:
                 print_extern(static_cast<const Extern*>(node), indent);
                 return;
+            case ASTNodeType::Struct:
+                KPL_ASSERT_UNREACHABLE("Cannot print a Struct");
             case ASTNodeType::Function:
                 print_function(static_cast<const Function*>(node), indent);
                 return;
@@ -207,6 +219,42 @@ namespace kepler {
         KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison);
         std::println("{}{}Linkage: {}", indent, item_prefix, ext->linkage_type);
         print_node(ext->prototype.get(), "", indent, true);
+    }
+
+    void ASTPrintPass::print_struct(const Struct* strct, std::string indent, bool is_last) const {
+        KPL_ASSERT_NOT_NULLPTR(strct);
+        KPL_ASSERT_THAT(strct->node_type != ASTNodeType::Poison);
+        if (is_last) {
+            std::println("{}{}Struct", indent, last_item_prefix);
+            indent += space;
+        } else {
+            std::println("{}{}Struct", indent, item_prefix);
+            indent += vertical_line;
+        }
+        std::println("{}{}Linkage: {}", indent, item_prefix, strct->linkage_type);
+        KPL_ASSERT_THAT(strct->identifier_id != StringId::invalid());
+        std::println("{}{}Identifier: {}", indent, item_prefix, StringPool::get().lookup(strct->identifier_id));
+        if (strct->members.empty()) {
+            std::println("{}{}Members: {}None{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            std::println("{}{}Members:", indent, last_item_prefix);
+            indent += space;
+            for (size_t i = 0; i < strct->members.size(); i++) {
+                KPL_ASSERT_THAT(strct->members[i].identifier_id != StringId::invalid());
+                KPL_ASSERT_THAT(strct->members[i].type_identifier_id != StringId::invalid());
+                bool is_last_member = i == strct->members.size() - 1;
+                std::string item_indent;
+                if (is_last_member) {
+                    std::println("{}{}{}:", indent, last_item_prefix, (i + 1));
+                    item_indent = space;
+                } else {
+                    std::println("{}{}{}:", indent, item_prefix, (i + 1));
+                    item_indent = vertical_line;
+                }
+                std::println("{}{}{}Type: {}", indent, item_indent, item_prefix, StringPool::get().lookup(strct->members[i].type_identifier_id));
+                std::println("{}{}{}Identifier: {}", indent, item_indent, last_item_prefix, StringPool::get().lookup(strct->members[i].identifier_id));
+            }
+        }
     }
 
     void ASTPrintPass::print_function(const Function* function, const std::string& indent) const {

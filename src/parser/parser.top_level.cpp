@@ -14,6 +14,7 @@
 #include "ast/prototype.hpp"
 #include "ast/statements/import_statement.hpp"
 #include "ast/statements/module_statement.hpp"
+#include "ast/struct.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
@@ -234,6 +235,62 @@ namespace kepler {
             is_variadic,
             type_source_location,
             identifier_source_location);
+    }
+
+    std::unique_ptr<Struct> Parser::parse_struct() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Struct);
+        const SourceLocation& struct_source_location = current_token->source_location;
+        next_token(true); // eat 'struct' keyword
+        if (current_token->type != TokenType::Identifier) {
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'struct'", current_token->source_location);
+            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+            return nullptr;
+        }
+
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+        const Token* identifier_token = current_token;
+        next_token(true); // eat identifier
+
+        std::vector<StructMember> members;
+        while (current_token->type != TokenType::End) {
+            if (current_token->type == TokenType::EndOfFile) {
+                const StringId identifier_id = std::get<StringId>(identifier_token->data);
+                const std::string message = std::format("struct '{}' was not closed with an 'end' keyword", StringPool::get().lookup(identifier_id));
+                diagnostic_sink.report(DiagnosticCode::MissingEndKeyword, std::move(message), struct_source_location);
+                return nullptr;
+            }
+
+            if (current_token->type != TokenType::Type) {
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type for struct member", current_token->source_location);
+                recover(SynchronizationSet<TokenType::End>{}, SynchronizationSet<>{});
+                continue;
+            }
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+            const Token* member_type_token = current_token;
+
+            next_token(true); // eat type
+            if (current_token->type != TokenType::Identifier) {
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after type for struct member", current_token->source_location);
+                recover(SynchronizationSet<TokenType::End>{}, SynchronizationSet<>{});
+                continue;
+            }
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+            members.push_back({
+                .type_identifier_id = std::get<StringId>(member_type_token->data),
+                .identifier_id = std::get<StringId>(current_token->data),
+                .type_source_location = member_type_token->source_location,
+                .identifier_source_location = current_token->source_location,
+            });
+            next_token(true); // eat identifier
+        }
+
+        next_token(true); // eat 'end'
+        // TODO (fix): Linkage type is currently hardcoded because structs cannot be exported at the moment
+        return std::make_unique<Struct>(std::get<StringId>(identifier_token->data),
+            std::move(members),
+            LinkageType::Internal,
+            identifier_token->source_location);
     }
 
     std::unique_ptr<ExportableNode> Parser::parse_top_level_type(LinkageType linkage_type) {

@@ -43,6 +43,7 @@ namespace kepler {
         Import,
         Export,
         Extern,
+        Struct,
         Return,
         End,
         If,
@@ -107,6 +108,8 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("export", ctx);
             case kepler::TokenType::Extern:
                 return std::formatter<std::string>::format("extern", ctx);
+            case kepler::TokenType::Struct:
+                return std::formatter<std::string>::format("struct", ctx);
             case kepler::TokenType::Return:
                 return std::formatter<std::string>::format("return", ctx);
             case kepler::TokenType::End:
@@ -150,6 +153,7 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             case kepler::TokenType::Import:
             case kepler::TokenType::Export:
             case kepler::TokenType::Extern:
+            case kepler::TokenType::Struct:
             case kepler::TokenType::Return:
             case kepler::TokenType::End:
             case kepler::TokenType::If:
