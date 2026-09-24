@@ -447,7 +447,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-        if (!expression->module_path.part_identifier_ids.empty()) {
+        if (expression->module_path.part_identifier_ids.empty()) {
             std::println("{}{}Module path: {}Empty{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             std::println("{}{}Module path: {}", indent, item_prefix, get_full_module_identifier(expression->module_path));
