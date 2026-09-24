@@ -221,9 +221,9 @@ namespace kepler {
         print_node(ext->prototype.get(), "", indent, true);
     }
 
-    void ASTPrintPass::print_struct(const Struct* strct, std::string indent, bool is_last) const {
-        KPL_ASSERT_NOT_NULLPTR(strct);
-        KPL_ASSERT_THAT(strct->node_type != ASTNodeType::Poison);
+    void ASTPrintPass::print_struct(const Struct* struct_node, std::string indent, bool is_last) const {
+        KPL_ASSERT_NOT_NULLPTR(struct_node);
+        KPL_ASSERT_THAT(struct_node->node_type != ASTNodeType::Poison);
         if (is_last) {
             std::println("{}{}Struct", indent, last_item_prefix);
             indent += space;
@@ -231,18 +231,18 @@ namespace kepler {
             std::println("{}{}Struct", indent, item_prefix);
             indent += vertical_line;
         }
-        std::println("{}{}Linkage: {}", indent, item_prefix, strct->linkage_type);
-        KPL_ASSERT_THAT(strct->identifier_id != StringId::invalid());
-        std::println("{}{}Identifier: {}", indent, item_prefix, StringPool::get().lookup(strct->identifier_id));
-        if (strct->members.empty()) {
+        std::println("{}{}Linkage: {}", indent, item_prefix, struct_node->linkage_type);
+        KPL_ASSERT_THAT(struct_node->identifier_id != StringId::invalid());
+        std::println("{}{}Identifier: {}", indent, item_prefix, StringPool::get().lookup(struct_node->identifier_id));
+        if (struct_node->members.empty()) {
             std::println("{}{}Members: {}None{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             std::println("{}{}Members:", indent, last_item_prefix);
             indent += space;
-            for (size_t i = 0; i < strct->members.size(); i++) {
-                KPL_ASSERT_THAT(strct->members[i].identifier_id != StringId::invalid());
-                KPL_ASSERT_THAT(strct->members[i].type_identifier_id != StringId::invalid());
-                bool is_last_member = i == strct->members.size() - 1;
+            for (size_t i = 0; i < struct_node->members.size(); i++) {
+                KPL_ASSERT_THAT(struct_node->members[i].identifier_id != StringId::invalid());
+                KPL_ASSERT_THAT(struct_node->members[i].type_identifier_id != StringId::invalid());
+                bool is_last_member = i == struct_node->members.size() - 1;
                 std::string item_indent;
                 if (is_last_member) {
                     std::println("{}{}{}:", indent, last_item_prefix, (i + 1));
@@ -251,8 +251,8 @@ namespace kepler {
                     std::println("{}{}{}:", indent, item_prefix, (i + 1));
                     item_indent = vertical_line;
                 }
-                std::println("{}{}{}Type: {}", indent, item_indent, item_prefix, StringPool::get().lookup(strct->members[i].type_identifier_id));
-                std::println("{}{}{}Identifier: {}", indent, item_indent, last_item_prefix, StringPool::get().lookup(strct->members[i].identifier_id));
+                std::println("{}{}{}Type: {}", indent, item_indent, item_prefix, StringPool::get().lookup(struct_node->members[i].type_identifier_id));
+                std::println("{}{}{}Identifier: {}", indent, item_indent, last_item_prefix, StringPool::get().lookup(struct_node->members[i].identifier_id));
             }
         }
     }

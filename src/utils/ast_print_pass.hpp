@@ -55,7 +55,7 @@ namespace kepler {
         void print_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes, const std::string& label, std::string indent, bool is_last) const;
         void print_node(const ASTNode* node, const std::string& prefix, std::string indent, bool is_last) const;
         void print_extern(const Extern* ext, const std::string& indent) const;
-        void print_struct(const Struct* strct, std::string indent, bool is_last) const;
+        void print_struct(const Struct* struct_node, std::string indent, bool is_last) const;
         void print_function(const Function* function, const std::string& indent) const;
         void print_prototype(const Prototype* prototype, std::string indent) const;
         void print_assignment_statement(const AssignmentStatement* statement, const std::string& indent) const;

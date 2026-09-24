@@ -10,6 +10,7 @@
 #include "parser/parser.hpp"
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
+#include "ast/extern.hpp"
 #include "ast/statements/import_statement.hpp"
 #include "ast/statements/module_statement.hpp"
 #include "ast/struct.hpp"
@@ -84,28 +85,32 @@ namespace kepler {
                     break;
                 }
                 case TokenType::Export: {
-                    std::unique_ptr<ASTNode> ast_node = parse_export();
+                    std::unique_ptr<ExportableNode> ast_node = parse_export();
                     if (ast_node) {
-                        ast.top_level_nodes.push_back(std::move(ast_node));
+                        if (ast_node->node_type == ASTNodeType::Struct) {
+                            ast.struct_nodes.push_back(std::unique_ptr<Struct>(static_cast<Struct*>(ast_node.release())));
+                        } else {
+                            ast.top_level_nodes.push_back(std::move(ast_node));
+                        }
                     }
                     break;
                 }
                 case TokenType::Extern: {
-                    std::unique_ptr<ASTNode> ast_node = parse_extern(LinkageType::External);
+                    std::unique_ptr<Extern> ast_node = parse_extern(LinkageType::External);
                     if (ast_node) {
                         ast.top_level_nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
                 case TokenType::Struct: {
-                    std::unique_ptr<Struct> ast_node = parse_struct();
+                    std::unique_ptr<Struct> ast_node = parse_struct(LinkageType::Internal);
                     if (ast_node) {
                         ast.struct_nodes.push_back(std::move(ast_node));
                     }
                     break;
                 }
                 case TokenType::Type: {
-                    std::unique_ptr<ASTNode> ast_node = parse_top_level_type(LinkageType::Internal);
+                    std::unique_ptr<ExportableNode> ast_node = parse_top_level_type(LinkageType::Internal);
                     if (ast_node) {
                         ast.top_level_nodes.push_back(std::move(ast_node));
                     }

@@ -78,7 +78,7 @@ namespace kepler {
         std::unique_ptr<ExportableNode> parse_export();
         std::unique_ptr<Extern> parse_extern(LinkageType linkage_type);
         std::unique_ptr<Prototype> parse_prototype();
-        std::unique_ptr<Struct> parse_struct();
+        std::unique_ptr<Struct> parse_struct(LinkageType linkage_type);
         std::unique_ptr<ExportableNode> parse_top_level_type(LinkageType linkage_type);
         std::unique_ptr<Function> parse_function(LinkageType linkage_type);
 

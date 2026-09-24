@@ -111,20 +111,21 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Export, "Required token: '{}', received: '{}'", TokenType::Export, current_token->type);
         next_token(true); // eat 'export'
-        std::unique_ptr<ExportableNode> exportable_node = nullptr;
         switch (current_token->type) {
             case TokenType::Extern:
-                exportable_node = parse_extern(LinkageType::Export);
+                return parse_extern(LinkageType::Export);
+                break;
+            case TokenType::Struct:
+                return parse_struct(LinkageType::Export);
                 break;
             case TokenType::Type:
-                exportable_node = parse_top_level_type(LinkageType::Export);
+                return parse_top_level_type(LinkageType::Export);
                 break;
             default:
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected 'extern' or type after 'export'", current_token->source_location);
                 recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
         }
-        return exportable_node;
     }
 
     std::unique_ptr<Extern> Parser::parse_extern(LinkageType linkage_type) {
@@ -237,7 +238,7 @@ namespace kepler {
             identifier_source_location);
     }
 
-    std::unique_ptr<Struct> Parser::parse_struct() {
+    std::unique_ptr<Struct> Parser::parse_struct(LinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Struct);
         const SourceLocation& struct_source_location = current_token->source_location;
@@ -286,10 +287,9 @@ namespace kepler {
         }
 
         next_token(true); // eat 'end'
-        // TODO (fix): Linkage type is currently hardcoded because structs cannot be exported at the moment
         return std::make_unique<Struct>(std::get<StringId>(identifier_token->data),
             std::move(members),
-            LinkageType::Internal,
+            linkage_type,
             identifier_token->source_location);
     }
 
