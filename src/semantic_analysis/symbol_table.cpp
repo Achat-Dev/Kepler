@@ -97,29 +97,35 @@ namespace kepler {
         return imported_module->id;
     }
 
-    std::expected<SymbolId, Diagnostic> SymbolTable::create_variable(ModuleId module_id, Type* type, StringId identifier_id) {
+    std::expected<SymbolId, Diagnostic> SymbolTable::create_struct(ModuleId module_id, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_NOT_NULLPTR(type);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        return create_symbol(module_id, type, identifier_id, std::monostate{}, "Variable");
+        return create_symbol(module_id, TypeId::invalid(), identifier_id, std::monostate{}, "Struct");
+    }
+
+    std::expected<SymbolId, Diagnostic> SymbolTable::create_variable(ModuleId module_id, TypeId type_id, StringId identifier_id) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        return create_symbol(module_id, type_id, identifier_id, std::monostate{}, "Variable");
     }
 
     // clang-format off
     std::expected<SymbolId, Diagnostic> SymbolTable::create_prototype(ModuleId module_id,
-        Type* type,
+        TypeId type_id,
         StringId identifier_id,
         LinkageType linkage_type,
-        std::vector<Type*> parameter_types,
+        std::vector<TypeId> parameter_type_ids,
         bool is_variadic
     ) {
         // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_NOT_NULLPTR(type);
+        KPL_ASSERT_THAT(type_id != TypeId::invalid());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         return create_symbol(module_id,
-            type,
+            type_id,
             identifier_id,
-            PrototypeSymbolData{.linkage_type = linkage_type, .is_variadic = is_variadic, .parameter_types = std::move(parameter_types)},
+            PrototypeSymbolData{.linkage_type = linkage_type, .is_variadic = is_variadic, .parameter_type_ids = std::move(parameter_type_ids)},
             "Prototype");
     }
 
@@ -288,15 +294,16 @@ namespace kepler {
 
     // clang-format off
     std::expected<SymbolId, Diagnostic> SymbolTable::create_symbol(ModuleId module_id,
-        Type* type,
+        TypeId type_id,
         StringId identifier_id,
         SymbolData&& data,
         const std::string& error_identifier)
     {
         // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_NOT_NULLPTR(type);
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(!error_identifier.empty());
+        // type_id can be invalid because structs are created with an invalid type id
 
         Module& module = modules[module_id.value];
         KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
@@ -330,7 +337,7 @@ namespace kepler {
         symbols.push_back({
             .id = symbol_id,
             .scope_id = scope.id,
-            .type = type,
+            .type_id = type_id,
             .identifier_id = identifier_id,
             .can_be_shadowed = can_be_shadowed,
             .shadowed_symbol_id = symbol_id_to_shadow,

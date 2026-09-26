@@ -92,7 +92,7 @@ namespace kepler {
 
         DiagnosticSink diagnostic_sink;
         SymbolTable symbol_table;
-        TypeTable type_table;
+        TypeTable type_table(symbol_table);
         // Important: The llvm context has to have the same lifetime as the llvm modules, that's why we declare it here
         llvm::LLVMContext llvm_context;
 

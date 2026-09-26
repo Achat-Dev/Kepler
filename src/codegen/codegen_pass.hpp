@@ -60,7 +60,7 @@ namespace kepler {
     public:
         CodegenPass(DiagnosticSink& diagnostic_sink,
             SymbolTable& symbol_table,
-            const TypeTable& type_table,
+            TypeTable& type_table,
             llvm::LLVMContext& context,
             llvm::TargetMachine* target_machine,
             OptimizationLevel optimization_level)
@@ -76,7 +76,7 @@ namespace kepler {
     private:
         DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
-        const TypeTable& type_table;
+        TypeTable& type_table;
         llvm::TargetMachine* target_machine;
         const OptimizationLevel optimization_level;
         llvm::LLVMContext& context;

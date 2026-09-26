@@ -22,7 +22,7 @@ namespace kepler {
         OperatorType operator_type;
         std::unique_ptr<Expression> lhs;
         std::unique_ptr<Expression> rhs;
-        Type* target_type = nullptr;
+        TypeId target_type_id;
 
         BinaryExpression(OperatorType operator_type,
             std::unique_ptr<Expression> lhs,

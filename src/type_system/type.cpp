@@ -25,10 +25,10 @@
 
 namespace kepler {
 
-    const Method* Type::find_method(StringId identifier_id, std::vector<Type*> parameter_types) const {
+    const Method* Type::find_method(StringId identifier_id, std::vector<TypeId> parameter_type_ids) const {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         for (const Method& method : methods) {
-            if (method.identifier_id == identifier_id && method.parameter_types == parameter_types) {
+            if (method.identifier_id == identifier_id && method.parameter_type_ids == parameter_type_ids) {
                 return &method;
             }
         }
@@ -69,6 +69,8 @@ namespace kepler {
                 return llvm::Type::getFloatTy(context);
             case TypeKind::F64:
                 return llvm::Type::getDoubleTy(context);
+            case TypeKind::Struct:
+                KPL_ASSERT_THAT(false, "Not implemented");
         }
         KPL_ASSERT_UNREACHABLE("Missing llvm type mapping for type '{}'", *type);
     }
@@ -129,34 +131,36 @@ namespace kepler {
 
     StringId get_type_kind_name_id(TypeKind type_kind) {
         switch (type_kind) {
-            case kepler::TypeKind::Unknown:
+            case TypeKind::Unknown:
                 return StringPool::get().store("__unknown");
-            case kepler::TypeKind::Void:
+            case TypeKind::Void:
                 return StringPool::get().store("void");
-            case kepler::TypeKind::Bool:
+            case TypeKind::Bool:
                 return StringPool::get().store("bool");
-            case kepler::TypeKind::String:
+            case TypeKind::String:
                 return StringPool::get().store("string");
-            case kepler::TypeKind::I8:
+            case TypeKind::I8:
                 return StringPool::get().store("i8");
-            case kepler::TypeKind::I16:
+            case TypeKind::I16:
                 return StringPool::get().store("i16");
-            case kepler::TypeKind::I32:
+            case TypeKind::I32:
                 return StringPool::get().store("i32");
-            case kepler::TypeKind::I64:
+            case TypeKind::I64:
                 return StringPool::get().store("i64");
-            case kepler::TypeKind::U8:
+            case TypeKind::U8:
                 return StringPool::get().store("u8");
-            case kepler::TypeKind::U16:
+            case TypeKind::U16:
                 return StringPool::get().store("u16");
-            case kepler::TypeKind::U32:
+            case TypeKind::U32:
                 return StringPool::get().store("u32");
-            case kepler::TypeKind::U64:
+            case TypeKind::U64:
                 return StringPool::get().store("u64");
-            case kepler::TypeKind::F32:
+            case TypeKind::F32:
                 return StringPool::get().store("f32");
-            case kepler::TypeKind::F64:
+            case TypeKind::F64:
                 return StringPool::get().store("f64");
+            case TypeKind::Struct:
+                return StringPool::get().store("struct");
         }
         KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind));
     }
@@ -273,7 +277,7 @@ namespace kepler {
             return builder.CreateICmpEQ(lhs, rhs);
         } else if (is_floating_point_type(type)) {
             return builder.CreateFCmpUEQ(lhs, rhs);
-        } else if (type == TypeTable::Builtins.bool_type) {
+        } else if (type->id == TypeTable::Builtins.bool_type_id) {
             return builder.CreateICmpEQ(lhs, rhs);
         }
         KPL_ASSERT_UNREACHABLE("Missing create equals implementation for type '{}'", *type);
@@ -287,7 +291,7 @@ namespace kepler {
             return builder.CreateICmpNE(lhs, rhs);
         } else if (is_floating_point_type(type)) {
             return builder.CreateFCmpUNE(lhs, rhs);
-        } else if (type == TypeTable::Builtins.bool_type) {
+        } else if (type->id == TypeTable::Builtins.bool_type_id) {
             return builder.CreateICmpNE(lhs, rhs);
         }
         KPL_ASSERT_UNREACHABLE("Missing create not equals implementation for type '{}'", *type);
@@ -325,8 +329,8 @@ namespace kepler {
         llvm::Value* create_cast_to_bool(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.bool_type);
-            KPL_ASSERT_THAT(original_type != TypeTable::Builtins.bool_type, "Can't create redundant cast for type '{}'", *original_type);
+            KPL_ASSERT_THAT(TypeTable::Builtins.bool_type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.bool_type_id, "Can't create redundant cast for type '{}'", *original_type);
             if (is_integer_type(original_type)) {
                 return builder.CreateICmpNE(value, llvm::ConstantInt::get(get_llvm_type(original_type, context), 0));
             } else if (is_floating_point_type(original_type)) {
@@ -387,14 +391,14 @@ namespace kepler {
         llvm::Value* create_cast_to_f32(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f32_type);
-            KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f64_type);
-            KPL_ASSERT_THAT(original_type != TypeTable::Builtins.f32_type);
+            KPL_ASSERT_THAT(TypeTable::Builtins.f32_type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(TypeTable::Builtins.f64_type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.f32_type_id);
             if (is_signed_integer_type(original_type)) {
                 return builder.CreateSIToFP(value, get_llvm_type(original_type, context));
             } else if (is_unsigned_integer_type(original_type)) {
                 return builder.CreateUIToFP(value, get_llvm_type(original_type, context));
-            } else if (original_type == TypeTable::Builtins.f64_type) {
+            } else if (original_type->id == TypeTable::Builtins.f64_type_id) {
                 return builder.CreateFPTrunc(value, get_llvm_type(original_type, context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f32 implementation for original type '{}'", *original_type);
@@ -403,14 +407,14 @@ namespace kepler {
         llvm::Value* create_cast_to_f64(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f32_type);
-            KPL_ASSERT_NOT_NULLPTR(TypeTable::Builtins.f64_type);
-            KPL_ASSERT_THAT(original_type != TypeTable::Builtins.f64_type);
+            KPL_ASSERT_THAT(TypeTable::Builtins.f32_type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(TypeTable::Builtins.f64_type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.f64_type_id);
             if (is_integer_type(original_type)) {
                 return builder.CreateSIToFP(value, get_llvm_type(original_type, context));
             } else if (is_unsigned_integer_type(original_type)) {
                 return builder.CreateUIToFP(value, get_llvm_type(original_type, context));
-            } else if (original_type == TypeTable::Builtins.f32_type) {
+            } else if (original_type->id == TypeTable::Builtins.f32_type_id) {
                 return builder.CreateFPExt(value, get_llvm_type(original_type, context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f64 implementation for original type '{}'", *original_type);
@@ -431,25 +435,27 @@ namespace kepler {
             case TypeKind::Bool:
                 return create_cast_to_bool(value, original_type, context, builder);
             case TypeKind::I8:
-                return create_cast_to_int<int8_t>(value, original_type, TypeTable::Builtins.i8_type, true, context, builder);
+                return create_cast_to_int<int8_t>(value, original_type, target_type, true, context, builder);
             case TypeKind::I16:
-                return create_cast_to_int<int16_t>(value, original_type, TypeTable::Builtins.i16_type, true, context, builder);
+                return create_cast_to_int<int16_t>(value, original_type, target_type, true, context, builder);
             case TypeKind::I32:
-                return create_cast_to_int<int32_t>(value, original_type, TypeTable::Builtins.i32_type, true, context, builder);
+                return create_cast_to_int<int32_t>(value, original_type, target_type, true, context, builder);
             case TypeKind::I64:
-                return create_cast_to_int<int64_t>(value, original_type, TypeTable::Builtins.i64_type, true, context, builder);
+                return create_cast_to_int<int64_t>(value, original_type, target_type, true, context, builder);
             case TypeKind::U8:
-                return create_cast_to_int<uint8_t>(value, original_type, TypeTable::Builtins.u8_type, false, context, builder);
+                return create_cast_to_int<uint8_t>(value, original_type, target_type, false, context, builder);
             case TypeKind::U16:
-                return create_cast_to_int<uint16_t>(value, original_type, TypeTable::Builtins.u16_type, false, context, builder);
+                return create_cast_to_int<uint16_t>(value, original_type, target_type, false, context, builder);
             case TypeKind::U32:
-                return create_cast_to_int<uint32_t>(value, original_type, TypeTable::Builtins.u32_type, false, context, builder);
+                return create_cast_to_int<uint32_t>(value, original_type, target_type, false, context, builder);
             case TypeKind::U64:
-                return create_cast_to_int<uint64_t>(value, original_type, TypeTable::Builtins.u64_type, false, context, builder);
+                return create_cast_to_int<uint64_t>(value, original_type, target_type, false, context, builder);
             case TypeKind::F32:
                 return create_cast_to_f32(value, original_type, context, builder);
             case TypeKind::F64:
                 return create_cast_to_f64(value, original_type, context, builder);
+            case TypeKind::Struct:
+                KPL_ASSERT_THAT(false, "Not implemented");
         }
 
         KPL_ASSERT_UNREACHABLE("Missing create cast implementation for target type '{}'", *target_type);

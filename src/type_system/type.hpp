@@ -12,6 +12,7 @@
 #include "utils/string_pool.hpp"
 #include <cstdint>
 #include <format>
+#include <limits>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
@@ -37,22 +38,41 @@ namespace kepler {
         U64,
         F32,
         F64,
+        Struct,
+    };
+
+    struct TypeId {
+        uint32_t value = std::numeric_limits<uint32_t>::max();
+
+        bool operator==(const TypeId& other) const = default;
+        bool operator!=(const TypeId& other) const = default;
+        static constexpr TypeId invalid() { return TypeId{}; }
     };
 
     struct Type;
 
     struct Method {
         StringId identifier_id;
-        Type* return_type;
-        std::vector<Type*> parameter_types;
+        TypeId return_type_id;
+        std::vector<TypeId> parameter_type_ids;
     };
 
     struct Type {
+        TypeId id;
         TypeKind type_kind;
-        StringId name_id;
+        StringId identifier_id;
         std::vector<Method> methods;
 
-        const Method* find_method(StringId identifier_id, std::vector<Type*> parameter_types) const;
+        const Method* find_method(StringId identifier_id, std::vector<TypeId> parameter_type_ids) const;
+    };
+
+    struct StructTypeMember {
+        TypeId type_id;
+        StringId identifier_id;
+    };
+
+    struct StructType : Type {
+        std::vector<StructTypeMember> members;
     };
 
     llvm::Type* get_llvm_type(const Type* type, llvm::LLVMContext& context);
@@ -90,7 +110,7 @@ struct std::formatter<kepler::TypeKind> : std::formatter<std::string> {
 template <>
 struct std::formatter<kepler::Type> : std::formatter<std::string> {
     auto format(const kepler::Type& type, std::format_context& ctx) const {
-        const std::string_view type_name = kepler::StringPool::get().lookup(type.name_id);
+        const std::string_view type_name = kepler::StringPool::get().lookup(type.identifier_id);
         return std::formatter<std::string>::format(std::format("{}", type_name), ctx);
     }
 };

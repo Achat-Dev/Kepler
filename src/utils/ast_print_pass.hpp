@@ -31,6 +31,7 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "ast/struct.hpp"
 #include "semantic_analysis/symbol_table.hpp"
+#include "type_system/type_table.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -39,12 +40,13 @@ namespace kepler {
 
     class ASTPrintPass : ASTPass<void> {
     public:
-        explicit ASTPrintPass(SymbolTable& symbol_table)
-            : symbol_table(symbol_table) {}
+        explicit ASTPrintPass(SymbolTable& symbol_table, TypeTable& type_table)
+            : symbol_table(symbol_table), type_table(type_table) {}
         void run(std::vector<AbstractSyntaxTree>& asts) override;
 
     private:
         SymbolTable& symbol_table;
+        TypeTable& type_table;
 
         static constexpr char space[] = "   ";
         static constexpr char vertical_line[] = " \u2502 ";

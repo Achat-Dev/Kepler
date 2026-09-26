@@ -20,9 +20,9 @@
 namespace kepler {
 
     struct ParameterData {
-        StringId type_id;
+        StringId type_identifier_id;
         StringId identifier_id;
-        Type* type = nullptr;
+        TypeId type_id;
         SymbolId symbol_id;
         SourceLocation type_source_location;
         SourceLocation identifier_source_location;
@@ -31,13 +31,13 @@ namespace kepler {
     struct Prototype : ASTNode {
         SourceLocation identifier_source_location;
         StringId identifier_id;
-        StringId return_type_id;
-        Type* return_type = nullptr;
+        StringId return_type_identifier_id;
+        TypeId return_type_id;
         SymbolId symbol_id;
         std::vector<ParameterData> parameter_data;
         bool is_variadic;
 
-        Prototype(StringId return_type_id,
+        Prototype(StringId return_type_identifier_id,
             StringId identifier_id,
             std::vector<ParameterData> parameter_data,
             bool is_variadic,
@@ -45,7 +45,7 @@ namespace kepler {
             SourceLocation identifier_source_location)
             : ASTNode(ASTNodeType::Prototype, std::move(type_source_location)),
               identifier_source_location(std::move(identifier_source_location)),
-              return_type_id(return_type_id),
+              return_type_identifier_id(return_type_identifier_id),
               identifier_id(identifier_id),
               parameter_data(std::move(parameter_data)),
               is_variadic(is_variadic) {}

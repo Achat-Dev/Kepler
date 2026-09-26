@@ -61,7 +61,7 @@ namespace kepler {
         const File* file;
         const std::vector<Token>& tokens;
         DiagnosticSink& diagnostic_sink;
-        const TypeTable& type_table;
+        TypeTable& type_table;
         const Token* current_token;
         std::optional<StringId> current_function_return_type_id = std::nullopt;
         size_t current_token_index = 0;

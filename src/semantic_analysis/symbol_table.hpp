@@ -29,12 +29,13 @@ namespace kepler {
         // Symbols currently don't have a way to access their source location
         // However, the call site of these function *has* access to it, so we just return a normal Diagnostic instead of a SourceDiagnostic
         std::expected<ModuleId, Diagnostic> register_imported_module(ModuleId module_id, const ModulePath& imported_module_path);
-        std::expected<SymbolId, Diagnostic> create_variable(ModuleId module_id, Type* type, StringId identifier_id);
+        std::expected<SymbolId, Diagnostic> create_struct(ModuleId module_id, StringId identifier_id);
+        std::expected<SymbolId, Diagnostic> create_variable(ModuleId module_id, TypeId type_id, StringId identifier_id);
         std::expected<SymbolId, Diagnostic> create_prototype(ModuleId module_id,
-            Type* type,
+            TypeId type_id,
             StringId identifier_id,
             LinkageType linkage_type,
-            std::vector<Type*> parameter_types,
+            std::vector<TypeId> parameter_type_ids,
             bool is_variadic);
 
         Symbol* lookup(SymbolId symbol_id);
@@ -51,7 +52,7 @@ namespace kepler {
         std::vector<Scope> scopes;
 
         std::expected<SymbolId, Diagnostic> create_symbol(ModuleId module_id,
-            Type* type,
+            TypeId type_id,
             StringId identifier_id,
             SymbolData&& symbol_data,
             const std::string& error_identifier);

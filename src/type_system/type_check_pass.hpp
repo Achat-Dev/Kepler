@@ -46,7 +46,7 @@ namespace kepler {
         };
 
         Status status;
-        Type* type = nullptr;
+        TypeId type_id;
 
         bool is_poisoned() const {
             return status == Status::PoisonedWithDiagnostic || status == Status::PoisonedWithoutDiagnostic;
@@ -55,21 +55,21 @@ namespace kepler {
 
     class TypeCheckPass : ASTPass<void> {
     public:
-        TypeCheckPass(DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, const TypeTable& type_table)
+        TypeCheckPass(DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, TypeTable& type_table)
             : diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
         void run(std::vector<AbstractSyntaxTree>& asts) override;
 
     private:
         DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
-        const TypeTable& type_table;
-        Type* current_function_return_type = nullptr;
+        TypeTable& type_table;
+        TypeId current_function_return_type_id;
 
         bool is_boolean_operator(OperatorType type) const;
         bool is_number_literal_expression(const Expression* expression) const;
 
         TypeCheckResult typecheck_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
-        TypeCheckResult typecheck_node(ASTNode* node, Type* requested_type);
+        TypeCheckResult typecheck_node(ASTNode* node, TypeId requested_type_id);
         void typecheck_function(Function* function);
         TypeCheckResult typecheck_assignment_statement(AssignmentStatement* statement);
         TypeCheckResult typecheck_for_statement(ForStatement* statement);
@@ -77,15 +77,15 @@ namespace kepler {
         TypeCheckResult typecheck_if_statement(IfStatement* statement);
         TypeCheckResult typecheck_return_statement(ReturnStatement* statement);
         TypeCheckResult typecheck_variable_definition_statement(VariableDefinitionStatement* statement);
-        TypeCheckResult typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, const Type* requested_type) const;
-        TypeCheckResult typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, Type* requested_type) const;
-        TypeCheckResult typecheck_integer_literal_expression(IntegerLiteralExpression* expression, Type* requested_type, bool is_negative) const;
-        TypeCheckResult typecheck_string_literal_expression(StringLiteralExpression* expression, const Type* requested_type) const;
-        TypeCheckResult typecheck_binary_expression(BinaryExpression* expression, Type* requested_type);
-        TypeCheckResult typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, Type* requested_type);
-        TypeCheckResult typecheck_call_expression(CallExpression* expression, const Type* requested_type);
-        TypeCheckResult typecheck_cast_expression(CastExpression* expression, const Type* requested_type);
-        TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, Type* requested_type);
-        TypeCheckResult typecheck_variable_expression(VariableExpression* expression, const Type* requested_type) const;
+        TypeCheckResult typecheck_boolean_literal_expression(BooleanLiteralExpression* expression, TypeId requested_type_id) const;
+        TypeCheckResult typecheck_floating_point_literal_expression(FloatingPointLiteralExpression* expression, TypeId requested_type_id) const;
+        TypeCheckResult typecheck_integer_literal_expression(IntegerLiteralExpression* expression, TypeId requested_type_id, bool is_negative) const;
+        TypeCheckResult typecheck_string_literal_expression(StringLiteralExpression* expression, TypeId requested_type_id) const;
+        TypeCheckResult typecheck_binary_expression(BinaryExpression* expression, TypeId requested_type_id);
+        TypeCheckResult typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, TypeId requested_type_id);
+        TypeCheckResult typecheck_call_expression(CallExpression* expression, TypeId requested_type_id);
+        TypeCheckResult typecheck_cast_expression(CastExpression* expression, TypeId requested_type_id);
+        TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, TypeId requested_type_id);
+        TypeCheckResult typecheck_variable_expression(VariableExpression* expression, TypeId requested_type_id) const;
     };
 }

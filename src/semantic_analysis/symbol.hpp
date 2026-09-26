@@ -33,7 +33,7 @@ namespace kepler {
     struct PrototypeSymbolData {
         LinkageType linkage_type;
         bool is_variadic = false;
-        std::vector<Type*> parameter_types;
+        std::vector<TypeId> parameter_type_ids;
     };
 
     using SymbolData = std::variant<std::monostate, PrototypeSymbolData>;
@@ -41,7 +41,7 @@ namespace kepler {
     struct Symbol {
         SymbolId id;
         ScopeId scope_id;
-        Type* type;
+        TypeId type_id;
         StringId identifier_id;
         StringId mangled_identifier_id;
         bool can_be_shadowed = false;

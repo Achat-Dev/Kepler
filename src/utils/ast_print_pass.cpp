@@ -149,13 +149,16 @@ namespace kepler {
         std::println("{}{}{}", prefix, node->node_type, ansi_codes::reset);
 
         switch (node->node_type) {
+            case ASTNodeType::Struct:
+            case ASTNodeType::ImportStatement:
+            case ASTNodeType::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot print a node of type '{}' as part of the top level nodes", node->node_type);
+
             case ASTNodeType::Poison:
                 return;
             case ASTNodeType::Extern:
                 print_extern(static_cast<const Extern*>(node), indent);
                 return;
-            case ASTNodeType::Struct:
-                KPL_ASSERT_UNREACHABLE("Cannot print a Struct");
             case ASTNodeType::Function:
                 print_function(static_cast<const Function*>(node), indent);
                 return;
@@ -171,10 +174,6 @@ namespace kepler {
             case ASTNodeType::IfStatement:
                 print_if_statement(static_cast<const IfStatement*>(node), indent);
                 return;
-            case ASTNodeType::ImportStatement:
-                KPL_ASSERT_UNREACHABLE("Cannot print an ImportStatement");
-            case ASTNodeType::ModuleStatement:
-                KPL_ASSERT_UNREACHABLE("Cannot print a ModuleStatement");
             case ASTNodeType::ReturnStatement:
                 print_return_statement(static_cast<const ReturnStatement*>(node), indent);
                 return;
@@ -270,12 +269,13 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
-        if (prototype->return_type == nullptr) {
-            KPL_ASSERT_THAT(prototype->return_type_id != StringId::invalid());
-            const std::string_view type_name = StringPool::get().lookup(prototype->return_type_id);
+        if (prototype->return_type_id == TypeId::invalid()) {
+            KPL_ASSERT_THAT(prototype->return_type_identifier_id != StringId::invalid());
+            const std::string_view type_name = StringPool::get().lookup(prototype->return_type_identifier_id);
             std::println("{}{}Type name: {}", indent, item_prefix, type_name);
         } else {
-            std::println("{}{}Type: {}", indent, item_prefix, *prototype->return_type);
+            const Type* return_type = type_table.lookup(prototype->return_type_id);
+            std::println("{}{}Type: {}", indent, item_prefix, *return_type);
         }
         const std::string_view identifier = StringPool::get().lookup(prototype->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
@@ -310,12 +310,12 @@ namespace kepler {
                 item_indent = vertical_line;
             }
 
-            const Type* parameter_type = prototype->parameter_data[i].type;
-            if (parameter_type == nullptr) {
-                KPL_ASSERT_THAT(prototype->parameter_data[i].type_id != StringId::invalid());
-                const std::string_view parameter_type_name = StringPool::get().lookup(prototype->parameter_data[i].type_id);
+            if (prototype->parameter_data[i].type_id == TypeId::invalid()) {
+                KPL_ASSERT_THAT(prototype->parameter_data[i].type_identifier_id != StringId::invalid());
+                const std::string_view parameter_type_name = StringPool::get().lookup(prototype->parameter_data[i].type_identifier_id);
                 std::println("{}{}Type name: {}", indent + item_indent, item_prefix, parameter_type_name);
             } else {
+                const Type* parameter_type = type_table.lookup(prototype->parameter_data[i].type_id);
                 std::println("{}{}Type: {}", indent + item_indent, item_prefix, *parameter_type);
             }
             std::println("{}{}Identifier: {}", indent + item_indent, item_prefix, parameter_identifier);
@@ -377,12 +377,13 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
-        if (statement->type == nullptr) {
-            KPL_ASSERT_THAT(statement->type_id != StringId::invalid());
-            const std::string_view type_name = StringPool::get().lookup(statement->type_id);
+        if (statement->type_id == TypeId::invalid()) {
+            KPL_ASSERT_THAT(statement->type_identifier_id != StringId::invalid());
+            const std::string_view type_name = StringPool::get().lookup(statement->type_identifier_id);
             std::println("{}{}Type: {}", indent, item_prefix, type_name);
         } else {
-            std::println("{}{}Type: {}", indent, item_prefix, *statement->type);
+            const Type* variable_type = type_table.lookup(statement->type_id);
+            std::println("{}{}Type: {}", indent, item_prefix, *variable_type);
         }
         const std::string_view identifier = StringPool::get().lookup(statement->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
@@ -398,10 +399,11 @@ namespace kepler {
     void ASTPrintPass::print_floating_point_literal_expression(const FloatingPointLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        if (expression->target_type == nullptr) {
+        if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
+            const Type* target_type = type_table.lookup(expression->target_type_id);
+            std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
         std::println("{}{}Value: {}", indent, last_item_prefix, expression->value);
     }
@@ -409,10 +411,11 @@ namespace kepler {
     void ASTPrintPass::print_integer_literal_expression(const IntegerLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        if (expression->target_type == nullptr) {
+        if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
+            const Type* target_type = type_table.lookup(expression->target_type_id);
+            std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
         const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
         std::println("{}{}Value: {}", indent, last_item_prefix, literal_string);
@@ -433,10 +436,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         std::println("{}{}Operator: {}", indent, item_prefix, expression->operator_type);
-        if (expression->target_type == nullptr) {
+        if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
+            const Type* target_type = type_table.lookup(expression->target_type_id);
+            std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
         print_node(expression->lhs.get(), "lhs: ", indent, false);
         print_node(expression->rhs.get(), "rhs: ", indent, true);
@@ -478,17 +482,19 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        if (expression->original_type == nullptr) {
+        if (expression->original_type_id == TypeId::invalid()) {
             std::println("{}{}Original type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            std::println("{}{}Original type: {}", indent, item_prefix, *expression->original_type);
+            const Type* original_type = type_table.lookup(expression->original_type_id);
+            std::println("{}{}Original type: {}", indent, item_prefix, *original_type);
         }
-        if (expression->target_type == nullptr) {
-            KPL_ASSERT_THAT(expression->target_type_id != StringId::invalid());
-            const std::string_view target_type_name = StringPool::get().lookup(expression->target_type_id);
+        if (expression->target_type_id == TypeId::invalid()) {
+            KPL_ASSERT_THAT(expression->target_type_identifier_id != StringId::invalid());
+            const std::string_view target_type_name = StringPool::get().lookup(expression->target_type_identifier_id);
             std::println("{}{}Target type: {}", indent, item_prefix, target_type_name);
         } else {
-            std::println("{}{}Target type: {}", indent, item_prefix, *expression->target_type);
+            const Type* target_type = type_table.lookup(expression->target_type_id);
+            std::println("{}{}Target type: {}", indent, item_prefix, *target_type);
         }
         print_node(expression->expression.get(), "", indent, true);
     }
@@ -497,10 +503,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        if (expression->target_type == nullptr) {
+        if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            std::println("{}{}Type: {}", indent, item_prefix, *expression->target_type);
+            const Type* target_type = type_table.lookup(expression->target_type_id);
+            std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
         print_node(expression->expression.get(), "", indent, true);
     }

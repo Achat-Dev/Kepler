@@ -19,7 +19,7 @@ namespace kepler {
 
     struct MathematicalNegationExpression : Expression {
         std::unique_ptr<Expression> expression;
-        Type* target_type = nullptr;
+        TypeId target_type_id;
 
         MathematicalNegationExpression(std::unique_ptr<Expression> expression, SourceLocation source_location)
             : Expression(ASTNodeType::MathematicalNegationExpression, std::move(source_location)), expression(std::move(expression)) {}

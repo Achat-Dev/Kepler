@@ -19,7 +19,7 @@ namespace kepler {
 
     struct IntegerLiteralExpression : Expression {
         StringId value_id;
-        Type* target_type = nullptr;
+        TypeId target_type_id;
 
         IntegerLiteralExpression(StringId value_id, SourceLocation source_location)
             : Expression(ASTNodeType::IntegerLiteralExpression, std::move(source_location)), value_id(value_id) {}

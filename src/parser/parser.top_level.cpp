@@ -193,7 +193,7 @@ namespace kepler {
 
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const StringId parameter_identifier_id = std::get<StringId>(current_token->data);
-            parameter_data.push_back({.type_id = parameter_type_id,
+            parameter_data.push_back({.type_identifier_id = parameter_type_id,
                 .identifier_id = parameter_identifier_id,
                 .identifier_source_location = current_token->source_location});
 
@@ -345,7 +345,7 @@ namespace kepler {
                 identifier_token->source_location);
         }
 
-        current_function_return_type_id = prototype->return_type_id;
+        current_function_return_type_id = prototype->return_type_identifier_id;
 
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);

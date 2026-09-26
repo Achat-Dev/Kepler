@@ -30,7 +30,7 @@ namespace kepler {
 
     std::unordered_map<StringId, Token> Tokenizer::keyword_map;
 
-    Tokenizer::Tokenizer(const File* file, DiagnosticSink& diagnostic_sink, const TypeTable& type_table)
+    Tokenizer::Tokenizer(const File* file, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
         : file(file), diagnostic_sink(diagnostic_sink) {
         KPL_ASSERT_NOT_NULLPTR(file);
         if (keyword_map.empty()) {
@@ -47,19 +47,19 @@ namespace kepler {
             register_keyword("for", TokenType::For);
             register_keyword("true", TokenType::Literal, true);
             register_keyword("false", TokenType::Literal, false);
-            register_keyword("void", TokenType::Type, type_table.Builtins.void_type->name_id);
-            register_keyword("bool", TokenType::Type, type_table.Builtins.bool_type->name_id);
-            register_keyword("string", TokenType::Type, type_table.Builtins.string_type->name_id);
-            register_keyword("i8", TokenType::Type, type_table.Builtins.i8_type->name_id);
-            register_keyword("i16", TokenType::Type, type_table.Builtins.i16_type->name_id);
-            register_keyword("i32", TokenType::Type, type_table.Builtins.i32_type->name_id);
-            register_keyword("i64", TokenType::Type, type_table.Builtins.i64_type->name_id);
-            register_keyword("u8", TokenType::Type, type_table.Builtins.u8_type->name_id);
-            register_keyword("u16", TokenType::Type, type_table.Builtins.u16_type->name_id);
-            register_keyword("u32", TokenType::Type, type_table.Builtins.u32_type->name_id);
-            register_keyword("u64", TokenType::Type, type_table.Builtins.u64_type->name_id);
-            register_keyword("f32", TokenType::Type, type_table.Builtins.f32_type->name_id);
-            register_keyword("f64", TokenType::Type, type_table.Builtins.f64_type->name_id);
+            register_keyword("void", TokenType::Type, type_table.lookup(type_table.Builtins.void_type_id)->identifier_id);
+            register_keyword("bool", TokenType::Type, type_table.lookup(type_table.Builtins.bool_type_id)->identifier_id);
+            register_keyword("string", TokenType::Type, type_table.lookup(type_table.Builtins.string_type_id)->identifier_id);
+            register_keyword("i8", TokenType::Type, type_table.lookup(type_table.Builtins.i8_type_id)->identifier_id);
+            register_keyword("i16", TokenType::Type, type_table.lookup(type_table.Builtins.i16_type_id)->identifier_id);
+            register_keyword("i32", TokenType::Type, type_table.lookup(type_table.Builtins.i32_type_id)->identifier_id);
+            register_keyword("i64", TokenType::Type, type_table.lookup(type_table.Builtins.i64_type_id)->identifier_id);
+            register_keyword("u8", TokenType::Type, type_table.lookup(type_table.Builtins.u8_type_id)->identifier_id);
+            register_keyword("u16", TokenType::Type, type_table.lookup(type_table.Builtins.u16_type_id)->identifier_id);
+            register_keyword("u32", TokenType::Type, type_table.lookup(type_table.Builtins.u32_type_id)->identifier_id);
+            register_keyword("u64", TokenType::Type, type_table.lookup(type_table.Builtins.u64_type_id)->identifier_id);
+            register_keyword("f32", TokenType::Type, type_table.lookup(type_table.Builtins.f32_type_id)->identifier_id);
+            register_keyword("f64", TokenType::Type, type_table.lookup(type_table.Builtins.f64_type_id)->identifier_id);
         }
     }
 

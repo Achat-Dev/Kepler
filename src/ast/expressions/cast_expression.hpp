@@ -20,13 +20,15 @@
 namespace kepler {
 
     struct CastExpression : Expression {
-        StringId target_type_id;
-        Type* original_type = nullptr;
-        Type* target_type = nullptr;
+        StringId target_type_identifier_id;
+        TypeId original_type_id;
+        TypeId target_type_id;
         std::unique_ptr<Expression> expression;
 
-        CastExpression(StringId target_type_id, std::unique_ptr<Expression> expression, SourceLocation source_location)
-            : Expression(ASTNodeType::CastExpression, std::move(source_location)), target_type_id(target_type_id), expression(std::move(expression)) {}
+        CastExpression(StringId target_type_identifier_id, std::unique_ptr<Expression> expression, SourceLocation source_location)
+            : Expression(ASTNodeType::CastExpression, std::move(source_location)),
+              target_type_identifier_id(target_type_identifier_id),
+              expression(std::move(expression)) {}
     };
 
 }

@@ -42,7 +42,8 @@ namespace kepler {
                             function->body.contains_return = true;
                         } else {
                             KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                            if (function->prototype->return_type_id != type_table.Builtins.void_type->name_id) {
+                            const Type* void_type = type_table.lookup(type_table.Builtins.void_type_id);
+                            if (function->prototype->return_type_identifier_id != void_type->identifier_id) {
                                 const std::string_view identifier = StringPool::get().lookup(function->prototype->identifier_id);
                                 const std::string message = std::format("Not all code paths of function '{}' contain a return statement", identifier);
                                 diagnostic_sink.report(DiagnosticCode::MissingReturn, std::move(message), function->source_location);

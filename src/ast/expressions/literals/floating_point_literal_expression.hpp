@@ -18,7 +18,7 @@ namespace kepler {
 
     struct FloatingPointLiteralExpression : Expression {
         double value;
-        Type* target_type = nullptr;
+        TypeId target_type_id;
 
         FloatingPointLiteralExpression(double value, SourceLocation source_location)
             : Expression(ASTNodeType::FloatingPointLiteralExpression, std::move(source_location)), value(value) {}

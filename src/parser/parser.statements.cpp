@@ -20,6 +20,7 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
+#include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
@@ -355,7 +356,8 @@ namespace kepler {
         const SourceLocation& return_source_location = current_token->source_location;
         next_token(true); // eat 'return' keyword
 
-        if (current_function_return_type_id == type_table.Builtins.void_type->name_id) {
+        const Type* void_type = type_table.lookup(type_table.Builtins.void_type_id);
+        if (current_function_return_type_id == void_type->identifier_id) {
             return std::make_unique<ReturnStatement>(nullptr, return_source_location);
         }
 

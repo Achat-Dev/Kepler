@@ -155,10 +155,10 @@ namespace kepler {
 
     bool CodegenPass::is_main_method(const Prototype* prototype) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
-        KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
+        KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
         bool is_named_main = StringPool::get().lookup(prototype->identifier_id) == "main";
-        bool returns_i32 = prototype->return_type == type_table.Builtins.i32_type;
+        bool returns_i32 = prototype->return_type_id == type_table.Builtins.i32_type_id;
         bool has_no_parameters = prototype->parameter_data.size() == 0;
         return is_named_main && returns_i32 && has_no_parameters;
     }
@@ -187,15 +187,16 @@ namespace kepler {
 
     void CodegenPass::codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type, bool is_extern) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
-        KPL_ASSERT_NOT_NULLPTR(prototype->return_type);
+        KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
 
         std::vector<llvm::Type*> parameter_types;
         for (const ParameterData& parameter_data : prototype->parameter_data) {
-            KPL_ASSERT_NOT_NULLPTR(parameter_data.type);
-            parameter_types.push_back(get_llvm_type(parameter_data.type, context));
+            KPL_ASSERT_THAT(parameter_data.type_id != TypeId::invalid());
+            const Type* parameter_type = type_table.lookup(parameter_data.type_id);
+            parameter_types.push_back(get_llvm_type(parameter_type, context));
         }
 
         StringId identifier_id = prototype->identifier_id;
@@ -218,7 +219,8 @@ namespace kepler {
         }
 
         const std::string_view prototype_name = StringPool::get().lookup(identifier_id);
-        llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type, context), parameter_types, prototype->is_variadic);
+        const Type* return_type = type_table.lookup(prototype->return_type_id);
+        llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(return_type, context), parameter_types, prototype->is_variadic);
         llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(linkage_type), prototype_name, *current_llvm_module);
 
 #ifndef NDEBUG
@@ -247,24 +249,23 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(node);
         switch (node->node_type) {
             case ASTNodeType::Poison:
-                return {.llvm_value = nullptr, .returns = false};
+            case ASTNodeType::Struct:
+            case ASTNodeType::Prototype:
+            case ASTNodeType::ImportStatement:
+            case ASTNodeType::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot codegen a node of type '{}' as part of the top level nodes", node->node_type);
+
             case ASTNodeType::Extern:
                 return {.llvm_value = nullptr, .returns = false};
             case ASTNodeType::Function:
                 codegen_function(static_cast<const Function*>(node));
                 return {.llvm_value = nullptr, .returns = false};
-            case ASTNodeType::Prototype:
-                KPL_ASSERT_UNREACHABLE("Cannot codegen a prototype");
             case ASTNodeType::AssignmentStatement:
                 return codegen_assignment_statement(static_cast<const AssignmentStatement*>(node));
             case ASTNodeType::ForStatement:
                 return codegen_for_statement(static_cast<const ForStatement*>(node));
             case ASTNodeType::IfStatement:
                 return codegen_if_statement(static_cast<const IfStatement*>(node));
-            case ASTNodeType::ImportStatement:
-                KPL_ASSERT_UNREACHABLE("Cannot codegen an ImportStatement");
-            case ASTNodeType::ModuleStatement:
-                KPL_ASSERT_UNREACHABLE("Cannot codegen a ModuleStatement");
             case ASTNodeType::ReturnStatement:
                 return codegen_return_statement(static_cast<const ReturnStatement*>(node));
             case ASTNodeType::VariableDefinitionStatement:
@@ -323,7 +324,7 @@ namespace kepler {
         close_scope();
 
         // Create implicit return for void methods
-        if (!function->body.contains_return && function->prototype->return_type == type_table.Builtins.void_type) {
+        if (!function->body.contains_return && function->prototype->return_type_id == type_table.Builtins.void_type_id) {
             const llvm::Instruction* terminator = builder.GetInsertBlock()->getTerminator();
             if (terminator != nullptr) {
                 KPL_ASSERT_THAT(!terminator->isTerminator(),
@@ -384,8 +385,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(end_cr.llvm_value);
 
         // Codegen step value
-        KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition->type);
-        llvm::Type* variable_type = get_llvm_type(statement->loop_variable_definition->type, context);
+        const TypeId loop_variable_type_id = statement->loop_variable_definition->type_id;
+        KPL_ASSERT_THAT(loop_variable_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(loop_variable_type_id != type_table.Builtins.unknown_type_id);
+        const Type* loop_variable_type = type_table.lookup(loop_variable_type_id);
+        llvm::Type* variable_type = get_llvm_type(loop_variable_type, context);
         llvm::Value* step_value = nullptr;
         if (statement->step_value == nullptr) {
             // Step is implicit, so make it:
@@ -436,7 +440,7 @@ namespace kepler {
 
         // Codegen increment
         llvm::Value* variable_load = builder.CreateLoad(variable_type, variable_cr.llvm_value);
-        llvm::Value* incremented_variable_value = create_add(variable_load, step_value, statement->loop_variable_definition->type, builder);
+        llvm::Value* incremented_variable_value = create_add(variable_load, step_value, loop_variable_type, builder);
         builder.CreateStore(incremented_variable_value, variable_cr.llvm_value);
         builder.CreateBr(header_block);
 
@@ -505,12 +509,14 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement->variable_expression);
-        KPL_ASSERT_NOT_NULLPTR(statement->type);
+        KPL_ASSERT_THAT(statement->type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(statement->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         llvm::Function* llvm_function = builder.GetInsertBlock()->getParent();
         KPL_ASSERT_NOT_NULLPTR(llvm_function);
-        llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(statement->type, context), statement->identifier_id);
+        const Type* variable_type = type_table.lookup(statement->type_id);
+        llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(variable_type, context), statement->identifier_id);
 
         SymbolId variable_symbol_id = statement->assignment_statement->variable_expression->symbol_id;
         KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid());
@@ -529,30 +535,33 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_floating_point_literal_expression(const FloatingPointLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->target_type);
+        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(expression->target_type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        llvm::Type* llvm_type = get_llvm_type(expression->target_type, context);
+        const Type* target_type = type_table.lookup(expression->target_type_id);
+        llvm::Type* llvm_type = get_llvm_type(target_type, context);
         return {.llvm_value = llvm::ConstantFP::get(llvm_type, expression->value), .returns = false};
     }
 
     CodegenResult CodegenPass::codegen_integer_literal_expression(const IntegerLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->target_type);
+        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         constexpr const uint8_t radix = 10; // This is basically the base for the llvm values -> base 10
         const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
         KPL_ASSERT_THAT(!literal_string.empty());
-        if (is_integer_type(expression->target_type)) {
+        const Type* target_type = type_table.lookup(expression->target_type_id);
+        if (is_integer_type(target_type)) {
             // Both signed and unsigned integers use llvm unsigned representation
             // This is because only the bit pattern counts: negative values are created through negation expressions,
             // which handle the negative values
-            const uint32_t type_bitwidth = get_integer_bitwidth(expression->target_type);
+            const uint32_t type_bitwidth = get_integer_bitwidth(target_type);
             const llvm::APInt llvm_value(type_bitwidth, literal_string, radix);
-            return {.llvm_value = llvm::ConstantInt::get(get_llvm_type(expression->target_type, context), llvm_value), .returns = false};
-        } else if (is_floating_point_type(expression->target_type)) {
+            return {.llvm_value = llvm::ConstantInt::get(get_llvm_type(target_type, context), llvm_value), .returns = false};
+        } else if (is_floating_point_type(target_type)) {
             const double value = std::stod(std::string(literal_string));
-            return {.llvm_value = llvm::ConstantFP::get(get_llvm_type(expression->target_type, context), value), .returns = false};
+            return {.llvm_value = llvm::ConstantFP::get(get_llvm_type(target_type, context), value), .returns = false};
         }
         KPL_ASSERT_UNREACHABLE("Target type of IntegerLiteralExpression must be either a signed integer, an unsigned integer or a floating point type");
     }
@@ -575,7 +584,8 @@ namespace kepler {
         global_variable->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
 
         // Create i8* to the first element of the constant array
-        llvm::Constant* zero = llvm::ConstantInt::get(get_llvm_type(type_table.Builtins.i32_type, context), 0);
+        const Type* i32_type = type_table.lookup(type_table.Builtins.i32_type_id);
+        llvm::Constant* zero = llvm::ConstantInt::get(get_llvm_type(i32_type, context), 0);
         llvm::Constant* indices[] = {zero, zero};
         llvm::Constant* value = llvm::ConstantExpr::getInBoundsGetElementPtr(data->getType(), global_variable, indices);
 
@@ -587,7 +597,8 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
-        KPL_ASSERT_NOT_NULLPTR(expression->target_type);
+        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(expression->target_type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult lhs_cr = codegen_node(expression->lhs.get());
@@ -595,29 +606,29 @@ namespace kepler {
         const CodegenResult rhs_cr = codegen_node(expression->rhs.get());
         KPL_ASSERT_NOT_NULLPTR(rhs_cr.llvm_value);
 
+        const Type* target_type = type_table.lookup(expression->target_type_id);
         switch (expression->operator_type) {
             case OperatorType::Plus:
-                return {.llvm_value = create_add(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_add(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::Minus:
-                return {.llvm_value = create_sub(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_sub(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::Multiplication:
-                return {.llvm_value = create_mul(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_mul(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::Division:
-                return {.llvm_value = create_div(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_div(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::LessThan:
-                return {.llvm_value = create_less_than(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_less_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::GreaterThan:
-                return {.llvm_value = create_greater_than(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_greater_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::Equals:
-                return {.llvm_value = create_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::NotEquals:
-                return {.llvm_value = create_not_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_not_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::LessEquals:
-                return {.llvm_value = create_less_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_less_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
             case OperatorType::GreaterEquals:
-                return {.llvm_value = create_greater_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, expression->target_type, builder), .returns = false};
+                return {.llvm_value = create_greater_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
         }
-
         KPL_ASSERT_UNREACHABLE("Missing codegen implementation for operator type '{}'", expression->operator_type);
     }
 
@@ -651,8 +662,9 @@ namespace kepler {
         }
 
         llvm::Value* value = nullptr;
-        KPL_ASSERT_NOT_NULLPTR(symbol->type);
-        if (symbol->type == type_table.Builtins.void_type) {
+        KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
+        if (symbol->type_id == type_table.Builtins.void_type_id) {
             value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
         } else {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
@@ -665,20 +677,24 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_cast_expression(const CastExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->original_type);
-        KPL_ASSERT_NOT_NULLPTR(expression->target_type);
+        KPL_ASSERT_THAT(expression->original_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(expression->original_type_id != type_table.Builtins.unknown_type_id);
+        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(expression->target_type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
-        if (expression->original_type == expression->target_type) {
+        if (expression->original_type_id == expression->target_type_id) {
             // Redundant cast, so just return the original value
             return {.llvm_value = codegen_result.llvm_value, .returns = false};
         }
+        const Type* original_type = type_table.lookup(expression->original_type_id);
+        const Type* target_type = type_table.lookup(expression->target_type_id);
         return {
             .llvm_value = create_cast(codegen_result.llvm_value,
-                expression->original_type,
-                expression->target_type,
+                original_type,
+                target_type,
                 context,
                 builder),
             .returns = false,
@@ -688,17 +704,18 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_mathematical_negation_expression(const MathematicalNegationExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->target_type);
+        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
-        if (is_integer_type(expression->target_type)) {
+        const Type* target_type = type_table.lookup(expression->target_type_id);
+        if (is_integer_type(target_type)) {
             return {.llvm_value = builder.CreateNeg(codegen_result.llvm_value), .returns = false};
-        } else if (is_floating_point_type(expression->target_type)) {
+        } else if (is_floating_point_type(target_type)) {
             return {.llvm_value = builder.CreateFNeg(codegen_result.llvm_value), .returns = false};
         }
-        KPL_ASSERT_UNREACHABLE("Missing create mathematical negation implementation for type '{}'", *expression->target_type);
+        KPL_ASSERT_UNREACHABLE("Missing create mathematical negation implementation for type '{}'", *target_type);
     }
 
     CodegenResult CodegenPass::codegen_variable_expression(const VariableExpression* expression) {
@@ -710,13 +727,15 @@ namespace kepler {
         KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->symbol_id]));
 
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
-        KPL_ASSERT_NOT_NULLPTR(symbol->type);
+        KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
+        const Type* variable_type = type_table.lookup(symbol->type_id);
 #ifndef NDEBUG
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         KPL_ASSERT_THAT(!identifier.empty());
-        llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type, context), llvm_values[expression->symbol_id], identifier);
+        llvm::Value* value = builder.CreateLoad(get_llvm_type(variable_type, context), llvm_values[expression->symbol_id], identifier);
 #else
-        llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type, context), llvm_values[expression->symbol_id]);
+        llvm::Value* value = builder.CreateLoad(get_llvm_type(variable_type, context), llvm_values[expression->symbol_id]);
 #endif
         return {.llvm_value = value, .returns = false};
     }

@@ -25,12 +25,16 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "ast/struct.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol_table.hpp"
+#include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace kepler {
@@ -41,8 +45,7 @@ namespace kepler {
 
     class NameResolutionPass : public ASTPass<void> {
     public:
-        NameResolutionPass(DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, TypeTable& type_table)
-            : diagnostic_sink(diagnostic_sink), symbol_table(symbol_table), type_table(type_table) {}
+        NameResolutionPass(DiagnosticSink& diagnostic_sink, SymbolTable& symbol_table, TypeTable& type_table);
         void run(std::vector<AbstractSyntaxTree>& asts) override;
 
     private:
@@ -50,6 +53,13 @@ namespace kepler {
         SymbolTable& symbol_table;
         TypeTable& type_table;
         ModuleId module_id;
+        std::unordered_map<StringId, TypeId> builtin_type_identifiers;
+
+        void register_builtin_type_identifier(TypeId type_id);
+        void create_struct_symbols_and_types(const AbstractSyntaxTree& ast, ModuleId module_id);
+        void create_struct_symbol(ModuleId module_id, Struct* struct_node);
+        void create_prototype_symbols(const AbstractSyntaxTree& ast, ModuleId module_id);
+        void create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const;
 
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
         NameResolutionResult resolve_node(ASTNode* node) const;
@@ -67,7 +77,7 @@ namespace kepler {
         NameResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
         NameResolutionResult resolve_variable_expression(VariableExpression* expression) const;
 
-        void report_unknown_type(StringId type_id, SourceLocation source_location) const;
+        std::optional<TypeId> resolve_identifier_to_type_id(StringId type_identifier_id, SourceLocation source_location) const;
     };
 
 }
