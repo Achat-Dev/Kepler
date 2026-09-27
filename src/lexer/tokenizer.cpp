@@ -13,6 +13,7 @@
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
 #include "lexer/token.hpp"
+#include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
@@ -47,19 +48,9 @@ namespace kepler {
             register_keyword("for", TokenType::For);
             register_keyword("true", TokenType::Literal, true);
             register_keyword("false", TokenType::Literal, false);
-            register_keyword("void", TokenType::Identifier, type_table.lookup(type_table.Builtins.void_type_id)->identifier_id);
-            register_keyword("bool", TokenType::Identifier, type_table.lookup(type_table.Builtins.bool_type_id)->identifier_id);
-            register_keyword("string", TokenType::Identifier, type_table.lookup(type_table.Builtins.string_type_id)->identifier_id);
-            register_keyword("i8", TokenType::Identifier, type_table.lookup(type_table.Builtins.i8_type_id)->identifier_id);
-            register_keyword("i16", TokenType::Identifier, type_table.lookup(type_table.Builtins.i16_type_id)->identifier_id);
-            register_keyword("i32", TokenType::Identifier, type_table.lookup(type_table.Builtins.i32_type_id)->identifier_id);
-            register_keyword("i64", TokenType::Identifier, type_table.lookup(type_table.Builtins.i64_type_id)->identifier_id);
-            register_keyword("u8", TokenType::Identifier, type_table.lookup(type_table.Builtins.u8_type_id)->identifier_id);
-            register_keyword("u16", TokenType::Identifier, type_table.lookup(type_table.Builtins.u16_type_id)->identifier_id);
-            register_keyword("u32", TokenType::Identifier, type_table.lookup(type_table.Builtins.u32_type_id)->identifier_id);
-            register_keyword("u64", TokenType::Identifier, type_table.lookup(type_table.Builtins.u64_type_id)->identifier_id);
-            register_keyword("f32", TokenType::Identifier, type_table.lookup(type_table.Builtins.f32_type_id)->identifier_id);
-            register_keyword("f64", TokenType::Identifier, type_table.lookup(type_table.Builtins.f64_type_id)->identifier_id);
+            for (StringId type_identifier_id : builtin_type_identifier_ids) {
+                register_keyword(std::string(StringPool::get().lookup(type_identifier_id)), TokenType::Identifier, type_identifier_id);
+            }
         }
     }
 

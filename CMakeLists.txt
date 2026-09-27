@@ -31,7 +31,6 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/type_system/type_table.cpp
     src/utils/arena_allocator.cpp
     src/utils/ast_print_pass.cpp
-    src/utils/builtin_utils.cpp
     src/utils/cmd_parser.cpp
     src/utils/string_utils.cpp
     src/utils/string_pool.cpp

@@ -18,8 +18,8 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
+#include "type_system/type.hpp"
 #include "utils/assert.h"
-#include "utils/builtin_utils.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
 #include <format>

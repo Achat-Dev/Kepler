@@ -8,10 +8,12 @@
  */
 
 #include "type_system/type.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <limits>
 #include <llvm/IR/Constants.h>
@@ -21,6 +23,9 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace kepler {
@@ -33,6 +38,52 @@ namespace kepler {
             }
         }
         return nullptr;
+    }
+
+    StringId get_type_kind_name_id(TypeKind type_kind) {
+        switch (type_kind) {
+            case TypeKind::Unknown:
+                return StringPool::get().store("__unknown");
+            case TypeKind::Void:
+                return StringPool::get().store("void");
+            case TypeKind::Bool:
+                return StringPool::get().store("bool");
+            case TypeKind::String:
+                return StringPool::get().store("string");
+            case TypeKind::I8:
+                return StringPool::get().store("i8");
+            case TypeKind::I16:
+                return StringPool::get().store("i16");
+            case TypeKind::I32:
+                return StringPool::get().store("i32");
+            case TypeKind::I64:
+                return StringPool::get().store("i64");
+            case TypeKind::U8:
+                return StringPool::get().store("u8");
+            case TypeKind::U16:
+                return StringPool::get().store("u16");
+            case TypeKind::U32:
+                return StringPool::get().store("u32");
+            case TypeKind::U64:
+                return StringPool::get().store("u64");
+            case TypeKind::F32:
+                return StringPool::get().store("f32");
+            case TypeKind::F64:
+                return StringPool::get().store("f64");
+            case TypeKind::Struct:
+                return StringPool::get().store("struct");
+        }
+        KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind));
+    }
+
+    std::expected<void, Diagnostic> is_builtin_type_identifier(StringId identifier_id, const std::string& usage_message) {
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        if (builtin_type_identifier_ids.contains(identifier_id)) {
+            const std::string_view identifier = StringPool::get().lookup(identifier_id);
+            const std::string message = std::format("'{}' is a reserved keyword and cannot be used {}", identifier, usage_message);
+            return std::unexpected(Diagnostic{.code = DiagnosticCode::InvalidIdentifier, .message = std::move(message)});
+        }
+        return {};
     }
 
     bool is_integer_type(const Type* type) {
@@ -87,42 +138,6 @@ namespace kepler {
             default:
                 return false;
         }
-    }
-
-    StringId get_type_kind_name_id(TypeKind type_kind) {
-        switch (type_kind) {
-            case TypeKind::Unknown:
-                return StringPool::get().store("__unknown");
-            case TypeKind::Void:
-                return StringPool::get().store("void");
-            case TypeKind::Bool:
-                return StringPool::get().store("bool");
-            case TypeKind::String:
-                return StringPool::get().store("string");
-            case TypeKind::I8:
-                return StringPool::get().store("i8");
-            case TypeKind::I16:
-                return StringPool::get().store("i16");
-            case TypeKind::I32:
-                return StringPool::get().store("i32");
-            case TypeKind::I64:
-                return StringPool::get().store("i64");
-            case TypeKind::U8:
-                return StringPool::get().store("u8");
-            case TypeKind::U16:
-                return StringPool::get().store("u16");
-            case TypeKind::U32:
-                return StringPool::get().store("u32");
-            case TypeKind::U64:
-                return StringPool::get().store("u64");
-            case TypeKind::F32:
-                return StringPool::get().store("f32");
-            case TypeKind::F64:
-                return StringPool::get().store("f64");
-            case TypeKind::Struct:
-                return StringPool::get().store("struct");
-        }
-        KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind));
     }
 
     uint32_t get_integer_bitwidth(const Type* type) {

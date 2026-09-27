@@ -9,8 +9,10 @@
 
 #pragma once
 
+#include "diagnostics/diagnostic.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <functional>
 #include <limits>
@@ -19,6 +21,7 @@
 #include <llvm/IR/Value.h>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 namespace kepler {
@@ -75,11 +78,29 @@ namespace kepler {
         std::vector<StructTypeMember> members;
     };
 
+    StringId get_type_kind_name_id(TypeKind type_kind);
+
+    inline const std::unordered_set<StringId> builtin_type_identifier_ids{
+        get_type_kind_name_id(TypeKind::Void),
+        get_type_kind_name_id(TypeKind::Bool),
+        get_type_kind_name_id(TypeKind::String),
+        get_type_kind_name_id(TypeKind::I8),
+        get_type_kind_name_id(TypeKind::I16),
+        get_type_kind_name_id(TypeKind::I32),
+        get_type_kind_name_id(TypeKind::I64),
+        get_type_kind_name_id(TypeKind::U8),
+        get_type_kind_name_id(TypeKind::U16),
+        get_type_kind_name_id(TypeKind::U32),
+        get_type_kind_name_id(TypeKind::U64),
+        get_type_kind_name_id(TypeKind::F32),
+        get_type_kind_name_id(TypeKind::F64),
+    };
+
+    std::expected<void, Diagnostic> is_builtin_type_identifier(StringId identifier_id, const std::string& usage_message);
     bool is_integer_type(const Type* type);
     bool is_signed_integer_type(const Type* type);
     bool is_unsigned_integer_type(const Type* type);
     bool is_floating_point_type(const Type* type);
-    StringId get_type_kind_name_id(TypeKind type_kind);
     uint32_t get_integer_bitwidth(const Type* type);
 
     llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
