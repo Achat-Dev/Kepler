@@ -412,7 +412,7 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_variable_definition_statement(VariableDefinitionStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
-        KPL_ASSERT_THAT(statement->type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(statement->type_id == TypeId::invalid());
         KPL_ASSERT_THAT(statement->type_identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
