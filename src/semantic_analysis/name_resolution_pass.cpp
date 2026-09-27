@@ -509,7 +509,8 @@ namespace kepler {
                     identifier,
                     expected_parameter_count,
                     given_argument_count);
-                diagnostic_sink.report(DiagnosticCode::InvalidFunctionCall, message, expression->source_location);
+                diagnostic_sink.report(DiagnosticCode::MismatchingArgumentCount, message, expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
                 return {.poisoned = true};
             }
         }
