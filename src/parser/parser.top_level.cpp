@@ -19,6 +19,7 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
+#include "utils/builtin_utils.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
 #include <format>
@@ -91,7 +92,15 @@ namespace kepler {
                 return std::nullopt;
             }
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            identifier_ids.push_back(std::get<StringId>(current_token->data));
+            const StringId part_identifier_id = std::get<StringId>(current_token->data);
+            const auto builtin_identifier = is_builtin_type_identifier(part_identifier_id, "in a module path");
+            if (!builtin_identifier.has_value()) {
+                const Diagnostic& diagnostic = builtin_identifier.error();
+                diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), current_token->source_location);
+                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+                return std::nullopt;
+            }
+            identifier_ids.push_back(part_identifier_id);
             next_token(true); // eat identifier
         }
 
@@ -119,8 +128,8 @@ namespace kepler {
             case TokenType::Struct:
                 return parse_struct(LinkageType::Export);
                 break;
-            case TokenType::Type:
-                return parse_top_level_type(LinkageType::Export);
+            case TokenType::Identifier:
+                return parse_top_level_identifier(LinkageType::Export);
                 break;
             default:
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected 'extern' or type after 'export'", current_token->source_location);
@@ -135,7 +144,7 @@ namespace kepler {
 
         const SourceLocation& extern_source_location = current_token->source_location;
         next_token(true); // eat 'extern' keyword
-        if (current_token->type != TokenType::Type) {
+        if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type after 'extern'", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
@@ -150,11 +159,11 @@ namespace kepler {
 
     std::unique_ptr<Prototype> Parser::parse_prototype() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token: '{}', received: '{}'", TokenType::Type, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        const StringId return_type_id = std::get<StringId>(current_token->data);
+        const StringId return_type_identifier_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
-        next_token(true); // eat type
+        next_token(true); // eat type identifier
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after return type of prototype", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
@@ -172,7 +181,7 @@ namespace kepler {
         }
 
         next_token(true); // eat '('
-        if (current_token->type != TokenType::Type && current_token->type != TokenType::Variadic && current_token->type != TokenType::BracketClose) {
+        if (current_token->type != TokenType::Identifier && current_token->type != TokenType::Variadic && current_token->type != TokenType::BracketClose) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type or ')' after '(' in prototype", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
@@ -181,11 +190,11 @@ namespace kepler {
         // Parse parameters
         std::vector<ParameterData> parameter_data;
         bool is_variadic = false;
-        while (current_token->type == TokenType::Type) {
+        while (current_token->type == TokenType::Identifier) {
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const StringId parameter_type_id = std::get<StringId>(current_token->data);
 
-            next_token(true); // eat type
+            next_token(true); // eat type identifier
             if (current_token->type != TokenType::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after parameter type", current_token->source_location);
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
@@ -202,7 +211,7 @@ namespace kepler {
             if (current_token->type == TokenType::Comma) {
                 next_token(true); // eat ','
                 // Lookahead for correct diagnostic
-                if (current_token->type != TokenType::Type && current_token->type != TokenType::Variadic) {
+                if (current_token->type != TokenType::Identifier && current_token->type != TokenType::Variadic) {
                     diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
                         "Expected type after ',' in prototype parameters",
                         current_token->source_location);
@@ -231,7 +240,7 @@ namespace kepler {
         }
         next_token(true); // eat ')'
 
-        return std::make_unique<Prototype>(return_type_id,
+        return std::make_unique<Prototype>(return_type_identifier_id,
             identifier_id,
             std::move(parameter_data),
             is_variadic,
@@ -263,7 +272,7 @@ namespace kepler {
                 return nullptr;
             }
 
-            if (current_token->type != TokenType::Type) {
+            if (current_token->type != TokenType::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type for struct member", current_token->source_location);
                 recover(SynchronizationSet<TokenType::End>{}, SynchronizationSet<>{});
                 continue;
@@ -271,7 +280,7 @@ namespace kepler {
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const Token* member_type_token = current_token;
 
-            next_token(true); // eat type
+            next_token(true); // eat type identifier
             if (current_token->type != TokenType::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after type for struct member", current_token->source_location);
                 recover(SynchronizationSet<TokenType::End>{}, SynchronizationSet<>{});
@@ -294,13 +303,13 @@ namespace kepler {
             identifier_token->source_location);
     }
 
-    std::unique_ptr<ExportableNode> Parser::parse_top_level_type(LinkageType linkage_type) {
+    std::unique_ptr<ExportableNode> Parser::parse_top_level_identifier(LinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token: '{}', received: '{}'", TokenType::Type, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
-        next_token(true); // eat type
+        next_token(true); // eat type identifier
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after type on top level", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
@@ -330,9 +339,9 @@ namespace kepler {
 
     std::unique_ptr<Function> Parser::parse_function(LinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token: '{}', received: '{}'", TokenType::Type, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(!current_function_return_type_id.has_value());
-        next_token(true); // eat type
+        next_token(true); // eat type identifier
         const Token* identifier_token = current_token;
         previous_token(true); // Go back to type for parsing prototype
         std::unique_ptr<Prototype> prototype = parse_prototype();

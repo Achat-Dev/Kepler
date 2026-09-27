@@ -42,14 +42,13 @@ namespace kepler {
                 return parse_for();
             case TokenType::Return:
                 return parse_return();
-            case TokenType::Type: {
-                return parse_variable_definition();
-            }
             case TokenType::Identifier: {
                 next_token(true); // eat identifier
                 const TokenType next_token_type = current_token->type;
                 previous_token(true); // Go back to the things can be parsed and the correct diagnostic can be printed
-                if (next_token_type == TokenType::Assignment) {
+                if (next_token_type == TokenType::Identifier) {
+                    return parse_variable_definition();
+                } else if (next_token_type == TokenType::Assignment) {
                     return parse_assignment();
                 } else if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
                     return parse_call();
@@ -192,7 +191,7 @@ namespace kepler {
                 current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
-        } else if (current_token->type != TokenType::Type) {
+        } else if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type after '(' in 'for'", current_token->source_location);
             recover_for_definition_and_parse_body(for_source_location);
             return nullptr;
@@ -370,18 +369,6 @@ namespace kepler {
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
             }
-            case TokenType::Type:
-                next_token(true); // eat type
-                // It's a cast if there is a open bracket next, which is allowed here, so break out if that's the case
-                if (current_token->type == TokenType::BracketOpen) {
-                    previous_token(true); // Go back so the cast can be parsed
-                    break;
-                }
-                diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                    std::format("Unexpected token '{}' (types can only be used for casting here)", *current_token),
-                    current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
-                return nullptr;
             case TokenType::End:
                 return std::make_unique<ReturnStatement>(nullptr, return_source_location);
             default:
@@ -398,13 +385,11 @@ namespace kepler {
 
     std::unique_ptr<VariableDefinitionStatement> Parser::parse_variable_definition() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token: '{}', received: '{}'", TokenType::Type, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         const SourceLocation& type_source_location = current_token->source_location;
-
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
-
-        next_token(true); // eat type
+        next_token(true); // eat type identifier
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
                 "Expected identifier (types can only be used for variable definitions here)",

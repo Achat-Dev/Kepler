@@ -60,7 +60,7 @@ namespace kepler {
         void create_struct_symbols_and_types(const AbstractSyntaxTree& ast, ModuleId module_id);
         void create_struct_symbol(ModuleId module_id, Struct* struct_node);
         void create_prototype_symbols(const AbstractSyntaxTree& ast, ModuleId module_id);
-        void create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const;
+        NameResolutionResult create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const;
 
         void resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;

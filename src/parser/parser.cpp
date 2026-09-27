@@ -109,8 +109,8 @@ namespace kepler {
                     }
                     break;
                 }
-                case TokenType::Type: {
-                    std::unique_ptr<ExportableNode> ast_node = parse_top_level_type(LinkageType::Internal);
+                case TokenType::Identifier: {
+                    std::unique_ptr<ExportableNode> ast_node = parse_top_level_identifier(LinkageType::Internal);
                     if (ast_node) {
                         ast.top_level_nodes.push_back(std::move(ast_node));
                     }

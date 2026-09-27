@@ -55,6 +55,7 @@ namespace kepler {
             case DiagnosticCode::SymbolAlreadyExists:
             case DiagnosticCode::UnknownType:
             case DiagnosticCode::TypeMismatch:
+            case DiagnosticCode::InvalidIdentifier:
             case DiagnosticCode::InvalidVariableType:
             case DiagnosticCode::InvalidFunctionCall:
             case DiagnosticCode::IntegerLiteralOutOfBounds:

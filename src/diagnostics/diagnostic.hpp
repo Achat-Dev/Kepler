@@ -63,6 +63,7 @@ namespace kepler {
         AmbiguousModulePath,
         UnknownType,
         TypeMismatch,
+        InvalidIdentifier,
         InvalidVariableType,
         InvalidFunctionCall,
         IntegerLiteralOutOfBounds,

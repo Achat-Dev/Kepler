@@ -34,7 +34,6 @@ namespace kepler {
 
         // Primary
         Identifier,
-        Type,
         Operator,
         Literal,
 
@@ -128,8 +127,6 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("operator", ctx);
             case kepler::TokenType::Identifier:
                 return std::formatter<std::string>::format("identifier", ctx);
-            case kepler::TokenType::Type:
-                return std::formatter<std::string>::format("type", ctx);
         }
 
         KPL_ASSERT_UNREACHABLE("Missing format implementation for token type '{}'", static_cast<int>(token_type));
@@ -187,11 +184,6 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
                     token.data);
 
                 return std::formatter<std::string>::format(std::format("{}", format), ctx);
-            }
-            case kepler::TokenType::Type: {
-                const kepler::StringId type_id = std::get<kepler::StringId>(token.data);
-                const std::string_view type_name = kepler::StringPool::get().lookup(type_id);
-                return std::formatter<std::string>::format(std::format("{}({})", token.type, type_name), ctx);
             }
         }
 

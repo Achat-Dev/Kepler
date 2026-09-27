@@ -86,21 +86,6 @@ namespace kepler {
             }
 
             next_token(true); // eat binary operator
-
-            // Do a bit of lookahead for better diagnostics
-            const size_t continuation_token_index = current_token_index;
-            if (current_token->type == TokenType::Type) {
-                next_token(true);
-                if (current_token->type != TokenType::BracketOpen) {
-                    diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                        "Expected '(' (types can only be used for casting inside of a binary expression)",
-                        current_token->source_location);
-                    recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
-                    return nullptr;
-                }
-                jump_to_token(continuation_token_index);
-            }
-
             std::unique_ptr<Expression> rhs = parse_primary();
             if (!rhs) {
                 return nullptr;
@@ -135,8 +120,6 @@ namespace kepler {
         switch (current_token->type) {
             case TokenType::Identifier:
                 return parse_identifier();
-            case TokenType::Type:
-                return parse_cast();
             case TokenType::Operator:
                 KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
                 if (std::get<OperatorType>(current_token->data) == OperatorType::Minus) {
@@ -344,11 +327,11 @@ namespace kepler {
 
     std::unique_ptr<CastExpression> Parser::parse_cast() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token: '{}', received: '{}'", TokenType::Type, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
-        next_token(true); // eat type
+        next_token(true); // eat type identifier
         if (current_token->type != TokenType::BracketOpen) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after type for cast", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
