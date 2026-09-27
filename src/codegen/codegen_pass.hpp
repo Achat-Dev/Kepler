@@ -66,14 +66,7 @@ namespace kepler {
             TypeTable& type_table,
             llvm::LLVMContext& context,
             llvm::TargetMachine* target_machine,
-            OptimizationLevel optimization_level)
-            : diagnostic_sink(diagnostic_sink),
-              symbol_table(symbol_table),
-              type_table(type_table),
-              target_machine(target_machine),
-              optimization_level(optimization_level),
-              context(context),
-              builder(context) {}
+            OptimizationLevel optimization_level);
         std::optional<std::vector<std::unique_ptr<llvm::Module>>> run(std::vector<AbstractSyntaxTree>& ast) override;
 
     private:
@@ -87,13 +80,14 @@ namespace kepler {
         llvm::Module* current_llvm_module = nullptr;
         std::vector<std::vector<SymbolId>> symbol_id_scopes;
         std::unordered_map<SymbolId, llvm::Value*> llvm_values;
-        std::unordered_map<TypeId, llvm::StructType*> llvm_types;
+        std::unordered_map<TypeId, llvm::Type*> llvm_types;
         bool main_method_found = false;
 
         void open_scope();
         void close_scope();
         StringId create_mangled_identifier(StringId identifier_id) const;
         bool is_main_method(const Prototype* prototype) const;
+        llvm::Type* get_llvm_type(TypeId type_id);
 
         void forward_declare_structs(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         void forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes);

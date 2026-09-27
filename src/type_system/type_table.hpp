@@ -46,7 +46,7 @@ namespace kepler {
         ArenaAllocator allocator;
 
         void create_builtin_types(SymbolTable& symbol_table);
-        void register_builtin_type(TypeId& type_id, TypeKind type_kind);
+        void create_builtin_type(TypeId& type_id, TypeKind type_kind);
         void add_methods_to_builtin_number_type(TypeId type_id);
     };
 

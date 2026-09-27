@@ -57,21 +57,20 @@ namespace kepler {
         KPL_ASSERT_THAT(Builtins.f64_type_id == TypeId::invalid());
 
         // Create the types first and fill in the methods afterwards because the methods need to reference the types
-        register_builtin_type(Builtins.unknown_type_id, TypeKind::Unknown);
-        register_builtin_type(Builtins.void_type_id, TypeKind::Void);
-        // types.push_back(arena_allocator.allocate<Type>(Builtins.void_type_id, TypeKind::Void, get_type_kind_name_id(TypeKind::Void)));
-        register_builtin_type(Builtins.bool_type_id, TypeKind::Bool);
-        register_builtin_type(Builtins.string_type_id, TypeKind::String);
-        register_builtin_type(Builtins.i8_type_id, TypeKind::I8);
-        register_builtin_type(Builtins.i16_type_id, TypeKind::I16);
-        register_builtin_type(Builtins.i32_type_id, TypeKind::I32);
-        register_builtin_type(Builtins.i64_type_id, TypeKind::I64);
-        register_builtin_type(Builtins.u8_type_id, TypeKind::U8);
-        register_builtin_type(Builtins.u16_type_id, TypeKind::U16);
-        register_builtin_type(Builtins.u32_type_id, TypeKind::U32);
-        register_builtin_type(Builtins.u64_type_id, TypeKind::U64);
-        register_builtin_type(Builtins.f32_type_id, TypeKind::F32);
-        register_builtin_type(Builtins.f64_type_id, TypeKind::F64);
+        create_builtin_type(Builtins.unknown_type_id, TypeKind::Unknown);
+        create_builtin_type(Builtins.void_type_id, TypeKind::Void);
+        create_builtin_type(Builtins.bool_type_id, TypeKind::Bool);
+        create_builtin_type(Builtins.string_type_id, TypeKind::String);
+        create_builtin_type(Builtins.i8_type_id, TypeKind::I8);
+        create_builtin_type(Builtins.i16_type_id, TypeKind::I16);
+        create_builtin_type(Builtins.i32_type_id, TypeKind::I32);
+        create_builtin_type(Builtins.i64_type_id, TypeKind::I64);
+        create_builtin_type(Builtins.u8_type_id, TypeKind::U8);
+        create_builtin_type(Builtins.u16_type_id, TypeKind::U16);
+        create_builtin_type(Builtins.u32_type_id, TypeKind::U32);
+        create_builtin_type(Builtins.u64_type_id, TypeKind::U64);
+        create_builtin_type(Builtins.f32_type_id, TypeKind::F32);
+        create_builtin_type(Builtins.f64_type_id, TypeKind::F64);
 
         // Finish bool type
         const StringId cast_id = StringPool::get().store("__cast");
@@ -112,7 +111,7 @@ namespace kepler {
         add_methods_to_builtin_number_type(Builtins.f64_type_id);
     }
 
-    void TypeTable::register_builtin_type(TypeId& type_id, TypeKind type_kind) {
+    void TypeTable::create_builtin_type(TypeId& type_id, TypeKind type_kind) {
         KPL_ASSERT_THAT(type_id == TypeId::invalid());
         type_id.value = static_cast<uint32_t>(types.size());
         StringId type_name_id = get_type_kind_name_id(type_kind);

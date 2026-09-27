@@ -35,46 +35,6 @@ namespace kepler {
         return nullptr;
     }
 
-    llvm::Type* get_llvm_type(const Type* type, llvm::LLVMContext& context) {
-        KPL_ASSERT_NOT_NULLPTR(type);
-        switch (type->type_kind) {
-            case TypeKind::Unknown:
-                KPL_ASSERT_UNREACHABLE("Cannot map 'unknown' type to llvm type");
-            case TypeKind::Void:
-                return llvm::Type::getVoidTy(context);
-            case TypeKind::Bool:
-                return llvm::Type::getInt1Ty(context);
-            case TypeKind::String:
-                // A string is internally represented as an immutable array of i8
-                // However, to get the llvm::Type* of that, the length of the array is needed
-                // That's why the type of a string is an i8* (since llvm uses opaque pointers, the pointer is not explicitly typed)
-                return llvm::PointerType::get(context, 0);
-            case TypeKind::I8:
-                return llvm::Type::getInt8Ty(context);
-            case TypeKind::I16:
-                return llvm::Type::getInt16Ty(context);
-            case TypeKind::I32:
-                return llvm::Type::getInt32Ty(context);
-            case TypeKind::I64:
-                return llvm::Type::getInt64Ty(context);
-            case TypeKind::U8:
-                return llvm::Type::getInt8Ty(context);
-            case TypeKind::U16:
-                return llvm::Type::getInt16Ty(context);
-            case TypeKind::U32:
-                return llvm::Type::getInt32Ty(context);
-            case TypeKind::U64:
-                return llvm::Type::getInt64Ty(context);
-            case TypeKind::F32:
-                return llvm::Type::getFloatTy(context);
-            case TypeKind::F64:
-                return llvm::Type::getDoubleTy(context);
-            case TypeKind::Struct:
-                KPL_ASSERT_THAT(false, "Not implemented");
-        }
-        KPL_ASSERT_UNREACHABLE("Missing llvm type mapping for type '{}'", *type);
-    }
-
     bool is_integer_type(const Type* type) {
         KPL_ASSERT_NOT_NULLPTR(type);
         switch (type->type_kind) {
@@ -325,7 +285,7 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing create greater equals implementation for type '{}'", *type);
     }
 
-    namespace {
+    /*namespace {
         llvm::Value* create_cast_to_bool(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
@@ -459,6 +419,6 @@ namespace kepler {
         }
 
         KPL_ASSERT_UNREACHABLE("Missing create cast implementation for target type '{}'", *target_type);
-    }
+    }*/
 
 }

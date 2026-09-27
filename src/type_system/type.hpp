@@ -16,7 +16,6 @@
 #include <limits>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
 #include <string_view>
@@ -76,7 +75,6 @@ namespace kepler {
         std::vector<StructTypeMember> members;
     };
 
-    llvm::Type* get_llvm_type(const Type* type, llvm::LLVMContext& context);
     bool is_integer_type(const Type* type);
     bool is_signed_integer_type(const Type* type);
     bool is_unsigned_integer_type(const Type* type);
