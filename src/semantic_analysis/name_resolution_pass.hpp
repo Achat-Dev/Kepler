@@ -33,6 +33,7 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -61,6 +62,7 @@ namespace kepler {
         void create_prototype_symbols(const AbstractSyntaxTree& ast, ModuleId module_id);
         void create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const;
 
+        void resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
         NameResolutionResult resolve_node(ASTNode* node) const;
         void resolve_extern(Extern* ext) const;

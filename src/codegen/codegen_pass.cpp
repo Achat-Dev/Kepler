@@ -28,6 +28,7 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "ast/struct.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/module.hpp"
@@ -85,6 +86,7 @@ namespace kepler {
                 KPL_ASSERT_THAT(emplaced);
                 current_llvm_module = it->second.get();
             }
+            forward_declare_structs(ast.struct_nodes);
             forward_declare_prototypes(ast.top_level_nodes);
         }
         current_llvm_module = nullptr;
@@ -93,6 +95,7 @@ namespace kepler {
         for (const AbstractSyntaxTree& ast : asts) {
             KPL_ASSERT_THAT(llvm_modules.contains(ast.module_statement->module_id));
             current_llvm_module = llvm_modules[ast.module_statement->module_id].get();
+            codegen_struct_bodies(ast.struct_nodes);
             codegen_nodes(ast.top_level_nodes);
         }
         current_llvm_module = nullptr;
@@ -163,6 +166,21 @@ namespace kepler {
         return is_named_main && returns_i32 && has_no_parameters;
     }
 
+    void CodegenPass::forward_declare_structs(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
+        for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
+            // TODO (fix): Don't mangle name if it's an extern once extern structs are implemented
+            KPL_ASSERT_NOT_NULLPTR(struct_node);
+            KPL_ASSERT_THAT(struct_node->identifier_id != StringId::invalid());
+            KPL_ASSERT_THAT(struct_node->type_id != TypeId::invalid());
+            const StringId mangled_identifier_id = create_mangled_identifier(struct_node->identifier_id);
+            const Type* type = type_table.lookup(struct_node->type_id);
+            llvm::StructType* llvm_type = llvm::StructType::create(context, StringPool::get().lookup(mangled_identifier_id));
+            KPL_ASSERT_THAT(!llvm_types.contains(struct_node->type_id));
+            const auto [it, emplaced] = llvm_types.emplace(struct_node->type_id, llvm_type);
+            KPL_ASSERT_THAT(emplaced);
+        }
+    }
+
     void CodegenPass::forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
         for (const std::unique_ptr<ASTNode>& node : nodes) {
             KPL_ASSERT_NOT_NULLPTR(node);
@@ -170,13 +188,13 @@ namespace kepler {
                 case ASTNodeType::Extern: {
                     const Extern* ext = static_cast<Extern*>(node.get());
                     KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-                    codegen_forward_declaration(ext->prototype.get(), ext->linkage_type, true);
+                    forward_declare_prototype(ext->prototype.get(), ext->linkage_type, true);
                     break;
                 }
                 case ASTNodeType::Function: {
                     const Function* function = static_cast<Function*>(node.get());
                     KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                    codegen_forward_declaration(function->prototype.get(), function->linkage_type, false);
+                    forward_declare_prototype(function->prototype.get(), function->linkage_type, false);
                     break;
                 }
                 default:
@@ -185,7 +203,7 @@ namespace kepler {
         }
     }
 
-    void CodegenPass::codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type, bool is_extern) {
+    void CodegenPass::forward_declare_prototype(const Prototype* prototype, LinkageType linkage_type, bool is_extern) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
@@ -233,6 +251,28 @@ namespace kepler {
 
         KPL_ASSERT_THAT(!llvm_values.contains(prototype->symbol_id));
         llvm_values[prototype->symbol_id] = function;
+    }
+
+    void CodegenPass::codegen_struct_bodies(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
+        for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
+            // TODO (fix): Structs can currently only have builtin types as members
+            KPL_ASSERT_NOT_NULLPTR(struct_node);
+            std::vector<llvm::Type*> member_types;
+            member_types.reserve(struct_node->members.size());
+            for (const StructMember& member : struct_node->members) {
+                KPL_ASSERT_THAT(member.type_id != TypeId::invalid());
+                const Type* type = type_table.lookup(member.type_id);
+                member_types.push_back(get_llvm_type(type, context));
+            }
+
+            KPL_ASSERT_THAT(llvm_types.contains(struct_node->type_id));
+            llvm::StructType* llvm_struct_type = llvm_types[struct_node->type_id];
+            llvm_struct_type->setBody(member_types, false);
+
+            // DEBUG: Create an instance of the struct because otherwise it won't be shown in the printed ir
+            llvm::Constant* zero_initializer = llvm::Constant::getNullValue(llvm_struct_type);
+            new llvm::GlobalVariable(*current_llvm_module, llvm_struct_type, false, llvm::GlobalValue::ExternalLinkage, zero_initializer);
+        }
     }
 
     void CodegenPass::codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {

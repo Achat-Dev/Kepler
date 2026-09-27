@@ -24,6 +24,7 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "ast/struct.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
@@ -79,6 +80,7 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
             KPL_ASSERT_THAT(ast.module_statement->module_id != ModuleId::invalid());
             module_id = ast.module_statement->module_id;
+            resolve_struct_members(ast.struct_nodes);
             resolve_nodes(ast.top_level_nodes);
         }
 
@@ -94,6 +96,7 @@ namespace kepler {
     void NameResolutionPass::create_struct_symbols_and_types(const AbstractSyntaxTree& ast, ModuleId module_id) {
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         for (const std::unique_ptr<Struct>& struct_node : ast.struct_nodes) {
+            KPL_ASSERT_THAT(struct_node->type_id == TypeId::invalid());
             const auto symbol_id = symbol_table.create_struct(module_id, struct_node->identifier_id);
             if (!symbol_id) {
                 const Diagnostic& diagnostic = symbol_id.error();
@@ -104,6 +107,7 @@ namespace kepler {
             const TypeId type_id = type_table.create_struct(struct_node->identifier_id, struct_node->members);
             Symbol* symbol = symbol_table.lookup(*symbol_id);
             symbol->type_id = type_id;
+            struct_node->type_id = type_id;
         }
     }
 
@@ -172,6 +176,22 @@ namespace kepler {
             prototype->node_type = ASTNodeType::Poison;
         } else {
             prototype->symbol_id = *symbol_id;
+        }
+    }
+
+    void NameResolutionPass::resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
+        for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
+            KPL_ASSERT_NOT_NULLPTR(struct_node);
+            for (StructMember& member : struct_node->members) {
+                KPL_ASSERT_THAT(member.type_identifier_id != StringId::invalid());
+                KPL_ASSERT_THAT(member.type_id == TypeId::invalid());
+                const std::optional<TypeId> type_id = resolve_identifier_to_type_id(member.type_identifier_id, member.type_source_location);
+                if (!type_id.has_value()) {
+                    struct_node->node_type = ASTNodeType::Poison;
+                    continue;
+                }
+                member.type_id = type_id.value();
+            }
         }
     }
 

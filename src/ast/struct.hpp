@@ -11,6 +11,7 @@
 
 #include "ast/ast_node.hpp"
 #include "diagnostics/source_location.hpp"
+#include "type_system/type.hpp"
 #include "utils/string_pool.hpp"
 #include <utility>
 #include <vector>
@@ -19,6 +20,7 @@ namespace kepler {
 
     struct StructMember {
         StringId type_identifier_id;
+        TypeId type_id;
         StringId identifier_id;
         SourceLocation type_source_location;
         SourceLocation identifier_source_location;
@@ -26,6 +28,7 @@ namespace kepler {
 
     struct Struct : ExportableNode {
         StringId identifier_id;
+        TypeId type_id;
         std::vector<StructMember> members;
 
         Struct(StringId identifier_id, std::vector<StructMember> members, LinkageType linkage_type, SourceLocation source_location)

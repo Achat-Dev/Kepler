@@ -12,6 +12,7 @@
 #include "utils/string_pool.hpp"
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <limits>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -112,5 +113,12 @@ struct std::formatter<kepler::Type> : std::formatter<std::string> {
     auto format(const kepler::Type& type, std::format_context& ctx) const {
         const std::string_view type_name = kepler::StringPool::get().lookup(type.identifier_id);
         return std::formatter<std::string>::format(std::format("{}", type_name), ctx);
+    }
+};
+
+template <>
+struct std::hash<kepler::TypeId> {
+    size_t operator()(const kepler::TypeId& id) const noexcept {
+        return hash<uint32_t>{}(id.value);
     }
 };

@@ -28,14 +28,17 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "ast/struct.hpp"
 #include "codegen/optimizer.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
+#include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
 #include "llvm/Target/TargetMachine.h"
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
@@ -84,6 +87,7 @@ namespace kepler {
         llvm::Module* current_llvm_module = nullptr;
         std::vector<std::vector<SymbolId>> symbol_id_scopes;
         std::unordered_map<SymbolId, llvm::Value*> llvm_values;
+        std::unordered_map<TypeId, llvm::StructType*> llvm_types;
         bool main_method_found = false;
 
         void open_scope();
@@ -91,8 +95,10 @@ namespace kepler {
         StringId create_mangled_identifier(StringId identifier_id) const;
         bool is_main_method(const Prototype* prototype) const;
 
+        void forward_declare_structs(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         void forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
-        void codegen_forward_declaration(const Prototype* prototype, LinkageType linkage_type, bool is_extern);
+        void forward_declare_prototype(const Prototype* prototype, LinkageType linkage_type, bool is_extern);
+        void codegen_struct_bodies(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         void codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
         CodegenResult codegen_node(const ASTNode* node);
         void codegen_function(const Function* function);
