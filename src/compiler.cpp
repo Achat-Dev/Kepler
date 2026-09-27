@@ -276,8 +276,6 @@ namespace kepler {
         // clang-format on
         KPL_ASSERT_THAT(!asts.empty());
         KPL_ASSERT_NOT_NULLPTR(target_machine);
-        ReturnCheckPass return_check_pass(diagnostic_sink, type_table);
-        return_check_pass.run(asts);
         ModuleCreationPass module_creation_pass(diagnostic_sink, symbol_table, type_table);
         module_creation_pass.run(asts);
         NameResolutionPass name_resolution_pass(diagnostic_sink, symbol_table, type_table);
@@ -285,7 +283,15 @@ namespace kepler {
         TypeCheckPass type_check_pass(diagnostic_sink, symbol_table, type_table);
         type_check_pass.run(asts);
 
-        // Print diagnostics and abort if any of the passes encountered errors
+        if (diagnostic_sink.get_error_count() > 0) {
+            diagnostic_sink.flush();
+            return std::nullopt;
+        }
+
+        // Check for missing return statements after it's guaranteed that all functions are well formed
+        ReturnCheckPass return_check_pass(diagnostic_sink, type_table);
+        return_check_pass.run(asts);
+
         if (diagnostic_sink.get_error_count() > 0) {
             diagnostic_sink.flush();
             return std::nullopt;
