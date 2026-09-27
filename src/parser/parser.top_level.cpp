@@ -72,6 +72,7 @@ namespace kepler {
             std::move(parse_result->source_location));
     }
 
+    // TODO (improvement): Maybe don't allow newlines between submodule identifiers
     std::optional<ModuleIdentifierParseResult> Parser::parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message) {
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
@@ -315,6 +316,8 @@ namespace kepler {
         }
         // Function definition
         else if (current_token->type == TokenType::BracketOpen) {
+            previous_token(true); // Go back to identifier
+            previous_token(true); // Go back to type
             return parse_function(linkage_type);
         }
 
@@ -327,12 +330,11 @@ namespace kepler {
 
     std::unique_ptr<Function> Parser::parse_function(LinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token: '{}', received: '{}'", TokenType::BracketOpen, current_token->type);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Type, "Required token: '{}', received: '{}'", TokenType::Type, current_token->type);
         KPL_ASSERT_THAT(!current_function_return_type_id.has_value());
-        // Current token is '(', so go back by two (identifier and return type) so the prototype of the function can be parsed
-        previous_token(true);
+        next_token(true); // eat type
         const Token* identifier_token = current_token;
-        previous_token(true);
+        previous_token(true); // Go back to type for parsing prototype
         std::unique_ptr<Prototype> prototype = parse_prototype();
         if (current_token->type == TokenType::End) {
             next_token(true); // eat 'end'
