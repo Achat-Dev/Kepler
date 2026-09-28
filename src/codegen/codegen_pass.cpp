@@ -19,6 +19,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
 #include "ast/function.hpp"
@@ -302,9 +303,9 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             std::vector<llvm::Type*> member_types;
             member_types.reserve(struct_node->members.size());
-            for (const StructMember& member : struct_node->members) {
-                KPL_ASSERT_THAT(member.type_id != TypeId::invalid());
-                member_types.push_back(get_llvm_type(member.type_id));
+            for (const StructMemberData& member_data : struct_node->members) {
+                KPL_ASSERT_THAT(member_data.type_id != TypeId::invalid());
+                member_types.push_back(get_llvm_type(member_data.type_id));
             }
 
             KPL_ASSERT_THAT(struct_node->type_id != TypeId::invalid());
@@ -312,10 +313,6 @@ namespace kepler {
             KPL_ASSERT_THAT(llvm::isa<llvm::StructType>(llvm_type));
             llvm::StructType* llvm_struct_type = llvm::cast<llvm::StructType>(llvm_type);
             llvm_struct_type->setBody(member_types, false);
-
-            // DEBUG: Create an instance of the struct because otherwise it won't be shown in the printed ir
-            llvm::Constant* zero_initializer = llvm::Constant::getNullValue(llvm_struct_type);
-            new llvm::GlobalVariable(*current_llvm_module, llvm_struct_type, false, llvm::GlobalValue::ExternalLinkage, zero_initializer);
         }
     }
 
@@ -370,6 +367,8 @@ namespace kepler {
                 return codegen_cast_expression(static_cast<const CastExpression*>(node));
             case ASTNodeType::MathematicalNegationExpression:
                 return codegen_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node));
+            case ASTNodeType::ObjectInitializerExpression:
+                return codegen_object_initializer_expression(static_cast<const ObjectInitializerExpression*>(node));
             case ASTNodeType::VariableExpression:
                 return codegen_variable_expression(static_cast<const VariableExpression*>(node));
         }
@@ -799,6 +798,33 @@ namespace kepler {
             return {.llvm_value = builder.CreateFNeg(codegen_result.llvm_value), .returns = false};
         }
         KPL_ASSERT_UNREACHABLE("Missing create mathematical negation implementation for type '{}'", *target_type);
+    }
+
+    CodegenResult CodegenPass::codegen_object_initializer_expression(const ObjectInitializerExpression* expression) {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(expression->type_id != type_table.Builtins.unknown_type_id);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(llvm_types.contains(expression->type_id));
+        const Type* type = type_table.lookup(expression->type_id);
+        KPL_ASSERT_THAT(type->type_kind == TypeKind::Struct);
+        const StructType* struct_type = static_cast<const StructType*>(type);
+
+        llvm::Type* llvm_type = llvm_types[expression->type_id];
+        KPL_ASSERT_THAT(llvm::isa<llvm::StructType>(llvm_type));
+        llvm::StructType* llvm_struct_type = llvm::cast<llvm::StructType>(llvm_type);
+
+        llvm::Value* llvm_value = llvm::Constant::getNullValue(llvm_struct_type);
+        for (const MemberInitializerData& member_initializer_data : expression->member_initializers) {
+            KPL_ASSERT_NOT_NULLPTR(member_initializer_data.value_expression);
+            KPL_ASSERT_THAT(member_initializer_data.identifier_id != StringId::invalid());
+            KPL_ASSERT_THAT(member_initializer_data.value_expression->node_type != ASTNodeType::Poison);
+            const CodegenResult codegen_result = codegen_node(member_initializer_data.value_expression.get());
+            KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
+            const uint32_t field_index = struct_type->get_member_index(member_initializer_data.identifier_id);
+            llvm_value = builder.CreateInsertValue(llvm_value, codegen_result.llvm_value, {field_index});
+        }
+        return {.llvm_value = llvm_value, .returns = false};
     }
 
     CodegenResult CodegenPass::codegen_variable_expression(const VariableExpression* expression) {

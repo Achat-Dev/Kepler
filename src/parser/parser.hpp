@@ -15,6 +15,7 @@
 #include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/extern.hpp"
 #include "ast/function.hpp"
 #include "ast/prototype.hpp"
@@ -94,6 +95,7 @@ namespace kepler {
         std::unique_ptr<Expression> parse_identifier();
         std::unique_ptr<CallExpression> parse_call();
         std::unique_ptr<MathematicalNegationExpression> parse_negative();
+        std::unique_ptr<ObjectInitializerExpression> parse_object_initializer();
         std::unique_ptr<CastExpression> parse_cast();
 
         // Statements

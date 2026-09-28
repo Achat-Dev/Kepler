@@ -16,6 +16,7 @@
 #include "ast/expressions/call_expression.hpp"
 #include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
 #include "ast/function.hpp"
@@ -77,6 +78,7 @@ namespace kepler {
         NameResolutionResult resolve_call_expression(CallExpression* expression) const;
         NameResolutionResult resolve_cast_expression(CastExpression* expression) const;
         NameResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
+        NameResolutionResult resolve_object_initializer_expression(ObjectInitializerExpression* expression) const;
         NameResolutionResult resolve_variable_expression(VariableExpression* expression) const;
 
         std::optional<TypeId> resolve_identifier_to_type_id(StringId type_identifier_id, SourceLocation source_location) const;

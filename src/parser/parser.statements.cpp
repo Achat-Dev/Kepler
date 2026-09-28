@@ -80,7 +80,7 @@ namespace kepler {
         next_token(true); // eat '='
         std::unique_ptr<Expression> value_expression = parse_expression();
         if (!value_expression) {
-            return nullptr; // parse_expression alredy recovered, so no need to recover here
+            return nullptr;
         }
 
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
@@ -406,7 +406,7 @@ namespace kepler {
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
-        previous_token(true); // Go back so the assignemtn can be parsed
+        previous_token(true); // Go back so the assignment can be parsed
         std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment();
         if (!assignment_statement) {
             return nullptr; // parse_assignment already recovered, so no need to recover here

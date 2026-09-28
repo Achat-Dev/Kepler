@@ -12,6 +12,7 @@
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <format>
@@ -38,6 +39,26 @@ namespace kepler {
             }
         }
         return nullptr;
+    }
+
+    const StructTypeMember* StructType::find_member(StringId identifier_id) const {
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        for (const StructTypeMember& member : members) {
+            if (member.identifier_id == identifier_id) {
+                return &member;
+            }
+        }
+        return nullptr;
+    }
+
+    uint32_t StructType::get_member_index(StringId identifier_id) const {
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        for (size_t i = 0; i < members.size(); i++) {
+            if (members[i].identifier_id == identifier_id) {
+                return i;
+            }
+        }
+        KPL_ASSERT_UNREACHABLE("Couldn't find an index mapping for struct member '{}'", StringPool::get().lookup(identifier_id));
     }
 
     StringId get_type_kind_name_id(TypeKind type_kind) {

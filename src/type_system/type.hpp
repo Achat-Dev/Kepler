@@ -21,6 +21,7 @@
 #include <llvm/IR/Value.h>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -76,6 +77,9 @@ namespace kepler {
 
     struct StructType : Type {
         std::vector<StructTypeMember> members;
+
+        const StructTypeMember* find_member(StringId identifier_id) const;
+        uint32_t get_member_index(StringId identifier_id) const;
     };
 
     StringId get_type_kind_name_id(TypeKind type_kind);

@@ -19,6 +19,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/function.hpp"
 #include "ast/statements/assignment_statement.hpp"
@@ -135,6 +136,8 @@ namespace kepler {
                 return typecheck_cast_expression(static_cast<CastExpression*>(node), requested_type_id);
             case ASTNodeType::MathematicalNegationExpression:
                 return typecheck_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node), requested_type_id);
+            case ASTNodeType::ObjectInitializerExpression:
+                return typecheck_object_initializer_expression(static_cast<ObjectInitializerExpression*>(node), requested_type_id);
             case ASTNodeType::VariableExpression:
                 return typecheck_variable_expression(static_cast<VariableExpression*>(node), requested_type_id);
         }
@@ -172,7 +175,7 @@ namespace kepler {
         } else if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
             const Type* value_type = type_table.lookup(typecheck_result.type_id);
             const Type* variable_type = type_table.lookup(variable_symbol->type_id);
-            const std::string message = std::format("Type mismatch: cannot assign a value of type '{}' to a variable of type '{}'",
+            const std::string message = std::format("Type mismatch: Cannot assign a value of type '{}' to a variable of type '{}'",
                 *value_type,
                 *variable_type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), statement->source_location);
@@ -305,7 +308,7 @@ namespace kepler {
         } else if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
             const Type* expression_type = type_table.lookup(typecheck_result.type_id);
             const Type* function_return_type = type_table.lookup(current_function_return_type_id);
-            const std::string message = std::format("Type mismatch: cannot return a value of type '{}' from a function with a return type of '{}'",
+            const std::string message = std::format("Type mismatch: Cannot return a value of type '{}' from a function with a return type of '{}'",
                 *expression_type,
                 *function_return_type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, message, statement->source_location);
@@ -770,6 +773,69 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type_id = typecheck_result.type_id};
         }
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = typecheck_result.type_id};
+    }
+
+    TypeCheckResult TypeCheckPass::typecheck_object_initializer_expression(ObjectInitializerExpression* expression, TypeId requested_type_id) {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->type_id != type_table.Builtins.unknown_type_id);
+        KPL_ASSERT_THAT(requested_type_id != TypeId::invalid());
+        TypeId target_type_id;
+        if (requested_type_id == type_table.Builtins.unknown_type_id) {
+            if (expression->type_id == TypeId::invalid()) {
+                diagnostic_sink.report(DiagnosticCode::AmbiguousObjectInitializer,
+                    "Can't clearly deduct which type the object initializer corresponds to. Specify the type explicitely in front of it (e. g. 'MyType{...}')",
+                    expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
+            }
+            target_type_id = expression->type_id;
+        } else {
+            if (expression->type_id != TypeId::invalid() && requested_type_id != expression->type_id) {
+                const Type* requested_type = type_table.lookup(requested_type_id);
+                const Type* object_type = type_table.lookup(expression->type_id);
+                const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", *requested_type, *object_type);
+                diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->type_source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = expression->type_id};
+            }
+            target_type_id = requested_type_id;
+        }
+
+        expression->type_id = target_type_id;
+        const Type* target_type = type_table.lookup(target_type_id);
+        KPL_ASSERT_THAT(target_type->type_kind == TypeKind::Struct);
+        const StructType* target_struct_type = static_cast<const StructType*>(target_type);
+        for (size_t i = 0; i < expression->member_initializers.size(); i++) {
+            const MemberInitializerData& member_initializer_data = expression->member_initializers[i];
+            const StructTypeMember* struct_type_member = target_struct_type->find_member(member_initializer_data.identifier_id);
+            if (struct_type_member == nullptr) {
+                const std::string message = std::format("Member '{}' doesn't exist in type '{}'",
+                    StringPool::get().lookup(member_initializer_data.identifier_id),
+                    *target_type);
+                diagnostic_sink.report(DiagnosticCode::UnknownMemberInInitializer, std::move(message), member_initializer_data.source_location);
+                expression->node_type = ASTNodeType::Poison;
+                continue;
+            }
+            const TypeCheckResult typecheck_result = typecheck_node(member_initializer_data.value_expression.get(), struct_type_member->type_id);
+            KPL_ASSERT_THAT(typecheck_result.type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(typecheck_result.type_id != type_table.Builtins.unknown_type_id);
+            if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
+                const Type* value_type = type_table.lookup(typecheck_result.type_id);
+                const Type* member_type = type_table.lookup(struct_type_member->type_id);
+                const std::string message = std::format("Type mismatch: Cannot assign value of type '{}' to member of type '{}'", *value_type, *member_type);
+                diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), member_initializer_data.value_expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                continue;
+            } else if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
+                expression->node_type = ASTNodeType::Poison;
+                continue;
+            }
+        }
+
+        if (expression->node_type == ASTNodeType::Poison) {
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = target_type_id};
+        }
+        return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = target_type_id};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_variable_expression(VariableExpression* expression, TypeId requested_type_id) const {

@@ -60,6 +60,8 @@ namespace kepler {
             case DiagnosticCode::MismatchingArgumentCount:
             case DiagnosticCode::IntegerLiteralOutOfBounds:
             case DiagnosticCode::UnsupportedMathematicalOperation:
+            case DiagnosticCode::AmbiguousObjectInitializer:
+            case DiagnosticCode::UnknownMemberInInitializer:
             case DiagnosticCode::MultipleMainMethods:
                 return DiagnosticSeverity::Error;
 

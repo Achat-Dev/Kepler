@@ -8,6 +8,7 @@
  */
 
 #include "type_system/type_table.hpp"
+#include "ast/struct.hpp"
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
@@ -28,11 +29,30 @@ namespace kepler {
         }
     }
 
-    TypeId TypeTable::create_struct(StringId identifier_id, std::vector<StructMember> members) {
+    TypeId TypeTable::create_struct(StringId identifier_id) {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         const TypeId type_id{.value = static_cast<uint32_t>(types.size())};
+        std::vector<StructTypeMember> struct_type_members;
         types.push_back(allocator.allocate<StructType>(type_id, TypeKind::Struct, identifier_id, std::vector<Method>{}, std::vector<StructTypeMember>{}));
         return type_id;
+    }
+
+    void TypeTable::create_struct_members(TypeId struct_type_id, const std::vector<StructMemberData>& members) {
+        KPL_ASSERT_THAT(struct_type_id.value < types.size(), "Type count: {}, received id: {}", types.size(), struct_type_id.value);
+        KPL_ASSERT_THAT(struct_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(struct_type_id != Builtins.unknown_type_id);
+        std::vector<StructTypeMember> struct_type_members;
+        for (const StructMemberData& member_data : members) {
+            KPL_ASSERT_THAT(member_data.identifier_id != StringId::invalid());
+            KPL_ASSERT_THAT(member_data.type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(member_data.type_id != Builtins.unknown_type_id);
+            struct_type_members.push_back({.type_id = member_data.type_id, .identifier_id = member_data.identifier_id});
+        }
+        Type* type = types[struct_type_id.value];
+        KPL_ASSERT_THAT(type->type_kind == TypeKind::Struct);
+        StructType* struct_type = static_cast<StructType*>(type);
+        KPL_ASSERT_THAT(struct_type->members.empty());
+        struct_type->members = std::move(struct_type_members);
     }
 
     Type* TypeTable::lookup(TypeId type_id) {

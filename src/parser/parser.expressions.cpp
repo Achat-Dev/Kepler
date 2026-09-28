@@ -17,6 +17,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
@@ -118,8 +119,16 @@ namespace kepler {
     std::unique_ptr<Expression> Parser::parse_primary() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         switch (current_token->type) {
-            case TokenType::Identifier:
-                return parse_identifier();
+            case TokenType::Identifier: {
+                next_token(true); // eat identifier
+                const TokenType next_token_type = current_token->type;
+                previous_token(true);
+                if (next_token_type == TokenType::CurlyBracketOpen) {
+                    return parse_object_initializer();
+                } else {
+                    return parse_identifier();
+                }
+            }
             case TokenType::Operator:
                 KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
                 if (std::get<OperatorType>(current_token->data) == OperatorType::Minus) {
@@ -130,6 +139,8 @@ namespace kepler {
                 return parse_literal();
             case TokenType::BracketOpen:
                 return parse_parenthesis();
+            case TokenType::CurlyBracketOpen:
+                return parse_object_initializer();
             default:
                 break;
         }
@@ -323,6 +334,91 @@ namespace kepler {
             return nullptr;
         }
         return std::make_unique<MathematicalNegationExpression>(std::move(expression), source_location);
+    }
+
+    std::unique_ptr<ObjectInitializerExpression> Parser::parse_object_initializer() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        StringId type_identifier_id;
+        SourceLocation type_source_location;
+        if (current_token->type == TokenType::Identifier) {
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+            type_identifier_id = std::get<StringId>(current_token->data);
+            type_source_location = current_token->source_location;
+            next_token(true); // eat type identifier
+        }
+        KPL_ASSERT_THAT(current_token->type == TokenType::CurlyBracketOpen, "Required token: '{}', received: '{}'",
+            TokenType::CurlyBracketOpen,
+            current_token->type);
+        const SourceLocation& initializer_source_location = current_token->source_location;
+        next_token(true); // eat '{'
+        // The same check is done later on at the start of the while loop, but do it here again for a better diagnostic
+        if (current_token->type != TokenType::Identifier && current_token->type != TokenType::CurlyBracketClose) {
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                "Expected identifier or '}' after '{' in object initializer",
+                current_token->source_location);
+            recover(SynchronizationSet<TokenType::CurlyBracketClose>{}, SynchronizationSet<TokenType::CurlyBracketClose>{});
+            return nullptr;
+        }
+
+        std::vector<MemberInitializerData> member_initializers;
+        while (current_token->type != TokenType::CurlyBracketClose) {
+            if (current_token->type != TokenType::Identifier) {
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                    "Expected identifier or '}' after ',' in object initializer",
+                    current_token->source_location);
+                recover(SynchronizationSet<TokenType::CurlyBracketClose>{}, SynchronizationSet<TokenType::CurlyBracketClose>{});
+                return nullptr;
+            }
+            const Token* member_identifier_token = current_token;
+            next_token(true); // eat identifier
+
+            if (current_token->type != TokenType::Colon) {
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                    "Expected ':' after identifier in object initializer",
+                    current_token->source_location);
+                recover(SynchronizationSet<TokenType::CurlyBracketClose>{}, SynchronizationSet<TokenType::CurlyBracketClose>{});
+                return nullptr;
+            }
+            next_token(true); // eat ':'
+            // Check for a closing curly bracket for a better diagnostic
+            if (current_token->type == TokenType::CurlyBracketClose) {
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                    "Expected value after ':' in object initializer",
+                    current_token->source_location);
+                next_token(true); // eat '}'
+                return nullptr;
+            }
+
+            std::unique_ptr<Expression> member_value_expression = parse_expression();
+            if (!member_value_expression) {
+                return nullptr;
+            }
+
+            if (current_token->type != TokenType::Comma && current_token->type != TokenType::CurlyBracketClose) {
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
+                    "Expected ',' or '}' after value in object initializer",
+                    current_token->source_location);
+                recover(SynchronizationSet<TokenType::CurlyBracketClose>{}, SynchronizationSet<TokenType::CurlyBracketClose>{});
+                return nullptr;
+            }
+            if (current_token->type == TokenType::Comma) {
+                next_token(true); // eat ','
+            }
+
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(member_identifier_token->data));
+            member_initializers.push_back({
+                .identifier_id = std::get<StringId>(member_identifier_token->data),
+                .source_location = member_identifier_token->source_location,
+                .value_expression = std::move(member_value_expression),
+            });
+        }
+
+        KPL_ASSERT_THAT(current_token->type == TokenType::CurlyBracketClose);
+        next_token(true); // eat '}'
+        return std::make_unique<ObjectInitializerExpression>(type_identifier_id,
+            std::move(member_initializers),
+            initializer_source_location,
+            std::move(type_source_location));
     }
 
     std::unique_ptr<CastExpression> Parser::parse_cast() {

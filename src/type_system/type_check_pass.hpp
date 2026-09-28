@@ -21,6 +21,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/function.hpp"
 #include "ast/statements/assignment_statement.hpp"
@@ -86,6 +87,7 @@ namespace kepler {
         TypeCheckResult typecheck_call_expression(CallExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_cast_expression(CastExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, TypeId requested_type_id);
+        TypeCheckResult typecheck_object_initializer_expression(ObjectInitializerExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_variable_expression(VariableExpression* expression, TypeId requested_type_id) const;
     };
 }

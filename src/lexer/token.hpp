@@ -26,6 +26,8 @@ namespace kepler {
         EndOfFile,
         BracketOpen,
         BracketClose,
+        CurlyBracketOpen,
+        CurlyBracketClose,
         Comma,
         Colon,
         DoubleColon,
@@ -89,6 +91,10 @@ struct std::formatter<kepler::TokenType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("(", ctx);
             case kepler::TokenType::BracketClose:
                 return std::formatter<std::string>::format(")", ctx);
+            case kepler::TokenType::CurlyBracketOpen:
+                return std::formatter<std::string>::format("{", ctx);
+            case kepler::TokenType::CurlyBracketClose:
+                return std::formatter<std::string>::format("}", ctx);
             case kepler::TokenType::Comma:
                 return std::formatter<std::string>::format(",", ctx);
             case kepler::TokenType::Colon:
@@ -141,6 +147,8 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
             case kepler::TokenType::EndOfFile:
             case kepler::TokenType::BracketOpen:
             case kepler::TokenType::BracketClose:
+            case kepler::TokenType::CurlyBracketOpen:
+            case kepler::TokenType::CurlyBracketClose:
             case kepler::TokenType::Comma:
             case kepler::TokenType::Colon:
             case kepler::TokenType::DoubleColon:

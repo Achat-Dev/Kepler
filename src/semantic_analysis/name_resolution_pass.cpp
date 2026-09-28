@@ -15,6 +15,7 @@
 #include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
 #include "ast/function.hpp"
@@ -105,7 +106,7 @@ namespace kepler {
                 struct_node->node_type = ASTNodeType::Poison;
                 continue;
             }
-            const TypeId type_id = type_table.create_struct(struct_node->identifier_id, struct_node->members);
+            const TypeId type_id = type_table.create_struct(struct_node->identifier_id);
             Symbol* symbol = symbol_table.lookup(*symbol_id);
             symbol->type_id = type_id;
             struct_node->type_id = type_id;
@@ -199,23 +200,27 @@ namespace kepler {
     void NameResolutionPass::resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
         for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
             KPL_ASSERT_NOT_NULLPTR(struct_node);
-            for (StructMember& member : struct_node->members) {
-                KPL_ASSERT_THAT(member.type_identifier_id != StringId::invalid());
-                KPL_ASSERT_THAT(member.type_id == TypeId::invalid());
-                const auto builtin_identifier = is_builtin_type_identifier(member.identifier_id, "as an identifier");
+            KPL_ASSERT_THAT(struct_node->type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(struct_node->type_id != type_table.Builtins.unknown_type_id);
+            // TODO (fix): Structs can currently have multiple members with the same name
+            for (StructMemberData& member_data : struct_node->members) {
+                KPL_ASSERT_THAT(member_data.type_identifier_id != StringId::invalid());
+                KPL_ASSERT_THAT(member_data.type_id == TypeId::invalid());
+                const auto builtin_identifier = is_builtin_type_identifier(member_data.identifier_id, "as an identifier");
                 if (!builtin_identifier.has_value()) {
                     const Diagnostic& diagnostic = builtin_identifier.error();
-                    diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), member.identifier_source_location);
+                    diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), member_data.identifier_source_location);
                     struct_node->node_type = ASTNodeType::Poison;
                     continue;
                 }
-                const std::optional<TypeId> type_id = resolve_identifier_to_type_id(member.type_identifier_id, member.type_source_location);
+                const std::optional<TypeId> type_id = resolve_identifier_to_type_id(member_data.type_identifier_id, member_data.type_source_location);
                 if (!type_id.has_value()) {
                     struct_node->node_type = ASTNodeType::Poison;
                     continue;
                 }
-                member.type_id = type_id.value();
+                member_data.type_id = type_id.value();
             }
+            type_table.create_struct_members(struct_node->type_id, struct_node->members);
         }
     }
 
@@ -273,6 +278,8 @@ namespace kepler {
                 return resolve_cast_expression(static_cast<CastExpression*>(node));
             case ASTNodeType::MathematicalNegationExpression:
                 return resolve_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node));
+            case ASTNodeType::ObjectInitializerExpression:
+                return resolve_object_initializer_expression(static_cast<ObjectInitializerExpression*>(node));
             case ASTNodeType::VariableExpression:
                 return resolve_variable_expression(static_cast<VariableExpression*>(node));
         }
@@ -514,19 +521,14 @@ namespace kepler {
             }
         }
 
-        bool poisoned = false;
         for (const std::unique_ptr<Expression>& arg : expression->args) {
             KPL_ASSERT_NOT_NULLPTR(arg);
             const NameResolutionResult resolution_result = resolve_node(arg.get());
             if (resolution_result.poisoned) {
-                poisoned = true;
+                expression->node_type = ASTNodeType::Poison;
             }
         }
-        if (poisoned) {
-            expression->node_type = ASTNodeType::Poison;
-            return {.poisoned = true};
-        }
-        return {.poisoned = false};
+        return {.poisoned = expression->node_type == ASTNodeType::Poison};
     }
 
     NameResolutionResult NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
@@ -560,6 +562,28 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
         }
         return resolution_result;
+    }
+
+    NameResolutionResult NameResolutionPass::resolve_object_initializer_expression(ObjectInitializerExpression* expression) const {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        if (expression->type_identifier_id != StringId::invalid()) {
+            const std::optional<TypeId> type_id = resolve_identifier_to_type_id(expression->type_identifier_id, expression->type_source_location);
+            if (!type_id.has_value()) {
+                expression->node_type = ASTNodeType::Poison;
+                return {.poisoned = true};
+            }
+            expression->type_id = type_id.value();
+        }
+
+        for (const MemberInitializerData& member_initializer_data : expression->member_initializers) {
+            KPL_ASSERT_NOT_NULLPTR(member_initializer_data.value_expression);
+            const NameResolutionResult resolution_result = resolve_node(member_initializer_data.value_expression.get());
+            if (resolution_result.poisoned) {
+                expression->node_type = ASTNodeType::Poison;
+            }
+        }
+        return {.poisoned = expression->node_type == ASTNodeType::Poison};
     }
 
     NameResolutionResult NameResolutionPass::resolve_variable_expression(VariableExpression* expression) const {

@@ -41,6 +41,7 @@ namespace kepler {
         CallExpression,
         CastExpression,
         MathematicalNegationExpression,
+        ObjectInitializerExpression,
         VariableExpression,
     };
 
@@ -118,6 +119,8 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("CastExpression", ctx);
             case kepler::ASTNodeType::MathematicalNegationExpression:
                 return std::formatter<std::string>::format("MathematicalNegationExpression", ctx);
+            case kepler::ASTNodeType::ObjectInitializerExpression:
+                return std::formatter<std::string>::format("ObjectInitializerExpression", ctx);
             case kepler::ASTNodeType::VariableExpression:
                 return std::formatter<std::string>::format("VariableExpression", ctx);
         }

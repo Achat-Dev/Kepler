@@ -20,6 +20,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
 #include "ast/function.hpp"
@@ -73,6 +74,7 @@ namespace kepler {
         void print_call_expression(const CallExpression* expression, const std::string& indent) const;
         void print_cast_expression(const CastExpression* expression, const std::string& indent) const;
         void print_mathematical_negation_expression(const MathematicalNegationExpression* expression, const std::string& indent) const;
+        void print_object_initializer_expression(const ObjectInitializerExpression* expression, std::string indent) const;
         void print_variable_expression(const VariableExpression* expression, const std::string& indent) const;
         void print_body(const NodeBody& body, const std::string& prefix, std::string indent, bool is_last) const;
     };

@@ -155,6 +155,18 @@ namespace kepler {
                     .type = TokenType::BracketClose,
                     .source_location = {file->id, position - 1, 1},
                 };
+            case '{':
+                next_char();
+                return Token{
+                    .type = TokenType::CurlyBracketOpen,
+                    .source_location = {file->id, position - 1, 1},
+                };
+            case '}':
+                next_char();
+                return Token{
+                    .type = TokenType::CurlyBracketClose,
+                    .source_location = {file->id, position - 1, 1},
+                };
             case '=':
                 next_char();
                 if (current_char == '=') {

@@ -38,7 +38,8 @@ namespace kepler {
         } Builtins{};
 
         explicit TypeTable(SymbolTable& symbol_table);
-        TypeId create_struct(StringId identifier_id, std::vector<StructMember> members);
+        TypeId create_struct(StringId identifier_id);
+        void create_struct_members(TypeId struct_type_id, const std::vector<StructMemberData>& members);
         Type* lookup(TypeId type_id);
 
     private:

@@ -68,6 +68,8 @@ namespace kepler {
         MismatchingArgumentCount,
         IntegerLiteralOutOfBounds,
         UnsupportedMathematicalOperation,
+        AmbiguousObjectInitializer,
+        UnknownMemberInInitializer,
         RedundantCast,
         MultipleMainMethods,
 

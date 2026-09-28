@@ -18,6 +18,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
 #include "ast/prototype.hpp"
@@ -203,6 +204,9 @@ namespace kepler {
                 return;
             case ASTNodeType::MathematicalNegationExpression:
                 print_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node), indent);
+                return;
+            case ASTNodeType::ObjectInitializerExpression:
+                print_object_initializer_expression(static_cast<const ObjectInitializerExpression*>(node), indent);
                 return;
             case ASTNodeType::VariableExpression:
                 print_variable_expression(static_cast<const VariableExpression*>(node), indent);
@@ -510,6 +514,42 @@ namespace kepler {
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
         print_node(expression->expression.get(), "", indent, true);
+    }
+
+    void ASTPrintPass::print_object_initializer_expression(const ObjectInitializerExpression* expression, std::string indent) const {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        if (expression->type_identifier_id != StringId::invalid()) {
+            if (expression->type_id == TypeId::invalid()) {
+                const std::string_view type_identifier = StringPool::get().lookup(expression->type_identifier_id);
+                std::println("{}{}Type: {}", indent, item_prefix, type_identifier);
+            } else {
+                std::println("{}{}Type: {}", indent, item_prefix, *type_table.lookup(expression->type_id));
+            }
+        } else {
+            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        }
+
+        if (expression->member_initializers.empty()) {
+            std::println("{}{}Members: {}None{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            std::println("{}{}Members:", indent, last_item_prefix);
+        }
+        indent += space;
+        for (size_t i = 0; i < expression->member_initializers.size(); i++) {
+            const MemberInitializerData& member_initializer_data = expression->member_initializers[i];
+            KPL_ASSERT_THAT(member_initializer_data.identifier_id != StringId::invalid());
+            KPL_ASSERT_NOT_NULLPTR(member_initializer_data.value_expression);
+            bool is_last = i == expression->member_initializers.size() - 1;
+            const std::string_view member_identifier = StringPool::get().lookup(member_initializer_data.identifier_id);
+            if (is_last) {
+                std::println("{}{}{}:", indent, last_item_prefix, member_identifier);
+                print_node(member_initializer_data.value_expression.get(), "", indent + space, true);
+            } else {
+                std::println("{}{}{}:", indent, item_prefix, member_identifier);
+                print_node(member_initializer_data.value_expression.get(), "", indent + vertical_line, true);
+            }
+        }
     }
 
     void ASTPrintPass::print_variable_expression(const VariableExpression* expression, const std::string& indent) const {
