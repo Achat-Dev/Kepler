@@ -42,22 +42,29 @@ namespace kepler {
                 return parse_for();
             case TokenType::Return:
                 return parse_return();
-            case TokenType::Identifier: {
-                next_token(true); // eat identifier
-                const TokenType next_token_type = current_token->type;
-                previous_token(true); // Go back to the things can be parsed and the correct diagnostic can be printed
-                if (next_token_type == TokenType::Identifier) {
-                    return parse_variable_definition();
-                } else if (next_token_type == TokenType::Assignment) {
-                    return parse_assignment();
-                } else if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
-                    return parse_call();
-                }
-                break;
-            }
-
+            case TokenType::Identifier:
+                return parse_identifier_statement();
             default:
                 break;
+        }
+
+        diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), current_token->source_location);
+        recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+        return nullptr;
+    }
+
+    std::unique_ptr<ASTNode> Parser::parse_identifier_statement() {
+        KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
+        next_token(true); // eat identifier
+        const TokenType next_token_type = current_token->type;
+        previous_token(true); // Go back so the things can be parsed and the correct diagnostic can be printed
+        if (next_token_type == TokenType::Identifier) {
+            return parse_variable_definition();
+        } else if (next_token_type == TokenType::Assignment) {
+            return parse_assignment();
+        } else if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
+            return parse_call();
         }
 
         diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), current_token->source_location);

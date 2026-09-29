@@ -119,16 +119,8 @@ namespace kepler {
     std::unique_ptr<Expression> Parser::parse_primary() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         switch (current_token->type) {
-            case TokenType::Identifier: {
-                next_token(true); // eat identifier
-                const TokenType next_token_type = current_token->type;
-                previous_token(true);
-                if (next_token_type == TokenType::CurlyBracketOpen) {
-                    return parse_object_initializer();
-                } else {
-                    return parse_identifier();
-                }
-            }
+            case TokenType::Identifier:
+                return parse_identifier_expression();
             case TokenType::Operator:
                 KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
                 if (std::get<OperatorType>(current_token->data) == OperatorType::Minus) {
@@ -150,16 +142,22 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<Expression> Parser::parse_identifier() {
+    std::unique_ptr<Expression> Parser::parse_identifier_expression() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
-        const Token* identifier_token = current_token;
         next_token(true); // eat identifier
-        if (current_token->type == TokenType::BracketOpen || current_token->type == TokenType::DoubleColon) {
-            previous_token(true);
+        const TokenType next_token_type = current_token->type;
+        previous_token(true); // Go back so the things can be parsed and the correct diagnostic can be printed
+        if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
             return parse_call();
+        } else if (next_token_type == TokenType::Dot) {
+            KPL_ASSERT_UNREACHABLE("Not implemented");
+        } else if (next_token_type == TokenType::CurlyBracketOpen) {
+            return parse_object_initializer();
         }
 
+        const Token* identifier_token = current_token;
+        next_token(true); // eat identifier
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location);
@@ -305,7 +303,7 @@ namespace kepler {
         std::unique_ptr<Expression> expression = nullptr;
         switch (current_token->type) {
             case TokenType::Identifier:
-                expression = parse_identifier();
+                expression = parse_identifier_expression();
                 break;
             case TokenType::BracketOpen:
                 expression = parse_parenthesis();
