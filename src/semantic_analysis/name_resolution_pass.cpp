@@ -35,6 +35,7 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <expected>
@@ -476,7 +477,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         std::expected<Symbol*, Diagnostic> prototype_symbol;
-        if (expression->module_path.part_identifier_ids.empty()) {
+        if (expression->module_path.identifier_parts.empty()) {
             prototype_symbol = symbol_table.find_symbol(module_id, expression->identifier_id);
             if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
                 const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
@@ -487,10 +488,10 @@ namespace kepler {
         } else {
             prototype_symbol = symbol_table.find_symbol(module_id, expression->module_path, expression->identifier_id);
             if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
-                KPL_ASSERT_THAT(expression->module_source_location.file_id != FileId::invalid());
-                KPL_ASSERT_THAT(expression->module_source_location.size > 0);
-                const std::string message = std::format("Unknown module '{}'", get_full_module_identifier(expression->module_path));
-                diagnostic_sink.report(DiagnosticCode::UnknownModule, std::move(message), expression->module_source_location);
+                KPL_ASSERT_THAT(expression->module_path.source_location.file_id != FileId::invalid());
+                KPL_ASSERT_THAT(expression->module_path.source_location.size > 0);
+                const std::string message = std::format("Unknown module '{}'", get_full_identifier_from_path(expression->module_path));
+                diagnostic_sink.report(DiagnosticCode::UnknownModule, std::move(message), expression->module_path.source_location);
                 expression->node_type = ASTNodeType::Poison;
                 return {.poisoned = true};
             }

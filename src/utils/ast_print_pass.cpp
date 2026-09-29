@@ -30,11 +30,11 @@
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
 #include "ast/struct.hpp"
-#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "utils/ansi_codes.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include "utils/string_utils.hpp"
 #include <cstddef>
@@ -55,7 +55,7 @@ namespace kepler {
             // but there currently is no access to the corresponding file from an ast
             KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
             // Print header
-            std::string module_identifier(get_full_module_identifier(ast.module_statement->module_path));
+            std::string module_identifier(get_full_identifier_from_path(ast.module_statement->module_path));
             const size_t title_size = title.size();
             const size_t module_identifier_size = module_identifier.size();
             size_t header_size = 0;
@@ -76,7 +76,7 @@ namespace kepler {
             std::println("\u2514{}\u2518", horizontal_line);
 
             // Print module
-            std::println("{}Module: {}", item_prefix, get_full_module_identifier(ast.module_statement->module_path));
+            std::println("{}Module: {}", item_prefix, get_full_identifier_from_path(ast.module_statement->module_path));
 
             // Print imports
             if (ast.import_statements.empty()) {
@@ -86,9 +86,15 @@ namespace kepler {
                 for (size_t i = 0; i < ast.import_statements.size(); i++) {
                     KPL_ASSERT_NOT_NULLPTR(ast.import_statements[i]);
                     if (i == ast.import_statements.size() - 1) {
-                        std::println("{}{}{}", vertical_line, last_item_prefix, get_full_module_identifier(ast.import_statements[i]->module_path));
+                        std::println("{}{}{}",
+                            vertical_line,
+                            last_item_prefix,
+                            get_full_identifier_from_path(ast.import_statements[i]->module_path));
                     } else {
-                        std::println("{}{}{}", vertical_line, item_prefix, get_full_module_identifier(ast.import_statements[i]->module_path));
+                        std::println("{}{}{}",
+                            vertical_line,
+                            item_prefix,
+                            get_full_identifier_from_path(ast.import_statements[i]->module_path));
                     }
                 }
             }
@@ -455,10 +461,10 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-        if (expression->module_path.part_identifier_ids.empty()) {
+        if (expression->module_path.identifier_parts.empty()) {
             std::println("{}{}Module path: {}Empty{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            std::println("{}{}Module path: {}", indent, item_prefix, get_full_module_identifier(expression->module_path));
+            std::println("{}{}Module path: {}", indent, item_prefix, get_full_identifier_from_path(expression->module_path));
         }
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
 

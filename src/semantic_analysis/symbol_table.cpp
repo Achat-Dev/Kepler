@@ -15,6 +15,7 @@
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -35,12 +36,12 @@ namespace kepler {
         modules.push_back({.id = {.value = 0}, .full_identifier_id = StringPool::get().store("__global")});
     }
 
-    ModuleId SymbolTable::create_module(const ModulePath& module_path) {
-        KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
+    ModuleId SymbolTable::create_module(const IdentifierPath& module_path) {
+        KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         Module* module = get_global_module();
         // Walk the module path and create all missing modules along the way
-        for (size_t i = 0; i < module_path.part_identifier_ids.size(); i++) {
-            const StringId part_identifier_id = module_path.part_identifier_ids[i];
+        for (size_t i = 0; i < module_path.identifier_parts.size(); i++) {
+            const StringId part_identifier_id = module_path.identifier_parts[i].identifier_id;
             KPL_ASSERT_THAT(part_identifier_id != StringId::invalid());
             const auto it = module->submodule_ids.find(part_identifier_id);
             if (it == module->submodule_ids.end()) {
@@ -48,12 +49,15 @@ namespace kepler {
                 const auto [it, emplaced] = module->submodule_ids.emplace(part_identifier_id, submodule_id);
                 KPL_ASSERT_THAT(emplaced);
                 // Important: Do this last because otherwise the module pointer might be invalidated by the push
-                const auto it_begin = module_path.part_identifier_ids.begin();
+                const auto it_begin = module_path.identifier_parts.begin();
                 // +1 because i is the index and the vector creation needs the size
-                const ModulePath partial_module_path{.part_identifier_ids = std::vector<StringId>(it_begin, it_begin + i + 1)};
+                const IdentifierPath submodule_path{
+                    .identifier_parts = std::vector<IdentifierPathPart>(it_begin, it_begin + i + 1),
+                    .separator_id = module_path.separator_id,
+                };
                 modules.push_back({
                     .id = submodule_id,
-                    .full_identifier_id = StringPool::get().store(get_full_module_identifier(partial_module_path)),
+                    .full_identifier_id = StringPool::get().store(get_full_identifier_from_path(submodule_path)),
                 });
                 open_scope(submodule_id, ScopeType::File);
                 module = &modules[submodule_id.value];
@@ -65,14 +69,14 @@ namespace kepler {
         return module->id;
     }
 
-    std::expected<ModuleId, Diagnostic> SymbolTable::register_imported_module(ModuleId module_id, const ModulePath& imported_module_path) {
+    std::expected<ModuleId, Diagnostic> SymbolTable::register_imported_module(ModuleId module_id, const IdentifierPath& imported_module_path) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_THAT(!imported_module_path.part_identifier_ids.empty());
+        KPL_ASSERT_THAT(!imported_module_path.identifier_parts.empty());
         Module* imported_module = find_module(get_global_module(), imported_module_path);
         if (imported_module == nullptr) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::UnknownModule,
-                .message = std::format("Unknown imported module '{}'", get_full_module_identifier(imported_module_path)),
+                .message = std::format("Unknown imported module '{}'", get_full_identifier_from_path(imported_module_path)),
             });
         }
 
@@ -140,9 +144,9 @@ namespace kepler {
         return find_symbol(module_id, identifier_id, false, true);
     }
 
-    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const ModulePath& module_path, StringId identifier_id) {
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
+        KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         std::vector<Module*> found_modules;
         Module* fully_qualified_module = find_module(get_global_module(), module_path);
@@ -170,7 +174,7 @@ namespace kepler {
             }
         } else {
             std::string message = std::format("Module path '{}' is a submodule of multiple imported modules (",
-                get_full_module_identifier(module_path));
+                get_full_identifier_from_path(module_path));
             for (size_t i = 0; i < found_modules.size(); i++) {
                 message += '\'' + std::string(StringPool::get().lookup(found_modules[i]->full_identifier_id)) + '\'';
                 if (i == found_modules.size() - 1) {
@@ -346,13 +350,13 @@ namespace kepler {
         return symbol_id;
     }
 
-    Module* SymbolTable::find_module(Module* parent_module, const ModulePath& module_path) {
+    Module* SymbolTable::find_module(Module* parent_module, const IdentifierPath& module_path) {
         KPL_ASSERT_NOT_NULLPTR(parent_module);
-        KPL_ASSERT_THAT(!module_path.part_identifier_ids.empty());
+        KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         Module* result = parent_module;
-        for (StringId part_identifier_id : module_path.part_identifier_ids) {
-            KPL_ASSERT_THAT(part_identifier_id != StringId::invalid());
-            const auto it = result->submodule_ids.find(part_identifier_id);
+        for (const IdentifierPathPart& identifier_part : module_path.identifier_parts) {
+            KPL_ASSERT_THAT(identifier_part.identifier_id != StringId::invalid());
+            const auto it = result->submodule_ids.find(identifier_part.identifier_id);
             if (it == result->submodule_ids.end()) {
                 return nullptr;
             } else {

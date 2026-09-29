@@ -13,15 +13,16 @@
 #include "ast/statements/statement.hpp"
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
+#include "utils/identifier_path.hpp"
 #include <utility>
 
 namespace kepler {
 
     struct ModuleStatement : Statement {
         ModuleId module_id;
-        ModulePath module_path;
+        IdentifierPath module_path;
 
-        ModuleStatement(ModulePath module_path, SourceLocation source_location)
+        ModuleStatement(IdentifierPath module_path, SourceLocation source_location)
             : Statement(ASTNodeType::ModuleStatement, std::move(source_location)),
               module_path(std::move(module_path)) {}
     };

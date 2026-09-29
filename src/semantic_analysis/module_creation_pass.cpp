@@ -14,7 +14,7 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
 #include "utils/assert.h"
-#include "utils/string_pool.hpp"
+#include "utils/identifier_path.hpp"
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -29,7 +29,7 @@ namespace kepler {
         // Create modules
         for (AbstractSyntaxTree& ast : asts) {
             KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
-            KPL_ASSERT_THAT(!ast.module_statement->module_path.part_identifier_ids.empty());
+            KPL_ASSERT_THAT(!ast.module_statement->module_path.identifier_parts.empty());
             KPL_ASSERT_THAT(ast.module_statement->module_id == ModuleId::invalid());
             const ModuleId module_id = symbol_table.create_module(ast.module_statement->module_path);
             ast.module_statement->module_id = module_id;
@@ -37,12 +37,12 @@ namespace kepler {
 
         // Register imported modules
         for (AbstractSyntaxTree& ast : asts) {
-            const std::vector<StringId>& module_part_identifier_ids = ast.module_statement->module_path.part_identifier_ids;
-            std::vector<std::vector<StringId>> parent_module_paths;
-            if (module_part_identifier_ids.size() > 1) {
-                for (size_t i = 0; i < module_part_identifier_ids.size() - 1; i++) {
+            const std::vector<IdentifierPathPart>& module_path_parts = ast.module_statement->module_path.identifier_parts;
+            std::vector<std::vector<IdentifierPathPart>> parent_module_paths;
+            if (module_path_parts.size() > 1) {
+                for (size_t i = 0; i < module_path_parts.size() - 1; i++) {
                     // +1 because i is the index and the vector creation needs the size
-                    parent_module_paths.push_back(std::vector<StringId>(module_part_identifier_ids.begin(), module_part_identifier_ids.begin() + i + 1));
+                    parent_module_paths.push_back(std::vector<IdentifierPathPart>(module_path_parts.begin(), module_path_parts.begin() + i + 1));
                 }
             }
 
@@ -51,13 +51,13 @@ namespace kepler {
             for (size_t i = 0; i < ast.import_statements.size(); i++) {
                 const std::unique_ptr<ImportStatement>& import_statement = ast.import_statements[i];
                 KPL_ASSERT_NOT_NULLPTR(import_statement);
-                KPL_ASSERT_THAT(!import_statement->module_path.part_identifier_ids.empty());
+                KPL_ASSERT_THAT(!import_statement->module_path.identifier_parts.empty());
                 bool is_implicit_import = false;
-                for (const std::vector<StringId>& parent_module_path : parent_module_paths) {
-                    if (parent_module_path == import_statement->module_path.part_identifier_ids) {
+                for (const std::vector<IdentifierPathPart>& parent_module_path_parts : parent_module_paths) {
+                    if (parent_module_path_parts == import_statement->module_path.identifier_parts) {
                         const std::string message = std::format("Module '{}' is implicitely imported because it's a parent module of '{}'. The explicit import is discarded, but consider removing it.",
-                            get_full_module_identifier(import_statement->module_path),
-                            get_full_module_identifier(ast.module_statement->module_path));
+                            get_full_identifier_from_path(import_statement->module_path),
+                            get_full_identifier_from_path(ast.module_statement->module_path));
                         diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), import_statement->source_location);
                         import_indices_to_remove.push_back(i);
                         is_implicit_import = true;
@@ -82,7 +82,7 @@ namespace kepler {
             // Register implicit imports
             for (size_t i = 1; i < parent_module_paths.size(); i++) {
                 const auto module_id = symbol_table.register_imported_module(ast.module_statement->module_id,
-                    {.part_identifier_ids = std::move(parent_module_paths[i])});
+                    {.identifier_parts = std::move(parent_module_paths[i])});
                 KPL_ASSERT_THAT(module_id.has_value());
             }
         }

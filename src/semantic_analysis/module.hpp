@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -28,13 +27,6 @@ namespace kepler {
         static constexpr ModuleId invalid() { return ModuleId{}; }
     };
 
-    struct ModulePath {
-        std::vector<StringId> part_identifier_ids;
-
-        bool operator==(const ModulePath& other) const = default;
-        bool operator!=(const ModulePath& other) const = default;
-    };
-
     struct Module {
         ModuleId id;
         StringId full_identifier_id;
@@ -43,8 +35,6 @@ namespace kepler {
         std::unordered_map<StringId, ModuleId> submodule_ids;
         ScopeId current_scope_id;
     };
-
-    std::string get_full_module_identifier(const ModulePath& module_path);
 
 }
 

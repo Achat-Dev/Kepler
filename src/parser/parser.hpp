@@ -30,12 +30,11 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
-#include "semantic_analysis/module.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -44,9 +43,16 @@
 
 namespace kepler {
 
-    struct ModuleIdentifierParseResult {
-        ModulePath module_path;
-        SourceLocation source_location;
+    enum class IdentifierPathParseKind {
+        IncludeLastIdentifier,
+        ReturnLastIdentifierSeparately,
+        ReturnAtLastIdentifier,
+    };
+
+    struct IdentifierPathParseResult {
+        IdentifierPath identifier_path;
+        StringId last_identifier;
+        SourceLocation last_identifier_source_location;
     };
 
     // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
@@ -71,11 +77,13 @@ namespace kepler {
         void next_token(bool skip_newline);
         void previous_token(bool skip_newline);
         void jump_to_token(size_t index);
+        std::optional<IdentifierPathParseResult> parse_identifier_path(TokenType delimiter_token,
+            IdentifierPathParseKind path_return_kind,
+            const std::string& diagnostic_ending);
 
         // Top level
         std::unique_ptr<ModuleStatement> parse_module();
         std::unique_ptr<ImportStatement> parse_import();
-        std::optional<ModuleIdentifierParseResult> parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message);
         std::unique_ptr<ExportableNode> parse_export();
         std::unique_ptr<Extern> parse_extern(LinkageType linkage_type);
         std::unique_ptr<Prototype> parse_prototype();

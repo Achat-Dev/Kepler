@@ -40,6 +40,7 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
 #include "llvm/IR/Instruction.h"
@@ -117,7 +118,7 @@ namespace kepler {
             if (it != llvm_modules.end()) {
                 current_llvm_module = it->second.get();
             } else {
-                std::string module_identifier = get_full_module_identifier(ast.module_statement->module_path);
+                std::string module_identifier = get_full_identifier_from_path(ast.module_statement->module_path);
                 std::replace(module_identifier.begin(), module_identifier.end(), ':', '_');
                 const auto [it, emplaced] = llvm_modules.emplace(ast.module_statement->module_id,
                     std::make_unique<llvm::Module>(module_identifier, context));

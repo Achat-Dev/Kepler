@@ -21,7 +21,6 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/parser/parser.expressions.cpp
     src/parser/parser.statements.cpp
     src/parser/parser.top_level.cpp
-    src/semantic_analysis/module.cpp
     src/semantic_analysis/module_creation_pass.cpp
     src/semantic_analysis/name_resolution_pass.cpp
     src/semantic_analysis/return_check_pass.cpp
@@ -32,6 +31,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/utils/arena_allocator.cpp
     src/utils/ast_print_pass.cpp
     src/utils/cmd_parser.cpp
+    src/utils/identifier_path.cpp
     src/utils/string_utils.cpp
     src/utils/string_pool.cpp
     src/compiler.cpp

@@ -18,10 +18,8 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
-#include "type_system/type.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
-#include <cstdint>
 #include <format>
 #include <memory>
 #include <optional>
@@ -36,7 +34,7 @@ namespace kepler {
     std::unique_ptr<ModuleStatement> Parser::parse_module() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Module, "Required token: '{}', received: '{}'", TokenType::Module, current_token->type);
-        const uint32_t source_location_start_position = current_token->source_location.position;
+        const SourceLocation& module_source_location = current_token->source_location;
         next_token(true); // eat 'module' keyword
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'module'", current_token->source_location);
@@ -44,19 +42,19 @@ namespace kepler {
             return nullptr;
         }
 
-        const auto parse_result = parse_module_identifier(source_location_start_position, "module identifier");
-        if (!parse_result) {
+        const auto module_path_parse_result = parse_identifier_path(TokenType::DoubleColon,
+            IdentifierPathParseKind::IncludeLastIdentifier,
+            "in module path");
+        if (!module_path_parse_result.has_value()) {
             return nullptr;
         }
-        return std::make_unique<ModuleStatement>(
-            std::move(parse_result->module_path),
-            std::move(parse_result->source_location));
+        return std::make_unique<ModuleStatement>(std::move(module_path_parse_result.value().identifier_path), module_source_location);
     }
 
     std::unique_ptr<ImportStatement> Parser::parse_import() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Import, "Required token: '{}', received: '{}'", TokenType::Import, current_token->type);
-        const uint32_t source_location_start_position = current_token->source_location.position;
+        const SourceLocation& import_source_location = current_token->source_location;
         next_token(true); // eat 'import' keyword
         if (current_token->type != TokenType::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'import'", current_token->source_location);
@@ -64,57 +62,13 @@ namespace kepler {
             return nullptr;
         }
 
-        const auto parse_result = parse_module_identifier(source_location_start_position, "imported module identifier");
-        if (!parse_result) {
+        const auto module_path_parse_result = parse_identifier_path(TokenType::DoubleColon,
+            IdentifierPathParseKind::IncludeLastIdentifier,
+            "in imported module path");
+        if (!module_path_parse_result.has_value()) {
             return nullptr;
         }
-        return std::make_unique<ImportStatement>(
-            std::move(parse_result->module_path),
-            std::move(parse_result->source_location));
-    }
-
-    // TODO (improvement): Maybe don't allow newlines between submodule identifiers
-    std::optional<ModuleIdentifierParseResult> Parser::parse_module_identifier(uint32_t source_location_start_position, const std::string& diagnostic_message) {
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        std::vector<StringId> identifier_ids{
-            std::get<StringId>(current_token->data),
-        };
-        next_token(true); // eat identifier
-        while (current_token->type == TokenType::DoubleColon) {
-            next_token(true); // eat '::'
-            if (current_token->type != TokenType::Identifier) {
-                previous_token(true); // jump back to '::' because otherwise the next line will be skipped because of the recovery
-                diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-                    "Expected identifier after '::' in " + diagnostic_message,
-                    current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
-                return std::nullopt;
-            }
-            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            const StringId part_identifier_id = std::get<StringId>(current_token->data);
-            const auto builtin_identifier = is_builtin_type_identifier(part_identifier_id, "in a module path");
-            if (!builtin_identifier.has_value()) {
-                const Diagnostic& diagnostic = builtin_identifier.error();
-                diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
-                return std::nullopt;
-            }
-            identifier_ids.push_back(part_identifier_id);
-            next_token(true); // eat identifier
-        }
-
-        previous_token(true);
-        const SourceLocation source_location{
-            .file_id = current_token->source_location.file_id,
-            .position = source_location_start_position,
-            .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
-        };
-        next_token(true);
-        return ModuleIdentifierParseResult{
-            .module_path = {.part_identifier_ids = std::move(identifier_ids)},
-            .source_location = std::move(source_location),
-        };
+        return std::make_unique<ImportStatement>(std::move(module_path_parse_result.value().identifier_path), import_source_location);
     }
 
     std::unique_ptr<ExportableNode> Parser::parse_export() {

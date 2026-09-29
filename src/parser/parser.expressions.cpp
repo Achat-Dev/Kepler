@@ -23,8 +23,8 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
-#include "semantic_analysis/module.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -167,38 +167,23 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        const Token* identifier_token = current_token;
+        StringId identifier_id = std::get<StringId>(current_token->data);
+        SourceLocation identifier_source_location = current_token->source_location;
+        IdentifierPath module_path;
         next_token(true); // eat identifier
-        ModulePath module_path;
-        SourceLocation module_source_location;
         if (current_token->type == TokenType::DoubleColon) {
             previous_token(true); // Go back to the identifier to start the module identifier parsing
-            auto module_path_parse_result = parse_module_identifier(current_token->source_location.position, "function call");
-            if (!module_path_parse_result) {
+            auto module_path_parse_result = parse_identifier_path(TokenType::DoubleColon,
+                IdentifierPathParseKind::ReturnLastIdentifierSeparately,
+                "in function call");
+            if (!module_path_parse_result.has_value()) {
                 return nullptr;
             }
-
-            // The vector of the parse result contains the module and function identifier ids ({module, submodule, function})
-            // That's why we remove the last identifier id to only get the module path
-            const auto begin = module_path_parse_result->module_path.part_identifier_ids.begin();
-            const auto end = module_path_parse_result->module_path.part_identifier_ids.end();
-            module_path.part_identifier_ids = std::vector<StringId>(begin, end - 1);
-
-            // Calculate module source location
-            const size_t token_index_to_jump_to = current_token_index;
-            previous_token(true); // Go back to the last identifier, which is the name of the function
-            KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
-            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            identifier_token = current_token;
-            previous_token(true); // Go back to double_colon
-            previous_token(true); // Go back to last module path identifier id
-            const size_t end_position = current_token->source_location.position + current_token->source_location.size;
-            module_source_location.file_id = file->id;
-            module_source_location.position = module_path_parse_result->source_location.position;
-            module_source_location.size = end_position - module_path_parse_result->source_location.position;
-            jump_to_token(token_index_to_jump_to);
+            KPL_ASSERT_THAT(module_path_parse_result.value().last_identifier != StringId::invalid());
+            identifier_id = module_path_parse_result.value().last_identifier;
+            identifier_source_location = std::move(module_path_parse_result.value().last_identifier_source_location);
+            module_path = std::move(module_path_parse_result.value().identifier_path);
         }
-        const StringId identifier_id = std::get<StringId>(identifier_token->data);
 
         if (current_token->type != TokenType::BracketOpen) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after identifier for function call", current_token->source_location);
@@ -213,8 +198,7 @@ namespace kepler {
                 identifier_id,
                 std::vector<std::unique_ptr<Expression>>{},
                 std::move(module_path),
-                identifier_token->source_location,
-                std::move(module_source_location));
+                std::move(identifier_source_location));
         }
 
         // Call with arguments
@@ -243,8 +227,7 @@ namespace kepler {
             identifier_id,
             std::move(args),
             std::move(module_path),
-            identifier_token->source_location,
-            std::move(module_source_location));
+            std::move(identifier_source_location));
     }
 
     std::unique_ptr<Expression> Parser::parse_literal() {
