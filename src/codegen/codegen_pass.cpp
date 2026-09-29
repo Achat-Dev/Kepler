@@ -303,9 +303,9 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             std::vector<llvm::Type*> member_types;
             member_types.reserve(struct_node->members.size());
-            for (const StructMemberData& member_data : struct_node->members) {
-                KPL_ASSERT_THAT(member_data.type_id != TypeId::invalid());
-                member_types.push_back(get_llvm_type(member_data.type_id));
+            for (const StructNodeMember& member : struct_node->members) {
+                KPL_ASSERT_THAT(member.type_id != TypeId::invalid());
+                member_types.push_back(get_llvm_type(member.type_id));
             }
 
             KPL_ASSERT_THAT(struct_node->type_id != TypeId::invalid());

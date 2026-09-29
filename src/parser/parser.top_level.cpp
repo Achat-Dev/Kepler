@@ -263,7 +263,7 @@ namespace kepler {
         const Token* identifier_token = current_token;
         next_token(true); // eat identifier
 
-        std::vector<StructMemberData> members;
+        std::vector<StructNodeMember> members;
         while (current_token->type != TokenType::End) {
             if (current_token->type == TokenType::EndOfFile) {
                 const StringId identifier_id = std::get<StringId>(identifier_token->data);

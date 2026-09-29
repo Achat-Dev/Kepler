@@ -18,7 +18,7 @@
 
 namespace kepler {
 
-    struct StructMemberData {
+    struct StructNodeMember {
         StringId type_identifier_id;
         TypeId type_id;
         StringId identifier_id;
@@ -29,9 +29,9 @@ namespace kepler {
     struct Struct : ExportableNode {
         StringId identifier_id;
         TypeId type_id;
-        std::vector<StructMemberData> members;
+        std::vector<StructNodeMember> members;
 
-        Struct(StringId identifier_id, std::vector<StructMemberData> members, LinkageType linkage_type, SourceLocation source_location)
+        Struct(StringId identifier_id, std::vector<StructNodeMember> members, LinkageType linkage_type, SourceLocation source_location)
             : ExportableNode(ASTNodeType::Struct, linkage_type, std::move(source_location)), identifier_id(identifier_id), members(std::move(members)) {}
     };
 

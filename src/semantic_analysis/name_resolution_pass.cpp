@@ -203,22 +203,22 @@ namespace kepler {
             KPL_ASSERT_THAT(struct_node->type_id != TypeId::invalid());
             KPL_ASSERT_THAT(struct_node->type_id != type_table.Builtins.unknown_type_id);
             // TODO (fix): Structs can currently have multiple members with the same name
-            for (StructMemberData& member_data : struct_node->members) {
-                KPL_ASSERT_THAT(member_data.type_identifier_id != StringId::invalid());
-                KPL_ASSERT_THAT(member_data.type_id == TypeId::invalid());
-                const auto builtin_identifier = is_builtin_type_identifier(member_data.identifier_id, "as an identifier");
+            for (StructNodeMember& member : struct_node->members) {
+                KPL_ASSERT_THAT(member.type_identifier_id != StringId::invalid());
+                KPL_ASSERT_THAT(member.type_id == TypeId::invalid());
+                const auto builtin_identifier = is_builtin_type_identifier(member.identifier_id, "as an identifier");
                 if (!builtin_identifier.has_value()) {
                     const Diagnostic& diagnostic = builtin_identifier.error();
-                    diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), member_data.identifier_source_location);
+                    diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), member.identifier_source_location);
                     struct_node->node_type = ASTNodeType::Poison;
                     continue;
                 }
-                const std::optional<TypeId> type_id = resolve_identifier_to_type_id(member_data.type_identifier_id, member_data.type_source_location);
+                const std::optional<TypeId> type_id = resolve_identifier_to_type_id(member.type_identifier_id, member.type_source_location);
                 if (!type_id.has_value()) {
                     struct_node->node_type = ASTNodeType::Poison;
                     continue;
                 }
-                member_data.type_id = type_id.value();
+                member.type_id = type_id.value();
             }
             type_table.create_struct_members(struct_node->type_id, struct_node->members);
         }
