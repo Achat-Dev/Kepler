@@ -172,17 +172,10 @@ namespace kepler {
                 return std::nullopt;
             }
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            const StringId part_identifier_id = std::get<StringId>(current_token->data);
-            // This is technically not the correct place to check this (ModuleCreationPass and NameResolutionPass would be better fits),
-            // but it's easiest to do it here
-            const auto builtin_identifier = is_builtin_type_identifier(part_identifier_id, diagnostic_ending);
-            if (!builtin_identifier.has_value()) {
-                const Diagnostic& diagnostic = builtin_identifier.error();
-                diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
-                return std::nullopt;
-            }
-            identifier_parts.push_back({.identifier_id = part_identifier_id, .source_location = current_token->source_location});
+            identifier_parts.push_back({
+                .identifier_id = std::get<StringId>(current_token->data),
+                .source_location = current_token->source_location,
+            });
             next_token(true); // eat identifier
         }
 
