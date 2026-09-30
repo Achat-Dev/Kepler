@@ -58,9 +58,9 @@ namespace kepler {
         std::unordered_map<StringId, TypeId> builtin_type_identifiers;
 
         void register_builtin_type_identifier(TypeId type_id);
-        void create_struct_symbols_and_types(const AbstractSyntaxTree& ast, ModuleId module_id);
+        void create_struct_symbols_and_types(ModuleId module_id, const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         void create_struct_symbol(ModuleId module_id, Struct* struct_node);
-        void create_prototype_symbols(const AbstractSyntaxTree& ast, ModuleId module_id);
+        void create_prototype_symbols(ModuleId module_id, const std::vector<std::unique_ptr<ASTNode>>& top_level_nodes);
         NameResolutionResult create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const;
 
         void resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
@@ -81,6 +81,7 @@ namespace kepler {
         NameResolutionResult resolve_object_initializer_expression(ObjectInitializerExpression* expression) const;
         NameResolutionResult resolve_variable_expression(VariableExpression* expression) const;
 
+        bool is_type_identifier(ModuleId module_id, StringId identifier_id) const;
         std::optional<TypeId> resolve_identifier_to_type_id(StringId type_identifier_id, SourceLocation source_location) const;
     };
 

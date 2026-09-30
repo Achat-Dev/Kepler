@@ -97,16 +97,6 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind));
     }
 
-    std::expected<void, Diagnostic> is_builtin_type_identifier(StringId identifier_id, const std::string& usage_message) {
-        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        if (builtin_type_identifier_ids.contains(identifier_id)) {
-            const std::string_view identifier = StringPool::get().lookup(identifier_id);
-            const std::string message = std::format("'{}' is a reserved keyword and cannot be used {}", identifier, usage_message);
-            return std::unexpected(Diagnostic{.code = DiagnosticCode::InvalidIdentifier, .message = std::move(message)});
-        }
-        return {};
-    }
-
     bool is_integer_type(const Type* type) {
         KPL_ASSERT_NOT_NULLPTR(type);
         switch (type->type_kind) {

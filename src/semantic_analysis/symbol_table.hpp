@@ -42,8 +42,11 @@ namespace kepler {
         Symbol* lookup(SymbolId symbol_id);
         // TODO (check): Maybe create a method to disable finding after name resolution
         // Note: These methods should only be used during name resolution.
-        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id);
-        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id);
+        std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind);
+        std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id,
+            const IdentifierPath& module_path,
+            StringId identifier_id,
+            SymbolKind symbol_kind);
         void open_scope(ModuleId module_id, ScopeType type);
         void close_scope(ModuleId module_id);
 
@@ -55,9 +58,14 @@ namespace kepler {
         std::expected<SymbolId, Diagnostic> create_symbol(ModuleId module_id,
             TypeId type_id,
             StringId identifier_id,
+            SymbolKind symbol_kind,
             SymbolData&& symbol_data,
             const std::string& error_identifier);
-        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id, bool is_imported_module, bool search_imported_modules);
+        std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id,
+            StringId identifier_id,
+            SymbolKind requested_symbol_kind,
+            bool is_imported_module,
+            bool search_imported_modules);
         Module* find_module(Module* parent_module, const IdentifierPath& module_path);
         Module* get_global_module();
     };

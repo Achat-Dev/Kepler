@@ -30,6 +30,13 @@ namespace kepler {
         static constexpr SymbolId invalid() { return SymbolId{}; }
     };
 
+    enum class SymbolKind {
+        All,
+        Variable,
+        Prototype,
+        Type,
+    };
+
     struct PrototypeSymbolData {
         LinkageType linkage_type;
         bool is_variadic = false;
@@ -44,6 +51,7 @@ namespace kepler {
         TypeId type_id;
         StringId identifier_id;
         StringId mangled_identifier_id;
+        SymbolKind symbol_kind;
         bool can_be_shadowed = false;
         SymbolId shadowed_symbol_id;
         SymbolData data = std::monostate{};

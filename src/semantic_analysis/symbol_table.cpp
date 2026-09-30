@@ -104,14 +104,14 @@ namespace kepler {
     std::expected<SymbolId, Diagnostic> SymbolTable::create_struct(ModuleId module_id, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        return create_symbol(module_id, TypeId::invalid(), identifier_id, std::monostate{}, "Struct");
+        return create_symbol(module_id, TypeId::invalid(), identifier_id, SymbolKind::Type, std::monostate{}, "Struct");
     }
 
     std::expected<SymbolId, Diagnostic> SymbolTable::create_variable(ModuleId module_id, TypeId type_id, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(type_id != TypeId::invalid());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        return create_symbol(module_id, type_id, identifier_id, std::monostate{}, "Variable");
+        return create_symbol(module_id, type_id, identifier_id, SymbolKind::Variable, std::monostate{}, "Variable");
     }
 
     // clang-format off
@@ -129,6 +129,7 @@ namespace kepler {
         return create_symbol(module_id,
             type_id,
             identifier_id,
+            SymbolKind::Prototype,
             PrototypeSymbolData{.linkage_type = linkage_type, .is_variadic = is_variadic, .parameter_type_ids = std::move(parameter_type_ids)},
             "Prototype");
     }
@@ -138,13 +139,19 @@ namespace kepler {
         return &symbols[symbol_id.value];
     }
 
-    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id) {
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        return find_symbol(module_id, identifier_id, false, true);
+        return find_symbol_of_kind(module_id, identifier_id, symbol_kind, false, true);
     }
 
-    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id) {
+    // clang-format off
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol_of_kind(ModuleId module_id,
+        const IdentifierPath& module_path,
+        StringId identifier_id,
+        SymbolKind symbol_kind)
+    {
+        // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
@@ -168,9 +175,9 @@ namespace kepler {
             return nullptr;
         } else if (found_modules.size() == 1) {
             if (found_modules[0]->id == module_id) {
-                return find_symbol(found_modules[0]->id, identifier_id, false, false);
+                return find_symbol_of_kind(found_modules[0]->id, identifier_id, symbol_kind, false, false);
             } else {
-                return find_symbol(found_modules[0]->id, identifier_id, true, false);
+                return find_symbol_of_kind(found_modules[0]->id, identifier_id, symbol_kind, true, false);
             }
         } else {
             std::string message = std::format("Module path '{}' is a submodule of multiple imported modules (",
@@ -189,8 +196,9 @@ namespace kepler {
     }
 
     // clang-format off
-    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id,
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol_of_kind(ModuleId module_id,
         StringId identifier_id,
+        SymbolKind requested_symbol_kind,
         bool is_imported_module,
         bool search_imported_modules)
     {
@@ -207,16 +215,18 @@ namespace kepler {
             if (it != scope->contained_symbols.end()) {
                 KPL_ASSERT_THAT(it->second.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), it->second.value);
                 Symbol* symbol = &symbols[it->second.value];
-                if (is_imported_module) {
-                    if (std::holds_alternative<PrototypeSymbolData>(symbol->data)) {
-                        // TODO (improvement): Maybe create a special diagnostic if a fitting symbol is found but it is not exported
-                        // (That diagnostic shouldn't be displayed immediately, but only when no fitting symbol is found in all imported modules)
-                        if (std::get<PrototypeSymbolData>(symbol->data).linkage_type == LinkageType::Export) {
-                            return symbol;
+                if (symbol->symbol_kind == requested_symbol_kind || requested_symbol_kind == SymbolKind::All) {
+                    if (is_imported_module) {
+                        if (std::holds_alternative<PrototypeSymbolData>(symbol->data)) {
+                            // TODO (improvement): Maybe create a special diagnostic if a fitting symbol is found but it is not exported
+                            // (That diagnostic shouldn't be displayed immediately, but only when no fitting symbol is found in all imported modules)
+                            if (std::get<PrototypeSymbolData>(symbol->data).linkage_type == LinkageType::Export) {
+                                return symbol;
+                            }
                         }
+                    } else {
+                        return symbol;
                     }
-                } else {
-                    return symbol;
                 }
             }
 
@@ -232,10 +242,10 @@ namespace kepler {
                         modules.size(),
                         imported_module_id.value);
                     // If recursive imports are wanted, the second false here needs to be changed to true
-                    const auto symbol = find_symbol(imported_module_id, identifier_id, true, false);
+                    const auto symbol = find_symbol_of_kind(imported_module_id, identifier_id, requested_symbol_kind, true, false);
                     KPL_ASSERT_THAT(symbol.has_value()); // find only returns a diagnostic if imported symbols are searched
-                    if (*symbol != nullptr) {
-                        found_symbols.push_back({imported_module_id, *symbol});
+                    if (symbol.value() != nullptr && (symbol.value()->symbol_kind == requested_symbol_kind || requested_symbol_kind == SymbolKind::All)) {
+                        found_symbols.push_back({imported_module_id, symbol.value()});
                     }
                 }
 
@@ -300,6 +310,7 @@ namespace kepler {
     std::expected<SymbolId, Diagnostic> SymbolTable::create_symbol(ModuleId module_id,
         TypeId type_id,
         StringId identifier_id,
+        SymbolKind symbol_kind,
         SymbolData&& data,
         const std::string& error_identifier)
     {
@@ -307,14 +318,14 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(!error_identifier.empty());
-        // type_id can be invalid because structs are created with an invalid type id
+        // type_id can be invalid because structs are created with an invalid type id, that's why there is no assert for that
 
         Module& module = modules[module_id.value];
         KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
 
-        const auto found_symbol = find_symbol(module_id, identifier_id, false, false);
+        const auto found_symbol = find_symbol_of_kind(module_id, identifier_id, SymbolKind::All, false, false);
         KPL_ASSERT_THAT(found_symbol.has_value());
-        const Symbol* existing_symbol = *found_symbol;
+        const Symbol* existing_symbol = found_symbol.value();
         SymbolId symbol_id_to_shadow;
         if (existing_symbol != nullptr) {
             if (existing_symbol->scope_id == module.current_scope_id) {
@@ -343,6 +354,7 @@ namespace kepler {
             .scope_id = scope.id,
             .type_id = type_id,
             .identifier_id = identifier_id,
+            .symbol_kind = symbol_kind,
             .can_be_shadowed = can_be_shadowed,
             .shadowed_symbol_id = symbol_id_to_shadow,
             .data = std::move(data),

@@ -48,9 +48,6 @@ namespace kepler {
             register_keyword("for", TokenType::For);
             register_keyword("true", TokenType::Literal, true);
             register_keyword("false", TokenType::Literal, false);
-            for (StringId type_identifier_id : builtin_type_identifier_ids) {
-                register_keyword(std::string(StringPool::get().lookup(type_identifier_id)), TokenType::Identifier, type_identifier_id);
-            }
         }
     }
 
