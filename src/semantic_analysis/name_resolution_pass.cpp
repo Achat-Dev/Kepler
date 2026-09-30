@@ -478,14 +478,15 @@ namespace kepler {
             const Diagnostic& diagnostic = symbol.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, statement->assignment_statement->variable_expression->source_location);
             statement->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
         }
 
         const NameResolutionResult resolution_result = resolve_assignment_statement(statement->assignment_statement.get());
         if (resolution_result.poisoned) {
             statement->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
         }
-        // Return like this because the node can already poison itself if the symbol creation failed
-        return {.poisoned = statement->node_type == ASTNodeType::Poison};
+        return {.poisoned = false};
     }
 
     NameResolutionResult NameResolutionPass::resolve_binary_expression(BinaryExpression* expression) const {
