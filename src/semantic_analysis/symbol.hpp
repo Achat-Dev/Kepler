@@ -12,9 +12,11 @@
 #include "ast/ast_node.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "type_system/type.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <limits>
 #include <variant>
@@ -52,8 +54,6 @@ namespace kepler {
         StringId identifier_id;
         StringId mangled_identifier_id;
         SymbolKind symbol_kind;
-        bool can_be_shadowed = false;
-        SymbolId shadowed_symbol_id;
         SymbolData data = std::monostate{};
     };
 
@@ -63,5 +63,22 @@ template <>
 struct std::hash<kepler::SymbolId> {
     size_t operator()(const kepler::SymbolId& id) const noexcept {
         return hash<uint32_t>{}(id.value);
+    }
+};
+
+template <>
+struct std::formatter<kepler::SymbolKind> : std::formatter<std::string> {
+    auto format(const kepler::SymbolKind& symbol_kind, std::format_context& ctx) const {
+        switch (symbol_kind) {
+            case kepler::SymbolKind::All:
+                return std::formatter<std::string>::format("all", ctx);
+            case kepler::SymbolKind::Variable:
+                return std::formatter<std::string>::format("variable", ctx);
+            case kepler::SymbolKind::Prototype:
+                return std::formatter<std::string>::format("prototype", ctx);
+            case kepler::SymbolKind::Type:
+                return std::formatter<std::string>::format("type", ctx);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for symbol kind '{}'", static_cast<int>(symbol_kind));
     }
 };

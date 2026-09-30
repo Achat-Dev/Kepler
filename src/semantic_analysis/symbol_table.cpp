@@ -104,14 +104,14 @@ namespace kepler {
     std::expected<SymbolId, Diagnostic> SymbolTable::create_struct(ModuleId module_id, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        return create_symbol(module_id, TypeId::invalid(), identifier_id, SymbolKind::Type, std::monostate{}, "Struct");
+        return create_symbol(module_id, TypeId::invalid(), identifier_id, SymbolKind::Type, std::monostate{});
     }
 
     std::expected<SymbolId, Diagnostic> SymbolTable::create_variable(ModuleId module_id, TypeId type_id, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(type_id != TypeId::invalid());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        return create_symbol(module_id, type_id, identifier_id, SymbolKind::Variable, std::monostate{}, "Variable");
+        return create_symbol(module_id, type_id, identifier_id, SymbolKind::Variable, std::monostate{});
     }
 
     // clang-format off
@@ -130,13 +130,18 @@ namespace kepler {
             type_id,
             identifier_id,
             SymbolKind::Prototype,
-            PrototypeSymbolData{.linkage_type = linkage_type, .is_variadic = is_variadic, .parameter_type_ids = std::move(parameter_type_ids)},
-            "Prototype");
+            PrototypeSymbolData{.linkage_type = linkage_type, .is_variadic = is_variadic, .parameter_type_ids = std::move(parameter_type_ids)});
     }
 
     Symbol* SymbolTable::lookup(SymbolId symbol_id) {
         KPL_ASSERT_THAT(symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), symbol_id.value);
         return &symbols[symbol_id.value];
+    }
+
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        return find_symbol_of_kind(module_id, identifier_id, SymbolKind::All, false, true);
     }
 
     std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind) {
@@ -145,13 +150,7 @@ namespace kepler {
         return find_symbol_of_kind(module_id, identifier_id, symbol_kind, false, true);
     }
 
-    // clang-format off
-    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol_of_kind(ModuleId module_id,
-        const IdentifierPath& module_path,
-        StringId identifier_id,
-        SymbolKind symbol_kind)
-    {
-        // clang-format on
+    std::expected<Symbol*, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
@@ -175,9 +174,9 @@ namespace kepler {
             return nullptr;
         } else if (found_modules.size() == 1) {
             if (found_modules[0]->id == module_id) {
-                return find_symbol_of_kind(found_modules[0]->id, identifier_id, symbol_kind, false, false);
+                return find_symbol_of_kind(found_modules[0]->id, identifier_id, SymbolKind::All, false, false);
             } else {
-                return find_symbol_of_kind(found_modules[0]->id, identifier_id, symbol_kind, true, false);
+                return find_symbol_of_kind(found_modules[0]->id, identifier_id, SymbolKind::All, true, false);
             }
         } else {
             std::string message = std::format("Module path '{}' is a submodule of multiple imported modules (",
@@ -311,13 +310,12 @@ namespace kepler {
         TypeId type_id,
         StringId identifier_id,
         SymbolKind symbol_kind,
-        SymbolData&& data,
-        const std::string& error_identifier)
+        SymbolData&& data)
     {
         // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        KPL_ASSERT_THAT(!error_identifier.empty());
+        KPL_ASSERT_THAT(symbol_kind != SymbolKind::All);
         // type_id can be invalid because structs are created with an invalid type id, that's why there is no assert for that
 
         Module& module = modules[module_id.value];
@@ -326,27 +324,21 @@ namespace kepler {
         const auto found_symbol = find_symbol_of_kind(module_id, identifier_id, SymbolKind::All, false, false);
         KPL_ASSERT_THAT(found_symbol.has_value());
         const Symbol* existing_symbol = found_symbol.value();
-        SymbolId symbol_id_to_shadow;
         if (existing_symbol != nullptr) {
+            const std::string_view identifier = StringPool::get().lookup(existing_symbol->identifier_id);
             if (existing_symbol->scope_id == module.current_scope_id) {
-                const std::string_view identifier = StringPool::get().lookup(existing_symbol->identifier_id);
                 return std::unexpected(Diagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,
-                    .message = std::format("{} with name '{}' already exists in the current scope", error_identifier, identifier),
+                    .message = std::format("Symbol with name '{}' already exists in the current scope", identifier),
                 });
             }
-            if (!existing_symbol->can_be_shadowed) {
-                const std::string_view identifier = StringPool::get().lookup(existing_symbol->identifier_id);
-                return std::unexpected(Diagnostic{
-                    .code = DiagnosticCode::SymbolAlreadyExists,
-                    .message = std::format("{} with name '{}' already exists and cannot be shadowed", error_identifier, identifier),
-                });
-            }
-            symbol_id_to_shadow = existing_symbol->id;
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::SymbolAlreadyExists,
+                .message = std::format("Symbol with name '{}' already exists and cannot be shadowed", identifier),
+            });
         }
 
         Scope& scope = scopes[module.current_scope_id.value];
-        bool can_be_shadowed = scope.type != ScopeType::Function && scope.type != ScopeType::Block;
         const SymbolId symbol_id{.value = static_cast<uint32_t>(symbols.size())};
         scope.contained_symbols.emplace(identifier_id, symbol_id);
         symbols.push_back({
@@ -355,8 +347,6 @@ namespace kepler {
             .type_id = type_id,
             .identifier_id = identifier_id,
             .symbol_kind = symbol_kind,
-            .can_be_shadowed = can_be_shadowed,
-            .shadowed_symbol_id = symbol_id_to_shadow,
             .data = std::move(data),
         });
         return symbol_id;

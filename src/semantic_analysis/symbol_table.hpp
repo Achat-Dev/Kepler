@@ -18,7 +18,6 @@
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <expected>
-#include <string>
 #include <vector>
 
 namespace kepler {
@@ -42,11 +41,9 @@ namespace kepler {
         Symbol* lookup(SymbolId symbol_id);
         // TODO (check): Maybe create a method to disable finding after name resolution
         // Note: These methods should only be used during name resolution.
+        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id);
         std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind);
-        std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id,
-            const IdentifierPath& module_path,
-            StringId identifier_id,
-            SymbolKind symbol_kind);
+        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id);
         void open_scope(ModuleId module_id, ScopeType type);
         void close_scope(ModuleId module_id);
 
@@ -59,8 +56,7 @@ namespace kepler {
             TypeId type_id,
             StringId identifier_id,
             SymbolKind symbol_kind,
-            SymbolData&& symbol_data,
-            const std::string& error_identifier);
+            SymbolData&& symbol_data);
         std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id,
             StringId identifier_id,
             SymbolKind requested_symbol_kind,

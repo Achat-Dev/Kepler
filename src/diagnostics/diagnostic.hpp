@@ -59,6 +59,7 @@ namespace kepler {
         UnknownModule,
         UnknownSymbol,
         SymbolAlreadyExists,
+        InvalidSymbolUsage,
         AmbiguousSymbolImport,
         AmbiguousModulePath,
         UnknownType,

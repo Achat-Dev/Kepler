@@ -53,6 +53,7 @@ namespace kepler {
             case DiagnosticCode::AmbiguousSymbolImport:
             case DiagnosticCode::AmbiguousModulePath:
             case DiagnosticCode::SymbolAlreadyExists:
+            case DiagnosticCode::InvalidSymbolUsage:
             case DiagnosticCode::UnknownType:
             case DiagnosticCode::TypeMismatch:
             case DiagnosticCode::InvalidIdentifier:

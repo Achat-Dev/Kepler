@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Fixed
 
 - Crashes because of missing error handling for function calls with mismatching argument counts
+- Functions can no longer be shadowed by a variable inside of a function
 - Condition for printing a `CallExpression` with an explicit module path being the wrong way round
 - Wrong assertion when resolving a variable definition
 
