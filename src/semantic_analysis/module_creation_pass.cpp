@@ -58,7 +58,7 @@ namespace kepler {
                         const std::string message = std::format("Module '{}' is implicitely imported because it's a parent module of '{}'. The explicit import is discarded, but consider removing it.",
                             get_full_identifier_from_path(import_statement->module_path),
                             get_full_identifier_from_path(ast.module_statement->module_path));
-                        diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), import_statement->source_location);
+                        diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), import_statement->module_path.source_location);
                         import_indices_to_remove.push_back(i);
                         is_implicit_import = true;
                     }
@@ -69,7 +69,7 @@ namespace kepler {
 
                 const auto module_id = symbol_table.register_imported_module(ast.module_statement->module_id, import_statement->module_path);
                 if (!module_id) {
-                    diagnostic_sink.report(module_id.error().code, std::move(module_id.error().message), import_statement->source_location);
+                    diagnostic_sink.report(module_id.error().code, std::move(module_id.error().message), import_statement->module_path.source_location);
                     continue;
                 }
             }
