@@ -19,6 +19,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
@@ -300,7 +301,6 @@ namespace kepler {
 
     void CodegenPass::codegen_struct_bodies(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
         for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
-            // TODO (fix): Structs can currently only have builtin types as members
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             std::vector<llvm::Type*> member_types;
             member_types.reserve(struct_node->members.size());
@@ -368,6 +368,8 @@ namespace kepler {
                 return codegen_cast_expression(static_cast<const CastExpression*>(node));
             case ASTNodeType::MathematicalNegationExpression:
                 return codegen_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node));
+            case ASTNodeType::MemberExpression:
+                return codegen_member_expression(static_cast<const MemberExpression*>(node));
             case ASTNodeType::ObjectInitializerExpression:
                 return codegen_object_initializer_expression(static_cast<const ObjectInitializerExpression*>(node));
             case ASTNodeType::VariableExpression:
@@ -801,17 +803,39 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing create mathematical negation implementation for type '{}'", *target_type);
     }
 
+    CodegenResult CodegenPass::codegen_member_expression(const MemberExpression* expression) {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(!expression->access_data.empty());
+        KPL_ASSERT_THAT(expression->object_symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(llvm_values.contains(expression->object_symbol_id));
+        KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->object_symbol_id]));
+
+        llvm::Value* gep = llvm_values[expression->object_symbol_id];
+        for (const MemberAccessData& access_data : expression->access_data) {
+            KPL_ASSERT_THAT(access_data.struct_type_id != TypeId::invalid());
+            llvm::Type* llvm_type = get_llvm_type(access_data.struct_type_id);
+            KPL_ASSERT_THAT(llvm::isa<llvm::StructType>(llvm_type));
+            llvm::StructType* llvm_struct_type = llvm::cast<llvm::StructType>(llvm_type);
+            gep = builder.CreateStructGEP(llvm_struct_type, gep, access_data.member_index);
+        }
+        KPL_ASSERT_THAT(expression->member_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(expression->member_type_id != type_table.Builtins.unknown_type_id);
+        llvm::Value* value = builder.CreateLoad(get_llvm_type(expression->member_type_id), gep);
+
+        return {.llvm_value = value, .returns = false};
+    }
+
     CodegenResult CodegenPass::codegen_object_initializer_expression(const ObjectInitializerExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->type_id != TypeId::invalid());
         KPL_ASSERT_THAT(expression->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        KPL_ASSERT_THAT(llvm_types.contains(expression->type_id));
         const Type* type = type_table.lookup(expression->type_id);
         KPL_ASSERT_THAT(type->type_kind == TypeKind::Struct);
         const StructType* struct_type = static_cast<const StructType*>(type);
 
-        llvm::Type* llvm_type = llvm_types[expression->type_id];
+        llvm::Type* llvm_type = get_llvm_type(expression->type_id);
         KPL_ASSERT_THAT(llvm::isa<llvm::StructType>(llvm_type));
         llvm::StructType* llvm_struct_type = llvm::cast<llvm::StructType>(llvm_type);
 
@@ -839,6 +863,7 @@ namespace kepler {
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
         KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
+        KPL_ASSERT_THAT(symbol->symbol_kind == SymbolKind::Variable);
 #ifndef NDEBUG
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         KPL_ASSERT_THAT(!identifier.empty());

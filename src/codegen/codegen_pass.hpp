@@ -20,6 +20,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/function.hpp"
@@ -111,6 +112,7 @@ namespace kepler {
         CodegenResult codegen_call_expression(const CallExpression* expression);
         CodegenResult codegen_cast_expression(const CastExpression* expression);
         CodegenResult codegen_mathematical_negation_expression(const MathematicalNegationExpression* expression);
+        CodegenResult codegen_member_expression(const MemberExpression* expression);
         CodegenResult codegen_object_initializer_expression(const ObjectInitializerExpression* expression);
         CodegenResult codegen_variable_expression(const VariableExpression* expression);
     };

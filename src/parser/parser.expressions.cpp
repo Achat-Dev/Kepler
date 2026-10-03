@@ -17,6 +17,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "diagnostics/diagnostic.hpp"
@@ -36,28 +37,6 @@
 #include <vector>
 
 namespace kepler {
-
-    int Parser::get_operator_precedence(OperatorType operator_type) const {
-        switch (operator_type) {
-            case OperatorType::LessThan:
-            case OperatorType::GreaterThan:
-            case OperatorType::Equals:
-            case OperatorType::NotEquals:
-            case OperatorType::LessEquals:
-            case OperatorType::GreaterEquals:
-                return 10;
-
-            case OperatorType::Plus:
-            case OperatorType::Minus:
-                return 20;
-
-            case OperatorType::Multiplication:
-            case OperatorType::Division:
-                return 30;
-        }
-
-        KPL_ASSERT_UNREACHABLE("Missing binary operator precedence implementation for operator '{}'", static_cast<int>(operator_type));
-    }
 
     std::unique_ptr<Expression> Parser::parse_expression() {
         std::unique_ptr<Expression> expression = parse_primary();
@@ -151,7 +130,13 @@ namespace kepler {
         if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
             return parse_call();
         } else if (next_token_type == TokenType::Dot) {
-            KPL_ASSERT_UNREACHABLE("Not implemented");
+            const auto member_path_parse_result = parse_identifier_path(TokenType::Dot,
+                IdentifierPathParseKind::IncludeLastIdentifier,
+                "in member path");
+            if (!member_path_parse_result.has_value()) {
+                return nullptr;
+            }
+            return std::make_unique<MemberExpression>(std::move(member_path_parse_result.value().identifier_path));
         } else if (next_token_type == TokenType::CurlyBracketOpen) {
             return parse_object_initializer();
         }

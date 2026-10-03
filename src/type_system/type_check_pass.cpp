@@ -19,6 +19,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/function.hpp"
@@ -136,6 +137,8 @@ namespace kepler {
                 return typecheck_cast_expression(static_cast<CastExpression*>(node), requested_type_id);
             case ASTNodeType::MathematicalNegationExpression:
                 return typecheck_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node), requested_type_id);
+            case ASTNodeType::MemberExpression:
+                return typecheck_member_expression(static_cast<MemberExpression*>(node), requested_type_id);
             case ASTNodeType::ObjectInitializerExpression:
                 return typecheck_object_initializer_expression(static_cast<ObjectInitializerExpression*>(node), requested_type_id);
             case ASTNodeType::VariableExpression:
@@ -775,8 +778,29 @@ namespace kepler {
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = typecheck_result.type_id};
     }
 
+    TypeCheckResult TypeCheckPass::typecheck_member_expression(MemberExpression* expression, TypeId requested_type_id) const {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->member_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(expression->member_type_id != type_table.Builtins.unknown_type_id);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(requested_type_id != TypeId::invalid());
+        if (requested_type_id == type_table.Builtins.unknown_type_id) {
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = expression->member_type_id};
+        }
+        if (requested_type_id != expression->member_type_id) {
+            const Type* requested_type = type_table.lookup(requested_type_id);
+            const Type* member_type = type_table.lookup(expression->member_type_id);
+            const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", *requested_type, *member_type);
+            diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = expression->member_type_id};
+        }
+        return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = expression->member_type_id};
+    }
+
     TypeCheckResult TypeCheckPass::typecheck_object_initializer_expression(ObjectInitializerExpression* expression, TypeId requested_type_id) {
         KPL_ASSERT_NOT_NULLPTR(expression);
+        // expression->type_id can be TypeId::invalid(), which means that the type wasn't explicitely specified
         KPL_ASSERT_THAT(expression->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(requested_type_id != TypeId::invalid());
         TypeId target_type_id;

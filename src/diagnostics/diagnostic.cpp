@@ -63,6 +63,8 @@ namespace kepler {
             case DiagnosticCode::UnsupportedMathematicalOperation:
             case DiagnosticCode::AmbiguousObjectInitializer:
             case DiagnosticCode::UnknownMemberInInitializer:
+            case DiagnosticCode::InvalidMemberAccess:
+            case DiagnosticCode::UnknownMember:
             case DiagnosticCode::MultipleMainMethods:
                 return DiagnosticSeverity::Error;
 

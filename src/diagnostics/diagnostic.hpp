@@ -71,6 +71,8 @@ namespace kepler {
         UnsupportedMathematicalOperation,
         AmbiguousObjectInitializer,
         UnknownMemberInInitializer,
+        InvalidMemberAccess,
+        UnknownMember,
         RedundantCast,
         MultipleMainMethods,
 

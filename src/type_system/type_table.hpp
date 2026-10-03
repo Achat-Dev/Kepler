@@ -21,6 +21,7 @@ namespace kepler {
     class TypeTable {
     public:
         inline static struct {
+            // TODO (improvement): Remove unknown type
             TypeId unknown_type_id;
             TypeId void_type_id;
             TypeId bool_type_id;

@@ -53,7 +53,10 @@ namespace kepler {
 
     std::vector<Token> Tokenizer::tokenize() {
         if (file->content.empty()) {
-            return {Token{.type = TokenType::EndOfFile, .source_location = {file->id, 0, 0}}};
+            return {{
+                .type = TokenType::EndOfFile,
+                .source_location = {file->id, 0, 0},
+            }};
         }
 
         current_char = file->content[0]; // Read first char manually instead of next_char() because that would read file->content[1]
@@ -92,7 +95,7 @@ namespace kepler {
 
     Token Tokenizer::read_next_token() {
         if (current_char == EOF) {
-            return Token{
+            return {
                 .type = TokenType::EndOfFile,
                 .source_location = {file->id, static_cast<uint32_t>(file->content.size()), 1},
             };
@@ -101,7 +104,7 @@ namespace kepler {
         while (isspace(current_char)) {
             if (current_char == '\n') {
                 next_char();
-                return Token{
+                return {
                     .type = TokenType::Newline,
                     .source_location = {file->id, position, 1},
                 };
@@ -120,9 +123,51 @@ namespace kepler {
             case '#':
                 read_comment();
                 return read_next_token();
+            case '(':
+                next_char();
+                return {
+                    .type = TokenType::BracketOpen,
+                    .source_location = {file->id, position - 1, 1},
+                };
+            case ')':
+                next_char();
+                return {
+                    .type = TokenType::BracketClose,
+                    .source_location = {file->id, position - 1, 1},
+                };
+            case '{':
+                next_char();
+                return {
+                    .type = TokenType::CurlyBracketOpen,
+                    .source_location = {file->id, position - 1, 1},
+                };
+            case '}':
+                next_char();
+                return {
+                    .type = TokenType::CurlyBracketClose,
+                    .source_location = {file->id, position - 1, 1},
+                };
+            case '.':
+                if (peek_next_char() == '.') {
+                    if (peek_next_char(2) == '.') {
+                        next_char();
+                        next_char();
+                        next_char();
+                        return {
+                            .type = TokenType::Variadic,
+                            .source_location = {file->id, position - 3, 3},
+                        };
+                    }
+                } else {
+                    next_char();
+                    return {
+                        .type = TokenType::Dot,
+                        .source_location = {file->id, position - 1, 1},
+                    };
+                }
             case ',':
                 next_char();
-                return Token{
+                return {
                     .type = TokenType::Comma,
                     .source_location = {file->id, position - 1, 1},
                 };
@@ -130,92 +175,55 @@ namespace kepler {
                 next_char();
                 if (current_char == ':') {
                     next_char();
-                    return Token{
+                    return {
                         .type = TokenType::DoubleColon,
                         .source_location = {file->id, position - 2, 2},
                     };
                 } else {
-                    return Token{
+                    return {
                         .type = TokenType::Colon,
                         .source_location = {file->id, position - 1, 1},
                     };
                 }
-            case '(':
-                next_char();
-                return Token{
-                    .type = TokenType::BracketOpen,
-                    .source_location = {file->id, position - 1, 1},
-                };
-            case ')':
-                next_char();
-                return Token{
-                    .type = TokenType::BracketClose,
-                    .source_location = {file->id, position - 1, 1},
-                };
-            case '{':
-                next_char();
-                return Token{
-                    .type = TokenType::CurlyBracketOpen,
-                    .source_location = {file->id, position - 1, 1},
-                };
-            case '}':
-                next_char();
-                return Token{
-                    .type = TokenType::CurlyBracketClose,
-                    .source_location = {file->id, position - 1, 1},
-                };
             case '=':
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token{
+                    return {
                         .type = TokenType::Operator,
                         .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::Equals,
                     };
                 } else {
-                    return Token{
+                    return {
                         .type = TokenType::Assignment,
                         .source_location = {file->id, position - 1, 1},
                     };
                 }
-            case '.':
-                if (peek_next_char() == '.') {
-                    if (peek_next_char(2) == '.') {
-                        next_char();
-                        next_char();
-                        next_char();
-                        return Token{
-                            .type = TokenType::Variadic,
-                            .source_location = {file->id, position - 3, 3},
-                        };
-                    }
-                }
-                break;
             case '+':
                 next_char();
-                return Token{
+                return {
                     .type = TokenType::Operator,
                     .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Plus,
                 };
             case '-':
                 next_char();
-                return Token{
+                return {
                     .type = TokenType::Operator,
                     .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Minus,
                 };
             case '*':
                 next_char();
-                return Token{
+                return {
                     .type = TokenType::Operator,
                     .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Multiplication,
                 };
             case '/':
                 next_char();
-                return Token{
+                return {
                     .type = TokenType::Operator,
                     .source_location = {file->id, position - 1, 1},
                     .data = OperatorType::Division,
@@ -224,13 +232,13 @@ namespace kepler {
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token{
+                    return {
                         .type = TokenType::Operator,
                         .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::LessEquals,
                     };
                 } else {
-                    return Token{
+                    return {
                         .type = TokenType::Operator,
                         .source_location = {file->id, position - 1, 1},
                         .data = OperatorType::LessThan,
@@ -240,13 +248,13 @@ namespace kepler {
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token{
+                    return {
                         .type = TokenType::Operator,
                         .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::GreaterEquals,
                     };
                 } else {
-                    return Token{
+                    return {
                         .type = TokenType::Operator,
                         .source_location = {file->id, position - 1, 1},
                         .data = OperatorType::GreaterThan,
@@ -256,7 +264,7 @@ namespace kepler {
                 next_char();
                 if (current_char == '=') {
                     next_char();
-                    return Token{
+                    return {
                         .type = TokenType::Operator,
                         .source_location = {file->id, position - 2, 2},
                         .data = OperatorType::NotEquals,
@@ -282,7 +290,11 @@ namespace kepler {
         }
         diagnostic_sink.report(DiagnosticCode::UnknownCharacter,
             std::format("Unknown character '{}'", unknown_char),
-            {file->id, start_position, position - start_position});
+            {
+                file->id,
+                start_position,
+                position - start_position,
+            });
         return read_next_token();
     }
 
@@ -306,7 +318,7 @@ namespace kepler {
             return token;
         }
 
-        return Token{
+        return {
             .type = TokenType::Identifier,
             .source_location = {file->id, identifier_start_position, identifier_length},
             .data = identifier_id,
@@ -343,7 +355,7 @@ namespace kepler {
 
         const uint32_t literal_length = literal.size();
         const StringId literal_id = StringPool::get().store(std::move(literal));
-        return Token{
+        return {
             .type = TokenType::Literal,
             .source_location = {file->id, position - literal_length - 2, literal_length + 2}, // -2 and +2 for opening and closing "
             .data = literal_id,
@@ -368,13 +380,13 @@ namespace kepler {
         const std::string literal = file->content.substr(literal_start_position, literal_length);
 
         if (is_float) {
-            return Token{
+            return {
                 .type = TokenType::Literal,
                 .source_location = {file->id, literal_start_position, literal_length},
                 .data = std::stod(literal.data()),
             };
         } else {
-            return Token{
+            return {
                 .type = TokenType::Literal,
                 .source_location = {file->id, literal_start_position, literal_length},
                 .data = IntegerLiteralTokenData{.literal_id = StringPool::get().store(literal)},

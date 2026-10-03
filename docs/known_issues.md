@@ -87,3 +87,8 @@ if (0 + 0 > 0.0)
 
 There are some rules in which order the expressions of a binary expression should be evaluated to avoid these kinds of type mismatches.
 However, these rules are not recursive, so nested binary expressions pose a problem.
+
+## 2. Technical diagnostic messages
+
+Some diagnostic messages contain really technical terms and/or explanations (like "symbols", "prototypes", etc.).
+This can be fixed pretty easily, I just haven't gotten around to doing it.

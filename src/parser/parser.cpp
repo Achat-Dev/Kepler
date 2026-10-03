@@ -29,34 +29,6 @@
 
 namespace kepler {
 
-    void Parser::next_token(bool skip_newline) {
-        if (current_token_index < tokens.size() - 1) {
-            current_token_index++;
-            current_token = &tokens[current_token_index];
-
-            if (current_token->type == TokenType::Newline && skip_newline) {
-                next_token(skip_newline);
-            }
-        }
-    }
-
-    void Parser::previous_token(bool skip_newline) {
-        if (current_token_index > 0) {
-            current_token_index--;
-            current_token = &tokens[current_token_index];
-
-            if (current_token->type == TokenType::Newline && skip_newline) {
-                previous_token(skip_newline);
-            }
-        }
-    }
-
-    void Parser::jump_to_token(size_t index) {
-        KPL_ASSERT_THAT(index < tokens.size());
-        current_token_index = index;
-        current_token = &tokens[current_token_index];
-    }
-
     AbstractSyntaxTree Parser::parse() {
         KPL_ASSERT_THAT(!tokens.empty());
         KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Final token should be EOF, received '{}'", tokens.back().type);
@@ -146,6 +118,56 @@ namespace kepler {
         }
 
         return ast;
+    }
+
+    int Parser::get_operator_precedence(OperatorType operator_type) const {
+        switch (operator_type) {
+            case OperatorType::LessThan:
+            case OperatorType::GreaterThan:
+            case OperatorType::Equals:
+            case OperatorType::NotEquals:
+            case OperatorType::LessEquals:
+            case OperatorType::GreaterEquals:
+                return 10;
+
+            case OperatorType::Plus:
+            case OperatorType::Minus:
+                return 20;
+
+            case OperatorType::Multiplication:
+            case OperatorType::Division:
+                return 30;
+        }
+
+        KPL_ASSERT_UNREACHABLE("Missing binary operator precedence implementation for operator '{}'", static_cast<int>(operator_type));
+    }
+
+    void Parser::next_token(bool skip_newline) {
+        if (current_token_index < tokens.size() - 1) {
+            current_token_index++;
+            current_token = &tokens[current_token_index];
+
+            if (current_token->type == TokenType::Newline && skip_newline) {
+                next_token(skip_newline);
+            }
+        }
+    }
+
+    void Parser::previous_token(bool skip_newline) {
+        if (current_token_index > 0) {
+            current_token_index--;
+            current_token = &tokens[current_token_index];
+
+            if (current_token->type == TokenType::Newline && skip_newline) {
+                previous_token(skip_newline);
+            }
+        }
+    }
+
+    void Parser::jump_to_token(size_t index) {
+        KPL_ASSERT_THAT(index < tokens.size());
+        current_token_index = index;
+        current_token = &tokens[current_token_index];
     }
 
     // TODO (improvement): Maybe don't allow newlines between submodule identifiers
@@ -242,6 +264,17 @@ namespace kepler {
             }
         }
         KPL_ASSERT_UNREACHABLE("Missing identifier path parse implementation for return kind '{}'", static_cast<int>(path_return_kind));
+    }
+
+    IdentifierPath Parser::identifier_id_to_path(StringId identifier_id, SourceLocation source_location) const {
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        return {
+            .identifier_parts = {{
+                .identifier_id = identifier_id,
+                .source_location = source_location,
+            }},
+            .source_location = source_location,
+        };
     }
 
 }

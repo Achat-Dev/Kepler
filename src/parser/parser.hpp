@@ -80,6 +80,7 @@ namespace kepler {
         std::optional<IdentifierPathParseResult> parse_identifier_path(TokenType delimiter_token,
             IdentifierPathParseKind path_return_kind,
             const std::string& diagnostic_ending);
+        IdentifierPath identifier_id_to_path(StringId identifier_id, SourceLocation source_location) const;
 
         // Top level
         std::unique_ptr<ModuleStatement> parse_module();
