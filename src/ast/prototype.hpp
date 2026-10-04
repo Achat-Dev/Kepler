@@ -13,8 +13,10 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace kepler {
@@ -28,17 +30,19 @@ namespace kepler {
         SourceLocation identifier_source_location;
     };
 
+    using PrototypeIdentifier = std::variant<StringId, IdentifierPath>;
+
     struct Prototype : ASTNode {
-        SourceLocation identifier_source_location;
-        StringId identifier_id;
+        PrototypeIdentifier identifier;
         StringId return_type_identifier_id;
         TypeId return_type_id;
         SymbolId symbol_id;
         std::vector<ParameterData> parameter_data;
         bool is_variadic;
+        SourceLocation identifier_source_location;
 
         Prototype(StringId return_type_identifier_id,
-            StringId identifier_id,
+            PrototypeIdentifier identifier,
             std::vector<ParameterData> parameter_data,
             bool is_variadic,
             SourceLocation type_source_location,
@@ -46,9 +50,11 @@ namespace kepler {
             : ASTNode(ASTNodeType::Prototype, std::move(type_source_location)),
               identifier_source_location(std::move(identifier_source_location)),
               return_type_identifier_id(return_type_identifier_id),
-              identifier_id(identifier_id),
+              identifier(std::move(identifier)),
               parameter_data(std::move(parameter_data)),
               is_variadic(is_variadic) {}
     };
+
+    StringId get_prototype_identifier_id(const Prototype* prototype);
 
 }

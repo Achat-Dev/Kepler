@@ -19,6 +19,7 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <format>
 #include <memory>
@@ -123,13 +124,45 @@ namespace kepler {
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
-        const SourceLocation& identifier_source_location = current_token->source_location;
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        const StringId identifier_id = std::get<StringId>(current_token->data);
+        PrototypeIdentifier prototype_identifier = std::get<StringId>(current_token->data);
+        SourceLocation identifier_source_location = current_token->source_location;
+        const Token* identifier_token = current_token;
 
         next_token(true); // eat identifier
+        if (current_token->type == TokenType::Dot) {
+            // Don't use parse_identifier_path because a prototype path must be exactly two parts long (Type identifier + function identifier)
+            next_token(true); // eat '.'
+            if (current_token->type != TokenType::Identifier) {
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after '.' in prototype identifier",
+                    current_token->source_location);
+                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+                return nullptr;
+            }
+            identifier_source_location = {
+                .file_id = current_token->source_location.file_id,
+                .position = identifier_token->source_location.position,
+                .size = (current_token->source_location.position + current_token->source_location.size) - identifier_token->source_location.position,
+            };
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+            prototype_identifier = IdentifierPath{
+                .identifier_parts = {
+                    {
+                        .identifier_id = std::get<StringId>(identifier_token->data),
+                        .source_location = identifier_token->source_location,
+                    },
+                    {
+                        .identifier_id = std::get<StringId>(current_token->data),
+                        .source_location = current_token->source_location,
+                    },
+                },
+                .separator_id = StringPool::get().store(std::format("{}", TokenType::Dot)),
+                .source_location = identifier_source_location,
+            };
+            next_token(true); // eat second identifier
+        }
         if (current_token->type != TokenType::BracketOpen) {
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after prototype name", current_token->source_location);
+            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after prototype identifier", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
@@ -157,9 +190,11 @@ namespace kepler {
 
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const StringId parameter_identifier_id = std::get<StringId>(current_token->data);
-            parameter_data.push_back({.type_identifier_id = parameter_type_id,
+            parameter_data.push_back({
+                .type_identifier_id = parameter_type_id,
                 .identifier_id = parameter_identifier_id,
-                .identifier_source_location = current_token->source_location});
+                .identifier_source_location = current_token->source_location,
+            });
 
             next_token(true); // eat identifier
             if (current_token->type == TokenType::Comma) {
@@ -195,7 +230,7 @@ namespace kepler {
         next_token(true); // eat ')'
 
         return std::make_unique<Prototype>(return_type_identifier_id,
-            identifier_id,
+            std::move(prototype_identifier),
             std::move(parameter_data),
             is_variadic,
             type_source_location,
@@ -261,7 +296,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        const StringId type_id = std::get<StringId>(current_token->data);
+        const StringId type_identifier_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type identifier
         if (current_token->type != TokenType::Identifier) {
@@ -276,17 +311,13 @@ namespace kepler {
             diagnostic_sink.report(DiagnosticCode::Unsupported, "Global variables are not supported yet", type_source_location);
             recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
-        }
-        // Function definition
-        else if (current_token->type == TokenType::BracketOpen) {
+        } else if (current_token->type == TokenType::Dot || current_token->type == TokenType::BracketOpen) {
             previous_token(true); // Go back to identifier
             previous_token(true); // Go back to type
             return parse_function(linkage_type);
         }
 
-        diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
-            "Expected either an assignment operator or a '(' after identifier on top level",
-            current_token->source_location);
+        diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after identifier on top level", current_token->source_location);
         recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
         return nullptr;
     }

@@ -98,7 +98,7 @@ namespace kepler {
         void codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
         CodegenResult codegen_node(const ASTNode* node);
         void codegen_function(const Function* function);
-        llvm::AllocaInst* create_entry_block_alloca(llvm::Function* function, llvm::Type* type, StringId identifier_id);
+        llvm::AllocaInst* create_entry_block_alloca(llvm::Function* function, llvm::Type* type);
         CodegenResult codegen_assignment_statement(const AssignmentStatement* statement);
         CodegenResult codegen_for_statement(const ForStatement* statement);
         CodegenResult codegen_if_statement(const IfStatement* statement);

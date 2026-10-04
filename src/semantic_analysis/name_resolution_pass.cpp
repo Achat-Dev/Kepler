@@ -45,6 +45,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -167,14 +168,47 @@ namespace kepler {
         } else {
             prototype->return_type_id = return_type_id;
         }
+
         // Check if valid identifier
-        if (is_type_identifier(module_id, prototype->identifier_id)) {
-            const std::string message = std::format("Type name '{}' cannot be used as an identifier", StringPool::get().lookup(prototype->identifier_id));
-            diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), prototype->identifier_source_location);
-            prototype->node_type = ASTNodeType::Poison;
+        const StringId identifier_id = std::visit(
+            [this, module_id, prototype](const auto& prototype_identifier) -> StringId {
+                using ValueType = std::decay_t<decltype(prototype_identifier)>;
+                if constexpr (std::is_same_v<ValueType, StringId>) {
+                    KPL_ASSERT_THAT(prototype_identifier != StringId::invalid());
+                    if (is_type_identifier(module_id, prototype_identifier)) {
+                        const std::string message = std::format("Type name '{}' cannot be used as an identifier",
+                            StringPool::get().lookup(prototype_identifier));
+                        diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), prototype->identifier_source_location);
+                        prototype->node_type = ASTNodeType::Poison;
+                        return StringId::invalid();
+                    }
+                    return prototype_identifier;
+                } else if constexpr (std::is_same_v<ValueType, IdentifierPath>) {
+                    KPL_ASSERT_THAT(prototype_identifier.identifier_parts.size() == 2);
+                    const IdentifierPathPart& first_identifier_part = prototype_identifier.identifier_parts[0];
+                    const TypeId type_id = resolve_type_identifier_to_type_id(first_identifier_part.identifier_id, first_identifier_part.source_location);
+                    if (type_id == TypeId::invalid()) {
+                        return StringId::invalid();
+                    }
+                    const IdentifierPathPart& second_identifier_part = prototype_identifier.identifier_parts[1];
+                    if (is_type_identifier(module_id, second_identifier_part.identifier_id)) {
+                        const std::string message = std::format("Type name '{}' cannot be used as a member function identifier",
+                            StringPool::get().lookup(second_identifier_part.identifier_id));
+                        diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), second_identifier_part.source_location);
+                        prototype->node_type = ASTNodeType::Poison;
+                        return StringId::invalid();
+                    }
+                    return StringPool::get().store(get_full_identifier_from_path(prototype_identifier));
+                }
+                KPL_ASSERT_UNREACHABLE("Missing visit implementation for PrototypeIdentifier '{}'",
+                    typeid(prototype_identifier).name());
+            },
+            prototype->identifier);
+        if (identifier_id == StringId::invalid()) {
             return {.poisoned = true};
         }
 
+        // Check if valid parameters
         std::vector<TypeId> parameter_type_ids;
         parameter_type_ids.reserve(prototype->parameter_data.size());
         for (ParameterData& parameter_data : prototype->parameter_data) {
@@ -191,7 +225,7 @@ namespace kepler {
 
         const auto symbol_id = symbol_table.create_prototype(module_id,
             return_type_id,
-            prototype->identifier_id,
+            identifier_id,
             linkage_type,
             std::move(parameter_type_ids),
             prototype->is_variadic);
@@ -354,7 +388,7 @@ namespace kepler {
             KPL_ASSERT_THAT(parameter_data.symbol_id == SymbolId::invalid());
             if (is_type_identifier(module_id, parameter_data.identifier_id)) {
                 const std::string message = std::format("Type name '{}' cannot be used as an identifier",
-                    StringPool::get().lookup(prototype->identifier_id));
+                    StringPool::get().lookup(parameter_data.identifier_id));
                 diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), parameter_data.identifier_source_location);
                 prototype->node_type = ASTNodeType::Poison;
                 continue;

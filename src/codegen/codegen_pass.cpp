@@ -72,6 +72,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -200,10 +201,12 @@ namespace kepler {
     bool CodegenPass::is_main_method(const Prototype* prototype) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
-        bool is_named_main = StringPool::get().lookup(prototype->identifier_id) == "main";
-        bool returns_i32 = prototype->return_type_id == type_table.Builtins.i32_type_id;
-        bool has_no_parameters = prototype->parameter_data.size() == 0;
+        bool is_named_main = false;
+        if (std::holds_alternative<StringId>(prototype->identifier)) {
+            is_named_main = StringPool::get().lookup(std::get<StringId>(prototype->identifier)) == "main";
+        }
+        const bool returns_i32 = prototype->return_type_id == type_table.Builtins.i32_type_id;
+        const bool has_no_parameters = prototype->parameter_data.size() == 0;
         return is_named_main && returns_i32 && has_no_parameters;
     }
 
@@ -254,7 +257,6 @@ namespace kepler {
     void CodegenPass::forward_declare_prototype(const Prototype* prototype, LinkageType linkage_type, bool is_extern) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
 
@@ -264,7 +266,7 @@ namespace kepler {
             parameter_types.push_back(get_llvm_type(parameter_data.type_id));
         }
 
-        StringId identifier_id = prototype->identifier_id;
+        StringId identifier_id = get_prototype_identifier_id(prototype);
         if (is_main_method(prototype)) {
             // No name mangling, force external linkage
             if (main_method_found) {
@@ -277,7 +279,7 @@ namespace kepler {
         } else {
             // Only mangle name if it's not an extern
             if (!is_extern) {
-                identifier_id = create_mangled_identifier(prototype->identifier_id);
+                identifier_id = create_mangled_identifier(identifier_id);
                 Symbol* symbol = symbol_table.lookup(prototype->symbol_id);
                 symbol->mangled_identifier_id = identifier_id;
             }
@@ -382,7 +384,6 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_THAT(function->prototype->symbol_id != SymbolId::invalid());
-        KPL_ASSERT_THAT(function->prototype->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(llvm_values.contains(function->prototype->symbol_id));
 
@@ -395,7 +396,7 @@ namespace kepler {
         open_scope();
         int index = 0;
         for (llvm::Argument& arg : llvm_function->args()) {
-            llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, arg.getType(), function->prototype->identifier_id);
+            llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, arg.getType());
             builder.CreateStore(&arg, alloca);
 
             SymbolId parameter_symbol_id = function->prototype->parameter_data[index].symbol_id;
@@ -426,18 +427,12 @@ namespace kepler {
         builder.ClearInsertionPoint();
     }
 
-    llvm::AllocaInst* CodegenPass::create_entry_block_alloca(llvm::Function* function, llvm::Type* type, StringId identifier_id) {
+    llvm::AllocaInst* CodegenPass::create_entry_block_alloca(llvm::Function* function, llvm::Type* type) {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_THAT(!function->empty(), "LLVM Function must have an entry block to create an entry block alloca");
         KPL_ASSERT_NOT_NULLPTR(type);
-        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         llvm::IRBuilder<> tmp_builder(&function->getEntryBlock(), function->getEntryBlock().begin());
-#ifndef NDEBUG
-        const std::string_view identifier = StringPool::get().lookup(identifier_id);
-        return tmp_builder.CreateAlloca(type, nullptr, identifier);
-#else
         return tmp_builder.CreateAlloca(type);
-#endif
     }
 
     CodegenResult CodegenPass::codegen_assignment_statement(const AssignmentStatement* statement) {
@@ -621,7 +616,6 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
         KPL_ASSERT_THAT(statement->type_id != TypeId::invalid());
         KPL_ASSERT_THAT(statement->type_id != type_table.Builtins.unknown_type_id);
-        KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         const AssignmentTargetExpression& assignment_target_expression = statement->assignment_statement->assignment_target_expression;
@@ -630,7 +624,7 @@ namespace kepler {
 
         llvm::Function* llvm_function = builder.GetInsertBlock()->getParent();
         KPL_ASSERT_NOT_NULLPTR(llvm_function);
-        llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(statement->type_id), statement->identifier_id);
+        llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(statement->type_id));
 
         SymbolId variable_symbol_id = variable_expression->symbol_id;
         KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid());

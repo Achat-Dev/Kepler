@@ -11,6 +11,7 @@
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/function.hpp"
+#include "ast/prototype.hpp"
 #include "ast/statements/for_statement.hpp"
 #include "ast/statements/if_statement.hpp"
 #include "diagnostics/diagnostic.hpp"
@@ -22,7 +23,6 @@
 #include <format>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -35,20 +35,7 @@ namespace kepler {
                 KPL_ASSERT_THAT(node->node_type != ASTNodeType::Poison);
                 switch (node->node_type) {
                     case ASTNodeType::Function: {
-                        Function* function = static_cast<Function*>(node.get());
-                        KPL_ASSERT_THAT(function->body.contains_return == false);
-                        const ReturnCheckResult return_result = check_body(function->body.nodes, ReturnCheckBodyType::FunctionBody);
-                        if (return_result.contains_return) {
-                            function->body.contains_return = true;
-                        } else {
-                            KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                            const Type* void_type = type_table.lookup(type_table.Builtins.void_type_id);
-                            if (function->prototype->return_type_identifier_id != void_type->identifier_id) {
-                                const std::string_view identifier = StringPool::get().lookup(function->prototype->identifier_id);
-                                const std::string message = std::format("Not all code paths of function '{}' contain a return statement", identifier);
-                                diagnostic_sink.report(DiagnosticCode::MissingReturn, std::move(message), function->source_location);
-                            }
-                        }
+                        check_function(static_cast<Function*>(node.get()));
                         break;
                     }
                     default:
@@ -56,6 +43,27 @@ namespace kepler {
                 }
             }
         }
+    }
+
+    void ReturnCheckPass::check_function(Function* function) {
+        KPL_ASSERT_NOT_NULLPTR(function->prototype);
+        KPL_ASSERT_THAT(function->body.contains_return == false);
+        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
+        const ReturnCheckResult return_result = check_body(function->body.nodes, ReturnCheckBodyType::FunctionBody);
+        if (return_result.contains_return) {
+            function->body.contains_return = true;
+            return;
+        }
+
+        const Type* void_type = type_table.lookup(type_table.Builtins.void_type_id);
+        if (function->prototype->return_type_identifier_id == void_type->identifier_id) {
+            return;
+        }
+
+        const StringId identifier_id = get_prototype_identifier_id(function->prototype.get());
+        const std::string message = std::format("Not all code paths of function '{}' contain a return statement",
+            StringPool::get().lookup(identifier_id));
+        diagnostic_sink.report(DiagnosticCode::MissingReturn, std::move(message), function->source_location);
     }
 
     ReturnCheckResult ReturnCheckPass::check_body(const std::vector<std::unique_ptr<ASTNode>>& nodes, ReturnCheckBodyType body_type) {

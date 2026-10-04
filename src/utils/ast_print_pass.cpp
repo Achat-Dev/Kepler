@@ -282,7 +282,6 @@ namespace kepler {
 
     void ASTPrintPass::print_prototype(const Prototype* prototype, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
-        KPL_ASSERT_THAT(prototype->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
         if (prototype->return_type_id == TypeId::invalid()) {
             KPL_ASSERT_THAT(prototype->return_type_identifier_id != StringId::invalid());
@@ -292,8 +291,8 @@ namespace kepler {
             const Type* return_type = type_table.lookup(prototype->return_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *return_type);
         }
-        const std::string_view identifier = StringPool::get().lookup(prototype->identifier_id);
-        std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
+        const StringId identifier_id = get_prototype_identifier_id(prototype);
+        std::println("{}{}Identifier: {}", indent, item_prefix, StringPool::get().lookup(identifier_id));
 
         if (prototype->symbol_id == SymbolId::invalid()) {
             std::println("{}{}Symbol: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
