@@ -18,6 +18,7 @@
 #include "ast/expressions/literals/integer_literal_expression.hpp"
 #include "ast/expressions/literals/string_literal_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/object_initializer_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/extern.hpp"
@@ -44,6 +45,7 @@
 #include <print>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 namespace kepler {
@@ -211,6 +213,9 @@ namespace kepler {
             case ASTNodeType::MathematicalNegationExpression:
                 print_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node), indent);
                 return;
+            case ASTNodeType::MemberExpression:
+                print_member_expression(static_cast<const MemberExpression*>(node), indent);
+                return;
             case ASTNodeType::ObjectInitializerExpression:
                 print_object_initializer_expression(static_cast<const ObjectInitializerExpression*>(node), indent);
                 return;
@@ -291,7 +296,7 @@ namespace kepler {
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
 
         if (prototype->symbol_id == SymbolId::invalid()) {
-            std::println("{}{}Symbol: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Symbol: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Symbol* prototype_symbol = symbol_table.lookup(prototype->symbol_id);
             const std::string_view prototype_symbol_identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
@@ -331,7 +336,7 @@ namespace kepler {
             std::println("{}{}Identifier: {}", indent + item_indent, item_prefix, parameter_identifier);
 
             if (prototype->parameter_data[i].symbol_id == SymbolId::invalid()) {
-                std::println("{}{}Symbol: {}nullptr{}", indent + item_indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
+                std::println("{}{}Symbol: {}None{}", indent + item_indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
             } else {
                 const Symbol* parameter_symbol = symbol_table.lookup(prototype->parameter_data[i].symbol_id);
                 const std::string_view parameter_symbol_identifier = StringPool::get().lookup(parameter_symbol->identifier_id);
@@ -342,10 +347,14 @@ namespace kepler {
 
     void ASTPrintPass::print_assignment_statement(const AssignmentStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
-        print_node(statement->variable_expression.get(), "", indent, false);
+        std::visit(
+            [this, &indent](const auto& expression) {
+                KPL_ASSERT_NOT_NULLPTR(expression);
+                print_node(expression.get(), "", indent, false);
+            },
+            statement->assignment_target_expression);
         print_node(statement->value_expression.get(), "Value: ", indent, true);
     }
 
@@ -410,7 +419,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         if (expression->target_type_id == TypeId::invalid()) {
-            std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Type* target_type = type_table.lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
@@ -422,7 +431,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         if (expression->target_type_id == TypeId::invalid()) {
-            std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Type* target_type = type_table.lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
@@ -447,7 +456,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         std::println("{}{}Operator: {}", indent, item_prefix, expression->operator_type);
         if (expression->target_type_id == TypeId::invalid()) {
-            std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Type* target_type = type_table.lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
@@ -480,7 +489,7 @@ namespace kepler {
         }
 
         if (expression->symbol_id == SymbolId::invalid()) {
-            std::println("{}{}Symbol: {}nullptr{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Symbol: {}None{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
             const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
@@ -493,7 +502,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         if (expression->original_type_id == TypeId::invalid()) {
-            std::println("{}{}Original type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Original type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Type* original_type = type_table.lookup(expression->original_type_id);
             std::println("{}{}Original type: {}", indent, item_prefix, *original_type);
@@ -514,7 +523,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         if (expression->target_type_id == TypeId::invalid()) {
-            std::println("{}{}Type: {}nullptr{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Type* target_type = type_table.lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
@@ -522,18 +531,64 @@ namespace kepler {
         print_node(expression->expression.get(), "", indent, true);
     }
 
+    void ASTPrintPass::print_member_expression(const MemberExpression* expression, std::string indent) const {
+        KPL_ASSERT_NOT_NULLPTR(expression);
+        KPL_ASSERT_THAT(expression->member_path.identifier_parts.size() > 1);
+        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        std::println("{}{}Path: {}", indent, item_prefix, get_full_identifier_from_path(expression->member_path));
+        if (expression->member_type_id == TypeId::invalid()) {
+            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            const Type* target_type = type_table.lookup(expression->member_type_id);
+            std::println("{}{}Type: {}", indent, item_prefix, *target_type);
+        }
+
+        if (expression->object_symbol_id == SymbolId::invalid()) {
+            std::println("{}{}Symbol: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            const Symbol* symbol = symbol_table.lookup(expression->object_symbol_id);
+            const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
+            std::println("{}{}Symbol: {}", indent, item_prefix, symbol_identifier);
+        }
+
+        if (expression->access_data.empty()) {
+            std::println("{}{}Access data: {}Empty{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
+            std::println("{}{}Access data:", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
+            indent += space;
+            for (size_t i = 0; i < expression->access_data.size(); i++) {
+                const MemberAccessData& access_data = expression->access_data[i];
+                KPL_ASSERT_THAT(access_data.struct_type_id != TypeId::invalid());
+                bool is_last = i == expression->access_data.size() - 1;
+                std::string access_data_indent;
+                if (is_last) {
+                    std::println("{}{}{}:", indent, last_item_prefix, (i + 1));
+                    access_data_indent = indent + space;
+                } else {
+                    std::println("{}{}{}:", indent, item_prefix, (i + 1));
+                    access_data_indent = indent + vertical_line;
+                }
+                const Type* type = type_table.lookup(access_data.struct_type_id);
+                KPL_ASSERT_THAT(type->identifier_id != StringId::invalid());
+                const std::string_view type_identifier = StringPool::get().lookup(type->identifier_id);
+                std::println("{}{}{}", access_data_indent, item_prefix, type_identifier);
+                std::println("{}{}{}", access_data_indent, last_item_prefix, access_data.member_index);
+            }
+        }
+    }
+
     void ASTPrintPass::print_object_initializer_expression(const ObjectInitializerExpression* expression, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        if (expression->type_identifier_id != StringId::invalid()) {
+        if (expression->type_identifier_id == StringId::invalid()) {
+            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        } else {
             if (expression->type_id == TypeId::invalid()) {
                 const std::string_view type_identifier = StringPool::get().lookup(expression->type_identifier_id);
                 std::println("{}{}Type: {}", indent, item_prefix, type_identifier);
             } else {
                 std::println("{}{}Type: {}", indent, item_prefix, *type_table.lookup(expression->type_id));
             }
-        } else {
-            std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         }
 
         if (expression->member_initializers.empty()) {
@@ -566,7 +621,7 @@ namespace kepler {
         std::println("{}{}{}", indent, item_prefix, identifier);
 
         if (expression->symbol_id == SymbolId::invalid()) {
-            std::println("{}{}Symbol: {}nullptr{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
+            std::println("{}{}Symbol: {}None{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
             const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);

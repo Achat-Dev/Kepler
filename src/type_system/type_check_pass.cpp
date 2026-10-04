@@ -161,15 +161,31 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_assignment_statement(AssignmentStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
-        KPL_ASSERT_THAT(statement->variable_expression->symbol_id != SymbolId::invalid());
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
-        const Symbol* variable_symbol = symbol_table.lookup(statement->variable_expression->symbol_id);
-        KPL_ASSERT_THAT(variable_symbol->type_id != TypeId::invalid());
+        const TypeId type_id = std::visit(
+            [this](const auto& expression) -> TypeId {
+                KPL_ASSERT_NOT_NULLPTR(expression);
+                using ValueType = std::decay_t<decltype(expression)>;
+                if constexpr (std::is_same_v<ValueType, std::unique_ptr<MemberExpression>>) {
+                    KPL_ASSERT_THAT(expression->member_type_id != TypeId::invalid());
+                    KPL_ASSERT_THAT(expression->member_type_id != type_table.Builtins.unknown_type_id);
+                    return expression->member_type_id;
+                } else if constexpr (std::is_same_v<ValueType, std::unique_ptr<VariableExpression>>) {
+                    KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
+                    const Symbol* variable_symbol = symbol_table.lookup(expression->symbol_id);
+                    KPL_ASSERT_THAT(variable_symbol->symbol_kind == SymbolKind::Variable);
+                    KPL_ASSERT_THAT(variable_symbol->type_id != TypeId::invalid());
+                    return variable_symbol->type_id;
+                }
+                KPL_ASSERT_UNREACHABLE("Missing visit implementation for AssignmentTargetExpression '{}'", typeid(expression).name());
+            },
+            statement->assignment_target_expression);
+        KPL_ASSERT_THAT(type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(type_id != type_table.Builtins.unknown_type_id);
 
-        const TypeCheckResult typecheck_result = typecheck_node(statement->value_expression.get(), variable_symbol->type_id);
+        const TypeCheckResult typecheck_result = typecheck_node(statement->value_expression.get(), type_id);
         KPL_ASSERT_THAT(typecheck_result.type_id != TypeId::invalid());
         KPL_ASSERT_THAT(typecheck_result.type_id != type_table.Builtins.unknown_type_id);
         if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
@@ -177,7 +193,7 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = typecheck_result.type_id};
         } else if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithoutDiagnostic) {
             const Type* value_type = type_table.lookup(typecheck_result.type_id);
-            const Type* variable_type = type_table.lookup(variable_symbol->type_id);
+            const Type* variable_type = type_table.lookup(type_id);
             const std::string message = std::format("Type mismatch: Cannot assign a value of type '{}' to a variable of type '{}'",
                 *value_type,
                 *variable_type);
@@ -185,7 +201,7 @@ namespace kepler {
             statement->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = typecheck_result.type_id};
         }
-        return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = variable_symbol->type_id};
+        return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = type_id};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_for_statement(ForStatement* statement) {

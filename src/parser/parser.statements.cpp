@@ -11,6 +11,7 @@
 #include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/integer_literal_expression.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/statements/assignment_statement.hpp"
 #include "ast/statements/for_statement.hpp"
@@ -23,9 +24,11 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <format>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -62,9 +65,20 @@ namespace kepler {
         if (next_token_type == TokenType::Identifier) {
             return parse_variable_definition();
         } else if (next_token_type == TokenType::Assignment) {
-            return parse_assignment();
+            return parse_assignment(std::nullopt);
         } else if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
             return parse_call();
+        } else if (next_token_type == TokenType::Dot) {
+            const auto member_path_parse_result = parse_identifier_path(TokenType::Dot,
+                IdentifierPathParseKind::IncludeLastIdentifier,
+                "in member path");
+            if (!member_path_parse_result.has_value()) {
+                return nullptr;
+            }
+
+            if (current_token->type == TokenType::Assignment) {
+                return parse_assignment(member_path_parse_result->identifier_path);
+            }
         }
 
         diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), current_token->source_location);
@@ -72,11 +86,22 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<AssignmentStatement> Parser::parse_assignment() {
+    std::unique_ptr<AssignmentStatement> Parser::parse_assignment(std::optional<IdentifierPath> member_path) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
-        const Token* identifier_token = current_token;
-        next_token(true); // eat identifier
+        AssignmentTargetExpression assignment_target_expression;
+        if (member_path.has_value()) {
+            KPL_ASSERT_THAT(current_token->type == TokenType::Assignment,
+                "Required token: '{}', received: '{}'",
+                TokenType::Assignment,
+                current_token->type);
+            assignment_target_expression = std::make_unique<MemberExpression>(std::move(member_path.value()));
+        } else {
+            KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+            assignment_target_expression = std::make_unique<VariableExpression>(std::get<StringId>(current_token->data), current_token->source_location);
+            next_token(true); // eat identifier
+        }
+
         if (current_token->type != TokenType::Assignment) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '=' after identifier in assignment", current_token->source_location);
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
@@ -90,11 +115,7 @@ namespace kepler {
             return nullptr;
         }
 
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
-        const StringId identifier_id = std::get<StringId>(identifier_token->data);
-        return std::make_unique<AssignmentStatement>(std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location),
-            std::move(value_expression),
-            assignment_source_location);
+        return std::make_unique<AssignmentStatement>(std::move(assignment_target_expression), std::move(value_expression), assignment_source_location);
     }
 
     std::unique_ptr<IfStatement> Parser::parse_if() {
@@ -414,7 +435,7 @@ namespace kepler {
             return nullptr;
         }
         previous_token(true); // Go back so the assignment can be parsed
-        std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment();
+        std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment(std::nullopt);
         if (!assignment_statement) {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }

@@ -442,18 +442,43 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_assignment_statement(const AssignmentStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
-        SymbolId variable_symbol_id = statement->variable_expression->symbol_id;
-        KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid());
-        KPL_ASSERT_THAT(llvm_values.contains(variable_symbol_id));
+        llvm::Value* target_ptr = std::visit(
+            [this](const auto& expression) -> llvm::Value* {
+                KPL_ASSERT_NOT_NULLPTR(expression);
+                using ValueType = std::decay_t<decltype(expression)>;
+                if constexpr (std::is_same_v<ValueType, std::unique_ptr<MemberExpression>>) {
+                    KPL_ASSERT_NOT_NULLPTR(expression);
+                    KPL_ASSERT_THAT(!expression->access_data.empty());
+                    KPL_ASSERT_THAT(expression->object_symbol_id != SymbolId::invalid());
+                    KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+                    KPL_ASSERT_THAT(llvm_values.contains(expression->object_symbol_id));
+                    KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->object_symbol_id]));
+                    llvm::Value* gep = llvm_values[expression->object_symbol_id];
+                    for (const MemberAccessData& access_data : expression->access_data) {
+                        KPL_ASSERT_THAT(access_data.struct_type_id != TypeId::invalid());
+                        llvm::Type* llvm_type = get_llvm_type(access_data.struct_type_id);
+                        KPL_ASSERT_THAT(llvm::isa<llvm::StructType>(llvm_type));
+                        llvm::StructType* llvm_struct_type = llvm::cast<llvm::StructType>(llvm_type);
+                        gep = builder.CreateStructGEP(llvm_struct_type, gep, access_data.member_index);
+                    }
+                    return gep;
+                } else if constexpr (std::is_same_v<ValueType, std::unique_ptr<VariableExpression>>) {
+                    KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
+                    KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
+                    KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->symbol_id]));
+                    return llvm_values[expression->symbol_id];
+                }
+                KPL_ASSERT_UNREACHABLE("Missing visit implementation for AssignmentTargetExpression '{}'", typeid(expression).name());
+            },
+            statement->assignment_target_expression);
 
-        // Don't codegen the VariableExpression because that would just unnecessarilly load it
+        KPL_ASSERT_NOT_NULLPTR(target_ptr);
         const CodegenResult codegen_result = codegen_node(statement->value_expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
-        builder.CreateStore(codegen_result.llvm_value, llvm_values[variable_symbol_id]);
+        builder.CreateStore(codegen_result.llvm_value, target_ptr);
         return {.llvm_value = nullptr, .returns = false};
     }
 
@@ -594,16 +619,20 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_variable_definition_statement(const VariableDefinitionStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
-        KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement->variable_expression);
         KPL_ASSERT_THAT(statement->type_id != TypeId::invalid());
         KPL_ASSERT_THAT(statement->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+
+        const AssignmentTargetExpression& assignment_target_expression = statement->assignment_statement->assignment_target_expression;
+        KPL_ASSERT_THAT(std::holds_alternative<std::unique_ptr<VariableExpression>>(assignment_target_expression));
+        const std::unique_ptr<VariableExpression>& variable_expression = std::get<std::unique_ptr<VariableExpression>>(assignment_target_expression);
+
         llvm::Function* llvm_function = builder.GetInsertBlock()->getParent();
         KPL_ASSERT_NOT_NULLPTR(llvm_function);
         llvm::AllocaInst* alloca = create_entry_block_alloca(llvm_function, get_llvm_type(statement->type_id), statement->identifier_id);
 
-        SymbolId variable_symbol_id = statement->assignment_statement->variable_expression->symbol_id;
+        SymbolId variable_symbol_id = variable_expression->symbol_id;
         KPL_ASSERT_THAT(variable_symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(!llvm_values.contains(variable_symbol_id));
         llvm_values.emplace(variable_symbol_id, alloca);
@@ -715,6 +744,7 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing codegen implementation for operator type '{}'", expression->operator_type);
     }
 
+    // TODO (fix): variadic functions in C expect floats to be promoted to doubles
     CodegenResult CodegenPass::codegen_call_expression(const CallExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());

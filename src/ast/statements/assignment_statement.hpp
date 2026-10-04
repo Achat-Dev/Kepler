@@ -11,23 +11,27 @@
 
 #include "ast/ast_node.hpp"
 #include "ast/expressions/expression.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/variable_expression.hpp"
 #include "ast/statements/statement.hpp"
 #include "diagnostics/source_location.hpp"
 #include <memory>
 #include <utility>
+#include <variant>
 
 namespace kepler {
 
+    using AssignmentTargetExpression = std::variant<std::unique_ptr<MemberExpression>, std::unique_ptr<VariableExpression>>;
+
     struct AssignmentStatement : Statement {
-        std::unique_ptr<VariableExpression> variable_expression;
+        AssignmentTargetExpression assignment_target_expression;
         std::unique_ptr<Expression> value_expression;
 
-        AssignmentStatement(std::unique_ptr<VariableExpression> variable_expression,
+        AssignmentStatement(AssignmentTargetExpression assignment_target_expression,
             std::unique_ptr<Expression> value_expression,
             SourceLocation source_location)
             : Statement(ASTNodeType::AssignmentStatement, std::move(source_location)),
-              variable_expression(std::move(variable_expression)),
+              assignment_target_expression(std::move(assignment_target_expression)),
               value_expression(std::move(value_expression)) {}
     };
 

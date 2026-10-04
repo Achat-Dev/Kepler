@@ -179,20 +179,21 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, identifier), ctx);
             }
             case kepler::TokenType::Literal: {
-                const std::string format = std::visit([&token](const auto& value) -> std::string {
-                    using ValueType = std::decay_t<decltype(value)>;
-                    if constexpr (std::is_same_v<ValueType, std::monostate>) {
-                        return std::format("{}", token.type);
-                    } else if constexpr (std::is_same_v<ValueType, kepler::IntegerLiteralTokenData>) {
-                        const std::string_view literal = kepler::StringPool::get().lookup(value.literal_id);
-                        return std::format("{}({})", token.type, literal);
-                    } else if constexpr (std::is_same_v<ValueType, kepler::StringId>) {
-                        const std::string_view literal = kepler::StringPool::get().lookup(value);
-                        return std::format("{}({})", token.type, literal);
-                    } else {
-                        return std::format("{}({})", token.type, value);
-                    }
-                },
+                const std::string format = std::visit(
+                    [&token](const auto& value) -> std::string {
+                        using ValueType = std::decay_t<decltype(value)>;
+                        if constexpr (std::is_same_v<ValueType, std::monostate>) {
+                            return std::format("{}", token.type);
+                        } else if constexpr (std::is_same_v<ValueType, kepler::IntegerLiteralTokenData>) {
+                            const std::string_view literal = kepler::StringPool::get().lookup(value.literal_id);
+                            return std::format("{}({})", token.type, literal);
+                        } else if constexpr (std::is_same_v<ValueType, kepler::StringId>) {
+                            const std::string_view literal = kepler::StringPool::get().lookup(value);
+                            return std::format("{}({})", token.type, literal);
+                        } else {
+                            return std::format("{}({})", token.type, value);
+                        }
+                    },
                     token.data);
 
                 return std::formatter<std::string>::format(std::format("{}", format), ctx);

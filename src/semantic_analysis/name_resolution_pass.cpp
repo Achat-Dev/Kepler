@@ -375,11 +375,16 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_assignment_statement(AssignmentStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_NOT_NULLPTR(statement->variable_expression);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
-        const NameResolutionResult variable_nrr = resolve_variable_expression(statement->variable_expression.get());
+        const NameResolutionResult assignment_target_nrr = std::visit(
+            [this](const auto& expression) -> NameResolutionResult {
+                KPL_ASSERT_NOT_NULLPTR(expression);
+                KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+                return resolve_node(expression.get());
+            },
+            statement->assignment_target_expression);
         const NameResolutionResult value_nrr = resolve_node(statement->value_expression.get());
-        if (variable_nrr.poisoned || value_nrr.poisoned) {
+        if (assignment_target_nrr.poisoned || value_nrr.poisoned) {
             statement->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
@@ -454,11 +459,14 @@ namespace kepler {
         KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
+        const AssignmentTargetExpression& assignment_target_expression = statement->assignment_statement->assignment_target_expression;
+        KPL_ASSERT_THAT(std::holds_alternative<std::unique_ptr<VariableExpression>>(assignment_target_expression));
+        const std::unique_ptr<VariableExpression>& variable_expression = std::get<std::unique_ptr<VariableExpression>>(assignment_target_expression);
         if (is_type_identifier(module_id, statement->identifier_id)) {
             const std::string message = std::format("Type name '{}' cannot be used as an identifier", StringPool::get().lookup(statement->identifier_id));
             diagnostic_sink.report(DiagnosticCode::InvalidIdentifier,
                 std::move(message),
-                statement->assignment_statement->variable_expression->source_location);
+                variable_expression->source_location);
             statement->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
@@ -470,11 +478,10 @@ namespace kepler {
         }
         statement->type_id = type_id;
 
-        KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement->variable_expression);
         const auto symbol = symbol_table.create_variable(module_id, type_id, statement->identifier_id);
         if (!symbol) {
             const Diagnostic& diagnostic = symbol.error();
-            diagnostic_sink.report(diagnostic.code, diagnostic.message, statement->assignment_statement->variable_expression->source_location);
+            diagnostic_sink.report(diagnostic.code, diagnostic.message, variable_expression->source_location);
             statement->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
