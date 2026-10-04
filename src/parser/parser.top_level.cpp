@@ -19,7 +19,6 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
 #include "utils/assert.h"
-#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <format>
 #include <memory>
@@ -145,19 +144,11 @@ namespace kepler {
                 .size = (current_token->source_location.position + current_token->source_location.size) - identifier_token->source_location.position,
             };
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            prototype_identifier = IdentifierPath{
-                .identifier_parts = {
-                    {
-                        .identifier_id = std::get<StringId>(identifier_token->data),
-                        .source_location = identifier_token->source_location,
-                    },
-                    {
-                        .identifier_id = std::get<StringId>(current_token->data),
-                        .source_location = current_token->source_location,
-                    },
-                },
-                .separator_id = StringPool::get().store(std::format("{}", TokenType::Dot)),
-                .source_location = identifier_source_location,
+            prototype_identifier = MemberFunctionIdentifier{
+                .type_identifier_id = std::get<StringId>(identifier_token->data),
+                .identifier_id = std::get<StringId>(current_token->data),
+                .type_source_location = identifier_token->source_location,
+                .identifier_source_location = current_token->source_location,
             };
             next_token(true); // eat second identifier
         }

@@ -13,7 +13,6 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
-#include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <utility>
 #include <variant>
@@ -30,7 +29,14 @@ namespace kepler {
         SourceLocation identifier_source_location;
     };
 
-    using PrototypeIdentifier = std::variant<StringId, IdentifierPath>;
+    struct MemberFunctionIdentifier {
+        StringId type_identifier_id;
+        StringId identifier_id;
+        SourceLocation type_source_location;
+        SourceLocation identifier_source_location;
+    };
+
+    using PrototypeIdentifier = std::variant<StringId, MemberFunctionIdentifier>;
 
     struct Prototype : ASTNode {
         PrototypeIdentifier identifier;

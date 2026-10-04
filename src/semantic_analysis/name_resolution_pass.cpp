@@ -183,22 +183,22 @@ namespace kepler {
                         return StringId::invalid();
                     }
                     return prototype_identifier;
-                } else if constexpr (std::is_same_v<ValueType, IdentifierPath>) {
-                    KPL_ASSERT_THAT(prototype_identifier.identifier_parts.size() == 2);
-                    const IdentifierPathPart& first_identifier_part = prototype_identifier.identifier_parts[0];
-                    const TypeId type_id = resolve_type_identifier_to_type_id(first_identifier_part.identifier_id, first_identifier_part.source_location);
+                } else if constexpr (std::is_same_v<ValueType, MemberFunctionIdentifier>) {
+                    KPL_ASSERT_THAT(prototype_identifier.type_identifier_id != StringId::invalid());
+                    KPL_ASSERT_THAT(prototype_identifier.identifier_id != StringId::invalid());
+                    const TypeId type_id = resolve_type_identifier_to_type_id(prototype_identifier.type_identifier_id,
+                        prototype_identifier.type_source_location);
                     if (type_id == TypeId::invalid()) {
                         return StringId::invalid();
                     }
-                    const IdentifierPathPart& second_identifier_part = prototype_identifier.identifier_parts[1];
-                    if (is_type_identifier(module_id, second_identifier_part.identifier_id)) {
+                    if (is_type_identifier(module_id, prototype_identifier.identifier_id)) {
                         const std::string message = std::format("Type name '{}' cannot be used as a member function identifier",
-                            StringPool::get().lookup(second_identifier_part.identifier_id));
-                        diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), second_identifier_part.source_location);
+                            StringPool::get().lookup(prototype_identifier.identifier_id));
+                        diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), prototype_identifier.identifier_source_location);
                         prototype->node_type = ASTNodeType::Poison;
                         return StringId::invalid();
                     }
-                    return StringPool::get().store(get_full_identifier_from_path(prototype_identifier));
+                    return get_prototype_identifier_id(prototype);
                 }
                 KPL_ASSERT_UNREACHABLE("Missing visit implementation for PrototypeIdentifier '{}'",
                     typeid(prototype_identifier).name());
