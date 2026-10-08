@@ -772,7 +772,12 @@ namespace kepler {
         KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
         KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
 #ifndef NDEBUG
-        value = builder.CreateCall(llvm_function_callee, std::move(arg_values), get_full_identifier_from_path(expression->identifier_path));
+        // llvm void instructions cannot have identifiers, so only provide it if it's non void
+        if (symbol->type_id == type_table.Builtins.void_type_id) {
+            value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
+        } else {
+            value = builder.CreateCall(llvm_function_callee, std::move(arg_values), get_full_identifier_from_path(expression->identifier_path));
+        }
 #else
         value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
 #endif
