@@ -10,6 +10,7 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
@@ -25,13 +26,6 @@ namespace kepler {
         StringId identifier_id;
         TypeId type_id;
         SymbolId symbol_id;
-        SourceLocation type_source_location;
-        SourceLocation identifier_source_location;
-    };
-
-    struct MemberFunctionIdentifier {
-        StringId type_identifier_id;
-        StringId identifier_id;
         SourceLocation type_source_location;
         SourceLocation identifier_source_location;
     };

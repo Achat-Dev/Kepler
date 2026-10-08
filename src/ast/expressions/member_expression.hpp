@@ -25,6 +25,13 @@ namespace kepler {
         uint32_t member_index;
     };
 
+    struct MemberFunctionIdentifier {
+        StringId type_identifier_id;
+        StringId identifier_id;
+        SourceLocation type_source_location;
+        SourceLocation identifier_source_location;
+    };
+
     struct MemberExpression : Expression {
         IdentifierPath member_path;
         SymbolId object_symbol_id;

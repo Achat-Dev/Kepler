@@ -8,6 +8,7 @@
  */
 
 #include "ast/prototype.hpp"
+#include "ast/expressions/member_expression.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
