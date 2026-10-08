@@ -13,7 +13,6 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "utils/identifier_path.hpp"
-#include "utils/string_pool.hpp"
 #include <memory>
 #include <utility>
 #include <vector>
@@ -21,17 +20,17 @@
 namespace kepler {
 
     struct CallExpression : Expression {
-        StringId identifier_id;
+        IdentifierPath identifier_path;
         SymbolId symbol_id;
         IdentifierPath module_path;
         std::vector<std::unique_ptr<Expression>> args;
 
-        CallExpression(StringId identifier_id,
+        CallExpression(IdentifierPath identifier_path,
             std::vector<std::unique_ptr<Expression>> args,
             IdentifierPath module_path,
             SourceLocation source_location)
             : Expression(ASTNodeType::CallExpression, std::move(source_location)),
-              identifier_id(identifier_id),
+              identifier_path(std::move(identifier_path)),
               module_path(std::move(module_path)),
               args(std::move(args)) {}
     };

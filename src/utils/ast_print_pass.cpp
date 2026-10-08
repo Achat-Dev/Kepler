@@ -466,9 +466,9 @@ namespace kepler {
 
     void ASTPrintPass::print_call_expression(const CallExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(!expression->identifier_path.identifier_parts.empty());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+        const std::string identifier = get_full_identifier_from_path(expression->identifier_path);
         if (expression->module_path.identifier_parts.empty()) {
             std::println("{}{}Module path: {}Empty{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {

@@ -102,13 +102,14 @@ namespace kepler {
         std::unique_ptr<Expression> parse_literal();
         std::unique_ptr<Expression> parse_parenthesis();
         std::unique_ptr<Expression> parse_identifier_expression();
-        std::unique_ptr<CallExpression> parse_call();
+        std::unique_ptr<CallExpression> parse_call(std::optional<IdentifierPath> module_path, IdentifierPath callee_identifier);
         std::unique_ptr<MathematicalNegationExpression> parse_negative();
         std::unique_ptr<ObjectInitializerExpression> parse_object_initializer();
         std::unique_ptr<CastExpression> parse_cast();
 
         // Statements
         std::unique_ptr<ASTNode> parse_identifier_statement();
+        // TODO (improvement): Don't make the member path optional
         std::unique_ptr<AssignmentStatement> parse_assignment(std::optional<IdentifierPath> member_path);
         std::unique_ptr<IfStatement> parse_if();
         std::unique_ptr<ForStatement> parse_for();

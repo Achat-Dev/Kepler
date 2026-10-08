@@ -545,20 +545,24 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_call_expression(CallExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
-        KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(!expression->identifier_path.identifier_parts.empty());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
+        // Right now this is fine because there are no member method calls
+        // This won't work later on when the actual identifier path has to be resolved in case the method of another member is called
+        const StringId identifier_id = StringPool::get().store(get_full_identifier_from_path(expression->identifier_path));
+
         std::expected<Symbol*, Diagnostic> prototype_symbol;
         if (expression->module_path.identifier_parts.empty()) {
-            prototype_symbol = symbol_table.find_symbol(module_id, expression->identifier_id);
+            prototype_symbol = symbol_table.find_symbol(module_id, identifier_id);
             if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
-                const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+                const std::string_view identifier = StringPool::get().lookup(identifier_id);
                 diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
                 expression->node_type = ASTNodeType::Poison;
                 return {.poisoned = true};
             }
         } else {
-            prototype_symbol = symbol_table.find_symbol(module_id, expression->module_path, expression->identifier_id);
+            prototype_symbol = symbol_table.find_symbol(module_id, expression->module_path, identifier_id);
             if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
                 KPL_ASSERT_THAT(expression->module_path.source_location.file_id != FileId::invalid());
                 KPL_ASSERT_THAT(expression->module_path.source_location.size > 0);
@@ -575,7 +579,7 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         } else if (prototype_symbol.value()->symbol_kind != SymbolKind::Prototype) {
-            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+            const std::string_view identifier = StringPool::get().lookup(identifier_id);
             const std::string message = std::format("Symbol '{}' is used as a function, but it's a {}",
                 identifier,
                 prototype_symbol.value()->symbol_kind);
@@ -591,7 +595,7 @@ namespace kepler {
             const size_t expected_parameter_count = prototype_symbol_data.parameter_type_ids.size();
             const size_t given_argument_count = expression->args.size();
             if (expected_parameter_count != given_argument_count) {
-                const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+                const std::string_view identifier = StringPool::get().lookup(identifier_id);
                 const std::string message = std::format("Function '{}' expects {} arguments, got {}",
                     identifier,
                     expected_parameter_count,

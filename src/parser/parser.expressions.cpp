@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <format>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -124,11 +125,43 @@ namespace kepler {
     std::unique_ptr<Expression> Parser::parse_identifier_expression() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
+
         next_token(true); // eat identifier
         const TokenType next_token_type = current_token->type;
         previous_token(true); // Go back so the things can be parsed and the correct diagnostic can be printed
-        if (next_token_type == TokenType::BracketOpen || next_token_type == TokenType::DoubleColon) {
-            return parse_call();
+        if (next_token_type == TokenType::BracketOpen) {
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+            const StringId identifier_id = std::get<StringId>(current_token->data);
+            const SourceLocation& identifier_source_location = current_token->source_location;
+            next_token(true); // eat identifier
+            return parse_call(std::nullopt, identifier_id_to_path(identifier_id, identifier_source_location));
+        } else if (next_token_type == TokenType::DoubleColon) {
+            const auto module_path = parse_identifier_path(TokenType::DoubleColon,
+                IdentifierPathParseKind::ReturnAtLastIdentifier,
+                "in module path");
+            if (!module_path.has_value()) {
+                return nullptr;
+            }
+            next_token(true); // eat last identifier
+            const TokenType next_token_type = current_token->type;
+            previous_token(true); // Go back to last identifier
+            if (next_token_type == TokenType::BracketOpen) {
+                KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+                const StringId identifier_id = std::get<StringId>(current_token->data);
+                const SourceLocation& identifier_source_location = current_token->source_location;
+                next_token(true); // eat last identifer
+                return parse_call(std::move(module_path.value().identifier_path), identifier_id_to_path(identifier_id, identifier_source_location));
+            } else if (next_token_type == TokenType::Dot) {
+                const auto callee_identifier = parse_identifier_path(TokenType::Dot,
+                    IdentifierPathParseKind::IncludeLastIdentifier,
+                    "in member path");
+                if (!callee_identifier.has_value()) {
+                    return nullptr;
+                }
+                if (current_token->type == TokenType::BracketOpen) {
+                    return parse_call(std::move(module_path.value().identifier_path), std::move(callee_identifier.value().identifier_path));
+                }
+            }
         } else if (next_token_type == TokenType::Dot) {
             const auto member_path_parse_result = parse_identifier_path(TokenType::Dot,
                 IdentifierPathParseKind::IncludeLastIdentifier,
@@ -136,38 +169,34 @@ namespace kepler {
             if (!member_path_parse_result.has_value()) {
                 return nullptr;
             }
-            return std::make_unique<MemberExpression>(std::move(member_path_parse_result.value().identifier_path));
+
+            if (current_token->type == TokenType::BracketOpen) {
+                return parse_call(std::nullopt, std::move(member_path_parse_result.value().identifier_path));
+            } else {
+                return std::make_unique<MemberExpression>(std::move(member_path_parse_result.value().identifier_path));
+            }
         } else if (next_token_type == TokenType::CurlyBracketOpen) {
             return parse_object_initializer();
+        } else {
+            const Token* identifier_token = current_token;
+            next_token(true); // eat identifier
+            KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
+            const StringId identifier_id = std::get<StringId>(identifier_token->data);
+            return std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location);
         }
 
-        const Token* identifier_token = current_token;
-        next_token(true); // eat identifier
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
-        const StringId identifier_id = std::get<StringId>(identifier_token->data);
-        return std::make_unique<VariableExpression>(identifier_id, identifier_token->source_location);
+        diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), current_token->source_location);
+        recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+        return nullptr;
     }
 
-    std::unique_ptr<CallExpression> Parser::parse_call() {
+    std::unique_ptr<CallExpression> Parser::parse_call(std::optional<IdentifierPath> module_path, IdentifierPath callee_identifier) {
+        KPL_ASSERT_THAT(!callee_identifier.identifier_parts.empty());
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        StringId identifier_id = std::get<StringId>(current_token->data);
-        SourceLocation identifier_source_location = current_token->source_location;
-        IdentifierPath module_path;
-        next_token(true); // eat identifier
-        if (current_token->type == TokenType::DoubleColon) {
-            previous_token(true); // Go back to the identifier to start the module identifier parsing
-            auto module_path_parse_result = parse_identifier_path(TokenType::DoubleColon,
-                IdentifierPathParseKind::ReturnLastIdentifierSeparately,
-                "in function call");
-            if (!module_path_parse_result.has_value()) {
-                return nullptr;
-            }
-            KPL_ASSERT_THAT(module_path_parse_result.value().last_identifier != StringId::invalid());
-            identifier_id = module_path_parse_result.value().last_identifier;
-            identifier_source_location = std::move(module_path_parse_result.value().last_identifier_source_location);
-            module_path = std::move(module_path_parse_result.value().identifier_path);
+        KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token: '{}', received: '{}'", TokenType::BracketOpen, current_token->type);
+        SourceLocation identifier_source_location = callee_identifier.source_location;
+        if (!module_path.has_value()) {
+            module_path = IdentifierPath{};
         }
 
         if (current_token->type != TokenType::BracketOpen) {
@@ -180,9 +209,9 @@ namespace kepler {
         if (current_token->type == TokenType::BracketClose) {
             next_token(true); // eat ')'
             return std::make_unique<CallExpression>(
-                identifier_id,
+                std::move(callee_identifier),
                 std::vector<std::unique_ptr<Expression>>{},
-                std::move(module_path),
+                std::move(module_path.value()),
                 std::move(identifier_source_location));
         }
 
@@ -209,9 +238,9 @@ namespace kepler {
 
         next_token(true); // eat ')'
         return std::make_unique<CallExpression>(
-            identifier_id,
+            std::move(callee_identifier),
             std::move(args),
-            std::move(module_path),
+            std::move(module_path.value()),
             std::move(identifier_source_location));
     }
 

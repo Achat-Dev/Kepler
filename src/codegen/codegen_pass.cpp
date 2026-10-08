@@ -742,7 +742,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_call_expression(const CallExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
-        KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(!expression->identifier_path.identifier_parts.empty());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
         llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol_id]);
@@ -771,13 +771,11 @@ namespace kepler {
         llvm::Value* value = nullptr;
         KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
         KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
-        if (symbol->type_id == type_table.Builtins.void_type_id) {
-            value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
-        } else {
-            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-            KPL_ASSERT_THAT(!identifier.empty());
-            value = builder.CreateCall(llvm_function_callee, std::move(arg_values), "call_" + std::string(identifier));
-        }
+#ifndef NDEBUG
+        value = builder.CreateCall(llvm_function_callee, std::move(arg_values), get_full_identifier_from_path(expression->identifier_path));
+#else
+        value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
+#endif
         return {.llvm_value = value, .returns = false};
     }
 
