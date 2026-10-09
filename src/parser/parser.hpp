@@ -110,8 +110,7 @@ namespace kepler {
 
         // Statements
         std::unique_ptr<ASTNode> parse_identifier_statement();
-        // TODO (improvement): Don't make the member path optional
-        std::unique_ptr<AssignmentStatement> parse_assignment(std::optional<IdentifierPath> member_path);
+        std::unique_ptr<AssignmentStatement> parse_assignment(IdentifierPath identifier_path);
         std::unique_ptr<IfStatement> parse_if();
         std::unique_ptr<ForStatement> parse_for();
         std::unique_ptr<ForStatement> create_for_statement(const Token* variable_type_token,

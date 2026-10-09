@@ -62,14 +62,17 @@ namespace kepler {
         switch (peek_next_token_type(1, true)) {
             case TokenType::Identifier:
                 return parse_variable_definition();
-            case TokenType::Assignment:
-                return parse_assignment(std::nullopt);
+            case TokenType::Assignment: {
+                KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+                const IdentifierPath identifier_path = identifier_id_to_path(std::get<StringId>(current_token->data), current_token->source_location);
+                next_token(true); // eat identifier
+                return parse_assignment(std::move(identifier_path));
+            }
             case TokenType::BracketOpen: {
                 KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-                const StringId identifier_id = std::get<StringId>(current_token->data);
-                const SourceLocation& identifier_source_location = current_token->source_location;
+                const IdentifierPath identifier_path = identifier_id_to_path(std::get<StringId>(current_token->data), current_token->source_location);
                 next_token(true); // eat identifier
-                return parse_call(std::nullopt, identifier_id_to_path(identifier_id, identifier_source_location));
+                return parse_call(std::nullopt, std::move(identifier_path));
             }
             case TokenType::DoubleColon: {
                 const auto module_path = parse_identifier_path(TokenType::DoubleColon, IdentifierPathParseKind::ReturnAtLastIdentifier, "in module path");
@@ -79,10 +82,9 @@ namespace kepler {
                 const TokenType next_token_type = peek_next_token_type(1, true);
                 if (next_token_type == TokenType::BracketOpen) {
                     KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-                    const StringId identifier_id = std::get<StringId>(current_token->data);
-                    const SourceLocation& identifier_source_location = current_token->source_location;
+                    const IdentifierPath identifier_path = identifier_id_to_path(std::get<StringId>(current_token->data), current_token->source_location);
                     next_token(true); // eat last identifier
-                    return parse_call(std::move(module_path.value().identifier_path), identifier_id_to_path(identifier_id, identifier_source_location));
+                    return parse_call(std::move(module_path.value().identifier_path), std::move(identifier_path));
                 } else if (next_token_type == TokenType::Dot) {
                     const auto callee_identifier = parse_identifier_path(TokenType::Dot, IdentifierPathParseKind::IncludeLastIdentifier, "in member path");
                     if (!callee_identifier.has_value()) {
@@ -115,26 +117,16 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<AssignmentStatement> Parser::parse_assignment(std::optional<IdentifierPath> member_path) {
+    std::unique_ptr<AssignmentStatement> Parser::parse_assignment(IdentifierPath identifier_path) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
+        KPL_ASSERT_THAT(current_token->type == TokenType::Assignment, "Required token: '{}', received: '{}'", TokenType::Assignment, current_token->type);
+        KPL_ASSERT_THAT(!identifier_path.identifier_parts.empty());
         AssignmentTargetExpression assignment_target_expression;
-        if (member_path.has_value()) {
-            KPL_ASSERT_THAT(current_token->type == TokenType::Assignment,
-                "Required token: '{}', received: '{}'",
-                TokenType::Assignment,
-                current_token->type);
-            assignment_target_expression = std::make_unique<MemberExpression>(std::move(member_path.value()));
+        if (identifier_path.identifier_parts.size() == 1) {
+            const IdentifierPathPart identifier_path_part = identifier_path.identifier_parts[0];
+            assignment_target_expression = std::make_unique<VariableExpression>(identifier_path_part.identifier_id, identifier_path_part.source_location);
         } else {
-            KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
-            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            assignment_target_expression = std::make_unique<VariableExpression>(std::get<StringId>(current_token->data), current_token->source_location);
-            next_token(true); // eat identifier
-        }
-
-        if (current_token->type != TokenType::Assignment) {
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '=' after identifier in assignment", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
-            return nullptr;
+            assignment_target_expression = std::make_unique<MemberExpression>(std::move(identifier_path));
         }
 
         const SourceLocation& assignment_source_location = current_token->source_location;
@@ -463,14 +455,13 @@ namespace kepler {
             recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
             return nullptr;
         }
-        previous_token(true); // Go back so the assignment can be parsed
-        std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment(std::nullopt);
+        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
+        const StringId identifier_id = std::get<StringId>(identifier_token->data);
+        const IdentifierPath identifier_path = identifier_id_to_path(identifier_id, identifier_token->source_location);
+        std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment(std::move(identifier_path));
         if (!assignment_statement) {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
-
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
-        const StringId identifier_id = std::get<StringId>(identifier_token->data);
         return std::make_unique<VariableDefinitionStatement>(type_id, identifier_id, std::move(assignment_statement), type_source_location);
     }
 

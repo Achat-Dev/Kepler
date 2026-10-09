@@ -129,10 +129,9 @@ namespace kepler {
         switch (peek_next_token_type(1, true)) {
             case TokenType::BracketOpen: {
                 KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-                const StringId identifier_id = std::get<StringId>(current_token->data);
-                const SourceLocation& identifier_source_location = current_token->source_location;
+                const IdentifierPath identifier_path = identifier_id_to_path(std::get<StringId>(current_token->data), current_token->source_location);
                 next_token(true); // eat identifier
-                return parse_call(std::nullopt, identifier_id_to_path(identifier_id, identifier_source_location));
+                return parse_call(std::nullopt, std::move(identifier_path));
             }
             case TokenType::DoubleColon: {
                 const auto module_path = parse_identifier_path(TokenType::DoubleColon, IdentifierPathParseKind::ReturnAtLastIdentifier, "in module path");
@@ -142,10 +141,9 @@ namespace kepler {
                 const TokenType next_token_type = peek_next_token_type(1, true);
                 if (next_token_type == TokenType::BracketOpen) {
                     KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-                    const StringId identifier_id = std::get<StringId>(current_token->data);
-                    const SourceLocation& identifier_source_location = current_token->source_location;
+                    const IdentifierPath identifier_path = identifier_id_to_path(std::get<StringId>(current_token->data), current_token->source_location);
                     next_token(true); // eat last identifer
-                    return parse_call(std::move(module_path.value().identifier_path), identifier_id_to_path(identifier_id, identifier_source_location));
+                    return parse_call(std::move(module_path.value().identifier_path), std::move(identifier_path));
                 } else if (next_token_type == TokenType::Dot) {
                     const auto callee_identifier = parse_identifier_path(TokenType::Dot, IdentifierPathParseKind::IncludeLastIdentifier, "in member path");
                     if (!callee_identifier.has_value()) {
