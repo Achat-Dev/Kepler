@@ -76,6 +76,7 @@ namespace kepler {
         int get_operator_precedence(OperatorType operator_type) const;
         void next_token(bool skip_newline);
         void previous_token(bool skip_newline);
+        TokenType peek_next_token_type(size_t lookahead, bool skip_newline) const;
         void jump_to_token(size_t index);
         std::optional<IdentifierPathParseResult> parse_identifier_path(TokenType delimiter_token,
             IdentifierPathParseKind path_return_kind,

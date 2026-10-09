@@ -164,6 +164,24 @@ namespace kepler {
         }
     }
 
+    TokenType Parser::peek_next_token_type(size_t lookahead, bool skip_newline) const {
+        KPL_ASSERT_THAT(lookahead > 0);
+        TokenType result = TokenType::EndOfFile;
+        size_t i = 1;
+        while (i <= lookahead) {
+            if (current_token_index + i >= tokens.size()) {
+                return TokenType::EndOfFile;
+            }
+
+            result = tokens[current_token_index + i].type;
+            if (result == TokenType::Newline && skip_newline) {
+                lookahead++;
+            }
+            i++;
+        }
+        return result;
+    }
+
     void Parser::jump_to_token(size_t index) {
         KPL_ASSERT_THAT(index < tokens.size());
         current_token_index = index;

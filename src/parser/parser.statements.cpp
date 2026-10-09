@@ -59,60 +59,55 @@ namespace kepler {
     std::unique_ptr<ASTNode> Parser::parse_identifier_statement() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
-
-        next_token(true); // eat identifier
-        const TokenType next_token_type = current_token->type;
-        previous_token(true); // Go back so the things can be parsed and the correct diagnostic can be printed
-        if (next_token_type == TokenType::Identifier) {
-            return parse_variable_definition();
-        } else if (next_token_type == TokenType::Assignment) {
-            return parse_assignment(std::nullopt);
-        } else if (next_token_type == TokenType::BracketOpen) {
-            KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            const StringId identifier_id = std::get<StringId>(current_token->data);
-            const SourceLocation& identifier_source_location = current_token->source_location;
-            next_token(true); // eat identifier
-            return parse_call(std::nullopt, identifier_id_to_path(identifier_id, identifier_source_location));
-        } else if (next_token_type == TokenType::DoubleColon) {
-            const auto module_path = parse_identifier_path(TokenType::DoubleColon,
-                IdentifierPathParseKind::ReturnAtLastIdentifier,
-                "in module path");
-            if (!module_path.has_value()) {
-                return nullptr;
-            }
-            next_token(true); // eat last identifier
-            const TokenType next_token_type = current_token->type;
-            previous_token(true); // Go back to last identifier
-            if (next_token_type == TokenType::BracketOpen) {
+        switch (peek_next_token_type(1, true)) {
+            case TokenType::Identifier:
+                return parse_variable_definition();
+            case TokenType::Assignment:
+                return parse_assignment(std::nullopt);
+            case TokenType::BracketOpen: {
                 KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
                 const StringId identifier_id = std::get<StringId>(current_token->data);
                 const SourceLocation& identifier_source_location = current_token->source_location;
-                next_token(true); // eat last identifier
-                return parse_call(std::move(module_path.value().identifier_path), identifier_id_to_path(identifier_id, identifier_source_location));
-            } else if (next_token_type == TokenType::Dot) {
-                const auto callee_identifier = parse_identifier_path(TokenType::Dot,
-                    IdentifierPathParseKind::IncludeLastIdentifier,
-                    "in member path");
-                if (!callee_identifier.has_value()) {
+                next_token(true); // eat identifier
+                return parse_call(std::nullopt, identifier_id_to_path(identifier_id, identifier_source_location));
+            }
+            case TokenType::DoubleColon: {
+                const auto module_path = parse_identifier_path(TokenType::DoubleColon, IdentifierPathParseKind::ReturnAtLastIdentifier, "in module path");
+                if (!module_path.has_value()) {
                     return nullptr;
                 }
-                if (current_token->type == TokenType::BracketOpen) {
-                    return parse_call(std::move(module_path.value().identifier_path), std::move(callee_identifier.value().identifier_path));
+                const TokenType next_token_type = peek_next_token_type(1, true);
+                if (next_token_type == TokenType::BracketOpen) {
+                    KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
+                    const StringId identifier_id = std::get<StringId>(current_token->data);
+                    const SourceLocation& identifier_source_location = current_token->source_location;
+                    next_token(true); // eat last identifier
+                    return parse_call(std::move(module_path.value().identifier_path), identifier_id_to_path(identifier_id, identifier_source_location));
+                } else if (next_token_type == TokenType::Dot) {
+                    const auto callee_identifier = parse_identifier_path(TokenType::Dot, IdentifierPathParseKind::IncludeLastIdentifier, "in member path");
+                    if (!callee_identifier.has_value()) {
+                        return nullptr;
+                    }
+                    if (current_token->type == TokenType::BracketOpen) {
+                        return parse_call(std::move(module_path.value().identifier_path), std::move(callee_identifier.value().identifier_path));
+                    }
                 }
+                break;
             }
-        } else if (next_token_type == TokenType::Dot) {
-            const auto member_path_parse_result = parse_identifier_path(TokenType::Dot,
-                IdentifierPathParseKind::IncludeLastIdentifier,
-                "in member path");
-            if (!member_path_parse_result.has_value()) {
-                return nullptr;
+            case TokenType::Dot: {
+                const auto member_path_parse_result = parse_identifier_path(TokenType::Dot, IdentifierPathParseKind::IncludeLastIdentifier, "in member path");
+                if (!member_path_parse_result.has_value()) {
+                    return nullptr;
+                }
+                if (current_token->type == TokenType::Assignment) {
+                    return parse_assignment(std::move(member_path_parse_result.value().identifier_path));
+                } else if (current_token->type == TokenType::BracketOpen) {
+                    return parse_call(std::nullopt, std::move(member_path_parse_result.value().identifier_path));
+                }
+                break;
             }
-
-            if (current_token->type == TokenType::Assignment) {
-                return parse_assignment(std::move(member_path_parse_result.value().identifier_path));
-            } else if (current_token->type == TokenType::BracketOpen) {
-                return parse_call(std::nullopt, std::move(member_path_parse_result.value().identifier_path));
-            }
+            default:
+                break;
         }
 
         diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::format("Unexpected token '{}'", *current_token), current_token->source_location);
