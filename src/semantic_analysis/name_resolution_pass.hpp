@@ -28,13 +28,14 @@
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
 #include "ast/struct.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
-#include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include <expected>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -58,10 +59,10 @@ namespace kepler {
         std::unordered_map<StringId, TypeId> builtin_type_identifiers;
 
         void register_builtin_type_identifier(TypeId type_id);
-        void create_struct_symbols_and_types(ModuleId module_id, const std::vector<std::unique_ptr<Struct>>& struct_nodes);
-        void create_struct_symbol(ModuleId module_id, Struct* struct_node);
-        void create_prototype_symbols(ModuleId module_id, const std::vector<std::unique_ptr<ASTNode>>& top_level_nodes);
-        NameResolutionResult create_prototype_symbol(ModuleId module_id, Prototype* prototype, LinkageType linkage_type) const;
+        void create_struct_symbols_and_types(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
+        void create_struct_symbol(Struct* struct_node);
+        void create_prototype_symbols(const std::vector<std::unique_ptr<ASTNode>>& top_level_nodes);
+        NameResolutionResult create_prototype_symbol(Prototype* prototype, LinkageType linkage_type) const;
 
         void resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
@@ -82,8 +83,7 @@ namespace kepler {
         NameResolutionResult resolve_object_initializer_expression(ObjectInitializerExpression* expression) const;
         NameResolutionResult resolve_variable_expression(VariableExpression* expression) const;
 
-        bool is_type_identifier(ModuleId module_id, StringId identifier_id) const;
-        TypeId resolve_type_identifier_to_type_id(StringId type_identifier_id, SourceLocation source_location) const;
+        std::expected<TypeId, Diagnostic> resolve_type_identifier_to_type_id(StringId type_identifier_id) const;
     };
 
 }
