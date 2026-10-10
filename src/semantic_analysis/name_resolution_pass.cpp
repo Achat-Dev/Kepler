@@ -555,22 +555,8 @@ namespace kepler {
         std::expected<Symbol*, Diagnostic> prototype_symbol;
         if (expression->module_path.identifier_parts.empty()) {
             prototype_symbol = symbol_table.find_symbol(module_id, identifier_id);
-            if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
-                const std::string_view identifier = StringPool::get().lookup(identifier_id);
-                diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
-                expression->node_type = ASTNodeType::Poison;
-                return {.poisoned = true};
-            }
         } else {
             prototype_symbol = symbol_table.find_symbol(module_id, expression->module_path, identifier_id);
-            if (prototype_symbol.has_value() && prototype_symbol.value() == nullptr) {
-                KPL_ASSERT_THAT(expression->module_path.source_location.file_id != FileId::invalid());
-                KPL_ASSERT_THAT(expression->module_path.source_location.size > 0);
-                const std::string message = std::format("Unknown module '{}'", get_full_identifier_from_path(expression->module_path));
-                diagnostic_sink.report(DiagnosticCode::UnknownModule, std::move(message), expression->module_path.source_location);
-                expression->node_type = ASTNodeType::Poison;
-                return {.poisoned = true};
-            }
         }
 
         if (!prototype_symbol.has_value()) {
@@ -578,7 +564,14 @@ namespace kepler {
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
-        } else if (prototype_symbol.value()->symbol_kind != SymbolKind::Prototype) {
+        }
+        if (prototype_symbol.value() == nullptr) {
+            const std::string_view identifier = StringPool::get().lookup(identifier_id);
+            diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
+        }
+        if (prototype_symbol.value()->symbol_kind != SymbolKind::Prototype) {
             const std::string_view identifier = StringPool::get().lookup(identifier_id);
             const std::string message = std::format("Symbol '{}' is used as a function, but it's a {}",
                 identifier,

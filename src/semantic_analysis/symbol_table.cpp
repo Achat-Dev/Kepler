@@ -171,7 +171,10 @@ namespace kepler {
         }
 
         if (found_modules.empty()) {
-            return nullptr;
+            return std::unexpected(Diagnostic{
+                .code = DiagnosticCode::UnknownModule,
+                .message = std::format("Unknown module '{}'", get_full_identifier_from_path(module_path)),
+            });
         } else if (found_modules.size() == 1) {
             if (found_modules[0]->id == module_id) {
                 return find_symbol_of_kind(found_modules[0]->id, identifier_id, SymbolKind::All, false, false);
