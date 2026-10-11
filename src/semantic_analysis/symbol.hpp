@@ -12,6 +12,7 @@
 #include "ast/ast_node.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "type_system/type.hpp"
+#include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
@@ -19,7 +20,8 @@
 #include <format>
 #include <functional>
 #include <limits>
-#include <variant>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace kepler {
@@ -39,23 +41,63 @@ namespace kepler {
         Type,
     };
 
-    struct PrototypeSymbolData {
-        LinkageType linkage_type;
-        bool is_variadic = false;
-        std::vector<TypeId> parameter_type_ids;
-    };
-
-    using SymbolData = std::variant<std::monostate, PrototypeSymbolData>;
-
     struct Symbol {
         SymbolId id;
         ScopeId scope_id;
         TypeId type_id;
         StringId identifier_id;
         StringId mangled_identifier_id;
-        SymbolKind symbol_kind;
-        SymbolData data = std::monostate{};
+
+        Symbol(SymbolId id, ScopeId scope_id, TypeId type_id, StringId identifier_id)
+            : id(id), scope_id(scope_id), type_id(type_id), identifier_id(identifier_id) {}
+
+        constexpr virtual SymbolKind get_symbol_kind() const = 0;
+        virtual ~Symbol() = default;
     };
+
+    struct VariableSymbol : Symbol {
+        VariableSymbol(SymbolId symbol_id, ScopeId scope_id, TypeId type_id, StringId identifier_id)
+            : Symbol(symbol_id, scope_id, type_id, identifier_id) {}
+
+        constexpr SymbolKind get_symbol_kind() const override {
+            return SymbolKind::Variable;
+        }
+    };
+
+    struct PrototypeSymbol : Symbol {
+        StringId signature_identifier_id;
+        LinkageType linkage_type;
+        bool is_variadic = false;
+        std::vector<TypeId> parameter_type_ids;
+
+        PrototypeSymbol(SymbolId symbol_id,
+            ScopeId scope_id,
+            TypeId type_id,
+            StringId identifier_id,
+            LinkageType linkage_type,
+            std::vector<TypeId> parameter_type_ids,
+            bool is_variadic)
+            : Symbol(symbol_id, scope_id, type_id, identifier_id),
+              linkage_type(linkage_type),
+              parameter_type_ids(std::move(parameter_type_ids)),
+              is_variadic(is_variadic) {}
+
+        constexpr SymbolKind get_symbol_kind() const override {
+            return SymbolKind::Prototype;
+        }
+    };
+
+    struct TypeSymbol : Symbol {
+        TypeSymbol(SymbolId symbol_id, ScopeId scope_id, StringId identifier_id)
+            : Symbol(symbol_id, scope_id, TypeId::invalid(), identifier_id) {}
+
+        constexpr SymbolKind get_symbol_kind() const override {
+            return SymbolKind::Type;
+        }
+    };
+
+
+    std::string get_prototype_symbol_signature(const PrototypeSymbol* prototype_symbol, TypeTable& type_table);
 
 }
 

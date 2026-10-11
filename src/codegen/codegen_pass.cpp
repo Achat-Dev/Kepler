@@ -750,8 +750,8 @@ namespace kepler {
         // That's why we use getOrInsertFunction to create an extern declaration if it doesn't exist
         llvm::FunctionCallee llvm_function_callee = current_llvm_module->getOrInsertFunction(llvm_function->getName(), llvm_function->getFunctionType());
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
-        KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(symbol->data));
-        bool is_variadic = std::get<PrototypeSymbolData>(symbol->data).is_variadic;
+        KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Prototype);
+        bool is_variadic = static_cast<const PrototypeSymbol*>(symbol)->is_variadic;
         KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(), "Internal variadic: {}, LLVM variadic: {}", is_variadic, llvm_function->isVarArg());
         if (!is_variadic) {
             KPL_ASSERT_THAT(expression->args.size() == llvm_function->arg_size(),
@@ -890,7 +890,7 @@ namespace kepler {
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
         KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
-        KPL_ASSERT_THAT(symbol->symbol_kind == SymbolKind::Variable);
+        KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Variable);
 #ifndef NDEBUG
         const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
         KPL_ASSERT_THAT(!identifier.empty());

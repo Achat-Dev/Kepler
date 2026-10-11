@@ -16,6 +16,7 @@
 
 namespace kepler::log {
 
+    inline constexpr char sub_line[] = "  \u2502            ";
     inline constexpr char indented[] = "  \u251C\u2500 ";
     inline constexpr char last_indented[] = "  \u2514\u2500 ";
 

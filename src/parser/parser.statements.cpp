@@ -404,6 +404,8 @@ namespace kepler {
         const SourceLocation& return_source_location = current_token->source_location;
         next_token(true); // eat 'return' keyword
 
+        // TODO (improvement): Change this to always parse the next expression because this results in really bad diagnostics
+        // That solution will be better once optional semicolons are implemented
         const Type* void_type = type_table.lookup(type_table.Builtins.void_type_id);
         if (current_function_return_type_id == void_type->identifier_id) {
             return std::make_unique<ReturnStatement>(nullptr, return_source_location);

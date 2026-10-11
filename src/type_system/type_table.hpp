@@ -10,7 +10,6 @@
 #pragma once
 
 #include "ast/struct.hpp"
-#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/string_pool.hpp"
@@ -38,7 +37,7 @@ namespace kepler {
             TypeId f64_type_id;
         } Builtins{};
 
-        explicit TypeTable(SymbolTable& symbol_table);
+        explicit TypeTable();
         TypeId create_struct(StringId identifier_id);
         void create_struct_members(TypeId struct_type_id, const std::vector<StructNodeMember>& members);
         Type* lookup(TypeId type_id);
@@ -47,7 +46,7 @@ namespace kepler {
         std::vector<Type*> types;
         ArenaAllocator allocator;
 
-        void create_builtin_types(SymbolTable& symbol_table);
+        void create_builtin_types();
         void create_builtin_type(TypeId& type_id, TypeKind type_kind);
         void add_methods_to_builtin_number_type(TypeId type_id);
     };

@@ -24,6 +24,7 @@ namespace kepler {
         SymbolId symbol_id;
         IdentifierPath module_path;
         std::vector<std::unique_ptr<Expression>> args;
+        std::vector<SymbolId> candidate_symbol_ids;
 
         CallExpression(IdentifierPath identifier_path,
             std::vector<std::unique_ptr<Expression>> args,

@@ -12,10 +12,13 @@
 #include "utils/string_pool.hpp"
 #include <cstdint>
 #include <unordered_map>
+#include <variant>
 
 namespace kepler {
 
     struct SymbolId;
+
+    using ScopeEntry = std::variant<SymbolId, std::vector<SymbolId>>;
 
     struct ScopeId {
         uint32_t value = std::numeric_limits<uint32_t>::max();
@@ -35,7 +38,7 @@ namespace kepler {
         ScopeType type;
         ScopeId id;
         ScopeId parent_id;
-        std::unordered_map<StringId, SymbolId> contained_symbols;
+        std::unordered_map<StringId, ScopeEntry> contained_symbols;
     };
 
 }

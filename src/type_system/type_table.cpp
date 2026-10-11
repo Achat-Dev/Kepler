@@ -10,7 +10,6 @@
 #include "type_system/type_table.hpp"
 #include "ast/struct.hpp"
 #include "lexer/operator_type.hpp"
-#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
@@ -22,10 +21,10 @@
 
 namespace kepler {
 
-    TypeTable::TypeTable(SymbolTable& symbol_table)
-        : allocator(kibibyte_size * 16, "type_table") {
+    TypeTable::TypeTable()
+        : allocator(kibibyte_size * 16, "types") {
         if (Builtins.void_type_id == TypeId::invalid()) {
-            create_builtin_types(symbol_table);
+            create_builtin_types();
         }
     }
 
@@ -60,7 +59,7 @@ namespace kepler {
         return types[type_id.value];
     }
 
-    void TypeTable::create_builtin_types(SymbolTable& symbol_table) {
+    void TypeTable::create_builtin_types() {
         KPL_ASSERT_THAT(Builtins.unknown_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(Builtins.void_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(Builtins.bool_type_id == TypeId::invalid());

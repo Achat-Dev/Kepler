@@ -218,7 +218,9 @@ namespace kepler {
 
         // Check if valid parameters
         std::vector<TypeId> parameter_type_ids;
+        std::vector<StringId> parameter_type_identifier_ids;
         parameter_type_ids.reserve(prototype->parameter_data.size());
+        parameter_type_identifier_ids.reserve(prototype->parameter_data.size());
         for (ParameterData& parameter_data : prototype->parameter_data) {
             KPL_ASSERT_THAT(parameter_data.type_id == TypeId::invalid());
             KPL_ASSERT_THAT(parameter_data.type_identifier_id != StringId::invalid());
@@ -232,6 +234,7 @@ namespace kepler {
             KPL_ASSERT_THAT(parameter_type_id.value() != TypeId::invalid());
             parameter_data.type_id = parameter_type_id.value();
             parameter_type_ids.push_back(parameter_type_id.value());
+            parameter_type_identifier_ids.push_back(parameter_data.type_identifier_id);
         }
 
         const auto symbol_id = symbol_table.create_prototype(module_id,
@@ -239,7 +242,9 @@ namespace kepler {
             identifier_id,
             linkage_type,
             std::move(parameter_type_ids),
-            prototype->is_variadic);
+            std::move(parameter_type_identifier_ids),
+            prototype->is_variadic,
+            type_table);
         if (!symbol_id.has_value()) {
             const Diagnostic& diagnostic = symbol_id.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, prototype->identifier_source_location);
@@ -570,38 +575,45 @@ namespace kepler {
         // This won't work later on when the actual identifier path has to be resolved in case the method of another member is called
         const StringId identifier_id = StringPool::get().store(get_full_identifier_from_path(expression->identifier_path));
 
-        std::expected<Symbol*, Diagnostic> prototype_symbol;
+        std::expected<std::vector<Symbol*>, Diagnostic> found_symbols;
         if (expression->module_path.identifier_parts.empty()) {
-            prototype_symbol = symbol_table.find_symbol(module_id, identifier_id);
+            found_symbols = symbol_table.find_symbol(module_id, identifier_id);
         } else {
-            prototype_symbol = symbol_table.find_symbol(module_id, expression->module_path, identifier_id);
+            found_symbols = symbol_table.find_symbol(module_id, expression->module_path, identifier_id);
         }
 
-        if (!prototype_symbol.has_value()) {
-            const Diagnostic diagnostic = prototype_symbol.error();
+        if (!found_symbols.has_value()) {
+            const Diagnostic diagnostic = found_symbols.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-        if (prototype_symbol.value() == nullptr) {
+        if (found_symbols.value().empty()) {
             const std::string_view identifier = StringPool::get().lookup(identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-        if (prototype_symbol.value()->symbol_kind != SymbolKind::Prototype) {
-            const std::string_view identifier = StringPool::get().lookup(identifier_id);
-            const std::string message = std::format("Symbol '{}' is used as a function, but it's a {}",
-                identifier,
-                prototype_symbol.value()->symbol_kind);
-            diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::move(message), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
-            return {.poisoned = true};
-        }
 
-        expression->symbol_id = prototype_symbol.value()->id;
-        KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(prototype_symbol.value()->data));
-        const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol.value()->data);
+        std::vector<SymbolId> candidate_symbol_ids;
+        for (const Symbol* found_symbol : found_symbols.value()) {
+            // To add a cast, append "&& found_symbol->get_symbol_kind() != SymbolKind::Type" to the condition
+            if (found_symbol->get_symbol_kind() != SymbolKind::Prototype) {
+                const std::string_view identifier = StringPool::get().lookup(identifier_id);
+                const std::string message = std::format("Symbol '{}' is used as a function, but it's a {}",
+                    identifier,
+                    found_symbol->get_symbol_kind());
+                diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::move(message), expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.poisoned = true};
+            }
+            candidate_symbol_ids.push_back(found_symbol->id);
+        }
+        expression->candidate_symbol_ids = std::move(candidate_symbol_ids);
+
+        // TODO (fix): Move this to type checking pass
+        /*KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(found_symbols.value()->data));
+        const PrototypeSymbolData& prototype_symbol_data = std::get<PrototypeSymbolData>(found_symbols.value()->data);
         if (!prototype_symbol_data.is_variadic) {
             const size_t expected_parameter_count = prototype_symbol_data.parameter_type_ids.size();
             const size_t given_argument_count = expression->args.size();
@@ -615,7 +627,7 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.poisoned = true};
             }
-        }
+        }*/
 
         for (const std::unique_ptr<Expression>& arg : expression->args) {
             KPL_ASSERT_NOT_NULLPTR(arg);
@@ -671,31 +683,41 @@ namespace kepler {
         KPL_ASSERT_THAT(member_path_parts.size() > 1);
         const IdentifierPathPart& first_path_part = member_path_parts[0];
         KPL_ASSERT_THAT(first_path_part.identifier_id != StringId::invalid());
-        const auto object_symbol = symbol_table.find_symbol(module_id, first_path_part.identifier_id);
-        if (!object_symbol.has_value()) {
-            const Diagnostic& diagnostic = object_symbol.error();
+        const auto found_symbols = symbol_table.find_symbol(module_id, first_path_part.identifier_id);
+        if (!found_symbols.has_value()) {
+            const Diagnostic& diagnostic = found_symbols.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), first_path_part.source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-        if (object_symbol.value() == nullptr) {
+        if (found_symbols.value().empty()) {
             const std::string_view identifier = StringPool::get().lookup(first_path_part.identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Unknown symbol '{}'", identifier), first_path_part.source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-        if (object_symbol.value()->symbol_kind != SymbolKind::Variable) {
-            const std::string message = std::format("Symbol '{}' cannot be used with member access because it's a {}",
-                StringPool::get().lookup(first_path_part.identifier_id),
-                object_symbol.value()->symbol_kind);
+
+        bool invalid_symbol_kind_found = false;
+        const Symbol* object_symbol = nullptr;
+        for (const Symbol* found_symbol : found_symbols.value()) {
+            if (found_symbol->get_symbol_kind() == SymbolKind::Variable) {
+                KPL_ASSERT_THAT(object_symbol == nullptr);
+                object_symbol = found_symbol;
+            } else {
+                invalid_symbol_kind_found = true;
+            }
+        }
+        if (object_symbol == nullptr && invalid_symbol_kind_found) {
+            const std::string message = std::format("Symbol '{}' cannot be used with member access because it's not a variable",
+                StringPool::get().lookup(first_path_part.identifier_id));
             diagnostic_sink.report(DiagnosticCode::InvalidMemberAccess, std::move(message), first_path_part.source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
 
-        KPL_ASSERT_THAT(object_symbol.value()->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(object_symbol.value()->type_id != type_table.Builtins.unknown_type_id);
-        Type* object_type = type_table.lookup(object_symbol.value()->type_id);
+        KPL_ASSERT_THAT(object_symbol->type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(object_symbol->type_id != type_table.Builtins.unknown_type_id);
+        Type* object_type = type_table.lookup(object_symbol->type_id);
         if (object_type->type_kind != TypeKind::Struct) {
             const std::string message = std::format("Symbol '{}' is of type '{}', which doesn't have any members",
                 StringPool::get().lookup(first_path_part.identifier_id),
@@ -704,7 +726,7 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-        expression->object_symbol_id = object_symbol.value()->id;
+        expression->object_symbol_id = object_symbol->id;
 
         StructType* struct_type = static_cast<StructType*>(object_type);
         TypeId member_type_id;
@@ -791,30 +813,32 @@ namespace kepler {
             return {.poisoned = true};
         }
 
-        const auto symbol = symbol_table.find_symbol(module_id, expression->identifier_id);
-        if (!symbol.has_value()) {
-            const Diagnostic diagnostic = symbol.error();
+        const auto found_symbols = symbol_table.find_symbol(module_id, expression->identifier_id);
+        if (!found_symbols.has_value()) {
+            const Diagnostic diagnostic = found_symbols.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-
-        if (symbol.value() == nullptr) {
+        if (found_symbols.value().empty()) {
             const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
-        } else {
-            if (symbol.value()->symbol_kind != SymbolKind::Variable) {
-                const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
-                const std::string message = std::format("Symbol '{}' is used as a variable, but it's a {}", identifier, symbol.value()->symbol_kind);
-                diagnostic_sink.report(DiagnosticCode::InvalidSymbolUsage, std::move(message), expression->source_location);
-                expression->node_type = ASTNodeType::Poison;
-                return {.poisoned = true};
-            }
-            expression->symbol_id = symbol.value()->id;
-            return {.poisoned = false};
         }
+        if (found_symbols.value().size() != 1) {
+            KPL_ASSERT_UNREACHABLE("Not implemented");
+        }
+        const Symbol* variable_symbol = found_symbols.value()[0];
+        if (variable_symbol->get_symbol_kind() != SymbolKind::Variable) {
+            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+            const std::string message = std::format("Symbol '{}' is used as a variable, but it's a {}", identifier, variable_symbol->get_symbol_kind());
+            diagnostic_sink.report(DiagnosticCode::InvalidSymbolUsage, std::move(message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
+        }
+        expression->symbol_id = variable_symbol->id;
+        return {.poisoned = false};
     }
 
     std::expected<TypeId, Diagnostic> NameResolutionPass::resolve_type_identifier_to_type_id(StringId type_identifier_id) const {
@@ -827,16 +851,18 @@ namespace kepler {
         }
 
         KPL_ASSERT_THAT(type_identifier_id != type_table.lookup(type_table.Builtins.unknown_type_id)->identifier_id);
-        const auto type_symbol = symbol_table.find_symbol_of_kind(module_id, type_identifier_id, SymbolKind::Type);
-        if (!type_symbol.has_value()) {
-            return std::unexpected(type_symbol.error());
+        const auto found_symbols = symbol_table.find_symbol_of_kind(module_id, type_identifier_id, SymbolKind::Type);
+        if (!found_symbols.has_value()) {
+            return std::unexpected(found_symbols.error());
         }
-        if (type_symbol.value() == nullptr) {
+        if (found_symbols.value().empty()) {
             const std::string_view type_name = StringPool::get().lookup(type_identifier_id);
             return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownType, .message = std::format("Unknown type '{}'", type_name)});
         }
-        KPL_ASSERT_THAT(type_symbol.value()->type_id != TypeId::invalid());
-        return type_symbol.value()->type_id;
+        KPL_ASSERT_THAT(found_symbols.value().size() == 1); // If the type symbol found multiple types it would have been reported as a diagnostic
+        const Symbol* type_symbol = found_symbols.value()[0];
+        KPL_ASSERT_THAT(type_symbol->type_id != TypeId::invalid());
+        return type_symbol->type_id;
     }
 
 }

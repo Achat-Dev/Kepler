@@ -34,6 +34,8 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/identifier_path.hpp"
+#include "utils/log.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -43,6 +45,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -176,7 +179,7 @@ namespace kepler {
                 } else if constexpr (std::is_same_v<ValueType, std::unique_ptr<VariableExpression>>) {
                     KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
                     const Symbol* variable_symbol = symbol_table.lookup(expression->symbol_id);
-                    KPL_ASSERT_THAT(variable_symbol->symbol_kind == SymbolKind::Variable);
+                    KPL_ASSERT_THAT(variable_symbol->get_symbol_kind() == SymbolKind::Variable);
                     KPL_ASSERT_THAT(variable_symbol->type_id != TypeId::invalid());
                     return variable_symbol->type_id;
                 }
@@ -635,25 +638,213 @@ namespace kepler {
 
     TypeCheckResult TypeCheckPass::typecheck_call_expression(CallExpression* expression, TypeId requested_type_id) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         KPL_ASSERT_THAT(requested_type_id != TypeId::invalid());
+        // Type check parameters first so the prototype candidates can be matched
+        std::vector<TypeId> argument_type_ids;
+        for (size_t i = 0; i < expression->args.size(); i++) {
+            KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
+            const TypeCheckResult typecheck_result = typecheck_node(expression->args[i].get(), type_table.Builtins.unknown_type_id);
+            // Nodes cannot poison themselves without a diagnostic when the target type is up to them, hence the assert
+            KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
+            KPL_ASSERT_THAT(typecheck_result.type_id != TypeId::invalid());
+            KPL_ASSERT_THAT(typecheck_result.type_id != type_table.Builtins.unknown_type_id);
+            if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
+                expression->node_type = ASTNodeType::Poison;
+                // TODO (fix): The returned type_id is not correct, but it avoids assertion errors
+                // Change this to TypeId::invalid() once that rework is implemented
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = type_table.Builtins.void_type_id};
+            }
+            if (typecheck_result.type_id == type_table.Builtins.void_type_id) {
+                const Type* argument_type = type_table.lookup(typecheck_result.type_id);
+                const std::string message = std::format("Type mismatch: Parameter no. {} of function '{}' cannot be of type void",
+                    (i + 1),
+                    get_full_identifier_from_path(expression->identifier_path),
+                    *argument_type);
+                diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->args[i]->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = type_table.Builtins.void_type_id};
+            }
+            argument_type_ids.push_back(typecheck_result.type_id);
+        }
+
+        struct MatchingCandidateSymbol {
+            SymbolId symbol_id;
+            bool is_exact_match;
+            std::unordered_map<uint32_t, TypeId> literal_type_ids_to_update;
+        };
+
+        std::string foo = get_full_identifier_from_path(expression->identifier_path);
+
+        // Determine which of the candidates match the parameter types
+        std::vector<MatchingCandidateSymbol> matching_candidate_symbols;
+        for (SymbolId candidate_symbol_id : expression->candidate_symbol_ids) {
+            KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
+            const Symbol* candidate_symbol = symbol_table.lookup(candidate_symbol_id);
+            KPL_ASSERT_THAT(candidate_symbol->get_symbol_kind() == SymbolKind::Prototype);
+            const PrototypeSymbol* candidate_prototype_symbol = static_cast<const PrototypeSymbol*>(candidate_symbol);
+
+            MatchingCandidateSymbol matching_candidate_symbol{.symbol_id = candidate_symbol_id, .is_exact_match = true};
+            size_t parameter_count_to_check = 0;
+            if (candidate_prototype_symbol->parameter_type_ids.size() == argument_type_ids.size()) {
+                parameter_count_to_check = argument_type_ids.size();
+                if (candidate_prototype_symbol->is_variadic) {
+                    matching_candidate_symbol.is_exact_match = false;
+                }
+            } else if (candidate_prototype_symbol->parameter_type_ids.size() < argument_type_ids.size() && candidate_prototype_symbol->is_variadic) {
+                parameter_count_to_check = candidate_prototype_symbol->parameter_type_ids.size();
+                matching_candidate_symbol.is_exact_match = false;
+            } else {
+                continue;
+            }
+
+            std::unordered_map<uint32_t, TypeId> literal_type_ids_to_update;
+            for (size_t i = 0; i < parameter_count_to_check; i++) {
+                if (candidate_prototype_symbol->parameter_type_ids[i] != argument_type_ids[i]) {
+                    const Type* argument_type = type_table.lookup(argument_type_ids[i]);
+                    const Type* parameter_type = type_table.lookup(candidate_prototype_symbol->parameter_type_ids[i]);
+                    KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
+                    const ASTNodeType node_type = expression->args[i]->node_type;
+                    if (is_integer_type(argument_type) && (is_integer_type(parameter_type) || is_floating_point_type(parameter_type))) {
+                        if (node_type == ASTNodeType::IntegerLiteralExpression) {
+                            matching_candidate_symbol.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                        } else if (node_type == ASTNodeType::MathematicalNegationExpression) {
+                            const MathematicalNegationExpression* mathematical_negation_expression =
+                                static_cast<const MathematicalNegationExpression*>(expression->args[i].get());
+                            const ASTNodeType negated_expression_node_type = mathematical_negation_expression->expression->node_type;
+                            if (negated_expression_node_type == ASTNodeType::IntegerLiteralExpression) {
+                                matching_candidate_symbol.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                            }
+                        }
+                    } else if (is_floating_point_type(parameter_type) && is_floating_point_type(argument_type)) {
+                        if (node_type == ASTNodeType::IntegerLiteralExpression || node_type == ASTNodeType::FloatingPointLiteralExpression) {
+                            matching_candidate_symbol.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                        } else if (node_type == ASTNodeType::MathematicalNegationExpression) {
+                            const MathematicalNegationExpression* mathematical_negation_expression =
+                                static_cast<const MathematicalNegationExpression*>(expression->args[i].get());
+                            const ASTNodeType negated_expression_node_type = mathematical_negation_expression->expression->node_type;
+                            if (negated_expression_node_type == ASTNodeType::IntegerLiteralExpression || negated_expression_node_type == ASTNodeType::FloatingPointLiteralExpression) {
+                                matching_candidate_symbol.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                            }
+                        }
+                    } else {
+                        matching_candidate_symbol.symbol_id = SymbolId::invalid();
+                        break;
+                    }
+                }
+            }
+            if (matching_candidate_symbol.symbol_id != SymbolId::invalid()) {
+                matching_candidate_symbols.push_back(std::move(matching_candidate_symbol));
+            }
+        }
+
+        if (matching_candidate_symbols.empty()) {
+            std::string message = std::format("No matching overload for function '{}(", get_full_identifier_from_path(expression->identifier_path));
+            for (size_t i = 0; i < argument_type_ids.size(); i++) {
+                const Type* parameter_type = type_table.lookup(argument_type_ids[i]);
+                message += std::string(StringPool::get().lookup(parameter_type->identifier_id));
+                if (i == argument_type_ids.size() - 1) {
+                    message += ')';
+                } else {
+                    message += ',';
+                }
+            }
+            if (argument_type_ids.empty()) {
+                message += ')';
+            }
+            message += '\'';
+            if (!expression->module_path.identifier_parts.empty()) {
+                message += " in module '" + get_full_identifier_from_path(expression->module_path) + '\'';
+            }
+            message += " found";
+            diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::move(message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = type_table.Builtins.void_type_id};
+        } else if (matching_candidate_symbols.size() == 1) {
+            for (const auto [index, target_type_id] : matching_candidate_symbols[0].literal_type_ids_to_update) {
+                Expression* argument_expression = expression->args[index].get();
+                if (argument_expression->node_type == ASTNodeType::IntegerLiteralExpression) {
+                    static_cast<IntegerLiteralExpression*>(argument_expression)->target_type_id = target_type_id;
+                } else if (argument_expression->node_type == ASTNodeType::FloatingPointLiteralExpression) {
+                    static_cast<FloatingPointLiteralExpression*>(argument_expression)->target_type_id = target_type_id;
+                } else if (argument_expression->node_type == ASTNodeType::MathematicalNegationExpression) {
+                    MathematicalNegationExpression* mathematical_negation_expression = static_cast<MathematicalNegationExpression*>(argument_expression);
+                    const ASTNodeType negated_node_type = mathematical_negation_expression->expression->node_type;
+                    if (negated_node_type == ASTNodeType::IntegerLiteralExpression) {
+                        static_cast<IntegerLiteralExpression*>(mathematical_negation_expression->expression.get())->target_type_id = target_type_id;
+                    } else if (negated_node_type == ASTNodeType::FloatingPointLiteralExpression) {
+                        static_cast<FloatingPointLiteralExpression*>(mathematical_negation_expression->expression.get())->target_type_id = target_type_id;
+                    } else {
+                        KPL_ASSERT_UNREACHABLE("Expected negated integer or floating point literal, received '{}'", negated_node_type);
+                    }
+                    mathematical_negation_expression->target_type_id = target_type_id;
+                } else {
+                    KPL_ASSERT_UNREACHABLE("Expected integer or floating point literal or mathematical negation, received '{}'",
+                        argument_expression->node_type);
+                }
+            }
+            expression->symbol_id = matching_candidate_symbols[0].symbol_id;
+        } else {
+            std::vector<MatchingCandidateSymbol*> exact_matching_candidate_symbols;
+            for (MatchingCandidateSymbol& matching_candidate_symbol : matching_candidate_symbols) {
+                if (matching_candidate_symbol.is_exact_match) {
+                    exact_matching_candidate_symbols.push_back(&matching_candidate_symbol);
+                }
+            }
+            if (exact_matching_candidate_symbols.empty()) {
+                KPL_ASSERT_UNREACHABLE("Not implemented");
+            } else if (exact_matching_candidate_symbols.size() == 1) {
+                expression->symbol_id = exact_matching_candidate_symbols[0]->symbol_id;
+            } else {
+                std::string message = std::format("Multiple matching overloads for function '{}(", get_full_identifier_from_path(expression->identifier_path));
+                for (size_t i = 0; i < argument_type_ids.size(); i++) {
+                    const Type* parameter_type = type_table.lookup(argument_type_ids[i]);
+                    message += std::string(StringPool::get().lookup(parameter_type->identifier_id));
+                    if (i == argument_type_ids.size() - 1) {
+                        message += ')';
+                    } else {
+                        message += ',';
+                    }
+                }
+                if (argument_type_ids.empty()) {
+                    message += ')';
+                }
+                if (!expression->module_path.identifier_parts.empty()) {
+                    message += " in module '" + get_full_identifier_from_path(expression->module_path) + '\'';
+                }
+                // clang-format off
+                message += " found. This means that you either:\n"
+                    + std::string(log::sub_line)
+                    + "1) Have multiple variadic overloads of this method which all match this function signature\n"
+                    + std::string(log::sub_line)
+                    + "2) Have a literal argument which matches multiple overloads (e. g. you have 'foo(i32)' and 'foo(f64)' and you are calling 'foo(123)').";
+                // clang-format on
+                diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::move(message), expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = type_table.Builtins.void_type_id};
+            }
+        }
+
         const Symbol* prototype_symbol = symbol_table.lookup(expression->symbol_id);
         if (requested_type_id != prototype_symbol->type_id && requested_type_id != type_table.Builtins.unknown_type_id) {
+            const Type* target_type = type_table.lookup(prototype_symbol->type_id);
+            const Type* requested_type = type_table.lookup(requested_type_id);
+            const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", *requested_type, *target_type);
+            diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type_id = prototype_symbol->type_id};
         }
 
-        KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(prototype_symbol->data));
+        /*KPL_ASSERT_THAT(std::holds_alternative<PrototypeSymbolData>(prototype_symbol->data));
         const PrototypeSymbolData prototype_symbol_data = std::get<PrototypeSymbolData>(prototype_symbol->data);
         const std::vector<TypeId>& parameter_type_ids = prototype_symbol_data.parameter_type_ids;
         if (!prototype_symbol_data.is_variadic) {
             KPL_ASSERT_THAT(parameter_type_ids.size() == expression->args.size());
         } else {
             KPL_ASSERT_THAT(parameter_type_ids.size() <= expression->args.size());
-        }
+        }*/
 
-        for (size_t i = 0; i < parameter_type_ids.size(); i++) {
+        /*for (size_t i = 0; i < parameter_type_ids.size(); i++) {
             KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
             KPL_ASSERT_THAT(parameter_type_ids[i] != TypeId::invalid());
             const TypeCheckResult typecheck_result = typecheck_node(expression->args[i].get(), parameter_type_ids[i]);
@@ -699,7 +890,7 @@ namespace kepler {
                     return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = prototype_symbol->type_id};
                 }
             }
-        }
+        }*/
 
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = prototype_symbol->type_id};
     }

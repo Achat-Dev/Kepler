@@ -15,6 +15,8 @@
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
+#include "type_system/type_table.hpp"
+#include "utils/arena_allocator.hpp"
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <expected>
@@ -36,28 +38,38 @@ namespace kepler {
             StringId identifier_id,
             LinkageType linkage_type,
             std::vector<TypeId> parameter_type_ids,
-            bool is_variadic);
+            std::vector<StringId> parameter_type_identifier_ids,
+            bool is_variadic, TypeTable& type_table);
 
         Symbol* lookup(SymbolId symbol_id);
         // TODO (check): Maybe create a method to disable finding after name resolution
         // Note: These methods should only be used during name resolution.
-        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id);
-        std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind);
-        std::expected<Symbol*, Diagnostic> find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id);
+        std::expected<std::vector<Symbol*>, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id);
+        std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind);
+        std::expected<std::vector<Symbol*>, Diagnostic> find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id);
         void open_scope(ModuleId module_id, ScopeType type);
         void close_scope(ModuleId module_id);
 
     private:
-        std::vector<Module> modules;
-        std::vector<Symbol> symbols;
-        std::vector<Scope> scopes;
+        struct ScopeEntryVisitHandler {
+            SymbolTable* symbol_table;
+            SymbolKind requested_symbol_kind;
+            bool is_imported_module;
 
-        std::expected<SymbolId, Diagnostic> create_symbol(ModuleId module_id,
+            std::vector<Symbol*> operator()(SymbolId symbol_id) const;
+            std::vector<Symbol*> operator()(const std::vector<SymbolId>& symbol_ids) const;
+        };
+
+        std::vector<Module> modules;
+        std::vector<Symbol*> symbols;
+        std::vector<Scope> scopes;
+        ArenaAllocator symbol_allocator;
+
+        /*std::expected<SymbolId, Diagnostic> create_symbol(ModuleId module_id,
             TypeId type_id,
             StringId identifier_id,
-            SymbolKind symbol_kind,
-            SymbolData&& symbol_data);
-        std::expected<Symbol*, Diagnostic> find_symbol_of_kind(ModuleId module_id,
+            SymbolKind symbol_kind);*/
+        std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id,
             StringId identifier_id,
             SymbolKind requested_symbol_kind,
             bool is_imported_module,
