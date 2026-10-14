@@ -80,7 +80,7 @@ namespace kepler {
             }
 
             // Register implicit imports
-            for (size_t i = 1; i < parent_module_paths.size(); i++) {
+            for (size_t i = 0; i < parent_module_paths.size(); i++) {
                 const auto module_id = symbol_table.register_imported_module(ast.module_statement->module_id,
                     {.identifier_parts = std::move(parent_module_paths[i])});
                 KPL_ASSERT_THAT(module_id.has_value());

@@ -13,8 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Fixed
 
 - Crashes because of missing error handling for function calls with mismatching argument counts
-- Functions can no longer be shadowed by a variable inside of a function
+- Topmost parent module not being imported implicitely (e. g. module `foo::bar::baz` would previously only import `foo::bar` implicitely and not `foo`)
 - Wrong "Unknown module '...'" diagnostic when an unknown function was called with a fully qualified module path (e. g. `my::cool::module::foo()` would report "Unknown module 'my::cool::module'" if `foo()` didn't exist in the module")
+- Functions can no longer be shadowed by a variable inside of a function
 - Condition for printing a `CallExpression` with an explicit module path being the wrong way round
 - Wrong assertion when resolving a variable definition
 
