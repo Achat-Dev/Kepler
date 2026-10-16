@@ -126,7 +126,7 @@ namespace kepler {
     std::expected<ModuleId, Diagnostic> SymbolTable::register_imported_module(ModuleId module_id, const IdentifierPath& imported_module_path) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(!imported_module_path.identifier_parts.empty());
-        Module* imported_module = find_module(get_global_module(), imported_module_path);
+        Module* imported_module = find_submodule(get_global_module(), imported_module_path);
         if (imported_module == nullptr) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::UnknownModule,
@@ -304,16 +304,22 @@ namespace kepler {
         KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         std::vector<Module*> found_modules;
-        Module* fully_qualified_module = find_module(get_global_module(), module_path);
+        Module* fully_qualified_module = find_submodule(get_global_module(), module_path);
         if (fully_qualified_module != nullptr) {
             found_modules.push_back(fully_qualified_module);
         }
 
-        const Module& module = modules[module_id.value];
+        Module& module = modules[module_id.value];
+        // Check if submodule of own module
+        Module* found_module = find_submodule(&module, module_path);
+        if (found_module != nullptr) {
+            found_modules.push_back(found_module);
+        }
+        // Check if submodule of imported module
         for (ModuleId imported_module_id : module.imported_module_ids) {
             KPL_ASSERT_THAT(imported_module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), imported_module_id.value);
             Module& imported_module = modules[imported_module_id.value];
-            Module* found_module = find_module(&imported_module, module_path);
+            Module* found_module = find_submodule(&imported_module, module_path);
             if (found_module != nullptr) {
                 found_modules.push_back(found_module);
             }
@@ -331,17 +337,17 @@ namespace kepler {
                 return find_symbol_of_kind(found_modules[0]->id, identifier_id, SymbolKind::All, true, false);
             }
         } else {
-            std::string message = std::format("Module path '{}' is a submodule of multiple imported modules (",
+            // TODO (improvement): Right now there will always be an error as soon as an ambiguous module path is found,
+            // even if the wanted symbol only exists in one module.
+            // It would be nice to only report a diagnostic if the symbol actually exists in multiple modules
+            std::string message = std::format("Module identifier '{}' refers to multiple modules:\n",
                 get_full_identifier_from_path(module_path));
             for (size_t i = 0; i < found_modules.size(); i++) {
-                message += '\'' + std::string(StringPool::get().lookup(found_modules[i]->full_identifier_id)) + '\'';
-                if (i == found_modules.size() - 1) {
-                    message += ')';
-                } else {
-                    message += ',';
+                message += std::format("{}{}) {}", log::sub_line, i + 1, std::string(StringPool::get().lookup(found_modules[i]->full_identifier_id)));
+                if (i < found_modules.size() - 1) {
+                    message += '\n';
                 }
             }
-            message += ". Must use the fully qualified module path in this case.";
             return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousModulePath, .message = std::move(message)});
         }
     }
@@ -516,7 +522,7 @@ namespace kepler {
         return symbol_id;
     }*/
 
-    Module* SymbolTable::find_module(Module* parent_module, const IdentifierPath& module_path) {
+    Module* SymbolTable::find_submodule(Module* parent_module, const IdentifierPath& module_path) {
         KPL_ASSERT_NOT_NULLPTR(parent_module);
         KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         Module* result = parent_module;

@@ -74,7 +74,7 @@ namespace kepler {
             SymbolKind requested_symbol_kind,
             bool is_imported_module,
             bool search_imported_modules);
-        Module* find_module(Module* parent_module, const IdentifierPath& module_path);
+        Module* find_submodule(Module* parent_module, const IdentifierPath& module_path);
         Module* get_global_module();
     };
 
