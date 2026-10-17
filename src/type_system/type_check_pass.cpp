@@ -693,7 +693,7 @@ namespace kepler {
             const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", *requested_type, *target_type);
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type_id = prototype_symbol->type_id};
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = prototype_symbol->type_id};
         }
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = prototype_symbol->type_id};
     }
