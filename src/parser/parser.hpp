@@ -45,14 +45,7 @@ namespace kepler {
 
     enum class IdentifierPathParseKind {
         IncludeLastIdentifier,
-        ReturnLastIdentifierSeparately,
         ReturnAtLastIdentifier,
-    };
-
-    struct IdentifierPathParseResult {
-        IdentifierPath identifier_path;
-        StringId last_identifier;
-        SourceLocation last_identifier_source_location;
     };
 
     // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
@@ -78,7 +71,7 @@ namespace kepler {
         void previous_token(bool skip_newline);
         TokenType peek_next_token_type(size_t lookahead, bool skip_newline) const;
         void jump_to_token(size_t index);
-        std::optional<IdentifierPathParseResult> parse_identifier_path(TokenType delimiter_token,
+        std::optional<IdentifierPath> parse_identifier_path(TokenType delimiter_token,
             IdentifierPathParseKind path_return_kind,
             const std::string& diagnostic_ending);
         IdentifierPath identifier_id_to_path(StringId identifier_id, SourceLocation source_location) const;

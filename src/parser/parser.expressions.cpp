@@ -143,14 +143,14 @@ namespace kepler {
                     KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
                     const IdentifierPath identifier_path = identifier_id_to_path(std::get<StringId>(current_token->data), current_token->source_location);
                     next_token(true); // eat last identifer
-                    return parse_call(std::move(module_path.value().identifier_path), std::move(identifier_path));
+                    return parse_call(std::move(module_path.value()), std::move(identifier_path));
                 } else if (next_token_type == TokenType::Dot) {
                     const auto callee_identifier = parse_identifier_path(TokenType::Dot, IdentifierPathParseKind::IncludeLastIdentifier, "in member path");
                     if (!callee_identifier.has_value()) {
                         return nullptr;
                     }
                     if (current_token->type == TokenType::BracketOpen) {
-                        return parse_call(std::move(module_path.value().identifier_path), std::move(callee_identifier.value().identifier_path));
+                        return parse_call(std::move(module_path.value()), std::move(callee_identifier.value()));
                     }
                 }
                 break;
@@ -161,9 +161,9 @@ namespace kepler {
                     return nullptr;
                 }
                 if (current_token->type == TokenType::BracketOpen) {
-                    return parse_call(std::nullopt, std::move(member_path.value().identifier_path));
+                    return parse_call(std::nullopt, std::move(member_path.value()));
                 }
-                return std::make_unique<MemberExpression>(std::move(member_path.value().identifier_path));
+                return std::make_unique<MemberExpression>(std::move(member_path.value()));
             }
             case TokenType::CurlyBracketOpen:
                 return parse_object_initializer();

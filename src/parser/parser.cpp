@@ -190,7 +190,7 @@ namespace kepler {
 
     // TODO (improvement): Maybe don't allow newlines between submodule identifiers
     // clang-format off
-    std::optional<IdentifierPathParseResult> Parser::parse_identifier_path(TokenType delimiter_token,
+    std::optional<IdentifierPath> Parser::parse_identifier_path(TokenType delimiter_token,
         IdentifierPathParseKind path_return_kind,
         const std::string& diagnostic_ending)
     {
@@ -220,69 +220,33 @@ namespace kepler {
             next_token(true); // eat identifier
         }
 
-        previous_token(true); // Go back to last identifier
-        // TODO (improvement): This code is ugly
+        previous_token(true); // Go back to last identifier to create source location
+        SourceLocation path_source_location{
+            .file_id = file->id,
+            .position = source_location_start_position,
+            .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
+        };
+
         switch (path_return_kind) {
-            case IdentifierPathParseKind::IncludeLastIdentifier: {
-                const SourceLocation source_location{
-                    .file_id = file->id,
-                    .position = source_location_start_position,
-                    .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
-                };
+            case IdentifierPathParseKind::IncludeLastIdentifier:
                 next_token(true); // eat last identifier
-                return IdentifierPathParseResult{
-                    .identifier_path = {
-                        .identifier_parts = std::move(identifier_parts),
-                        .separator_id = StringPool::get().store(std::format("{}", delimiter_token)),
-                        .source_location = std::move(source_location),
-                    },
-                };
-            }
-            case IdentifierPathParseKind::ReturnLastIdentifierSeparately: {
+                break;
+            case IdentifierPathParseKind::ReturnAtLastIdentifier:
                 identifier_parts.pop_back();
                 previous_token(true); // Go back to last delimiter
                 previous_token(true); // Go back to last actual identifier
-                const SourceLocation source_location{
-                    .file_id = file->id,
-                    .position = source_location_start_position,
-                    .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
-                };
+                path_source_location.size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position;
                 next_token(true); // eat last actual identifier
                 next_token(true); // eat last delimiter
-                const Token* last_identifier_token = current_token;
-                next_token(true); // eat last identifier
-                KPL_ASSERT_THAT(std::holds_alternative<StringId>(last_identifier_token->data));
-                return IdentifierPathParseResult{
-                    .identifier_path = {
-                        .identifier_parts = std::move(identifier_parts),
-                        .separator_id = StringPool::get().store(std::format("{}", delimiter_token)),
-                        .source_location = std::move(source_location),
-                    },
-                    .last_identifier = std::get<StringId>(last_identifier_token->data),
-                    .last_identifier_source_location = last_identifier_token->source_location,
-                };
-            }
-            case IdentifierPathParseKind::ReturnAtLastIdentifier: {
-                identifier_parts.pop_back();
-                previous_token(true); // Go back to last delimiter
-                previous_token(true); // Go back to last actual identifier
-                const SourceLocation source_location{
-                    .file_id = file->id,
-                    .position = source_location_start_position,
-                    .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
-                };
-                next_token(true); // eat last actual identifier
-                next_token(true); // eat last delimiter
-                return IdentifierPathParseResult{
-                    .identifier_path = {
-                        .identifier_parts = std::move(identifier_parts),
-                        .separator_id = StringPool::get().store(std::format("{}", delimiter_token)),
-                        .source_location = std::move(source_location),
-                    },
-                };
-            }
+                break;
+            default:
+                KPL_ASSERT_UNREACHABLE("Missing identifier path parse implementation for return kind '{}'", static_cast<int>(path_return_kind));
         }
-        KPL_ASSERT_UNREACHABLE("Missing identifier path parse implementation for return kind '{}'", static_cast<int>(path_return_kind));
+        return IdentifierPath{
+            .identifier_parts = std::move(identifier_parts),
+            .separator_id = StringPool::get().store(std::format("{}", delimiter_token)),
+            .source_location = std::move(path_source_location),
+        };
     }
 
     IdentifierPath Parser::identifier_id_to_path(StringId identifier_id, SourceLocation source_location) const {

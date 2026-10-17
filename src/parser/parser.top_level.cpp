@@ -47,7 +47,7 @@ namespace kepler {
         if (!module_path_parse_result.has_value()) {
             return nullptr;
         }
-        return std::make_unique<ModuleStatement>(std::move(module_path_parse_result.value().identifier_path), module_source_location);
+        return std::make_unique<ModuleStatement>(std::move(module_path_parse_result.value()), module_source_location);
     }
 
     std::unique_ptr<ImportStatement> Parser::parse_import() {
@@ -67,7 +67,7 @@ namespace kepler {
         if (!module_path_parse_result.has_value()) {
             return nullptr;
         }
-        return std::make_unique<ImportStatement>(std::move(module_path_parse_result.value().identifier_path), import_source_location);
+        return std::make_unique<ImportStatement>(std::move(module_path_parse_result.value()), import_source_location);
     }
 
     std::unique_ptr<ExportableNode> Parser::parse_export() {
