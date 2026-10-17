@@ -584,7 +584,11 @@ namespace kepler {
 
         if (!found_symbols.has_value()) {
             const Diagnostic diagnostic = found_symbols.error();
-            diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            if (diagnostic.code == DiagnosticCode::UnknownModule || diagnostic.code == DiagnosticCode::AmbiguousModulePath) {
+                diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->module_path.source_location);
+            } else {
+                diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            }
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
