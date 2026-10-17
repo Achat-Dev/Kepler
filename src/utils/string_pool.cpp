@@ -11,25 +11,24 @@
 #include "utils/assert.h"
 #include <cstdint>
 #include <string>
-#include <string_view>
 #include <utility>
 
 namespace kepler {
 
     StringId StringPool::store(std::string string) {
-        if (string_to_id_map.contains(string)) {
-            return string_to_id_map[string];
+        const auto it = string_to_id_map.find(string);
+        if (it != string_to_id_map.end()) {
+            return it->second;
         }
 
         const uint32_t interned_string_count = strings.size();
-        const StringId id = StringId{interned_string_count};
-        const auto [it, emplaced] = string_to_id_map.emplace(std::move(string), id);
-        KPL_ASSERT_THAT(emplaced);
-        strings.push_back(it->first);
+        const StringId id{.value = interned_string_count};
+        string_to_id_map.emplace(string, id);
+        strings.push_back(std::move(string));
         return id;
     }
 
-    std::string_view StringPool::lookup(StringId id) const {
+    const std::string& StringPool::lookup(StringId id) const {
         KPL_ASSERT_THAT(id.value < strings.size(), "String count: {}, received id: {}", strings.size(), id.value);
         return strings[id.value];
     }

@@ -24,7 +24,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -336,7 +335,7 @@ namespace kepler {
 
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
-        const std::string_view identifier = StringPool::get().lookup(identifier_id);
+        const std::string& identifier = StringPool::get().lookup(identifier_id);
         const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", identifier);
         auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end' or 'EOF'

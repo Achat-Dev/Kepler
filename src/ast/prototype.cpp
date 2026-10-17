@@ -14,7 +14,6 @@
 #include "utils/string_pool.hpp"
 #include <format>
 #include <string>
-#include <string_view>
 #include <type_traits>
 #include <variant>
 
@@ -31,8 +30,8 @@ namespace kepler {
                 } else if constexpr (std::is_same_v<ValueType, MemberFunctionIdentifier>) {
                     KPL_ASSERT_THAT(prototype_identifier.type_identifier_id != StringId::invalid());
                     KPL_ASSERT_THAT(prototype_identifier.identifier_id != StringId::invalid());
-                    const std::string_view type_identifier = StringPool::get().lookup(prototype_identifier.type_identifier_id);
-                    const std::string_view identifier = StringPool::get().lookup(prototype_identifier.identifier_id);
+                    const std::string& type_identifier = StringPool::get().lookup(prototype_identifier.type_identifier_id);
+                    const std::string& identifier = StringPool::get().lookup(prototype_identifier.identifier_id);
                     return StringPool::get().store(std::format("{}.{}", type_identifier, identifier));
                 }
                 KPL_ASSERT_UNREACHABLE("Missing visit implementation for PrototypeIdentifier '{}'",
@@ -48,10 +47,10 @@ namespace kepler {
         TypeTable& type_table)
     {
         // clang-format on
-        std::string signature = std::string(StringPool::get().lookup(identifier_id)) + '(';
+        std::string signature = StringPool::get().lookup(identifier_id) + '(';
         for (size_t i = 0; i < parameter_type_ids.size(); i++) {
             const Type* parameter_type = type_table.lookup(parameter_type_ids[i]);
-            signature += std::string(StringPool::get().lookup(parameter_type->identifier_id));
+            signature += StringPool::get().lookup(parameter_type->identifier_id);
             if (i < parameter_type_ids.size() - 1) {
                 signature += ',';
             }

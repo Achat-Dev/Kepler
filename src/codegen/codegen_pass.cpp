@@ -71,7 +71,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -191,7 +190,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(current_llvm_module);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         const std::string& module_identifier = current_llvm_module->getModuleIdentifier();
-        const std::string_view identifier = StringPool::get().lookup(identifier_id);
+        const std::string& identifier = StringPool::get().lookup(identifier_id);
         const std::string mangled_name = std::format("kpl_{}{}{}{}", module_identifier.size(), module_identifier, identifier.size(), identifier);
         return StringPool::get().store(mangled_name);
     }
@@ -200,7 +199,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(current_llvm_module);
         KPL_ASSERT_THAT(prototype_identifier_id != StringId::invalid());
         const std::string& module_identifier = current_llvm_module->getModuleIdentifier();
-        const std::string_view identifier = StringPool::get().lookup(prototype_identifier_id);
+        const std::string& identifier = StringPool::get().lookup(prototype_identifier_id);
         std::string mangled_name = std::format("kpl_{}{}{}{}", module_identifier.size(), module_identifier, identifier.size(), identifier);
         if (!parameter_type_ids.empty()) {
             mangled_name += '_';
@@ -208,7 +207,7 @@ namespace kepler {
         for (TypeId parameter_type_id : parameter_type_ids) {
             KPL_ASSERT_THAT(parameter_type_id != TypeId::invalid());
             const Type* parameter_type = type_table.lookup(parameter_type_id);
-            const std::string parameter_identifier = std::string(StringPool::get().lookup(parameter_type->identifier_id));
+            const std::string& parameter_identifier = StringPool::get().lookup(parameter_type->identifier_id);
             mangled_name += parameter_identifier;
         }
         if (is_variadic) {
@@ -307,14 +306,14 @@ namespace kepler {
             }
         }
 
-        const std::string_view prototype_name = StringPool::get().lookup(identifier_id);
+        const std::string& prototype_name = StringPool::get().lookup(identifier_id);
         llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type_id), parameter_types, prototype->is_variadic);
         llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(linkage_type), prototype_name, *current_llvm_module);
 
 #ifndef NDEBUG
         unsigned int index = 0;
         for (llvm::Argument& arg : function->args()) {
-            const std::string_view parameter_name = StringPool::get().lookup(prototype->parameter_data[index].identifier_id);
+            const std::string& parameter_name = StringPool::get().lookup(prototype->parameter_data[index].identifier_id);
             arg.setName(parameter_name);
         }
 #endif
@@ -678,7 +677,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         constexpr const uint8_t radix = 10; // This is basically the base for the llvm values -> base 10
-        const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
+        const std::string& literal_string = StringPool::get().lookup(expression->value_id);
         KPL_ASSERT_THAT(!literal_string.empty());
         const Type* target_type = type_table.lookup(expression->target_type_id);
         if (is_integer_type(target_type)) {
@@ -700,7 +699,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
-        const std::string_view string_value = StringPool::get().lookup(expression->value_id);
+        const std::string& string_value = StringPool::get().lookup(expression->value_id);
         KPL_ASSERT_THAT(!string_value.empty());
         // Constant array that holds the string data (null terminated)
         llvm::Constant* data = llvm::ConstantDataArray::getString(context, string_value);
@@ -914,7 +913,7 @@ namespace kepler {
         KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Variable);
 #ifndef NDEBUG
-        const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+        const std::string& identifier = StringPool::get().lookup(expression->identifier_id);
         KPL_ASSERT_THAT(!identifier.empty());
         llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type_id), llvm_values[expression->symbol_id], identifier);
 #else

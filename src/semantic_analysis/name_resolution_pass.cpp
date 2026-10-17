@@ -43,7 +43,6 @@
 #include <format>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -593,7 +592,7 @@ namespace kepler {
             return {.poisoned = true};
         }
         if (found_symbols.value().empty()) {
-            const std::string_view identifier = StringPool::get().lookup(identifier_id);
+            const std::string& identifier = StringPool::get().lookup(identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
@@ -603,7 +602,7 @@ namespace kepler {
         for (const Symbol* found_symbol : found_symbols.value()) {
             // To add a cast, append "&& found_symbol->get_symbol_kind() != SymbolKind::Type" to the condition
             if (found_symbol->get_symbol_kind() != SymbolKind::Prototype) {
-                const std::string_view identifier = StringPool::get().lookup(identifier_id);
+                const std::string& identifier = StringPool::get().lookup(identifier_id);
                 const std::string message = std::format("Symbol '{}' is used as a function, but it's a {}",
                     identifier,
                     found_symbol->get_symbol_kind());
@@ -622,7 +621,7 @@ namespace kepler {
             const size_t expected_parameter_count = prototype_symbol_data.parameter_type_ids.size();
             const size_t given_argument_count = expression->args.size();
             if (expected_parameter_count != given_argument_count) {
-                const std::string_view identifier = StringPool::get().lookup(identifier_id);
+                const std::string& identifier = StringPool::get().lookup(identifier_id);
                 const std::string message = std::format("Function '{}' expects {} arguments, got {}",
                     identifier,
                     expected_parameter_count,
@@ -695,7 +694,7 @@ namespace kepler {
             return {.poisoned = true};
         }
         if (found_symbols.value().empty()) {
-            const std::string_view identifier = StringPool::get().lookup(first_path_part.identifier_id);
+            const std::string& identifier = StringPool::get().lookup(first_path_part.identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Unknown symbol '{}'", identifier), first_path_part.source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
@@ -825,7 +824,7 @@ namespace kepler {
             return {.poisoned = true};
         }
         if (found_symbols.value().empty()) {
-            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+            const std::string& identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
@@ -835,7 +834,7 @@ namespace kepler {
         }
         const Symbol* variable_symbol = found_symbols.value()[0];
         if (variable_symbol->get_symbol_kind() != SymbolKind::Variable) {
-            const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+            const std::string& identifier = StringPool::get().lookup(expression->identifier_id);
             const std::string message = std::format("Symbol '{}' is used as a variable, but it's a {}", identifier, variable_symbol->get_symbol_kind());
             diagnostic_sink.report(DiagnosticCode::InvalidSymbolUsage, std::move(message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
@@ -860,7 +859,7 @@ namespace kepler {
             return std::unexpected(found_symbols.error());
         }
         if (found_symbols.value().empty()) {
-            const std::string_view type_name = StringPool::get().lookup(type_identifier_id);
+            const std::string& type_name = StringPool::get().lookup(type_identifier_id);
             return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownType, .message = std::format("Unknown type '{}'", type_name)});
         }
         KPL_ASSERT_THAT(found_symbols.value().size() == 1); // If multiple types were found it would have been reported as a diagnostic

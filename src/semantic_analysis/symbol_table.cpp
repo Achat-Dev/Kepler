@@ -27,7 +27,6 @@
 #include <expected>
 #include <format>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -168,11 +167,10 @@ namespace kepler {
         KPL_ASSERT_THAT(found_symbol.has_value());
         const std::vector<Symbol*> existing_symbols = found_symbol.value();
         if (!existing_symbols.empty()) {
-            const std::string_view identifier = StringPool::get().lookup(identifier_id);
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::SymbolAlreadyExists,
                 .message = std::format("Struct with name '{}' already exists in module '{}'",
-                    identifier,
+                    StringPool::get().lookup(identifier_id),
                     StringPool::get().lookup(module.full_identifier_id)),
             });
         }
@@ -195,7 +193,7 @@ namespace kepler {
         KPL_ASSERT_THAT(found_symbol.has_value());
         const std::vector<Symbol*> existing_symbols = found_symbol.value();
         if (!existing_symbols.empty()) {
-            const std::string_view identifier = StringPool::get().lookup(identifier_id);
+            const std::string& identifier = StringPool::get().lookup(identifier_id);
             if (existing_symbols.size() == 1) {
                 if (existing_symbols[0]->scope_id == module.current_scope_id) {
                     return std::unexpected(Diagnostic{
@@ -240,8 +238,8 @@ namespace kepler {
         KPL_ASSERT_THAT(found_symbol.has_value());
         const std::vector<Symbol*> existing_symbols = found_symbol.value();
         if (!existing_symbols.empty()) {
-            const std::string_view identifier = StringPool::get().lookup(identifier_id);
-            const std::string_view module_identifier = StringPool::get().lookup(module.full_identifier_id);
+            const std::string& identifier = StringPool::get().lookup(identifier_id);
+            const std::string& module_identifier = StringPool::get().lookup(module.full_identifier_id);
             for (const Symbol* existing_symbol : existing_symbols) {
                 if (existing_symbol->get_symbol_kind() != SymbolKind::Prototype) {
                     return std::unexpected(Diagnostic{
@@ -346,7 +344,7 @@ namespace kepler {
             std::string message = std::format("Module '{}' refers to multiple modules:\n",
                 get_full_identifier_from_path(module_path));
             for (size_t i = 0; i < found_modules.size(); i++) {
-                message += std::format("{}{}) {}", log::sub_line, i + 1, std::string(StringPool::get().lookup(found_modules[i]->full_identifier_id)));
+                message += std::format("{}{}) {}", log::sub_line, i + 1, StringPool::get().lookup(found_modules[i]->full_identifier_id));
                 if (i < found_modules.size() - 1) {
                     message += '\n';
                 }
@@ -459,7 +457,7 @@ namespace kepler {
                     size_t i = 0;
                     for (const auto& [module_id, found_symbols] : found_imported_symbols) {
                         const Module& imported_module = modules[module_id.value];
-                        message += '\'' + std::string(StringPool::get().lookup(imported_module.full_identifier_id)) + '\'';
+                        message += '\'' + StringPool::get().lookup(imported_module.full_identifier_id) + '\'';
                         if (i == found_imported_symbols.size() - 1) {
                             message += ')';
                         } else {
@@ -468,8 +466,8 @@ namespace kepler {
                         i++;
                     }
                     const Module& imported_module = modules[found_imported_symbols.begin()->first.value];
-                    const std::string identifier = std::string(StringPool::get().lookup(identifier_id));
-                    const std::string imported_module_identifier = std::string(StringPool::get().lookup(imported_module.full_identifier_id));
+                    const std::string& identifier = StringPool::get().lookup(identifier_id);
+                    const std::string& imported_module_identifier = StringPool::get().lookup(imported_module.full_identifier_id);
                     message += std::format(". Must use the fully qualified name in this case (e. g. '{}::{}')",
                         std::move(imported_module_identifier),
                         std::move(identifier));
@@ -526,7 +524,7 @@ namespace kepler {
         KPL_ASSERT_THAT(found_symbol.has_value());
         const Symbol* existing_symbol = found_symbol.value();
         if (existing_symbol != nullptr) {
-            const std::string_view identifier = StringPool::get().lookup(existing_symbol->identifier_id);
+            const std::string& identifier = StringPool::get().lookup(existing_symbol->identifier_id);
             if (existing_symbol->scope_id == module.current_scope_id) {
                 return std::unexpected(Diagnostic{
                     .code = DiagnosticCode::SymbolAlreadyExists,

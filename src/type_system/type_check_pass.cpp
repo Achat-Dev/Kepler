@@ -45,7 +45,6 @@
 #include <llvm/ADT/APInt.h>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -410,7 +409,7 @@ namespace kepler {
         constexpr const uint8_t radix = 10;
         const Type* requested_type = type_table.lookup(requested_type_id);
         if (is_integer_type(requested_type)) {
-            const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
+            const std::string& literal_string = StringPool::get().lookup(expression->value_id);
             const uint32_t type_bitwidth = get_integer_bitwidth(requested_type);
             // Represents the bits needed for the *absolute* value of the literal
             const uint32_t needed_bitwidth = llvm::APInt::getBitsNeeded(literal_string, radix);
@@ -860,7 +859,7 @@ namespace kepler {
             KPL_ASSERT_THAT(candidate_symbol->get_symbol_kind() == SymbolKind::Prototype);
             const PrototypeSymbol* candidate_prototype_symbol = static_cast<const PrototypeSymbol*>(candidate_symbol);
             Module* candidate_module = symbol_table.lookup(candidate_symbol->module_id);
-            const std::string_view module_identifier = StringPool::get().lookup(candidate_module->full_identifier_id);
+            const std::string& module_identifier = StringPool::get().lookup(candidate_module->full_identifier_id);
             const std::string candidate_signature = get_prototype_signature(candidate_prototype_symbol->identifier_id,
                 candidate_prototype_symbol->parameter_type_ids,
                 candidate_prototype_symbol->is_variadic,

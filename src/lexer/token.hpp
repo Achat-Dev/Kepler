@@ -15,7 +15,6 @@
 #include "utils/string_pool.hpp"
 #include <format>
 #include <string>
-#include <string_view>
 #include <variant>
 
 namespace kepler {
@@ -175,7 +174,7 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, std::get<kepler::OperatorType>(token.data)), ctx);
             case kepler::TokenType::Identifier: {
                 const kepler::StringId identifier_id = std::get<kepler::StringId>(token.data);
-                const string_view identifier = kepler::StringPool::get().lookup(identifier_id);
+                const std::string& identifier = kepler::StringPool::get().lookup(identifier_id);
                 return std::formatter<std::string>::format(std::format("{}({})", token.type, identifier), ctx);
             }
             case kepler::TokenType::Literal: {
@@ -185,10 +184,10 @@ struct std::formatter<kepler::Token> : std::formatter<std::string> {
                         if constexpr (std::is_same_v<ValueType, std::monostate>) {
                             return std::format("{}", token.type);
                         } else if constexpr (std::is_same_v<ValueType, kepler::IntegerLiteralTokenData>) {
-                            const std::string_view literal = kepler::StringPool::get().lookup(value.literal_id);
+                            const std::string& literal = kepler::StringPool::get().lookup(value.literal_id);
                             return std::format("{}({})", token.type, literal);
                         } else if constexpr (std::is_same_v<ValueType, kepler::StringId>) {
-                            const std::string_view literal = kepler::StringPool::get().lookup(value);
+                            const std::string& literal = kepler::StringPool::get().lookup(value);
                             return std::format("{}({})", token.type, literal);
                         } else {
                             return std::format("{}({})", token.type, value);

@@ -18,7 +18,6 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Value.h>
 #include <string>
-#include <string_view>
 #include <unordered_set>
 #include <vector>
 
@@ -105,7 +104,7 @@ struct std::formatter<kepler::TypeKind> : std::formatter<std::string> {
     auto format(const kepler::TypeKind& type_kind, std::format_context& ctx) const {
         // A raw switch case would be more efficient, but this avoids duplicating the names
         const kepler::StringId type_name_id = kepler::get_type_kind_name_id(type_kind);
-        const std::string_view type_name = kepler::StringPool::get().lookup(type_name_id);
+        const std::string& type_name = kepler::StringPool::get().lookup(type_name_id);
         return std::formatter<std::string>::format(std::format("{}", type_name), ctx);
     }
 };
@@ -113,7 +112,7 @@ struct std::formatter<kepler::TypeKind> : std::formatter<std::string> {
 template <>
 struct std::formatter<kepler::Type> : std::formatter<std::string> {
     auto format(const kepler::Type& type, std::format_context& ctx) const {
-        const std::string_view type_name = kepler::StringPool::get().lookup(type.identifier_id);
+        const std::string& type_name = kepler::StringPool::get().lookup(type.identifier_id);
         return std::formatter<std::string>::format(std::format("{}", type_name), ctx);
     }
 };

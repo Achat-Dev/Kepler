@@ -139,7 +139,7 @@ namespace kepler {
                     result += " <args...>\n";
                     break;
             }
-            result += get_indent_wrapped_text(std::string(StringPool::get().lookup(option.description_id)), console_width, "        ");
+            result += get_indent_wrapped_text(StringPool::get().lookup(option.description_id), console_width, "        ");
             if (!result.ends_with('\n')) {
                 result += '\n';
             }

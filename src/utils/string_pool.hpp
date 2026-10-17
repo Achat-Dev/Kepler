@@ -14,7 +14,6 @@
 #include <functional>
 #include <limits>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -31,13 +30,12 @@ namespace kepler {
     class StringPool {
     public:
         StringId store(std::string string);
-        // TODO (improvement): Maybe change this to return a const string& instead of a string_view
-        std::string_view lookup(StringId id) const;
+        const std::string& lookup(StringId id) const;
 
         static StringPool& get();
 
     private:
-        std::vector<std::string_view> strings;
+        std::vector<std::string> strings;
         std::unordered_map<std::string, StringId> string_to_id_map;
 
         StringPool() = default;

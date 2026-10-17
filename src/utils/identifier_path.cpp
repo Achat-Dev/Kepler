@@ -34,10 +34,10 @@ namespace kepler {
         KPL_ASSERT_THAT(!identifier_path.identifier_parts.empty());
         if (identifier_path.separator_id == StringId::invalid()) {
             KPL_ASSERT_THAT(identifier_path.identifier_parts.size() == 1);
-            return std::string(StringPool::get().lookup(identifier_path.identifier_parts[0].identifier_id));
+            return StringPool::get().lookup(identifier_path.identifier_parts[0].identifier_id);
         }
         std::string result;
-        const std::string separator(StringPool::get().lookup(identifier_path.separator_id));
+        const std::string& separator = StringPool::get().lookup(identifier_path.separator_id);
         for (size_t i = 0; i < identifier_path.identifier_parts.size(); i++) {
             const StringId part_identifier_id = identifier_path.identifier_parts[i].identifier_id;
             KPL_ASSERT_THAT(part_identifier_id != StringId::invalid());

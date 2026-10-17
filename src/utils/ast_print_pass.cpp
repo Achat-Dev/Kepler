@@ -44,7 +44,6 @@
 #include <memory>
 #include <print>
 #include <string>
-#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -285,7 +284,7 @@ namespace kepler {
         KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
         if (prototype->return_type_id == TypeId::invalid()) {
             KPL_ASSERT_THAT(prototype->return_type_identifier_id != StringId::invalid());
-            const std::string_view type_name = StringPool::get().lookup(prototype->return_type_identifier_id);
+            const std::string& type_name = StringPool::get().lookup(prototype->return_type_identifier_id);
             std::println("{}{}Type name: {}", indent, item_prefix, type_name);
         } else {
             const Type* return_type = type_table.lookup(prototype->return_type_id);
@@ -298,7 +297,7 @@ namespace kepler {
             std::println("{}{}Symbol: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Symbol* prototype_symbol = symbol_table.lookup(prototype->symbol_id);
-            const std::string_view prototype_symbol_identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
+            const std::string& prototype_symbol_identifier = StringPool::get().lookup(prototype_symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, item_prefix, prototype_symbol_identifier);
         }
 
@@ -314,7 +313,7 @@ namespace kepler {
         for (size_t i = 0; i < prototype->parameter_data.size(); i++) {
             KPL_ASSERT_THAT(prototype->parameter_data[i].identifier_id != StringId::invalid());
             bool is_last = i == prototype->parameter_data.size() - 1;
-            const std::string_view parameter_identifier = StringPool::get().lookup(prototype->parameter_data[i].identifier_id);
+            const std::string& parameter_identifier = StringPool::get().lookup(prototype->parameter_data[i].identifier_id);
             std::string item_indent;
             if (is_last) {
                 std::println("{}{}{}:", indent, last_item_prefix, (i + 1));
@@ -326,7 +325,7 @@ namespace kepler {
 
             if (prototype->parameter_data[i].type_id == TypeId::invalid()) {
                 KPL_ASSERT_THAT(prototype->parameter_data[i].type_identifier_id != StringId::invalid());
-                const std::string_view parameter_type_name = StringPool::get().lookup(prototype->parameter_data[i].type_identifier_id);
+                const std::string& parameter_type_name = StringPool::get().lookup(prototype->parameter_data[i].type_identifier_id);
                 std::println("{}{}Type name: {}", indent + item_indent, item_prefix, parameter_type_name);
             } else {
                 const Type* parameter_type = type_table.lookup(prototype->parameter_data[i].type_id);
@@ -338,7 +337,7 @@ namespace kepler {
                 std::println("{}{}Symbol: {}None{}", indent + item_indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
             } else {
                 const Symbol* parameter_symbol = symbol_table.lookup(prototype->parameter_data[i].symbol_id);
-                const std::string_view parameter_symbol_identifier = StringPool::get().lookup(parameter_symbol->identifier_id);
+                const std::string& parameter_symbol_identifier = StringPool::get().lookup(parameter_symbol->identifier_id);
                 std::println("{}{}Symbol: {}", indent + item_indent, last_item_prefix, parameter_symbol_identifier);
             }
         }
@@ -397,13 +396,13 @@ namespace kepler {
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
         if (statement->type_id == TypeId::invalid()) {
             KPL_ASSERT_THAT(statement->type_identifier_id != StringId::invalid());
-            const std::string_view type_name = StringPool::get().lookup(statement->type_identifier_id);
+            const std::string& type_name = StringPool::get().lookup(statement->type_identifier_id);
             std::println("{}{}Type: {}", indent, item_prefix, type_name);
         } else {
             const Type* variable_type = type_table.lookup(statement->type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *variable_type);
         }
-        const std::string_view identifier = StringPool::get().lookup(statement->identifier_id);
+        const std::string& identifier = StringPool::get().lookup(statement->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
         print_node(statement->assignment_statement.get(), "", indent, true);
     }
@@ -435,7 +434,7 @@ namespace kepler {
             const Type* target_type = type_table.lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
-        const std::string_view literal_string = StringPool::get().lookup(expression->value_id);
+        const std::string& literal_string = StringPool::get().lookup(expression->value_id);
         std::println("{}{}Value: {}", indent, last_item_prefix, literal_string);
     }
 
@@ -491,7 +490,7 @@ namespace kepler {
             std::println("{}{}Symbol: {}None{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
-            const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
+            const std::string& symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, last_item_prefix, symbol_identifier);
         }
     }
@@ -508,7 +507,7 @@ namespace kepler {
         }
         if (expression->target_type_id == TypeId::invalid()) {
             KPL_ASSERT_THAT(expression->target_type_identifier_id != StringId::invalid());
-            const std::string_view target_type_name = StringPool::get().lookup(expression->target_type_identifier_id);
+            const std::string& target_type_name = StringPool::get().lookup(expression->target_type_identifier_id);
             std::println("{}{}Target type: {}", indent, item_prefix, target_type_name);
         } else {
             const Type* target_type = type_table.lookup(expression->target_type_id);
@@ -546,7 +545,7 @@ namespace kepler {
             std::println("{}{}Symbol: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Symbol* symbol = symbol_table.lookup(expression->object_symbol_id);
-            const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
+            const std::string& symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, item_prefix, symbol_identifier);
         }
 
@@ -569,7 +568,7 @@ namespace kepler {
                 }
                 const Type* type = type_table.lookup(access_data.struct_type_id);
                 KPL_ASSERT_THAT(type->identifier_id != StringId::invalid());
-                const std::string_view type_identifier = StringPool::get().lookup(type->identifier_id);
+                const std::string& type_identifier = StringPool::get().lookup(type->identifier_id);
                 std::println("{}{}{}", access_data_indent, item_prefix, type_identifier);
                 std::println("{}{}{}", access_data_indent, last_item_prefix, access_data.member_index);
             }
@@ -583,7 +582,7 @@ namespace kepler {
             std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             if (expression->type_id == TypeId::invalid()) {
-                const std::string_view type_identifier = StringPool::get().lookup(expression->type_identifier_id);
+                const std::string& type_identifier = StringPool::get().lookup(expression->type_identifier_id);
                 std::println("{}{}Type: {}", indent, item_prefix, type_identifier);
             } else {
                 std::println("{}{}Type: {}", indent, item_prefix, *type_table.lookup(expression->type_id));
@@ -601,7 +600,7 @@ namespace kepler {
             KPL_ASSERT_THAT(member_initializer_data.identifier_id != StringId::invalid());
             KPL_ASSERT_NOT_NULLPTR(member_initializer_data.value_expression);
             bool is_last = i == expression->member_initializers.size() - 1;
-            const std::string_view member_identifier = StringPool::get().lookup(member_initializer_data.identifier_id);
+            const std::string& member_identifier = StringPool::get().lookup(member_initializer_data.identifier_id);
             if (is_last) {
                 std::println("{}{}{}:", indent, last_item_prefix, member_identifier);
                 print_node(member_initializer_data.value_expression.get(), "", indent + space, true);
@@ -616,14 +615,14 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        const std::string_view identifier = StringPool::get().lookup(expression->identifier_id);
+        const std::string& identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}{}", indent, item_prefix, identifier);
 
         if (expression->symbol_id == SymbolId::invalid()) {
             std::println("{}{}Symbol: {}None{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
             const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
-            const std::string_view symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
+            const std::string& symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, last_item_prefix, symbol_identifier);
         }
     }
