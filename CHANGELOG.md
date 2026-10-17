@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Wrong "Unknown module '...'" diagnostic when an unknown function was called with a fully qualified module path (e. g. `foo::bar::baz()` would report "Unknown module 'foo::bar'" if `baz()` didn't exist in the module")
 - Unknown module and ambiguous module diagnostics highlighting the wrong source code
 - Unexpected token diagnostics in module identifiers highlighting the wrong source code
+- Variadic arguments of type `f32` are now correctly promoted to type `f64` (this is required)
 - Condition for printing a `CallExpression` with an explicit module path being the wrong way round
 - Wrong assertion when resolving a variable definition
 

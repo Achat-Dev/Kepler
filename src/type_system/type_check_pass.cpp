@@ -743,7 +743,6 @@ namespace kepler {
             }
 
             // Typecheck arguments and compare them with the expected parameter types
-            std::unordered_map<uint32_t, TypeId> literal_type_ids_to_update;
             for (size_t i = 0; i < argument_count_to_typecheck; i++) {
                 KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
                 KPL_ASSERT_THAT(candidate_prototype_symbol->parameter_type_ids[i] != TypeId::invalid());

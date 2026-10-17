@@ -46,6 +46,7 @@
 #include "utils/string_pool.hpp"
 #include "utils/string_utils.hpp"
 #include "llvm/IR/Instruction.h"
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <llvm/ADT/APInt.h>
@@ -754,7 +755,6 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing codegen implementation for operator type '{}'", expression->operator_type);
     }
 
-    // TODO (fix): variadic functions in C expect floats to be promoted to doubles
     CodegenResult CodegenPass::codegen_call_expression(const CallExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
@@ -767,9 +767,15 @@ namespace kepler {
         llvm::FunctionCallee llvm_function_callee = current_llvm_module->getOrInsertFunction(llvm_function->getName(), llvm_function->getFunctionType());
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Prototype);
-        bool is_variadic = static_cast<const PrototypeSymbol*>(symbol)->is_variadic;
+        const PrototypeSymbol* prototype_symbol = static_cast<const PrototypeSymbol*>(symbol);
+        const bool is_variadic = prototype_symbol->is_variadic;
+        const size_t parameter_count = prototype_symbol->parameter_type_ids.size();
         KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(), "Internal variadic: {}, LLVM variadic: {}", is_variadic, llvm_function->isVarArg());
         if (!is_variadic) {
+            KPL_ASSERT_THAT(expression->args.size() == parameter_count,
+                "Internal arg count: {}, internal parameter count: {}",
+                expression->args.size(),
+                parameter_count);
             KPL_ASSERT_THAT(expression->args.size() == llvm_function->arg_size(),
                 "Internal arg count: {}, LLVM arg count: {}",
                 expression->args.size(),
@@ -777,11 +783,17 @@ namespace kepler {
         }
 
         std::vector<llvm::Value*> arg_values;
-        for (const std::unique_ptr<Expression>& arg : expression->args) {
-            KPL_ASSERT_NOT_NULLPTR(arg);
-            const CodegenResult codegen_result = codegen_node(arg.get());
+        for (size_t i = 0; i < expression->args.size(); i++) {
+            KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
+            const CodegenResult codegen_result = codegen_node(expression->args[i].get());
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
-            arg_values.push_back(codegen_result.llvm_value);
+            // Promote all variadic float arguments to doubles (this is required for C functions)
+            if (is_variadic && i >= parameter_count && codegen_result.llvm_value->getType() == llvm::Type::getFloatTy(context)) {
+                llvm::Value* promoted_llvm_value = builder.CreateFPExt(codegen_result.llvm_value, llvm::Type::getDoubleTy(context));
+                arg_values.push_back(promoted_llvm_value);
+            } else {
+                arg_values.push_back(codegen_result.llvm_value);
+            }
         }
 
         llvm::Value* value = nullptr;
