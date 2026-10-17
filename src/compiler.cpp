@@ -224,7 +224,7 @@ namespace kepler {
     }
 
     // clang-format off
-    std::optional<std::vector<AbstractSyntaxTree>> Compiler::create_asts(const std::vector<std::filesystem::path> file_paths,
+    std::optional<std::vector<AbstractSyntaxTree>> Compiler::create_asts(const std::vector<std::filesystem::path>& file_paths,
         DiagnosticSink& diagnostic_sink,
         TypeTable& type_table) const
     {

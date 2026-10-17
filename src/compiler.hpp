@@ -48,7 +48,7 @@ namespace kepler {
         std::expected<void, Diagnostic> do_dependencies_exist() const;
         std::expected<CmdArgs, Diagnostic> parse_args(int argc, char** argv) const;
 
-        std::optional<std::vector<AbstractSyntaxTree>> create_asts(const std::vector<std::filesystem::path> file_paths,
+        std::optional<std::vector<AbstractSyntaxTree>> create_asts(const std::vector<std::filesystem::path>& file_paths,
             DiagnosticSink& diagnostic_sink,
             TypeTable& type_table) const;
         void verify_ast(AbstractSyntaxTree& ast, const File* file) const;
