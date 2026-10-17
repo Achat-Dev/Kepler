@@ -20,8 +20,6 @@ namespace kepler {
     class TypeTable {
     public:
         inline static struct {
-            // TODO (improvement): Remove unknown type
-            TypeId unknown_type_id;
             TypeId void_type_id;
             TypeId bool_type_id;
             TypeId string_type_id;
@@ -37,7 +35,7 @@ namespace kepler {
             TypeId f64_type_id;
         } Builtins{};
 
-        explicit TypeTable();
+        TypeTable();
         TypeId create_struct(StringId identifier_id);
         void create_struct_members(TypeId struct_type_id, const std::vector<StructNodeMember>& members);
         Type* lookup(TypeId type_id);

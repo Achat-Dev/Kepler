@@ -39,12 +39,10 @@ namespace kepler {
     void TypeTable::create_struct_members(TypeId struct_type_id, const std::vector<StructNodeMember>& members) {
         KPL_ASSERT_THAT(struct_type_id.value < types.size(), "Type count: {}, received id: {}", types.size(), struct_type_id.value);
         KPL_ASSERT_THAT(struct_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(struct_type_id != Builtins.unknown_type_id);
         std::vector<StructTypeMember> struct_type_members;
         for (const StructNodeMember& member : members) {
             KPL_ASSERT_THAT(member.identifier_id != StringId::invalid());
             KPL_ASSERT_THAT(member.type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(member.type_id != Builtins.unknown_type_id);
             struct_type_members.push_back({.type_id = member.type_id, .identifier_id = member.identifier_id});
         }
         Type* type = types[struct_type_id.value];
@@ -60,7 +58,6 @@ namespace kepler {
     }
 
     void TypeTable::create_builtin_types() {
-        KPL_ASSERT_THAT(Builtins.unknown_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(Builtins.void_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(Builtins.bool_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(Builtins.string_type_id == TypeId::invalid());
@@ -76,7 +73,6 @@ namespace kepler {
         KPL_ASSERT_THAT(Builtins.f64_type_id == TypeId::invalid());
 
         // Create the types first and fill in the methods afterwards because the methods need to reference the types
-        create_builtin_type(Builtins.unknown_type_id, TypeKind::Unknown);
         create_builtin_type(Builtins.void_type_id, TypeKind::Void);
         create_builtin_type(Builtins.bool_type_id, TypeKind::Bool);
         create_builtin_type(Builtins.string_type_id, TypeKind::String);

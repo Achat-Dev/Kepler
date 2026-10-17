@@ -259,7 +259,6 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             KPL_ASSERT_THAT(struct_node->identifier_id != StringId::invalid());
             KPL_ASSERT_THAT(struct_node->type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(struct_node->type_id != type_table.Builtins.unknown_type_id);
             std::vector<StructNodeMember> valid_members;
             for (StructNodeMember& member : struct_node->members) {
                 KPL_ASSERT_THAT(member.type_identifier_id != StringId::invalid());
@@ -719,7 +718,6 @@ namespace kepler {
         }
 
         KPL_ASSERT_THAT(object_symbol->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(object_symbol->type_id != type_table.Builtins.unknown_type_id);
         Type* object_type = type_table.lookup(object_symbol->type_id);
         if (object_type->type_kind != TypeKind::Struct) {
             const std::string message = std::format("Symbol '{}' is of type '{}', which doesn't have any members",
@@ -747,7 +745,6 @@ namespace kepler {
                 return {.poisoned = true};
             }
             KPL_ASSERT_THAT(member->type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(member->type_id != type_table.Builtins.unknown_type_id);
             member_access_data.push_back({
                 .struct_type_id = struct_type->id,
                 .member_index = struct_type->get_member_index(identifier_path_part.identifier_id),
@@ -853,7 +850,6 @@ namespace kepler {
             return it->second;
         }
 
-        KPL_ASSERT_THAT(type_identifier_id != type_table.lookup(type_table.Builtins.unknown_type_id)->identifier_id);
         const auto found_symbols = symbol_table.find_symbol_of_kind(module_id, type_identifier_id, SymbolKind::Type);
         if (!found_symbols.has_value()) {
             return std::unexpected(found_symbols.error());

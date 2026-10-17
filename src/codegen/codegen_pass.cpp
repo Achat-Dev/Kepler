@@ -231,7 +231,6 @@ namespace kepler {
 
     llvm::Type* CodegenPass::get_llvm_type(TypeId type_id) {
         KPL_ASSERT_THAT(type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(llvm_types.contains(type_id));
         return llvm_types[type_id];
     }
@@ -514,7 +513,6 @@ namespace kepler {
         // Codegen step value
         const TypeId loop_variable_type_id = statement->loop_variable_definition->type_id;
         KPL_ASSERT_THAT(loop_variable_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(loop_variable_type_id != type_table.Builtins.unknown_type_id);
         const Type* loop_variable_type = type_table.lookup(loop_variable_type_id);
         llvm::Type* variable_type = get_llvm_type(loop_variable_type_id);
         llvm::Value* step_value = nullptr;
@@ -636,7 +634,6 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
         KPL_ASSERT_THAT(statement->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(statement->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         const AssignmentTargetExpression& assignment_target_expression = statement->assignment_statement->assignment_target_expression;
@@ -665,7 +662,6 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_floating_point_literal_expression(const FloatingPointLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->target_type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         llvm::Type* llvm_type = get_llvm_type(expression->target_type_id);
         return {.llvm_value = llvm::ConstantFP::get(llvm_type, expression->value), .returns = false};
@@ -725,7 +721,6 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->target_type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult lhs_cr = codegen_node(expression->lhs.get());
@@ -791,7 +786,6 @@ namespace kepler {
 
         llvm::Value* value = nullptr;
         KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
 #ifndef NDEBUG
         // llvm void instructions cannot have identifiers, so only provide it if it's non void
         if (symbol->type_id == type_table.Builtins.void_type_id) {
@@ -809,9 +803,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->original_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->original_type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->target_type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
@@ -868,7 +860,6 @@ namespace kepler {
             gep = builder.CreateStructGEP(llvm_struct_type, gep, access_data.member_index);
         }
         KPL_ASSERT_THAT(expression->member_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->member_type_id != type_table.Builtins.unknown_type_id);
         llvm::Value* value = builder.CreateLoad(get_llvm_type(expression->member_type_id), gep);
 
         return {.llvm_value = value, .returns = false};
@@ -877,7 +868,6 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_object_initializer_expression(const ObjectInitializerExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         const Type* type = type_table.lookup(expression->type_id);
         KPL_ASSERT_THAT(type->type_kind == TypeKind::Struct);
@@ -910,7 +900,6 @@ namespace kepler {
 
         const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
         KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(symbol->type_id != type_table.Builtins.unknown_type_id);
         KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Variable);
 #ifndef NDEBUG
         const std::string& identifier = StringPool::get().lookup(expression->identifier_id);
