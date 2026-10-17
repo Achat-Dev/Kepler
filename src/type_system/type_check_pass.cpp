@@ -371,13 +371,14 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->target_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        if (requested_type_id == TypeId::invalid()) {
+            expression->target_type_id = type_table.Builtins.f32_type_id;
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = type_table.Builtins.f32_type_id};
+        }
         const Type* requested_type = type_table.lookup(requested_type_id);
         if (is_floating_point_type(requested_type)) {
             expression->target_type_id = requested_type_id;
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = requested_type_id};
-        } else if (requested_type_id == TypeId::invalid()) {
-            expression->target_type_id = type_table.Builtins.f32_type_id;
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = type_table.Builtins.f32_type_id};
         } else {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type_id = type_table.Builtins.f32_type_id};
@@ -394,9 +395,13 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->target_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        constexpr const uint8_t radix = 10;
+        if (requested_type_id == TypeId::invalid()) {
+            expression->target_type_id = type_table.Builtins.i32_type_id;
+            return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = type_table.Builtins.i32_type_id};
+        }
         const Type* requested_type = type_table.lookup(requested_type_id);
         if (is_integer_type(requested_type)) {
+            constexpr const uint8_t radix = 10;
             const std::string& literal_string = StringPool::get().lookup(expression->value_id);
             const uint32_t type_bitwidth = get_integer_bitwidth(requested_type);
             // Represents the bits needed for the *absolute* value of the literal
@@ -443,9 +448,6 @@ namespace kepler {
         } else if (is_floating_point_type(requested_type)) {
             expression->target_type_id = requested_type_id;
             return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = requested_type_id};
-        } else if (requested_type_id == TypeId::invalid()) {
-            expression->target_type_id = type_table.Builtins.i32_type_id;
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = type_table.Builtins.i32_type_id};
         } else {
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithoutDiagnostic, .type_id = type_table.Builtins.i32_type_id};
@@ -687,6 +689,7 @@ namespace kepler {
         }
 
         const Symbol* prototype_symbol = symbol_table.lookup(expression->symbol_id);
+        KPL_ASSERT_THAT(prototype_symbol->type_id != TypeId::invalid());
         if (requested_type_id != prototype_symbol->type_id && requested_type_id != TypeId::invalid()) {
             const Type* target_type = type_table.lookup(prototype_symbol->type_id);
             const Type* requested_type = type_table.lookup(requested_type_id);
@@ -734,6 +737,8 @@ namespace kepler {
             std::unordered_map<uint32_t, TypeId> literal_type_ids_to_update;
             for (size_t i = 0; i < argument_count_to_typecheck; i++) {
                 KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
+                KPL_ASSERT_THAT(candidate_prototype_symbol->parameter_type_ids[i] != TypeId::invalid());
+                KPL_ASSERT_THAT(argument_type_ids[i] != TypeId::invalid());
                 if (candidate_prototype_symbol->parameter_type_ids[i] == argument_type_ids[i]) {
                     continue;
                 }
@@ -995,6 +1000,7 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 continue;
             }
+            KPL_ASSERT_THAT(struct_type_member->type_id != TypeId::invalid());
             const TypeCheckResult typecheck_result = typecheck_node(member_initializer_data.value_expression.get(), struct_type_member->type_id);
             if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
                 expression->node_type = ASTNodeType::Poison;
