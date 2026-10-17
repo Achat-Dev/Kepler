@@ -9,9 +9,11 @@
 
 #include "ast/prototype.hpp"
 #include "ast/expressions/member_expression.hpp"
+#include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <variant>
@@ -37,6 +39,28 @@ namespace kepler {
                     typeid(prototype_identifier).name());
             },
             prototype->identifier);
+    }
+
+    // clang-format off
+    std::string get_prototype_signature(StringId identifier_id,
+        const std::vector<TypeId>& parameter_type_ids,
+        bool is_variadic,
+        TypeTable& type_table)
+    {
+        // clang-format on
+        std::string signature = std::string(StringPool::get().lookup(identifier_id)) + '(';
+        for (size_t i = 0; i < parameter_type_ids.size(); i++) {
+            const Type* parameter_type = type_table.lookup(parameter_type_ids[i]);
+            signature += std::string(StringPool::get().lookup(parameter_type->identifier_id));
+            if (i < parameter_type_ids.size() - 1) {
+                signature += ',';
+            }
+        }
+        if (is_variadic) {
+            signature += ",...";
+        }
+        signature += ')';
+        return signature;
     }
 
 }

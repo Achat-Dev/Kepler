@@ -14,7 +14,9 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
+#include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -56,5 +58,9 @@ namespace kepler {
     };
 
     StringId get_prototype_identifier_id(const Prototype* prototype);
+    std::string get_prototype_signature(StringId identifier_id,
+        const std::vector<TypeId>& parameter_type_ids,
+        bool is_variadic,
+        TypeTable& type_table);
 
 }

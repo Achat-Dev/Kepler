@@ -9,6 +9,7 @@
 
 #include "semantic_analysis/symbol_table.hpp"
 #include "ast/ast_node.hpp"
+#include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
@@ -18,6 +19,7 @@
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
+#include "utils/log.hpp"
 #include "utils/string_pool.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -166,10 +168,6 @@ namespace kepler {
         KPL_ASSERT_THAT(found_symbol.has_value());
         const std::vector<Symbol*> existing_symbols = found_symbol.value();
         if (!existing_symbols.empty()) {
-            // KPL_ASSERT_THAT(existing_symbols.size() == 1);
-            // KPL_ASSERT_NOT_NULLPTR(existing_symbols[0]);
-            // KPL_ASSERT_THAT(existing_symbols[0]->scope_id == module.current_scope_id);
-            // KPL_ASSERT_THAT(existing_symbols[0]->get_symbol_kind() == SymbolKind::Type);
             const std::string_view identifier = StringPool::get().lookup(identifier_id);
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::SymbolAlreadyExists,
@@ -182,7 +180,7 @@ namespace kepler {
         Scope& scope = scopes[module.current_scope_id.value];
         const SymbolId symbol_id{.value = static_cast<uint32_t>(symbols.size())};
         scope.contained_symbols.emplace(identifier_id, symbol_id);
-        Symbol* symbol = symbol_allocator.allocate<TypeSymbol>(symbol_id, scope.id, identifier_id);
+        Symbol* symbol = symbol_allocator.allocate<TypeSymbol>(symbol_id, module_id, scope.id, identifier_id);
         symbols.push_back(symbol);
         return symbol_id;
     }
@@ -215,7 +213,7 @@ namespace kepler {
         Scope& scope = scopes[module.current_scope_id.value];
         const SymbolId symbol_id{.value = static_cast<uint32_t>(symbols.size())};
         scope.contained_symbols.emplace(identifier_id, symbol_id);
-        Symbol* symbol = symbol_allocator.allocate<VariableSymbol>(symbol_id, scope.id, type_id, identifier_id);
+        Symbol* symbol = symbol_allocator.allocate<VariableSymbol>(symbol_id, module_id, scope.id, type_id, identifier_id);
         symbols.push_back(symbol);
         return symbol_id;
     }
@@ -254,7 +252,7 @@ namespace kepler {
                 const PrototypeSymbol* existing_prototype_symbol = static_cast<const PrototypeSymbol*>(existing_symbol);
                 if (existing_prototype_symbol->parameter_type_ids == parameter_type_ids && existing_prototype_symbol->is_variadic == is_variadic) {
                     const std::string message = std::format("Prototype with signature '{}' already exists in module '{}'",
-                        get_prototype_symbol_signature(existing_prototype_symbol, type_table),
+                        get_prototype_signature(identifier_id, parameter_type_ids, is_variadic, type_table),
                         module_identifier);
                     return std::unexpected(Diagnostic{.code = DiagnosticCode::SymbolAlreadyExists, .message = std::move(message)});
                 }
@@ -271,15 +269,20 @@ namespace kepler {
             std::get<std::vector<SymbolId>>(it->second).push_back(symbol_id);
         }
         PrototypeSymbol* symbol = symbol_allocator.allocate<PrototypeSymbol>(symbol_id,
+            module_id,
             scope.id,
             type_id,
             identifier_id,
             linkage_type,
             std::move(parameter_type_ids),
             is_variadic);
-        // symbol->signature_identifier_id = StringPool::get().store(get_prototype_symbol_signature(symbol));
         symbols.push_back(symbol);
         return symbol_id;
+    }
+
+    Module* SymbolTable::lookup(ModuleId module_id) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        return &modules[module_id.value];
     }
 
     Symbol* SymbolTable::lookup(SymbolId symbol_id) {
@@ -340,7 +343,7 @@ namespace kepler {
             // TODO (improvement): Right now there will always be an error as soon as an ambiguous module path is found,
             // even if the wanted symbol only exists in one module.
             // It would be nice to only report a diagnostic if the symbol actually exists in multiple modules
-            std::string message = std::format("Module identifier '{}' refers to multiple modules:\n",
+            std::string message = std::format("Module '{}' refers to multiple modules:\n",
                 get_full_identifier_from_path(module_path));
             for (size_t i = 0; i < found_modules.size(); i++) {
                 message += std::format("{}{}) {}", log::sub_line, i + 1, std::string(StringPool::get().lookup(found_modules[i]->full_identifier_id)));
@@ -402,10 +405,8 @@ namespace kepler {
                     // - Exactly one variable with the given identifier
                     // - Exactly one type with the given identifier
                     // - Multiple prototypes with the given identifier
-                    // const SymbolKind symbol_kind = imported_symbols.value().front()->get_symbol_kind();
-                    // const bool is_valid_symbol_kind = symbol_kind == requested_symbol_kind || requested_symbol_kind == SymbolKind::All;
-                    if (!imported_symbols.value().empty() /* && is_valid_symbol_kind*/) {
-                        found_imported_symbols.emplace(imported_module_id, imported_symbols.value());
+                    if (!imported_symbols.value().empty()) {
+                        found_imported_symbols.emplace(imported_module_id, std::move(imported_symbols.value()));
                     }
                 }
 
@@ -415,6 +416,40 @@ namespace kepler {
                 }
                 // Symbols found in own and/or multiple imported modules -> maybe ambiguous symbols
                 if (!result.empty() || found_imported_symbols.size() != 1) {
+                    // If the searched identifier is found in multiple modules, it's ambiguous
+                    // The expection to this rule are prototypes symbols, because they can be overloaded,
+                    // which means that the identifier is allowed to match multiple prototype symbols
+                    bool ambiguous_symbols_found = false;
+                    for (const auto& [module_id, imported_symbols] : found_imported_symbols) {
+                        for (const Symbol* imported_symbol : imported_symbols) {
+                            if (imported_symbol->get_symbol_kind() != SymbolKind::Prototype) {
+                                ambiguous_symbols_found = true;
+                                break;
+                            }
+                        }
+                        if (ambiguous_symbols_found) {
+                            break;
+                        }
+                    }
+                    if (!ambiguous_symbols_found) {
+                        for (const Symbol* symbol : result) {
+                            if (symbol->get_symbol_kind() != SymbolKind::Prototype) {
+                                ambiguous_symbols_found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // No ambiguous symbols found -> return all of them
+                    if (!ambiguous_symbols_found) {
+                        for (const auto& [module_id, symbols] : found_imported_symbols) {
+                            result.insert(result.end(), symbols.begin(), symbols.end());
+                        }
+                        return result;
+                    }
+
+                    // Ambiguous symbols found
+                    // TODO (improvement): Better diagnostic message
                     std::string message = std::format("Symbol '{}' found in multiple {}modules (",
                         StringPool::get().lookup(identifier_id),
                         result.empty() ? "" : "imported ");
@@ -435,13 +470,9 @@ namespace kepler {
                     const Module& imported_module = modules[found_imported_symbols.begin()->first.value];
                     const std::string identifier = std::string(StringPool::get().lookup(identifier_id));
                     const std::string imported_module_identifier = std::string(StringPool::get().lookup(imported_module.full_identifier_id));
-                    // clang-format off
-                    message += ". Must use the fully qualified name in this case (e. g. '"
-                        + std::move(imported_module_identifier)
-                        + "::"
-                        + std::move(identifier)
-                        + "')";
-                    // clang-format on
+                    message += std::format(". Must use the fully qualified name in this case (e. g. '{}::{}')",
+                        std::move(imported_module_identifier),
+                        std::move(identifier));
                     return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousSymbolImport, .message = std::move(message)});
                 }
                 // Symbols only found in exactly one imported module -> return them

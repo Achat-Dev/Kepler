@@ -190,9 +190,9 @@ namespace kepler {
                     KPL_ASSERT_THAT(prototype_identifier.type_identifier_id != StringId::invalid());
                     KPL_ASSERT_THAT(prototype_identifier.identifier_id != StringId::invalid());
                     // Resolve type part of path (*Type*.Function)
-                    const auto return_type_id = resolve_type_identifier_to_type_id(prototype_identifier.type_identifier_id);
-                    if (!return_type_id.has_value()) {
-                        const Diagnostic& diagnostic = return_type_id.error();
+                    const auto type_id = resolve_type_identifier_to_type_id(prototype_identifier.type_identifier_id);
+                    if (!type_id.has_value()) {
+                        const Diagnostic& diagnostic = type_id.error();
                         diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), prototype_identifier.type_source_location);
                         prototype->node_type = ASTNodeType::Poison;
                         return StringId::invalid();
@@ -859,7 +859,7 @@ namespace kepler {
             const std::string_view type_name = StringPool::get().lookup(type_identifier_id);
             return std::unexpected(Diagnostic{.code = DiagnosticCode::UnknownType, .message = std::format("Unknown type '{}'", type_name)});
         }
-        KPL_ASSERT_THAT(found_symbols.value().size() == 1); // If the type symbol found multiple types it would have been reported as a diagnostic
+        KPL_ASSERT_THAT(found_symbols.value().size() == 1); // If multiple types were found it would have been reported as a diagnostic
         const Symbol* type_symbol = found_symbols.value()[0];
         KPL_ASSERT_THAT(type_symbol->type_id != TypeId::invalid());
         return type_symbol->type_id;

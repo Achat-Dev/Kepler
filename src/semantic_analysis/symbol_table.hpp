@@ -41,6 +41,7 @@ namespace kepler {
             std::vector<StringId> parameter_type_identifier_ids,
             bool is_variadic, TypeTable& type_table);
 
+        Module* lookup(ModuleId module_id);
         Symbol* lookup(SymbolId symbol_id);
         // TODO (check): Maybe create a method to disable finding after name resolution
         // Note: These methods should only be used during name resolution.
@@ -65,10 +66,6 @@ namespace kepler {
         std::vector<Scope> scopes;
         ArenaAllocator symbol_allocator;
 
-        /*std::expected<SymbolId, Diagnostic> create_symbol(ModuleId module_id,
-            TypeId type_id,
-            StringId identifier_id,
-            SymbolKind symbol_kind);*/
         std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id,
             StringId identifier_id,
             SymbolKind requested_symbol_kind,
