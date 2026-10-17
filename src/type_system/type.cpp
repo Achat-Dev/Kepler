@@ -380,11 +380,11 @@ namespace kepler {
             KPL_ASSERT_THAT(TypeTable::Builtins.f64_type_id != TypeId::invalid());
             KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.f32_type_id);
             if (is_signed_integer_type(original_type)) {
-                return builder.CreateSIToFP(value, get_llvm_type(original_type, context));
+                return builder.CreateSIToFP(value, llvm::Type::getFloatTy(context));
             } else if (is_unsigned_integer_type(original_type)) {
-                return builder.CreateUIToFP(value, get_llvm_type(original_type, context));
+                return builder.CreateUIToFP(value, llvm::Type::getFloatTy(context));
             } else if (original_type->id == TypeTable::Builtins.f64_type_id) {
-                return builder.CreateFPTrunc(value, get_llvm_type(original_type, context));
+                return builder.CreateFPTrunc(value, llvm::Type::getFloatTy(context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f32 implementation for original type '{}'", *original_type);
         }
@@ -396,11 +396,11 @@ namespace kepler {
             KPL_ASSERT_THAT(TypeTable::Builtins.f64_type_id != TypeId::invalid());
             KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.f64_type_id);
             if (is_integer_type(original_type)) {
-                return builder.CreateSIToFP(value, get_llvm_type(original_type, context));
+                return builder.CreateSIToFP(value, llvm::Type::getDoubleTy(context));
             } else if (is_unsigned_integer_type(original_type)) {
-                return builder.CreateUIToFP(value, get_llvm_type(original_type, context));
+                return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(context));
             } else if (original_type->id == TypeTable::Builtins.f32_type_id) {
-                return builder.CreateFPExt(value, get_llvm_type(original_type, context));
+                return builder.CreateFPExt(value, llvm::Type::getDoubleTy(context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f64 implementation for original type '{}'", *original_type);
         }
