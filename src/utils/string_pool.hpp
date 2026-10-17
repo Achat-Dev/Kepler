@@ -31,6 +31,7 @@ namespace kepler {
     class StringPool {
     public:
         StringId store(std::string string);
+        // TODO (improvement): Maybe change this to return a const string& instead of a string_view
         std::string_view lookup(StringId id) const;
 
         static StringPool& get();

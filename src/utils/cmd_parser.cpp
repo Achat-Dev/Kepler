@@ -146,7 +146,7 @@ namespace kepler {
         }
 
         // Remove trailing whitespaces and newlines
-        trim_end(result);
+        str_trim_end(result);
         return result;
     }
 

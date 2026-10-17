@@ -44,8 +44,8 @@
 #include "utils/identifier_path.hpp"
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
+#include "utils/string_utils.hpp"
 #include "llvm/IR/Instruction.h"
-#include <algorithm>
 #include <cstdint>
 #include <format>
 #include <llvm/ADT/APInt.h>
@@ -121,7 +121,7 @@ namespace kepler {
                 current_llvm_module = it->second.get();
             } else {
                 std::string module_identifier = get_full_identifier_from_path(ast.module_statement->module_path);
-                std::replace(module_identifier.begin(), module_identifier.end(), ':', '_');
+                str_replace_all(module_identifier, "::", "_");
                 const auto [it, emplaced] = llvm_modules.emplace(ast.module_statement->module_id,
                     std::make_unique<llvm::Module>(module_identifier, context));
                 KPL_ASSERT_THAT(emplaced);
@@ -191,10 +191,30 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(current_llvm_module);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         const std::string& module_identifier = current_llvm_module->getModuleIdentifier();
-        KPL_ASSERT_THAT(!module_identifier.empty());
         const std::string_view identifier = StringPool::get().lookup(identifier_id);
-        KPL_ASSERT_THAT(!identifier.empty());
-        const std::string mangled_name = std::format("3kpl{}{}{}{}", module_identifier.size(), module_identifier, identifier.size(), identifier);
+        const std::string mangled_name = std::format("kpl_{}{}{}{}", module_identifier.size(), module_identifier, identifier.size(), identifier);
+        return StringPool::get().store(mangled_name);
+    }
+
+    StringId CodegenPass::create_mangled_identifier(StringId prototype_identifier_id, const std::vector<TypeId>& parameter_type_ids, bool is_variadic) const {
+        KPL_ASSERT_NOT_NULLPTR(current_llvm_module);
+        KPL_ASSERT_THAT(prototype_identifier_id != StringId::invalid());
+        const std::string& module_identifier = current_llvm_module->getModuleIdentifier();
+        const std::string_view identifier = StringPool::get().lookup(prototype_identifier_id);
+        std::string mangled_name = std::format("kpl_{}{}{}{}", module_identifier.size(), module_identifier, identifier.size(), identifier);
+        if (!parameter_type_ids.empty()) {
+            mangled_name += '_';
+        }
+        for (TypeId parameter_type_id : parameter_type_ids) {
+            KPL_ASSERT_THAT(parameter_type_id != TypeId::invalid());
+            const Type* parameter_type = type_table.lookup(parameter_type_id);
+            const std::string parameter_identifier = std::string(StringPool::get().lookup(parameter_type->identifier_id));
+            mangled_name += parameter_identifier;
+        }
+        if (is_variadic) {
+            constexpr char variadic_identifier[] = "_variadic";
+            mangled_name += variadic_identifier;
+        }
         return StringPool::get().store(mangled_name);
     }
 
@@ -279,9 +299,11 @@ namespace kepler {
         } else {
             // Only mangle name if it's not an extern
             if (!is_extern) {
-                identifier_id = create_mangled_identifier(identifier_id);
                 Symbol* symbol = symbol_table.lookup(prototype->symbol_id);
-                symbol->mangled_identifier_id = identifier_id;
+                KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Prototype);
+                PrototypeSymbol* prototype_symbol = static_cast<PrototypeSymbol*>(symbol);
+                identifier_id = create_mangled_identifier(identifier_id, prototype_symbol->parameter_type_ids, prototype_symbol->is_variadic);
+                prototype_symbol->mangled_identifier_id = identifier_id;
             }
         }
 

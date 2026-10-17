@@ -17,8 +17,6 @@
 
 namespace kepler {
 
-    // TODO (improvement): Maybe rename this to IdentifierExpression
-    // Maybe with it just being an identifier, it should probably be neither an Expression nor a Statement but just a normal ASTNode
     struct VariableExpression : Expression {
         StringId identifier_id;
         SymbolId symbol_id;

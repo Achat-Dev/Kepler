@@ -88,6 +88,7 @@ namespace kepler {
         void open_scope();
         void close_scope();
         StringId create_mangled_identifier(StringId identifier_id) const;
+        StringId create_mangled_identifier(StringId prototype_identifier_id, const std::vector<TypeId>& parameter_type_ids, bool is_variadic) const;
         bool is_main_method(const Prototype* prototype) const;
         llvm::Type* get_llvm_type(TypeId type_id);
 

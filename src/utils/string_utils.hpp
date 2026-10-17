@@ -16,6 +16,7 @@ namespace kepler {
 
     std::size_t strlen_utf8(const std::string& string);
     bool is_utf8_character(unsigned char c);
-    void trim_end(std::string& string);
+    void str_trim_end(std::string& string);
+    void str_replace_all(std::string& string, const std::string& old_value, const std::string& new_value);
 
 }

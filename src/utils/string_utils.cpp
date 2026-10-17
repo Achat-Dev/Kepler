@@ -7,6 +7,7 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
+#include "utils/assert.h"
 #include "utils/log.hpp"
 #include <cstddef>
 #include <string>
@@ -38,10 +39,22 @@ namespace kepler {
         return c >= 0x80;
     }
 
-    void trim_end(std::string& string) {
+    void str_trim_end(std::string& string) {
         const auto pos = string.find_last_not_of(" \t\n\r");
         if (pos != std::string::npos) {
             string.erase(pos + 1);
+        }
+    }
+
+    void str_replace_all(std::string& string, const std::string& old_value, const std::string& new_value) {
+        if (string.empty()) {
+            return;
+        }
+        KPL_ASSERT_THAT(!old_value.empty());
+        size_t position = 0;
+        while ((position = string.find(old_value, position)) != string.npos) {
+            string.replace(position, old_value.size(), new_value);
+            position += new_value.size();
         }
     }
 

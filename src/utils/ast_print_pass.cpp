@@ -444,7 +444,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
         std::string string(StringPool::get().lookup(expression->value_id));
-        trim_end(string);
+        str_trim_end(string);
         std::println("{}{}{}", indent, last_item_prefix, string);
     }
 
