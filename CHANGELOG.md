@@ -8,8 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Changed
 
-- Improved diagnostic messages of missing return statements
 - Functions can no longer be shadowed by a variable inside of a function
+- Improved diagnostic messages of missing return statements
+- Improved diagnostic messages for unexpected tokens after a return statement. The tradeoff is that return statements in the middle of a code block are no longer possible in functions that return `void`
+> ```
+> # Something like this was previously possible, but is no longer possible because the return will try to parse the following 'if' as the return value
+> void foo (bool condition)
+>   printf("Entering foo")
+>   return
+>   if (condition)
+>     ...
+>   end
+> end
+> ```
 
 ### Fixed
 

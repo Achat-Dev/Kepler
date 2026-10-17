@@ -49,8 +49,7 @@ namespace kepler {
         std::expected<CmdArgs, Diagnostic> parse_args(int argc, char** argv) const;
 
         std::optional<std::vector<AbstractSyntaxTree>> create_asts(const std::vector<std::filesystem::path>& file_paths,
-            DiagnosticSink& diagnostic_sink,
-            TypeTable& type_table) const;
+            DiagnosticSink& diagnostic_sink) const;
         void verify_ast(AbstractSyntaxTree& ast, const File* file) const;
 
         std::optional<std::vector<std::unique_ptr<llvm::Module>>> run_ast_passes(std::vector<AbstractSyntaxTree>& asts,

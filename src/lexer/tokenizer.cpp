@@ -13,8 +13,6 @@
 #include "diagnostics/source_location.hpp"
 #include "io/file.hpp"
 #include "lexer/token.hpp"
-#include "type_system/type.hpp"
-#include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include "utils/string_utils.hpp"
@@ -31,7 +29,7 @@ namespace kepler {
 
     std::unordered_map<StringId, Token> Tokenizer::keyword_map;
 
-    Tokenizer::Tokenizer(const File* file, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
+    Tokenizer::Tokenizer(const File* file, DiagnosticSink& diagnostic_sink)
         : file(file), diagnostic_sink(diagnostic_sink) {
         KPL_ASSERT_NOT_NULLPTR(file);
         if (keyword_map.empty()) {

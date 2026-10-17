@@ -96,7 +96,7 @@ namespace kepler {
         // Important: The llvm context has to have the same lifetime as the llvm modules, that's why we declare it here
         llvm::LLVMContext llvm_context;
 
-        auto asts = create_asts(cmd_args.input_paths, diagnostic_sink, type_table);
+        auto asts = create_asts(cmd_args.input_paths, diagnostic_sink);
         if (!asts) {
             return EXIT_FAILURE;
         }
@@ -225,8 +225,7 @@ namespace kepler {
 
     // clang-format off
     std::optional<std::vector<AbstractSyntaxTree>> Compiler::create_asts(const std::vector<std::filesystem::path>& file_paths,
-        DiagnosticSink& diagnostic_sink,
-        TypeTable& type_table) const
+        DiagnosticSink& diagnostic_sink) const
     {
         // clang-format on
         KPL_ASSERT_THAT(!file_paths.empty());
@@ -241,9 +240,9 @@ namespace kepler {
                 continue;
             }
 
-            Tokenizer tokenizer(*file, diagnostic_sink, type_table);
+            Tokenizer tokenizer(*file, diagnostic_sink);
             std::vector<Token> tokens = tokenizer.tokenize();
-            Parser parser(*file, std::move(tokens), diagnostic_sink, type_table);
+            Parser parser(*file, std::move(tokens), diagnostic_sink);
             AbstractSyntaxTree ast = parser.parse();
             verify_ast(ast, *file);
             asts.push_back(std::move(ast));

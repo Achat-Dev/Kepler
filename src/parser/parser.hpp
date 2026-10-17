@@ -30,7 +30,6 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
-#include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
@@ -51,8 +50,8 @@ namespace kepler {
     // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
     class Parser {
     public:
-        Parser(const File* file, const std::vector<Token>& tokens, DiagnosticSink& diagnostic_sink, TypeTable& type_table)
-            : file(file), tokens(tokens), diagnostic_sink(diagnostic_sink), type_table(type_table), current_token(&tokens[0]) {
+        Parser(const File* file, const std::vector<Token>& tokens, DiagnosticSink& diagnostic_sink)
+            : file(file), tokens(tokens), diagnostic_sink(diagnostic_sink), current_token(&tokens[0]) {
             KPL_ASSERT_NOT_NULLPTR(file);
         }
         AbstractSyntaxTree parse();
@@ -61,9 +60,7 @@ namespace kepler {
         const File* file;
         const std::vector<Token>& tokens;
         DiagnosticSink& diagnostic_sink;
-        TypeTable& type_table;
         const Token* current_token;
-        std::optional<StringId> current_function_return_type_id = std::nullopt;
         size_t current_token_index = 0;
 
         int get_operator_precedence(OperatorType operator_type) const;

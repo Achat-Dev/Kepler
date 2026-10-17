@@ -315,7 +315,6 @@ namespace kepler {
     std::unique_ptr<Function> Parser::parse_function(LinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
-        KPL_ASSERT_THAT(!current_function_return_type_id.has_value());
         next_token(true); // eat type identifier
         const Token* identifier_token = current_token;
         previous_token(true); // Go back to type for parsing prototype
@@ -331,8 +330,6 @@ namespace kepler {
                 identifier_token->source_location);
         }
 
-        current_function_return_type_id = prototype->return_type_identifier_id;
-
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         const std::string& identifier = StringPool::get().lookup(identifier_id);
@@ -340,11 +337,9 @@ namespace kepler {
         auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end' or 'EOF'
 
-        current_function_return_type_id = std::nullopt;
         if (!prototype || !body) {
             return nullptr;
         }
-
         return std::make_unique<Function>(std::move(prototype), std::move(*body), linkage_type, identifier_token->source_location);
     }
 

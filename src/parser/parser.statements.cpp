@@ -21,8 +21,6 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
-#include "type_system/type.hpp"
-#include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
@@ -399,39 +397,44 @@ namespace kepler {
     std::unique_ptr<ReturnStatement> Parser::parse_return() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Return, "Required token: '{}', received: '{}'", TokenType::Return, current_token->type);
-        KPL_ASSERT_THAT(current_function_return_type_id.has_value());
-
         const SourceLocation& return_source_location = current_token->source_location;
         next_token(true); // eat 'return' keyword
-
-        // TODO (improvement): Change this to always parse the next expression because this results in really bad diagnostics
-        // That solution will be better once optional semicolons are implemented
-        const Type* void_type = type_table.lookup(type_table.Builtins.void_type_id);
-        if (current_function_return_type_id == void_type->identifier_id) {
-            return std::make_unique<ReturnStatement>(nullptr, return_source_location);
-        }
-
+        // This is not the most beautiful code, but it allows for better diagnostics
         switch (current_token->type) {
+            case TokenType::Dot:
+            case TokenType::Comma:
+            case TokenType::Colon:
+            case TokenType::DoubleColon:
+            case TokenType::Assignment:
+            case TokenType::Variadic:
+            case TokenType::Operator:
+            case TokenType::Module:
+            case TokenType::Import:
+            case TokenType::Export:
+            case TokenType::Extern:
+            case TokenType::Struct:
+            case TokenType::Return:
             case TokenType::If:
-            case TokenType::For:
-            case TokenType::Return: {
-                const std::string message = std::format("Cannot return '{}' statement", current_token->type);
+            case TokenType::Else:
+            case TokenType::Elseif:
+            case TokenType::For: {
+                const std::string message = std::format("Unexpected token '{}' after '{}' keyword. Must return an expression.",
+                    current_token->type,
+                    TokenType::Return);
                 diagnostic_sink.report(DiagnosticCode::InvalidReturn, message, current_token->source_location);
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return nullptr;
             }
             case TokenType::End:
                 return std::make_unique<ReturnStatement>(nullptr, return_source_location);
-            default:
-                break;
+            default: {
+                std::unique_ptr<Expression> expression = parse_expression();
+                if (!expression) {
+                    return nullptr;
+                }
+                return std::make_unique<ReturnStatement>(std::move(expression), return_source_location);
+            }
         }
-
-        std::unique_ptr<Expression> expression = parse_expression();
-        if (!expression) {
-            return nullptr; // parse_expression already recovered, so no need to recover here
-        }
-
-        return std::make_unique<ReturnStatement>(std::move(expression), return_source_location);
     }
 
     std::unique_ptr<VariableDefinitionStatement> Parser::parse_variable_definition() {
