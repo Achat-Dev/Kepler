@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Changed
 
-- Missing return statements are now only reported if a function doesn't have other errors
+- Improved diagnostic messages of missing return statements
+- Functions can no longer be shadowed by a variable inside of a function
 
 ### Fixed
 
@@ -16,9 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Topmost parent module not being imported implicitely (e. g. module `foo::bar::baz` would previously only import `foo::bar` implicitely and not `foo`)
 - Function calls with explicit module paths not searching submodules of own module
 - Wrong "Unknown module '...'" diagnostic when an unknown function was called with a fully qualified module path (e. g. `foo::bar::baz()` would report "Unknown module 'foo::bar'" if `baz()` didn't exist in the module")
-- Functions can no longer be shadowed by a variable inside of a function
 - Condition for printing a `CallExpression` with an explicit module path being the wrong way round
 - Wrong assertion when resolving a variable definition
+- Unexpected token diagnostics in module identifiers now point at the unexpected token instead of the preceding `::`
 
 ## [0.3.0] - 2026-09-23
 

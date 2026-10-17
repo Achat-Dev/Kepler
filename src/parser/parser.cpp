@@ -205,9 +205,10 @@ namespace kepler {
         while (current_token->type == delimiter_token) {
             next_token(true); // eat delimiter
             if (current_token->type != TokenType::Identifier) {
+                const SourceLocation& unexpected_token_source_location = current_token->source_location;
                 previous_token(true); // jump back to delimiter because otherwise the next line will be skipped because of the recovery
                 const std::string message = std::format("Expected identifier after '{}' {}", delimiter_token, diagnostic_ending);
-                diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::move(message), current_token->source_location);
+                diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::move(message), unexpected_token_source_location);
                 recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
                 return std::nullopt;
             }
