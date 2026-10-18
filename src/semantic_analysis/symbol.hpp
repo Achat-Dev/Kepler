@@ -48,9 +48,10 @@ namespace kepler {
         TypeId type_id;
         StringId identifier_id;
         StringId mangled_identifier_id;
+        LinkageType linkage_type;
 
-        Symbol(SymbolId id, ModuleId module_id, ScopeId scope_id, TypeId type_id, StringId identifier_id)
-            : id(id), module_id(module_id), scope_id(scope_id), type_id(type_id), identifier_id(identifier_id) {}
+        Symbol(SymbolId id, ModuleId module_id, ScopeId scope_id, TypeId type_id, StringId identifier_id, LinkageType linkage_type)
+            : id(id), module_id(module_id), scope_id(scope_id), type_id(type_id), identifier_id(identifier_id), linkage_type(linkage_type) {}
 
         constexpr virtual SymbolKind get_symbol_kind() const = 0;
         virtual ~Symbol() = default;
@@ -58,7 +59,7 @@ namespace kepler {
 
     struct VariableSymbol : Symbol {
         VariableSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, TypeId type_id, StringId identifier_id)
-            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id) {}
+            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id, LinkageType::Internal) {}
 
         constexpr SymbolKind get_symbol_kind() const override {
             return SymbolKind::Variable;
@@ -78,8 +79,7 @@ namespace kepler {
             LinkageType linkage_type,
             std::vector<TypeId> parameter_type_ids,
             bool is_variadic)
-            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id),
-              linkage_type(linkage_type),
+            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id, linkage_type),
               parameter_type_ids(std::move(parameter_type_ids)),
               is_variadic(is_variadic) {}
 
@@ -90,12 +90,14 @@ namespace kepler {
 
     struct TypeSymbol : Symbol {
         TypeSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, StringId identifier_id)
-            : Symbol(symbol_id, module_id, scope_id, TypeId::invalid(), identifier_id) {}
+            : Symbol(symbol_id, module_id, scope_id, TypeId::invalid(), identifier_id, LinkageType::Internal) {}
 
         constexpr SymbolKind get_symbol_kind() const override {
             return SymbolKind::Type;
         }
     };
+
+    bool is_overloadable_symbol(SymbolKind symbol_kind);
 
 }
 
@@ -111,13 +113,13 @@ struct std::formatter<kepler::SymbolKind> : std::formatter<std::string> {
     auto format(const kepler::SymbolKind& symbol_kind, std::format_context& ctx) const {
         switch (symbol_kind) {
             case kepler::SymbolKind::All:
-                return std::formatter<std::string>::format("all", ctx);
+                return std::formatter<std::string>::format("All", ctx);
             case kepler::SymbolKind::Variable:
-                return std::formatter<std::string>::format("variable", ctx);
+                return std::formatter<std::string>::format("Variable", ctx);
             case kepler::SymbolKind::Prototype:
-                return std::formatter<std::string>::format("prototype", ctx);
+                return std::formatter<std::string>::format("Function", ctx);
             case kepler::SymbolKind::Type:
-                return std::formatter<std::string>::format("type", ctx);
+                return std::formatter<std::string>::format("Type", ctx);
         }
         KPL_ASSERT_UNREACHABLE("Missing format implementation for symbol kind '{}'", static_cast<int>(symbol_kind));
     }

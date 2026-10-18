@@ -9,6 +9,7 @@
 
 #include "utils/assert.h"
 #include "utils/log.hpp"
+#include <cctype>
 #include <cstddef>
 #include <string>
 
@@ -56,6 +57,13 @@ namespace kepler {
             string.replace(position, old_value.size(), new_value);
             position += new_value.size();
         }
+    }
+
+    void str_initial_to_lower_case(std::string& string) {
+        if (string.empty()) {
+            return;
+        }
+        string[0] = std::tolower(string[0]);
     }
 
 }

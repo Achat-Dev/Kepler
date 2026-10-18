@@ -18,5 +18,6 @@ namespace kepler {
     bool is_utf8_character(unsigned char c);
     void str_trim_end(std::string& string);
     void str_replace_all(std::string& string, const std::string& old_value, const std::string& new_value);
+    void str_initial_to_lower_case(std::string& string);
 
 }

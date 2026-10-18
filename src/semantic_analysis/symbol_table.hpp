@@ -26,7 +26,7 @@ namespace kepler {
 
     class SymbolTable {
     public:
-        SymbolTable();
+        SymbolTable(TypeTable& type_table);
         ModuleId create_module(const IdentifierPath& module_path);
         // Symbols currently don't have a way to access their source location
         // However, the call site of these function *has* access to it, so we just return a normal Diagnostic instead of a SourceDiagnostic
@@ -54,13 +54,13 @@ namespace kepler {
     private:
         struct ScopeEntryVisitHandler {
             SymbolTable* symbol_table;
-            SymbolKind requested_symbol_kind;
             bool is_imported_module;
 
             std::vector<Symbol*> operator()(SymbolId symbol_id) const;
             std::vector<Symbol*> operator()(const std::vector<SymbolId>& symbol_ids) const;
         };
 
+        TypeTable& type_table;
         std::vector<Module> modules;
         std::vector<Symbol*> symbols;
         std::vector<Scope> scopes;
@@ -70,7 +70,8 @@ namespace kepler {
             StringId identifier_id,
             SymbolKind requested_symbol_kind,
             bool is_imported_module,
-            bool search_imported_modules);
+            bool search_imported_modules,
+            bool is_recursive_search);
         Module* find_submodule(Module* parent_module, const IdentifierPath& module_path);
         Module* get_global_module();
     };

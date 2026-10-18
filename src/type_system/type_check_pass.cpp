@@ -663,7 +663,7 @@ namespace kepler {
             for (size_t i = 0; i < expression->candidate_symbol_ids.size(); i++) {
                 const SymbolId candidate_symbol_id = expression->candidate_symbol_ids[i];
                 KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
-                message += std::format("{}{}) {}", log::sub_line, i + 1, get_call_candidate_identifier_for_diagnostic(candidate_symbol_id));
+                message += std::format("{}  {}) {}", log::error_sub_line, i + 1, get_call_candidate_identifier_for_diagnostic(candidate_symbol_id));
                 if (i < expression->candidate_symbol_ids.size() - 1) {
                     message += '\n';
                 }
@@ -846,7 +846,7 @@ namespace kepler {
         for (size_t i = 0; i < matching_call_candidates.size(); i++) {
             const SymbolId candidate_symbol_id = matching_call_candidates[i].symbol_id;
             KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
-            message += std::format("{}{}) {}", log::sub_line, i + 1, get_call_candidate_identifier_for_diagnostic(candidate_symbol_id));
+            message += std::format("{}  {}) {}", log::error_sub_line, i + 1, get_call_candidate_identifier_for_diagnostic(candidate_symbol_id));
             if (i < matching_call_candidates.size() - 1) {
                 message += '\n';
             }
@@ -865,6 +865,7 @@ namespace kepler {
             candidate_prototype_symbol->parameter_type_ids,
             candidate_prototype_symbol->is_variadic,
             type_table);
+        // TODO (improvement): Add '(self)' to self module
         return std::format("{} (module {})", std::move(candidate_signature), module_identifier);
     }
 
