@@ -86,6 +86,7 @@ namespace kepler {
             KPL_ASSERT_THAT(ast.module_statement->module_id != ModuleId::invalid());
             module_id = ast.module_statement->module_id;
             create_prototype_symbols(ast.top_level_nodes);
+            create_struct_members(ast.struct_nodes);
         }
 
         // Resolve all remaining names (requires all types and prototypes to exists)
@@ -93,7 +94,6 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
             KPL_ASSERT_THAT(ast.module_statement->module_id != ModuleId::invalid());
             module_id = ast.module_statement->module_id;
-            resolve_struct_members(ast.struct_nodes);
             resolve_nodes(ast.top_level_nodes);
         }
 
@@ -255,7 +255,7 @@ namespace kepler {
         return {.poisoned = false};
     }
 
-    void NameResolutionPass::resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
+    void NameResolutionPass::create_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
         for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             KPL_ASSERT_THAT(struct_node->identifier_id != StringId::invalid());

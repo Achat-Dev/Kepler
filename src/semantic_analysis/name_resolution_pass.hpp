@@ -64,7 +64,7 @@ namespace kepler {
         void create_prototype_symbols(const std::vector<std::unique_ptr<ASTNode>>& top_level_nodes);
         NameResolutionResult create_prototype_symbol(Prototype* prototype, LinkageType linkage_type) const;
 
-        void resolve_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
+        void create_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
         NameResolutionResult resolve_node(ASTNode* node) const;
         void resolve_extern(Extern* ext) const;

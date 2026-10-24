@@ -132,11 +132,17 @@ namespace kepler {
         }
         current_llvm_module = nullptr;
 
-        // Code generation
+        // Create struct bodies
         for (const AbstractSyntaxTree& ast : asts) {
             KPL_ASSERT_THAT(llvm_modules.contains(ast.module_statement->module_id));
             current_llvm_module = llvm_modules[ast.module_statement->module_id].get();
             codegen_struct_bodies(ast.struct_nodes);
+        }
+
+        // Code generation
+        for (const AbstractSyntaxTree& ast : asts) {
+            KPL_ASSERT_THAT(llvm_modules.contains(ast.module_statement->module_id));
+            current_llvm_module = llvm_modules[ast.module_statement->module_id].get();
             codegen_nodes(ast.top_level_nodes);
             current_llvm_module->print(llvm::outs(), nullptr);
         }
