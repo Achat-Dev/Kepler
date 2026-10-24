@@ -15,6 +15,7 @@
 #include "utils/ansi_codes.hpp"
 #include "utils/assert.h"
 #include "utils/log.hpp"
+#include "utils/number_utils.hpp"
 #include "utils/string_utils.hpp"
 #include <algorithm>
 #include <cstdint>
@@ -109,7 +110,7 @@ namespace kepler {
                     // There were previous lines
                     if (diagnostic_end_position > line_end_position) {
                         // There are more lines coming afterwards
-                        const std::string prefix = std::format("{}At l.{:>{}} | ", log::indented, it->line_number, line_number_magnitude);
+                        const std::string prefix = std::format("{}At l.{:{}} | ", log::indented, it->line_number, line_number_magnitude);
                         const std::string line = file->content.substr(it->start_position, it->size);
                         std::print("{}{}{}{}", prefix, highlight_styling, line, ansi_codes::reset);
 
@@ -119,7 +120,7 @@ namespace kepler {
                         }
                     } else {
                         // This is the last line
-                        const std::string prefix = std::format("{}At l.{:>{}} | ", log::last_indented, it->line_number, line_number_magnitude);
+                        const std::string prefix = std::format("{}At l.{:{}} | ", log::last_indented, it->line_number, line_number_magnitude);
                         const uint32_t diagnostic_size = diagnostic_end_position - it->start_position;
                         const uint32_t line_end_size = line_end_position - diagnostic_end_position;
                         const std::string diagnostic_string = file->content.substr(it->start_position, diagnostic_size);
@@ -141,7 +142,7 @@ namespace kepler {
 
                     if (diagnostic_end_position > line_end_position) {
                         // There are more lines coming afterwards
-                        const std::string prefix = std::format("{}At l.{:>{}} | ", log::indented, it->line_number, line_number_magnitude);
+                        const std::string prefix = std::format("{}At l.{:{}} | ", log::indented, it->line_number, line_number_magnitude);
                         const uint32_t line_end_size = line_end_position - diagnostic.source_location.position;
                         const std::string diagnostic_string = file->content.substr(diagnostic.source_location.position, line_end_size);
                         std::print("{}{}{}{}", prefix, line_start, highlight_styling, diagnostic_string, ansi_codes::reset);
@@ -176,16 +177,6 @@ namespace kepler {
 
         print_statistics();
         diagnostics.clear();
-    }
-
-    uint32_t DiagnosticSink::get_digit_count(uint32_t number) const {
-        uint32_t result = 1;
-        // Use integer division by 10 to "remove" the last digit until the value is smaller than 10, which means last digit reached
-        while (number >= 10) {
-            number /= 10;
-            result += 1;
-        }
-        return result;
     }
 
     void DiagnosticSink::print_statistics() const {

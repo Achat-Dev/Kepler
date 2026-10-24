@@ -16,10 +16,12 @@
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/ansi_codes.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
 #include "utils/log.hpp"
+#include "utils/number_utils.hpp"
 #include "utils/string_pool.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -423,29 +425,34 @@ namespace kepler {
 
         // If the searched identifier is found in at least one module, it's potentially ambiguous
         // The expection to this rule are overloadable symbols, which means that the identifier is allowed to match multiple prototype symbols
-        std::vector<std::string> candidate_module_identifiers;
         std::unordered_set<SymbolKind> found_candidate_symbol_kinds;
+        int longest_candidate_identifier = std::string("Signature").size();
+        int longest_candidate_symbol_kind = std::string("Kind").size();
         bool ambiguous_symbols_found = false;
         for (const auto& [candidate_module_id, candidate_symbols] : candidate_symbol_map) {
-            const Module& candidate_module = modules[candidate_module_id.value];
+            Module& candidate_module = modules[candidate_module_id.value];
             for (const Symbol* candidate_symbol : candidate_symbols) {
                 // Record module identifier for diagnostic
                 const SymbolKind candidate_symbol_kind = candidate_symbol->get_symbol_kind();
-                std::string candidate_symbol_identifier;
+                size_t candidate_symbol_size = 0;
                 if (candidate_symbol_kind == SymbolKind::Prototype) {
                     const PrototypeSymbol* candidate_prototype_symbol = static_cast<const PrototypeSymbol*>(candidate_symbol);
-                    candidate_symbol_identifier = get_prototype_signature(candidate_prototype_symbol->identifier_id,
+                    const std::string prototype_signature = get_prototype_signature(candidate_prototype_symbol->identifier_id,
                         candidate_prototype_symbol->parameter_type_ids,
                         candidate_prototype_symbol->is_variadic,
                         type_table);
+                    candidate_symbol_size = prototype_signature.size();
                 } else {
-                    candidate_symbol_identifier = std::format("{}: {}", StringPool::get().lookup(candidate_symbol->identifier_id), candidate_symbol_kind);
+                    candidate_symbol_size = StringPool::get().lookup(candidate_symbol->identifier_id).size();
                 }
-                const std::string module_identifier = std::format("{} (module {}{})",
-                    std::move(candidate_symbol_identifier),
-                    StringPool::get().lookup(candidate_module.full_identifier_id),
-                    candidate_module_id == module_id ? " (self)" : "");
-                candidate_module_identifiers.push_back(std::move(module_identifier));
+                // Check lengths for diagnostic formatting
+                if (longest_candidate_identifier < candidate_symbol_size) {
+                    longest_candidate_identifier = candidate_symbol_size;
+                }
+                const size_t candidate_symbol_kind_identifier_size = get_short_symbol_kind_identifier(candidate_symbol_kind).size();
+                if (longest_candidate_symbol_kind < candidate_symbol_kind_identifier_size) {
+                    longest_candidate_symbol_kind = candidate_symbol_kind_identifier_size;
+                }
 
                 // Check if ambiguous symbol
                 if (candidate_symbol_kind != requested_symbol_kind && requested_symbol_kind != SymbolKind::All) {
@@ -461,25 +468,56 @@ namespace kepler {
             }
         }
 
+        // Move all found candidates into one list
+        std::vector<Symbol*> result;
+        for (const auto& [module_id, candidate_symbols] : candidate_symbol_map) {
+            result.insert(result.end(), std::make_move_iterator(candidate_symbols.begin()), std::make_move_iterator(candidate_symbols.end()));
+        }
+
         // No ambiguous symbols found -> return all of them
         if (!ambiguous_symbols_found) {
-            std::vector<Symbol*> result;
-            for (const auto& [module_id, candidate_symbols] : candidate_symbol_map) {
-                result.insert(result.end(), std::make_move_iterator(candidate_symbols.begin()), std::make_move_iterator(candidate_symbols.end()));
-            }
             return result;
         }
 
         // Ambiguous symbols found -> return diagnostic
-        // TODO (improvement): Formatting and sorting of candidates
-        std::sort(candidate_module_identifiers.begin(), candidate_module_identifiers.end());
-        std::string message = std::format("Symbol '{}' found in multiple modules:\n", StringPool::get().lookup(identifier_id));
-        for (size_t i = 0; i < candidate_module_identifiers.size(); i++) {
-            message += std::format("{}  {}) {}\n", log::error_sub_line, i + 1, std::move(candidate_module_identifiers[i]));
+        std::sort(result.begin(), result.end(), SymbolDiagnosticSorter{.symbol_table = this, .type_table = &type_table});
+        const uint32_t highest_numbering_digit_count = get_digit_count(result.size());
+        std::string message = std::format("Identifier '{}' refers to multiple symbols:\n{}    {}{}Kind  {:{}}  Module{}\n",
+            StringPool::get().lookup(identifier_id),
+            log::error_sub_line,
+            std::string(highest_numbering_digit_count, ' '),
+            ansi_codes::dim,
+            "Signature",
+            longest_candidate_identifier,
+            ansi_codes::reset);
+        for (size_t i = 0; i < result.size(); i++) {
+            const Symbol* candidate_symbol = result[i];
+            const Module& candidate_module = modules[candidate_symbol->module_id.value];
+            std::string candidate_symbol_identifier;
+            if (candidate_symbol->get_symbol_kind() == SymbolKind::Prototype) {
+                const PrototypeSymbol* candidate_prototype_symbol = static_cast<const PrototypeSymbol*>(candidate_symbol);
+                candidate_symbol_identifier = get_prototype_signature(candidate_prototype_symbol->identifier_id,
+                    candidate_prototype_symbol->parameter_type_ids,
+                    candidate_prototype_symbol->is_variadic,
+                    type_table);
+            } else {
+                candidate_symbol_identifier = StringPool::get().lookup(candidate_symbol->identifier_id);
+            }
+            const uint32_t numbering = i + 1;
+            const std::string candidate_symbol_kind_identifier = std::format("{}", candidate_symbol->get_symbol_kind());
+            message += std::format("{}  {}) {:{}}{}  {:{}}  {}{}\n",
+                log::error_sub_line,
+                numbering,
+                "",
+                highest_numbering_digit_count - get_digit_count(numbering),
+                candidate_symbol_kind_identifier.substr(0, 4),
+                std::move(candidate_symbol_identifier),
+                longest_candidate_identifier,
+                StringPool::get().lookup(candidate_module.full_identifier_id),
+                candidate_module.id == module_id ? " (self)" : "");
         }
-
         const Module& imported_module = modules[candidate_symbol_map.begin()->first.value];
-        message += std::format("{}Must use the fully qualified name in this case (e. g. '{}::{}')",
+        message += std::format("{}Use the fully qualified name of a candidate (e. g. '{}::{}...')",
             log::error_sub_line,
             StringPool::get().lookup(imported_module.full_identifier_id),
             StringPool::get().lookup(identifier_id));

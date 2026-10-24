@@ -841,8 +841,6 @@ namespace kepler {
             return it->second;
         }
 
-        std::string type_identifier = StringPool::get().lookup(type_identifier_id);
-
         const auto found_symbols = symbol_table.find_symbol_of_kind(module_id, type_identifier_id, SymbolKind::Type);
         if (!found_symbols.has_value()) {
             return std::unexpected(std::move(found_symbols.error()));
@@ -855,10 +853,10 @@ namespace kepler {
         const Symbol* type_symbol = found_symbols.value()[0];
         const SymbolKind type_symbol_kind = type_symbol->get_symbol_kind();
         if (type_symbol_kind != SymbolKind::Type) {
-            const std::string& type_name = StringPool::get().lookup(type_identifier_id);
+            const std::string& type_identifier = StringPool::get().lookup(type_identifier_id);
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::UnknownType,
-                .message = std::format("{} '{}' cannot be used as a type", type_symbol_kind, type_name),
+                .message = std::format("{} '{}' cannot be used as a type", type_symbol_kind, type_identifier),
             });
         }
         KPL_ASSERT_THAT(type_symbol->type_id != TypeId::invalid());

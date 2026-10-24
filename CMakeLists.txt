@@ -34,8 +34,9 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/utils/ast_print_pass.cpp
     src/utils/cmd_parser.cpp
     src/utils/identifier_path.cpp
-    src/utils/string_utils.cpp
+    src/utils/number_utils.cpp
     src/utils/string_pool.cpp
+    src/utils/string_utils.cpp
     src/compiler.cpp
     src/main.cpp)
 

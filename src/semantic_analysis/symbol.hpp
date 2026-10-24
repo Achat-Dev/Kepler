@@ -13,6 +13,7 @@
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "type_system/type.hpp"
+#include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
@@ -97,7 +98,16 @@ namespace kepler {
         }
     };
 
+    class SymbolTable;
+
+    struct SymbolDiagnosticSorter {
+        SymbolTable* symbol_table;
+        TypeTable* type_table;
+        bool operator()(const Symbol* a, const Symbol* b) const;
+    };
+
     bool is_overloadable_symbol(SymbolKind symbol_kind);
+    std::string get_short_symbol_kind_identifier(SymbolKind symbol_kind);
 
 }
 
