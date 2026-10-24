@@ -37,7 +37,6 @@
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
-#include "utils/log.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -56,6 +55,9 @@ namespace kepler {
     void TypeCheckPass::run(std::vector<AbstractSyntaxTree>& asts) {
         KPL_ASSERT_THAT(!asts.empty());
         for (const AbstractSyntaxTree& ast : asts) {
+            KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
+            KPL_ASSERT_THAT(ast.module_statement->module_id != ModuleId::invalid());
+            module_id = ast.module_statement->module_id;
             current_function_return_type_id = TypeId::invalid();
             typecheck_nodes(ast.top_level_nodes);
         }
@@ -652,22 +654,21 @@ namespace kepler {
         std::vector<MatchingCallCandidate> matching_call_candidates = find_matching_call_candidates(expression, argument_type_ids);
         if (matching_call_candidates.empty()) {
             // No matching candidates -> print all available candidates
+            std::vector<Symbol*> candidate_symbols;
+            candidate_symbols.reserve(expression->candidate_symbol_ids.size());
+            for (SymbolId candidate_symbol_id : expression->candidate_symbol_ids) {
+                KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
+                candidate_symbols.push_back(symbol_table.lookup(candidate_symbol_id));
+            }
             const StringId identifier_id = StringPool::get().store(get_full_identifier_from_path(expression->identifier_path));
-            std::string message = "No matching overload for function '";
-            message += get_prototype_signature(identifier_id, argument_type_ids, false, type_table);
-            message += '\'';
-            if (!expression->module_path.identifier_parts.empty()) {
+            std::string message = std::format("No matching overload for function '{}'",
+                get_prototype_signature(identifier_id, argument_type_ids, false, type_table));
+            const bool is_fully_qualified_call = !expression->module_path.identifier_parts.empty();
+            if (is_fully_qualified_call) {
                 message += " in module '" + get_full_identifier_from_path(expression->module_path) + '\'';
             }
             message += " found. Available candidates are:\n";
-            for (size_t i = 0; i < expression->candidate_symbol_ids.size(); i++) {
-                const SymbolId candidate_symbol_id = expression->candidate_symbol_ids[i];
-                KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
-                message += std::format("{}  {}) {}", log::error_sub_line, i + 1, get_call_candidate_identifier_for_diagnostic(candidate_symbol_id));
-                if (i < expression->candidate_symbol_ids.size() - 1) {
-                    message += '\n';
-                }
-            }
+            message += get_candidate_symbol_diagnostic_list(candidate_symbols, !is_fully_qualified_call, false, module_id, symbol_table, type_table);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::move(message), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = type_table.Builtins.void_type_id};
@@ -835,38 +836,23 @@ namespace kepler {
     {
         // clang-format on
         KPL_ASSERT_NOT_NULLPTR(expression);
-        const StringId identifier_id = StringPool::get().store(get_full_identifier_from_path(expression->identifier_path));
-        std::string message = "Multiple matching overloads for function '";
-        message += get_prototype_signature(identifier_id, argument_type_ids, false, type_table);
-        message += '\'';
-        if (!expression->module_path.identifier_parts.empty()) {
-            message += " in module '" + get_full_identifier_from_path(expression->module_path) + '\'';
+        KPL_ASSERT_THAT(module_id != ModuleId::invalid());
+        std::vector<Symbol*> candidate_symbols;
+        candidate_symbols.reserve(matching_call_candidates.size());
+        for (const MatchingCallCandidate& call_candidate : matching_call_candidates) {
+            KPL_ASSERT_THAT(call_candidate.symbol_id != SymbolId::invalid());
+            candidate_symbols.push_back(symbol_table.lookup(call_candidate.symbol_id));
         }
-        message += " found:\n";
-        for (size_t i = 0; i < matching_call_candidates.size(); i++) {
-            const SymbolId candidate_symbol_id = matching_call_candidates[i].symbol_id;
-            KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
-            message += std::format("{}  {}) {}", log::error_sub_line, i + 1, get_call_candidate_identifier_for_diagnostic(candidate_symbol_id));
-            if (i < matching_call_candidates.size() - 1) {
-                message += '\n';
-            }
+        const bool is_fully_qualified_call = !expression->module_path.identifier_parts.empty();
+        const StringId callee_signature_id = StringPool::get().store(get_full_identifier_from_path(expression->identifier_path));
+        std::string message = std::format("Multiple matching overloads for function '{}'",
+            get_prototype_signature(callee_signature_id, argument_type_ids, false, type_table));
+        if (is_fully_qualified_call) {
+            message += std::format(" in module '{}'", get_full_identifier_from_path(expression->module_path));
         }
+        message += std::format(" found:\n{}",
+            get_candidate_symbol_diagnostic_list(candidate_symbols, !is_fully_qualified_call, false, module_id, symbol_table, type_table));
         diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::move(message), expression->source_location);
-    }
-
-    std::string TypeCheckPass::get_call_candidate_identifier_for_diagnostic(SymbolId candidate_symbol_id) const {
-        KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
-        const Symbol* candidate_symbol = symbol_table.lookup(candidate_symbol_id);
-        KPL_ASSERT_THAT(candidate_symbol->get_symbol_kind() == SymbolKind::Prototype);
-        const PrototypeSymbol* candidate_prototype_symbol = static_cast<const PrototypeSymbol*>(candidate_symbol);
-        Module* candidate_module = symbol_table.lookup(candidate_symbol->module_id);
-        const std::string& module_identifier = StringPool::get().lookup(candidate_module->full_identifier_id);
-        const std::string candidate_signature = get_prototype_signature(candidate_prototype_symbol->identifier_id,
-            candidate_prototype_symbol->parameter_type_ids,
-            candidate_prototype_symbol->is_variadic,
-            type_table);
-        // TODO (improvement): Add '(self)' to self module
-        return std::format("{} (module {})", std::move(candidate_signature), module_identifier);
     }
 
     TypeCheckResult TypeCheckPass::typecheck_cast_expression(CastExpression* expression, TypeId requested_type_id) {

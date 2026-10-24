@@ -108,6 +108,12 @@ namespace kepler {
 
     bool is_overloadable_symbol(SymbolKind symbol_kind);
     std::string get_short_symbol_kind_identifier(SymbolKind symbol_kind);
+    std::string get_candidate_symbol_diagnostic_list(std::vector<Symbol*>& candidate_symbols,
+        bool include_module,
+        bool include_symbol_kind,
+        ModuleId self_module_id,
+        SymbolTable& symbol_table,
+        TypeTable& type_table);
 
 }
 

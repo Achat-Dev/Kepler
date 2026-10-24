@@ -32,13 +32,13 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "lexer/operator_type.hpp"
+#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -75,6 +75,7 @@ namespace kepler {
         DiagnosticSink& diagnostic_sink;
         SymbolTable& symbol_table;
         TypeTable& type_table;
+        ModuleId module_id;
         TypeId current_function_return_type_id;
 
         bool is_boolean_operator(OperatorType type) const;
@@ -103,7 +104,6 @@ namespace kepler {
         void report_multiple_matching_call_candidates(const CallExpression* expression,
             const std::vector<TypeId>& argument_type_ids,
             const std::vector<MatchingCallCandidate>& matching_call_candidates);
-        std::string get_call_candidate_identifier_for_diagnostic(SymbolId candidate_symbol_id) const;
         TypeCheckResult typecheck_cast_expression(CastExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_member_expression(MemberExpression* expression, TypeId requested_type_id) const;
