@@ -56,7 +56,11 @@ namespace kepler {
             }
         }
         if (is_variadic) {
-            signature += ",...";
+            if (parameter_type_ids.empty()) {
+                signature += "...";
+            } else {
+                signature += ",...";
+            }
         }
         signature += ')';
         return signature;
