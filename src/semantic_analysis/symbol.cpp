@@ -180,7 +180,7 @@ namespace kepler {
             const uint32_t numbering = i + 1;
             message += std::format("{}  {}) {:{}}", log::error_sub_line, numbering, "", highest_numbering_digit_count - get_digit_count(numbering));
             if (include_sybmol_kind) {
-                message += std::format("{}  ", get_short_symbol_kind_identifier(candidate_symbol->get_symbol_kind()));
+                message += std::format("{:{}}  ", get_short_symbol_kind_identifier(candidate_symbol->get_symbol_kind()), longest_candidate_symbol_kind);
             }
             message += std::format("{:{}}", std::move(candidate_symbol_identifier), longest_candidate_identifier);
             if (include_module) {
