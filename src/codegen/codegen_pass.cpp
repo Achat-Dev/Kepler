@@ -78,6 +78,7 @@
 
 namespace kepler {
 
+    // clang-format off
     CodegenPass::CodegenPass(DiagnosticSink& diagnostic_sink,
         SymbolTable& symbol_table,
         TypeTable& type_table,
@@ -90,24 +91,23 @@ namespace kepler {
           target_machine(target_machine),
           optimization_level(optimization_level),
           context(context),
-          builder(context) {
+          builder(context)
+    {
+        // clang-format on
         // TODO: use builtin utils to insert these mappings
-        llvm_types.emplace(get_builtin_type_id(TypeKind::Void), llvm::Type::getVoidTy(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::Bool), llvm::Type::getInt1Ty(context));
-        // A string is internally represented as an immutable array of i8
-        // However, to get the llvm::Type* of that, the length of the array is needed
-        // That's why the type of a string is an i8* (since llvm uses opaque pointers, the pointer is not explicitly typed)
-        llvm_types.emplace(get_builtin_type_id(TypeKind::String), llvm::PointerType::get(context, 0));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I8), llvm::Type::getInt8Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I16), llvm::Type::getInt16Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I32), llvm::Type::getInt32Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I64), llvm::Type::getInt64Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U8), llvm::Type::getInt8Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U16), llvm::Type::getInt16Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U32), llvm::Type::getInt32Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U64), llvm::Type::getInt64Ty(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::F32), llvm::Type::getFloatTy(context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::F64), llvm::Type::getDoubleTy(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::Void), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::Bool), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::String), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I8), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I16), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I32), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I64), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U8), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U16), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U32), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U64), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::F32), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::F64), get_builtin_llvm_type(TypeKind::Void, context));
     }
 
     std::optional<std::vector<std::unique_ptr<llvm::Module>>> CodegenPass::run(std::vector<AbstractSyntaxTree>& asts) {
