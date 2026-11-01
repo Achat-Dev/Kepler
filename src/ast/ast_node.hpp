@@ -20,6 +20,7 @@
 
 namespace kepler {
 
+    // TODO (improvement): Rename all "type" enums to "kind" enums
     enum class ASTNodeType {
         Poison,
         Extern,
@@ -39,7 +40,6 @@ namespace kepler {
         StringLiteralExpression,
         BinaryExpression,
         CallExpression,
-        CastExpression,
         MathematicalNegationExpression,
         MemberExpression,
         ObjectInitializerExpression,
@@ -116,8 +116,6 @@ struct std::formatter<kepler::ASTNodeType> : std::formatter<std::string> {
                 return std::formatter<std::string>::format("BinaryExpression", ctx);
             case kepler::ASTNodeType::CallExpression:
                 return std::formatter<std::string>::format("CallExpression", ctx);
-            case kepler::ASTNodeType::CastExpression:
-                return std::formatter<std::string>::format("CastExpression", ctx);
             case kepler::ASTNodeType::MathematicalNegationExpression:
                 return std::formatter<std::string>::format("MathematicalNegationExpression", ctx);
             case kepler::ASTNodeType::MemberExpression:

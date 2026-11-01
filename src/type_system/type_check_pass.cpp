@@ -12,7 +12,6 @@
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
@@ -43,7 +42,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <functional>
 #include <llvm/ADT/APInt.h>
 #include <map>
 #include <memory>
@@ -142,8 +140,6 @@ namespace kepler {
                 return typecheck_binary_expression(static_cast<BinaryExpression*>(node), requested_type_id);
             case ASTNodeType::CallExpression:
                 return typecheck_call_expression(static_cast<CallExpression*>(node), requested_type_id);
-            case ASTNodeType::CastExpression:
-                return typecheck_cast_expression(static_cast<CastExpression*>(node), requested_type_id);
             case ASTNodeType::MathematicalNegationExpression:
                 return typecheck_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node), requested_type_id);
             case ASTNodeType::MemberExpression:
@@ -980,57 +976,6 @@ namespace kepler {
         // It's a builtin cast
         expression->cast_data.is_builtin_cast = true;
         expression->cast_data.argument_type_id = argument_type->id;
-    }
-
-    TypeCheckResult TypeCheckPass::typecheck_cast_expression(CastExpression* expression, TypeId requested_type_id) {
-        KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->original_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-
-        if (expression->target_type_id == get_builtin_type_id(TypeKind::Void)) {
-            diagnostic_sink.report(DiagnosticCode::InvalidCast, "Cannot cast a value to type 'void'", expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
-        }
-
-        const Type* target_type = type_table.lookup(expression->target_type_id);
-        if (requested_type_id != TypeId::invalid() && requested_type_id != expression->target_type_id) {
-            const Type* requested_type = type_table.lookup(requested_type_id);
-            const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", *requested_type, *target_type);
-            diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
-        }
-
-        const TypeCheckResult typecheck_result = typecheck_node(expression->expression.get(), TypeId::invalid());
-        KPL_ASSERT_THAT(typecheck_result.status != TypeCheckResult::Status::PoisonedWithoutDiagnostic);
-        if (typecheck_result.status == TypeCheckResult::Status::PoisonedWithDiagnostic) {
-            expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
-        }
-        KPL_ASSERT_THAT(typecheck_result.type_id != TypeId::invalid());
-        expression->original_type_id = typecheck_result.type_id;
-
-        if (expression->target_type_id == typecheck_result.type_id) {
-            const std::string message = std::format("Redundant cast of type '{}' to itself (the cast will be discarded)", *target_type);
-            diagnostic_sink.report(DiagnosticCode::RedundantCast, std::move(message), expression->source_location);
-            return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = expression->target_type_id};
-        }
-
-        const Symbol* target_type_symbol = symbol_table.lookup(target_type->symbol_id);
-        KPL_ASSERT_THAT(target_type_symbol->get_symbol_kind() == SymbolKind::Type);
-        const TypeSymbol* target_type_type_symbol = static_cast<const TypeSymbol*>(target_type_symbol);
-        if (!target_type_type_symbol->find_method(StringPool::get().store("__cast"), {typecheck_result.type_id}, false, module_id, &symbol_table)) {
-            const Type* original_type = type_table.lookup(typecheck_result.type_id);
-            const std::string message = std::format("Type '{}' doesn't implement cast to type '{}'", *target_type, *original_type);
-            diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
-        }
-
-        return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = expression->target_type_id};
     }
 
     TypeCheckResult TypeCheckPass::typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, TypeId requested_type_id) {

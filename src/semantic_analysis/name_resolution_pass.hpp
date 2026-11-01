@@ -14,7 +14,6 @@
 #include "ast/ast_pass.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
 #include "ast/expressions/member_expression.hpp"
 #include "ast/expressions/object_initializer_expression.hpp"
@@ -79,7 +78,6 @@ namespace kepler {
         NameResolutionResult resolve_variable_definition_statement(VariableDefinitionStatement* statement) const;
         NameResolutionResult resolve_binary_expression(BinaryExpression* expression) const;
         NameResolutionResult resolve_call_expression(CallExpression* expression) const;
-        NameResolutionResult resolve_cast_expression(CastExpression* expression) const;
         NameResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
         NameResolutionResult resolve_member_expression(MemberExpression* expression) const;
         NameResolutionResult resolve_object_initializer_expression(ObjectInitializerExpression* expression) const;

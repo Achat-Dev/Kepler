@@ -14,7 +14,6 @@
 #include "ast/ast_pass.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
 #include "ast/expressions/literals/integer_literal_expression.hpp"
@@ -73,7 +72,6 @@ namespace kepler {
         void print_string_literal_expression(const StringLiteralExpression* expression, const std::string& indent) const;
         void print_binary_expression(const BinaryExpression* expression, const std::string& indent) const;
         void print_call_expression(const CallExpression* expression, const std::string& indent) const;
-        void print_cast_expression(const CastExpression* expression, const std::string& indent) const;
         void print_mathematical_negation_expression(const MathematicalNegationExpression* expression, const std::string& indent) const;
         void print_member_expression(const MemberExpression* expression, std::string indent) const;
         void print_object_initializer_expression(const ObjectInitializerExpression* expression, std::string indent) const;

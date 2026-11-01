@@ -10,7 +10,6 @@
 #include "parser/parser.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
@@ -27,7 +26,6 @@
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
-#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <memory>
@@ -407,48 +405,4 @@ namespace kepler {
             std::move(type_source_location));
     }
 
-    std::unique_ptr<CastExpression> Parser::parse_cast() {
-        KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
-        KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-        const StringId type_id = std::get<StringId>(current_token->data);
-        const SourceLocation& type_source_location = current_token->source_location;
-        next_token(true); // eat type identifier
-        if (current_token->type != TokenType::BracketOpen) {
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after type for cast", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
-            return nullptr;
-        }
-
-        next_token(true); // eat '('
-        if (current_token->type == TokenType::BracketClose) {
-            diagnostic_sink.report(DiagnosticCode::InvalidCast, "Empty cast", current_token->source_location);
-            next_token(true); // eat ')'
-            return nullptr;
-        }
-
-        std::unique_ptr<Expression> expression_to_cast = parse_expression();
-        if (!expression_to_cast) {
-            return nullptr;
-        }
-
-        if (current_token->type != TokenType::BracketClose) {
-            const size_t recovery_token_index = current_token_index;
-            previous_token(true);
-            diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected ')' after expression in cast", current_token->source_location);
-            jump_to_token(recovery_token_index);
-
-            recover(SynchronizationSet<TokenType::BracketClose, TokenType::Newline, TokenType::End>{}, SynchronizationSet<>{});
-            if (current_token->type == TokenType::Newline) {
-                next_token(true);
-                return nullptr;
-            }
-            if (current_token->type == TokenType::End) {
-                return nullptr;
-            }
-        }
-
-        next_token(true); // eat ')'
-        return std::make_unique<CastExpression>(type_id, std::move(expression_to_cast), type_source_location);
-    }
 }

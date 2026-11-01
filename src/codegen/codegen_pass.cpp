@@ -12,7 +12,6 @@
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
@@ -395,8 +394,6 @@ namespace kepler {
                 return codegen_binary_expression(static_cast<const BinaryExpression*>(node));
             case ASTNodeType::CallExpression:
                 return codegen_call_expression(static_cast<const CallExpression*>(node));
-            case ASTNodeType::CastExpression:
-                return codegen_cast_expression(static_cast<const CastExpression*>(node));
             case ASTNodeType::MathematicalNegationExpression:
                 return codegen_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node));
             case ASTNodeType::MemberExpression:
@@ -833,33 +830,6 @@ namespace kepler {
         value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
 #endif
         return {.llvm_value = value, .returns = false};
-    }
-
-    CodegenResult CodegenPass::codegen_cast_expression(const CastExpression* expression) {
-        KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->original_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-
-        const CodegenResult codegen_result = codegen_node(expression->expression.get());
-        KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
-        if (expression->original_type_id == expression->target_type_id) {
-            // Redundant cast, so just return the original value
-            return {.llvm_value = codegen_result.llvm_value, .returns = false};
-        }
-        const Type* original_type = type_table.lookup(expression->original_type_id);
-        const Type* target_type = type_table.lookup(expression->target_type_id);
-        // TODO (fix): reimplement casts
-        /*return {
-            .llvm_value = create_cast(codegen_result.llvm_value,
-                original_type,
-                target_type,
-                context,
-                builder),
-            .returns = false,
-        };*/
-        return {.llvm_value = nullptr, .returns = false};
     }
 
     CodegenResult CodegenPass::codegen_mathematical_negation_expression(const MathematicalNegationExpression* expression) {

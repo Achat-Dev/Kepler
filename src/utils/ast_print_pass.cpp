@@ -12,7 +12,6 @@
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
 #include "ast/expressions/literals/integer_literal_expression.hpp"
@@ -205,9 +204,6 @@ namespace kepler {
                 return;
             case ASTNodeType::CallExpression:
                 print_call_expression(static_cast<const CallExpression*>(node), indent);
-                return;
-            case ASTNodeType::CastExpression:
-                print_cast_expression(static_cast<const CastExpression*>(node), indent);
                 return;
             case ASTNodeType::MathematicalNegationExpression:
                 print_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node), indent);
@@ -493,27 +489,6 @@ namespace kepler {
             const std::string& symbol_identifier = StringPool::get().lookup(symbol->identifier_id);
             std::println("{}{}Symbol: {}", indent, last_item_prefix, symbol_identifier);
         }
-    }
-
-    void ASTPrintPass::print_cast_expression(const CastExpression* expression, const std::string& indent) const {
-        KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        if (expression->original_type_id == TypeId::invalid()) {
-            std::println("{}{}Original type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
-        } else {
-            const Type* original_type = type_table.lookup(expression->original_type_id);
-            std::println("{}{}Original type: {}", indent, item_prefix, *original_type);
-        }
-        if (expression->target_type_id == TypeId::invalid()) {
-            KPL_ASSERT_THAT(expression->target_type_identifier_id != StringId::invalid());
-            const std::string& target_type_name = StringPool::get().lookup(expression->target_type_identifier_id);
-            std::println("{}{}Target type: {}", indent, item_prefix, target_type_name);
-        } else {
-            const Type* target_type = type_table.lookup(expression->target_type_id);
-            std::println("{}{}Target type: {}", indent, item_prefix, *target_type);
-        }
-        print_node(expression->expression.get(), "", indent, true);
     }
 
     void ASTPrintPass::print_mathematical_negation_expression(const MathematicalNegationExpression* expression, const std::string& indent) const {

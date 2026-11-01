@@ -14,7 +14,6 @@
 #include "ast/ast_pass.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
@@ -114,7 +113,6 @@ namespace kepler {
             const std::vector<TypeId>& argument_type_ids,
             const std::vector<MatchingCallCandidate>& matching_call_candidates);
         void set_matching_call_candidate(CallExpression* expression, SymbolId candidate_symbol_id, const std::vector<TypeId>& argument_type_ids);
-        TypeCheckResult typecheck_cast_expression(CastExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_member_expression(MemberExpression* expression, TypeId requested_type_id) const;
         TypeCheckResult typecheck_object_initializer_expression(ObjectInitializerExpression* expression, TypeId requested_type_id);

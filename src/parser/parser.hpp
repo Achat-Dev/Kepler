@@ -12,7 +12,6 @@
 #include "ast/abstract_syntax_tree.hpp"
 #include "ast/ast_node.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
 #include "ast/expressions/object_initializer_expression.hpp"
@@ -96,7 +95,6 @@ namespace kepler {
         std::unique_ptr<CallExpression> parse_call(std::optional<IdentifierPath> module_path, IdentifierPath callee_identifier);
         std::unique_ptr<MathematicalNegationExpression> parse_negative();
         std::unique_ptr<ObjectInitializerExpression> parse_object_initializer();
-        std::unique_ptr<CastExpression> parse_cast();
 
         // Statements
         std::unique_ptr<ASTNode> parse_identifier_statement();

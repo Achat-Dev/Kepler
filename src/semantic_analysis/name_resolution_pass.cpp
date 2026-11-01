@@ -12,7 +12,6 @@
 #include "ast/ast_node.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
-#include "ast/expressions/cast_expression.hpp"
 #include "ast/expressions/expression.hpp"
 #include "ast/expressions/mathematical_negation_expression.hpp"
 #include "ast/expressions/member_expression.hpp"
@@ -370,8 +369,6 @@ namespace kepler {
                 return resolve_binary_expression(static_cast<BinaryExpression*>(node));
             case ASTNodeType::CallExpression:
                 return resolve_call_expression(static_cast<CallExpression*>(node));
-            case ASTNodeType::CastExpression:
-                return resolve_cast_expression(static_cast<CastExpression*>(node));
             case ASTNodeType::MathematicalNegationExpression:
                 return resolve_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node));
             case ASTNodeType::MemberExpression:
@@ -663,31 +660,6 @@ namespace kepler {
             }
         }
         return {.poisoned = expression->node_type == ASTNodeType::Poison};
-    }
-
-    NameResolutionResult NameResolutionPass::resolve_cast_expression(CastExpression* expression) const {
-        KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->target_type_identifier_id != StringId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        const auto target_type_symbol = resolve_type_identifier_to_type_symbol(expression->target_type_identifier_id);
-        if (!target_type_symbol.has_value()) {
-            const Diagnostic& diagnostic = target_type_symbol.error();
-            diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
-            return {.poisoned = true};
-        }
-        KPL_ASSERT_NOT_NULLPTR(target_type_symbol.value());
-        KPL_ASSERT_THAT(target_type_symbol.value()->type_id != TypeId::invalid());
-        expression->target_type_id = target_type_symbol.value()->type_id;
-
-        const NameResolutionResult resolution_result = resolve_node(expression->expression.get());
-        if (resolution_result.poisoned) {
-            expression->node_type = ASTNodeType::Poison;
-            return {.poisoned = true};
-        }
-        return {.poisoned = false};
     }
 
     NameResolutionResult NameResolutionPass::resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const {
