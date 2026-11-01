@@ -32,7 +32,7 @@
 #include "ast/struct.hpp"
 #include "codegen/optimizer.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
-#include "semantic_analysis/symbol.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"

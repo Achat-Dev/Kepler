@@ -9,14 +9,14 @@
 
 #pragma once
 
+#include "semantic_analysis/symbol_id.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
+#include <limits>
 #include <unordered_map>
 #include <variant>
 
 namespace kepler {
-
-    struct SymbolId;
 
     using ScopeEntry = std::variant<SymbolId, std::vector<SymbolId>>;
 

@@ -14,6 +14,7 @@
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"

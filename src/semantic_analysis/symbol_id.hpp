@@ -14,6 +14,7 @@
 
 namespace kepler {
 
+    // This needs to be in a separate file because of cyclic includes
     struct SymbolId {
         uint32_t value = std::numeric_limits<uint32_t>::max();
 

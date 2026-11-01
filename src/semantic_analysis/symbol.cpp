@@ -11,7 +11,6 @@
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/module.hpp"
-#include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
