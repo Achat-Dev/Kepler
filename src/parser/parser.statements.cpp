@@ -401,18 +401,6 @@ namespace kepler {
         next_token(true); // eat 'return' keyword
         // This is not the most beautiful code, but it allows for better diagnostics
         switch (current_token->type) {
-            case TokenType::Dot:
-            case TokenType::Comma:
-            case TokenType::Colon:
-            case TokenType::DoubleColon:
-            case TokenType::Assignment:
-            case TokenType::Variadic:
-            case TokenType::Operator:
-            case TokenType::Module:
-            case TokenType::Import:
-            case TokenType::Export:
-            case TokenType::Extern:
-            case TokenType::Struct:
             case TokenType::Return:
             case TokenType::If:
             case TokenType::Else:
