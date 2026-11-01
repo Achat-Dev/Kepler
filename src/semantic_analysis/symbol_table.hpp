@@ -34,22 +34,26 @@ namespace kepler {
         std::expected<SymbolId, Diagnostic> create_struct(ModuleId module_id, StringId identifier_id);
         std::expected<SymbolId, Diagnostic> create_variable(ModuleId module_id, TypeId type_id, StringId identifier_id);
         std::expected<SymbolId, Diagnostic> create_prototype(ModuleId module_id,
-            TypeId type_id,
+            TypeId return_type_id,
             StringId identifier_id,
             LinkageType linkage_type,
             std::vector<TypeId> parameter_type_ids,
             std::vector<StringId> parameter_type_identifier_ids,
-            bool is_variadic, TypeTable& type_table);
+            bool is_variadic,
+            SymbolId type_symbol_id);
 
         Module* lookup(ModuleId module_id);
         Symbol* lookup(SymbolId symbol_id);
-        // TODO (check): Maybe create a method to disable finding after name resolution
-        // Note: These methods should only be used during name resolution.
-        std::expected<std::vector<Symbol*>, Diagnostic> find_symbol(ModuleId module_id, StringId identifier_id);
+        // Note: Finding only searches global scopes after name resolution
         std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind);
-        std::expected<std::vector<Symbol*>, Diagnostic> find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id);
+        std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id,
+            const IdentifierPath& module_path,
+            StringId identifier_id,
+            SymbolKind symbol_kind);
         void open_scope(ModuleId module_id, ScopeType type);
         void close_scope(ModuleId module_id);
+        bool is_symbol_visible_in_module(ModuleId module_id, SymbolId symbol_id);
+        Module* get_global_module();
 
     private:
         struct ScopeEntryVisitHandler {
@@ -66,6 +70,9 @@ namespace kepler {
         std::vector<Scope> scopes;
         ArenaAllocator symbol_allocator;
 
+        // SymbolId create_builtin_type_symbol(TypeId type_id);
+        // void create_builtin_bool_type_methods(SymbolId type_symbol_id);
+        // void create_builtin_number_type_methods(TypeSymbol* type_symbol);
         std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id,
             StringId identifier_id,
             SymbolKind requested_symbol_kind,
@@ -73,7 +80,7 @@ namespace kepler {
             bool search_imported_modules,
             bool is_recursive_search);
         Module* find_submodule(Module* parent_module, const IdentifierPath& module_path);
-        Module* get_global_module();
+        Module* get_root_module();
     };
 
 }

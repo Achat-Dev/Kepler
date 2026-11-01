@@ -110,7 +110,7 @@ namespace kepler {
             next_char();
         }
 
-        if (isalpha(current_char)) {
+        if (isalpha(current_char) || current_char == '_') {
             return read_identifier();
         }
         if (isdigit(current_char)) {
@@ -297,7 +297,7 @@ namespace kepler {
     }
 
     Token Tokenizer::read_identifier() {
-        int is_current_char_alpha = isalpha(current_char);
+        int is_current_char_alpha = isalpha(current_char) || current_char == '_';
         KPL_ASSERT_THAT(is_current_char_alpha, "Tokenizing identifier requires character, received '{}'", static_cast<char>(current_char));
         const uint32_t identifier_start_position = position;
         do {

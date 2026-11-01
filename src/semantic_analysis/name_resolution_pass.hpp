@@ -31,6 +31,7 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "semantic_analysis/module.hpp"
+#include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
@@ -56,9 +57,10 @@ namespace kepler {
         SymbolTable& symbol_table;
         TypeTable& type_table;
         ModuleId module_id;
-        std::unordered_map<StringId, TypeId> builtin_type_identifiers;
+        // We can't use builtin_utils for this because we map identifier ids to symbols here instead of type kinds
+        std::unordered_map<StringId, SymbolId> builtin_type_symbol_ids;
 
-        void register_builtin_type_identifier(TypeId type_id);
+        void register_builtin_type_symbol(TypeKind type_kind);
         void create_struct_symbols_and_types(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         void create_struct_symbol(Struct* struct_node);
         void create_prototype_symbols(const std::vector<std::unique_ptr<ASTNode>>& top_level_nodes);
@@ -70,7 +72,7 @@ namespace kepler {
         void resolve_extern(Extern* ext) const;
         void resolve_function(Function* function) const;
         NameResolutionResult resolve_prototype(Prototype* prototype) const;
-        NameResolutionResult resolve_assignment_statement(AssignmentStatement* statement) const;
+        NameResolutionResult resolve_assignment_statement(AssignmentStatement* statement, SymbolId variable_symbol_id) const;
         NameResolutionResult resolve_for_statement(ForStatement* statement) const;
         NameResolutionResult resolve_if_statement(IfStatement* statement) const;
         NameResolutionResult resolve_return_statement(ReturnStatement* statement) const;
@@ -81,9 +83,9 @@ namespace kepler {
         NameResolutionResult resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const;
         NameResolutionResult resolve_member_expression(MemberExpression* expression) const;
         NameResolutionResult resolve_object_initializer_expression(ObjectInitializerExpression* expression) const;
-        NameResolutionResult resolve_variable_expression(VariableExpression* expression) const;
+        NameResolutionResult resolve_variable_expression(VariableExpression* expression, SymbolId variable_symbol_id) const;
 
-        std::expected<TypeId, Diagnostic> resolve_type_identifier_to_type_id(StringId type_identifier_id) const;
+        std::expected<TypeSymbol*, Diagnostic> resolve_type_identifier_to_type_symbol(StringId type_identifier_id) const;
     };
 
 }

@@ -15,6 +15,7 @@
 #include "semantic_analysis/module.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
+#include "utils/string_pool.hpp"
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -52,18 +53,24 @@ namespace kepler {
                 const std::unique_ptr<ImportStatement>& import_statement = ast.import_statements[i];
                 KPL_ASSERT_NOT_NULLPTR(import_statement);
                 KPL_ASSERT_THAT(!import_statement->module_path.identifier_parts.empty());
+                const StringId imported_module_identifier_id = StringPool::get().store(get_full_identifier_from_path(import_statement->module_path));
                 bool is_implicit_import = false;
                 for (const std::vector<IdentifierPathPart>& parent_module_path_parts : parent_module_paths) {
                     if (parent_module_path_parts == import_statement->module_path.identifier_parts) {
-                        const std::string message = std::format("Module '{}' is implicitely imported because it's a parent module of '{}'. The explicit import is discarded, but consider removing it.",
-                            get_full_identifier_from_path(import_statement->module_path),
-                            get_full_identifier_from_path(ast.module_statement->module_path));
-                        diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), import_statement->module_path.source_location);
-                        import_indices_to_remove.push_back(i);
                         is_implicit_import = true;
+                        break;
                     }
                 }
+                if (imported_module_identifier_id == symbol_table.get_global_module()->full_identifier_id) {
+                    is_implicit_import = true;
+                }
+
                 if (is_implicit_import) {
+                    const std::string message = std::format("Module '{}' is implicitely imported because it's a parent module of '{}'. The explicit import is discarded, but consider removing it.",
+                        StringPool::get().lookup(imported_module_identifier_id),
+                        get_full_identifier_from_path(ast.module_statement->module_path));
+                    diagnostic_sink.report(DiagnosticCode::RedundantImport, std::move(message), import_statement->module_path.source_location);
+                    import_indices_to_remove.push_back(i);
                     continue;
                 }
 

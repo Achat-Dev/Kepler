@@ -41,6 +41,7 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/builtin_utils.hpp"
 #include "utils/identifier_path.hpp"
 #include "utils/log.hpp"
 #include "utils/string_pool.hpp"
@@ -92,22 +93,23 @@ namespace kepler {
           optimization_level(optimization_level),
           context(context),
           builder(context) {
-        llvm_types.emplace(type_table.Builtins.void_type_id, llvm::Type::getVoidTy(context));
-        llvm_types.emplace(type_table.Builtins.bool_type_id, llvm::Type::getInt1Ty(context));
+        // TODO: use builtin utils to insert these mappings
+        llvm_types.emplace(get_builtin_type_id(TypeKind::Void), llvm::Type::getVoidTy(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::Bool), llvm::Type::getInt1Ty(context));
         // A string is internally represented as an immutable array of i8
         // However, to get the llvm::Type* of that, the length of the array is needed
         // That's why the type of a string is an i8* (since llvm uses opaque pointers, the pointer is not explicitly typed)
-        llvm_types.emplace(type_table.Builtins.string_type_id, llvm::PointerType::get(context, 0));
-        llvm_types.emplace(type_table.Builtins.i8_type_id, llvm::Type::getInt8Ty(context));
-        llvm_types.emplace(type_table.Builtins.i16_type_id, llvm::Type::getInt16Ty(context));
-        llvm_types.emplace(type_table.Builtins.i32_type_id, llvm::Type::getInt32Ty(context));
-        llvm_types.emplace(type_table.Builtins.i64_type_id, llvm::Type::getInt64Ty(context));
-        llvm_types.emplace(type_table.Builtins.u8_type_id, llvm::Type::getInt8Ty(context));
-        llvm_types.emplace(type_table.Builtins.u16_type_id, llvm::Type::getInt16Ty(context));
-        llvm_types.emplace(type_table.Builtins.u32_type_id, llvm::Type::getInt32Ty(context));
-        llvm_types.emplace(type_table.Builtins.u64_type_id, llvm::Type::getInt64Ty(context));
-        llvm_types.emplace(type_table.Builtins.f32_type_id, llvm::Type::getFloatTy(context));
-        llvm_types.emplace(type_table.Builtins.f64_type_id, llvm::Type::getDoubleTy(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::String), llvm::PointerType::get(context, 0));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I8), llvm::Type::getInt8Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I16), llvm::Type::getInt16Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I32), llvm::Type::getInt32Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I64), llvm::Type::getInt64Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U8), llvm::Type::getInt8Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U16), llvm::Type::getInt16Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U32), llvm::Type::getInt32Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U64), llvm::Type::getInt64Ty(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::F32), llvm::Type::getFloatTy(context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::F64), llvm::Type::getDoubleTy(context));
     }
 
     std::optional<std::vector<std::unique_ptr<llvm::Module>>> CodegenPass::run(std::vector<AbstractSyntaxTree>& asts) {
@@ -231,7 +233,7 @@ namespace kepler {
         if (std::holds_alternative<StringId>(prototype->identifier)) {
             is_named_main = StringPool::get().lookup(std::get<StringId>(prototype->identifier)) == "main";
         }
-        const bool returns_i32 = prototype->return_type_id == type_table.Builtins.i32_type_id;
+        const bool returns_i32 = prototype->return_type_id == get_builtin_type_id(TypeKind::I32);
         const bool has_no_parameters = prototype->parameter_data.size() == 0;
         return is_named_main && returns_i32 && has_no_parameters;
     }
@@ -438,7 +440,7 @@ namespace kepler {
         close_scope();
 
         // Create implicit return for void methods
-        if (!function->body.contains_return && function->prototype->return_type_id == type_table.Builtins.void_type_id) {
+        if (!function->body.contains_return && function->prototype->return_type_id == get_builtin_type_id(TypeKind::Void)) {
             const llvm::Instruction* terminator = builder.GetInsertBlock()->getTerminator();
             if (terminator != nullptr) {
                 KPL_ASSERT_THAT(!terminator->isTerminator(),
@@ -715,7 +717,7 @@ namespace kepler {
         global_variable->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
 
         // Create i8* to the first element of the constant array
-        llvm::Constant* zero = llvm::ConstantInt::get(get_llvm_type(type_table.Builtins.i32_type_id), 0);
+        llvm::Constant* zero = llvm::ConstantInt::get(get_llvm_type(get_builtin_type_id(TypeKind::I32)), 0);
         llvm::Constant* indices[] = {zero, zero};
         llvm::Constant* value = llvm::ConstantExpr::getInBoundsGetElementPtr(data->getType(), global_variable, indices);
 
@@ -766,6 +768,22 @@ namespace kepler {
         KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(!expression->identifier_path.identifier_parts.empty());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+
+        // Create the builtin cast if it's one
+        if (expression->cast_data.is_builtin_cast) {
+            const Type* original_type = type_table.lookup(expression->cast_data.argument_type_id);
+            const Symbol* callee_symbol = symbol_table.lookup(expression->symbol_id);
+            KPL_ASSERT_THAT(callee_symbol->get_symbol_kind() == SymbolKind::Prototype);
+            KPL_ASSERT_THAT(callee_symbol->type_id != TypeId::invalid());
+            const Type* target_type = type_table.lookup(callee_symbol->type_id);
+            const CodegenResult codegen_result = codegen_node(expression->args[0].get());
+            KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
+            return {
+                .llvm_value = create_cast(codegen_result.llvm_value, original_type, target_type, context, builder),
+                .returns = false,
+            };
+        }
+
         KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
         llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol_id]);
         // llvm can't create a call to a function in a different module
@@ -806,7 +824,7 @@ namespace kepler {
         KPL_ASSERT_THAT(symbol->type_id != TypeId::invalid());
 #ifndef NDEBUG
         // llvm void instructions cannot have identifiers, so only provide it if it's non void
-        if (symbol->type_id == type_table.Builtins.void_type_id) {
+        if (symbol->type_id == get_builtin_type_id(TypeKind::Void)) {
             value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
         } else {
             value = builder.CreateCall(llvm_function_callee, std::move(arg_values), get_full_identifier_from_path(expression->identifier_path));

@@ -26,6 +26,7 @@
 #include "type_system/type_check_pass.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/builtin_utils.hpp"
 #include "utils/cmd_parser.hpp"
 #include "utils/log.hpp"
 #include "version.hpp"
@@ -93,6 +94,7 @@ namespace kepler {
         DiagnosticSink diagnostic_sink;
         TypeTable type_table;
         SymbolTable symbol_table(type_table);
+        create_builtin_types(symbol_table, type_table);
         // Important: The llvm context has to have the same lifetime as the llvm modules, that's why we declare it here
         llvm::LLVMContext llvm_context;
 

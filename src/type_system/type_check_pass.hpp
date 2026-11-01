@@ -34,6 +34,7 @@
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
@@ -59,9 +60,16 @@ namespace kepler {
         }
     };
 
+    enum class MatchingCallCandidateKind {
+        ExactMatch,
+        ExactMatchWithAdjustments,
+        VariadicMatch,
+        VariadicMatchWithAdjustments,
+    };
+
     struct MatchingCallCandidate {
         SymbolId symbol_id;
-        bool is_exact_match;
+        MatchingCallCandidateKind match_kind;
         std::unordered_map<uint32_t, TypeId> literal_type_ids_to_update;
     };
 
@@ -97,13 +105,15 @@ namespace kepler {
         TypeCheckResult typecheck_binary_expression(BinaryExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, TypeId requested_type_id);
         TypeCheckResult typecheck_call_expression(CallExpression* expression, TypeId requested_type_id);
-        std::vector<MatchingCallCandidate> find_matching_call_candidates(const CallExpression* expression,
-            std::vector<TypeId> argument_type_ids) const;
+        std::vector<MatchingCallCandidate> find_matching_call_candidates(const std::vector<SymbolId>& candidate_symbol_ids,
+            const std::vector<TypeId>& argument_type_ids,
+            const std::vector<std::unique_ptr<Expression>>& args) const;
         void update_call_argument_target_types(const std::unordered_map<uint32_t, TypeId>& argument_indices_to_update,
             const std::vector<std::unique_ptr<Expression>>& argument_expressions);
         void report_multiple_matching_call_candidates(const CallExpression* expression,
             const std::vector<TypeId>& argument_type_ids,
             const std::vector<MatchingCallCandidate>& matching_call_candidates);
+        void set_matching_call_candidate(CallExpression* expression, SymbolId candidate_symbol_id, const std::vector<TypeId>& argument_type_ids);
         TypeCheckResult typecheck_cast_expression(CastExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_member_expression(MemberExpression* expression, TypeId requested_type_id) const;

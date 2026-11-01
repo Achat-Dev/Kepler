@@ -9,9 +9,13 @@
 
 #include "semantic_analysis/symbol.hpp"
 #include "ast/prototype.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/module.hpp"
+#include "semantic_analysis/scope.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
+#include "type_system/type_table.hpp"
 #include "utils/ansi_codes.hpp"
 #include "utils/assert.h"
 #include "utils/log.hpp"
@@ -20,6 +24,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <string>
 #include <utility>
@@ -79,6 +84,43 @@ namespace kepler {
         const std::string& b_module_identifier = StringPool::get().lookup(b_module->full_identifier_id);
         // 3) Sort by module identifier
         return a_module_identifier < b_module_identifier;
+    }
+
+    // clang-format off
+    std::expected<SymbolId, Diagnostic> TypeSymbol::find_method(StringId identifier_id,
+        const std::vector<TypeId>& parameter_type_ids,
+        bool is_variadic,
+        ModuleId searching_module_id,
+        SymbolTable* symbol_table) const
+    {
+        // clang-format on
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(searching_module_id != ModuleId::invalid());
+        KPL_ASSERT_NOT_NULLPTR(symbol_table);
+        for (SymbolId method_symbol_id : method_symbol_ids) {
+            KPL_ASSERT_THAT(method_symbol_id != SymbolId::invalid());
+            const PrototypeSymbol* method_symbol = static_cast<const PrototypeSymbol*>(symbol_table->lookup(method_symbol_id));
+            // clang-format off
+            if (method_symbol->identifier_id == identifier_id
+                && method_symbol->parameter_type_ids == parameter_type_ids
+                && method_symbol->is_variadic == is_variadic)
+            {
+                // clang-format on
+                if (symbol_table->is_symbol_visible_in_module(searching_module_id, method_symbol_id)) {
+                    return method_symbol_id;
+                } else {
+                    // TODO (improvement): Better diagnostic message depending on if the symbol is not exported and if the module not imported
+                    const Module* searching_module = symbol_table->lookup(searching_module_id);
+                    return std::unexpected(Diagnostic{
+                        .code = DiagnosticCode::WrongVisibility,
+                        .message = std::format("Symbol '{}' is not visible in module '{}'",
+                            StringPool::get().lookup(identifier_id),
+                            StringPool::get().lookup(searching_module->full_identifier_id)),
+                    });
+                }
+            }
+        }
+        return SymbolId::invalid();
     }
 
     bool is_overloadable_symbol(SymbolKind symbol_kind) {

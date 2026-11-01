@@ -10,6 +10,8 @@
 #include "type_system/type_table.hpp"
 #include "ast/struct.hpp"
 #include "lexer/operator_type.hpp"
+#include "semantic_analysis/symbol_id.hpp"
+#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
@@ -21,18 +23,24 @@
 
 namespace kepler {
 
-    TypeTable::TypeTable()
+    /*TypeTable::TypeTable()
         : allocator(kibibyte_size * 16, "types") {
         if (Builtins.void_type_id == TypeId::invalid()) {
             create_builtin_types();
         }
-    }
+    }*/
 
-    TypeId TypeTable::create_struct(StringId identifier_id) {
+    TypeId TypeTable::create_type(StringId identifier_id, TypeKind type_kind, SymbolId symbol_id) {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         const TypeId type_id{.value = static_cast<uint32_t>(types.size())};
-        std::vector<StructTypeMember> struct_type_members;
-        types.push_back(allocator.allocate<StructType>(type_id, TypeKind::Struct, identifier_id, std::vector<Method>{}, std::vector<StructTypeMember>{}));
+        types.push_back(allocator.allocate<Type>(type_id, type_kind, identifier_id, symbol_id));
+        return type_id;
+    }
+
+    TypeId TypeTable::create_struct(StringId identifier_id, SymbolId symbol_id) {
+        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
+        const TypeId type_id{.value = static_cast<uint32_t>(types.size())};
+        types.push_back(allocator.allocate<StructType>(type_id, TypeKind::Struct, identifier_id, symbol_id, std::vector<StructTypeMember>{}));
         return type_id;
     }
 
@@ -57,7 +65,7 @@ namespace kepler {
         return types[type_id.value];
     }
 
-    void TypeTable::create_builtin_types() {
+    /*void TypeTable::create_builtin_types() {
         KPL_ASSERT_THAT(Builtins.void_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(Builtins.bool_type_id == TypeId::invalid());
         KPL_ASSERT_THAT(Builtins.string_type_id == TypeId::invalid());
@@ -91,25 +99,25 @@ namespace kepler {
         const StringId cast_id = StringPool::get().store("__cast");
         const std::vector<Method> bool_methods{
             {
-                .identifier_id = get_operator_name_id(OperatorType::Equals),
                 .return_type_id = Builtins.bool_type_id,
+                .identifier_id = get_operator_name_id(OperatorType::Equals),
                 .parameter_type_ids = {Builtins.bool_type_id},
             },
             {
-                .identifier_id = get_operator_name_id(OperatorType::NotEquals),
                 .return_type_id = Builtins.bool_type_id,
+                .identifier_id = get_operator_name_id(OperatorType::NotEquals),
                 .parameter_type_ids = {Builtins.bool_type_id},
             },
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.i8_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.i16_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.i32_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.i64_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.u8_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.u16_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.u32_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.u64_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.f32_type_id}},
-            {.identifier_id = cast_id, .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {Builtins.f64_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i8_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i16_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i32_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i64_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u8_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u16_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u32_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u64_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.f32_type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.f64_type_id}},
         };
         types[Builtins.bool_type_id.value]->methods = std::move(bool_methods);
 
@@ -131,9 +139,9 @@ namespace kepler {
         type_id.value = static_cast<uint32_t>(types.size());
         StringId type_name_id = get_type_kind_name_id(type_kind);
         types.push_back(allocator.allocate<Type>(type_id, type_kind, type_name_id));
-    }
+    }*/
 
-    void TypeTable::add_methods_to_builtin_number_type(TypeId type_id) {
+    /*void TypeTable::add_methods_to_builtin_number_type(TypeId type_id) {
         KPL_ASSERT_THAT(type_id.value < types.size(), "Type count: {}, received id: {}", types.size(), type_id.value);
         static const std::vector<TypeId> number_type_ids = {
             Builtins.i8_type_id,
@@ -147,27 +155,27 @@ namespace kepler {
             Builtins.f32_type_id,
             Builtins.f64_type_id};
         std::vector<Method> common_number_methods{
-            {.identifier_id = get_operator_name_id(OperatorType::Plus), .return_type_id = type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::Minus), .return_type_id = type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::Multiplication), .return_type_id = type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::Division), .return_type_id = type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::LessThan), .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::GreaterThan), .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::Equals), .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::NotEquals), .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::LessEquals), .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = get_operator_name_id(OperatorType::GreaterEquals), .return_type_id = Builtins.bool_type_id, .parameter_type_ids = {type_id}},
-            {.identifier_id = StringPool::get().store("__math_negate"), .return_type_id = type_id, .parameter_type_ids = {type_id}},
+            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Plus), .parameter_type_ids = {type_id}},
+            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Minus), .parameter_type_ids = {type_id}},
+            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Multiplication), .parameter_type_ids = {type_id}},
+            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Division), .parameter_type_ids = {type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessThan), .parameter_type_ids = {type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterThan), .parameter_type_ids = {type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::Equals), .parameter_type_ids = {type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::NotEquals), .parameter_type_ids = {type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessEquals), .parameter_type_ids = {type_id}},
+            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterEquals), .parameter_type_ids = {type_id}},
+            {.return_type_id = type_id, .identifier_id = StringPool::get().store("__math_negate"), .parameter_type_ids = {type_id}},
         };
         const StringId cast_id = StringPool::get().store("__cast");
         for (TypeId number_type : number_type_ids) {
             if (type_id != number_type) {
-                common_number_methods.emplace_back(cast_id, type_id, std::vector<TypeId>{number_type});
+                common_number_methods.emplace_back(type_id, cast_id, std::vector<TypeId>{number_type}, false);
             }
         }
         Type* type = types[type_id.value];
         KPL_ASSERT_THAT(type->methods.empty());
         type->methods = std::move(common_number_methods);
-    }
+    }*/
 
 }

@@ -9,8 +9,11 @@
 
 #pragma once
 
+#include "diagnostics/diagnostic.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <functional>
 #include <limits>
@@ -18,13 +21,11 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Value.h>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace kepler {
 
     enum class TypeKind {
-        Unknown,
         Void,
         Bool,
         String,
@@ -49,21 +50,30 @@ namespace kepler {
         static constexpr TypeId invalid() { return TypeId{}; }
     };
 
-    struct Type;
-
-    struct Method {
-        StringId identifier_id;
+    /*struct Method {
         TypeId return_type_id;
+        StringId identifier_id;
         std::vector<TypeId> parameter_type_ids;
-    };
+        SymbolId prototype_symbol_id;
+        bool is_variadic = false;
+    };*/
+
+    // struct SymbolTable;
+    // struct TypeTable;
 
     struct Type {
         TypeId id;
         TypeKind type_kind;
         StringId identifier_id;
-        std::vector<Method> methods;
+        SymbolId symbol_id;
+        /*std::vector<Method> methods;
 
-        const Method* find_method(StringId identifier_id, std::vector<TypeId> parameter_type_ids) const;
+        void register_method(SymbolId prototype_symbol_id, SymbolTable* symbol_table, TypeTable* type_table);
+        const Method* find_method(TypeId return_type_id,
+            StringId identifier_id,
+            const std::vector<TypeId>& parameter_type_ids,
+            bool is_variadic,
+            SymbolTable* symbol_table) const;*/
     };
 
     struct StructTypeMember {
@@ -79,6 +89,7 @@ namespace kepler {
     };
 
     StringId get_type_kind_name_id(TypeKind type_kind);
+    bool is_builtin_type(const Type* type);
     bool is_integer_type(const Type* type);
     bool is_signed_integer_type(const Type* type);
     bool is_unsigned_integer_type(const Type* type);

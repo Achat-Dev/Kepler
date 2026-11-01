@@ -10,30 +10,24 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <functional>
-#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace kepler {
-
-    struct SymbolId {
-        uint32_t value = std::numeric_limits<uint32_t>::max();
-
-        bool operator==(const SymbolId& other) const = default;
-        bool operator!=(const SymbolId& other) const = default;
-        static constexpr SymbolId invalid() { return SymbolId{}; }
-    };
 
     enum class SymbolKind {
         All,
@@ -89,16 +83,23 @@ namespace kepler {
         }
     };
 
+    class SymbolTable;
+
     struct TypeSymbol : Symbol {
+        std::vector<SymbolId> method_symbol_ids;
+
         TypeSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, StringId identifier_id)
             : Symbol(symbol_id, module_id, scope_id, TypeId::invalid(), identifier_id, LinkageType::Internal) {}
 
         constexpr SymbolKind get_symbol_kind() const override {
             return SymbolKind::Type;
         }
+        std::expected<SymbolId, Diagnostic> find_method(StringId identifier_id,
+            const std::vector<TypeId>& parameter_type_ids,
+            bool is_variadic,
+            ModuleId searching_module_id,
+            SymbolTable* symbol_table) const;
     };
-
-    class SymbolTable;
 
     struct SymbolDiagnosticSorter {
         SymbolTable* symbol_table;

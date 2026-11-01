@@ -65,6 +65,7 @@ namespace kepler {
             case DiagnosticCode::UnknownMemberInInitializer:
             case DiagnosticCode::InvalidMemberAccess:
             case DiagnosticCode::UnknownMember:
+            case DiagnosticCode::WrongVisibility:
             case DiagnosticCode::MultipleMainMethods:
                 return DiagnosticSeverity::Error;
 

@@ -16,8 +16,10 @@
 #include "ast/statements/if_statement.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
+#include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/builtin_utils.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <format>
@@ -55,7 +57,7 @@ namespace kepler {
             return;
         }
 
-        const Type* void_type = type_table.lookup(type_table.Builtins.void_type_id);
+        const Type* void_type = type_table.lookup(get_builtin_type_id(TypeKind::Void));
         if (function->prototype->return_type_identifier_id == void_type->identifier_id) {
             return;
         }

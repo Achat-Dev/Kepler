@@ -10,6 +10,7 @@
 #pragma once
 
 #include "ast/struct.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/string_pool.hpp"
@@ -19,7 +20,7 @@ namespace kepler {
 
     class TypeTable {
     public:
-        inline static struct {
+        /*inline static struct {
             TypeId void_type_id;
             TypeId bool_type_id;
             TypeId string_type_id;
@@ -33,10 +34,11 @@ namespace kepler {
             TypeId u64_type_id;
             TypeId f32_type_id;
             TypeId f64_type_id;
-        } Builtins{};
+        } Builtins{};*/
 
-        TypeTable();
-        TypeId create_struct(StringId identifier_id);
+        TypeTable() : allocator(kibibyte_size * 16, "types") {}
+        TypeId create_type(StringId identifier_id, TypeKind type_kind, SymbolId symbol_id);
+        TypeId create_struct(StringId identifier_id, SymbolId symbol_id);
         void create_struct_members(TypeId struct_type_id, const std::vector<StructNodeMember>& members);
         Type* lookup(TypeId type_id);
 
@@ -44,9 +46,9 @@ namespace kepler {
         std::vector<Type*> types;
         ArenaAllocator allocator;
 
-        void create_builtin_types();
-        void create_builtin_type(TypeId& type_id, TypeKind type_kind);
-        void add_methods_to_builtin_number_type(TypeId type_id);
+        // void create_builtin_types();
+        // void create_builtin_type(TypeId& type_id, TypeKind type_kind);
+        //  void add_methods_to_builtin_number_type(TypeId type_id);
     };
 
 }

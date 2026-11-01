@@ -73,6 +73,7 @@ namespace kepler {
         UnknownMemberInInitializer,
         InvalidMemberAccess,
         UnknownMember,
+        WrongVisibility,
         RedundantCast,
         MultipleMainMethods,
 

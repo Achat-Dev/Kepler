@@ -11,11 +11,11 @@
 #include "ast/ast_node.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
+#include "lexer/operator_type.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "type_system/type.hpp"
-#include "type_system/type_table.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
@@ -28,6 +28,7 @@
 #include <format>
 #include <iterator>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -38,9 +39,178 @@ namespace kepler {
 
     SymbolTable::SymbolTable(TypeTable& type_table)
         : type_table(type_table), symbol_allocator(kibibyte_size * 32, "symbols") {
-        // Create the global module, which contains all other modules
-        modules.push_back({.id = {.value = 0}, .full_identifier_id = StringPool::get().store("__global")});
+        // Create the root module, which acts as the container for all other modules
+        // This makes it easier to search for modules
+        // The identifier of the root module is empty so that it can never be extended or imported by the user
+        modules.push_back({.id = {.value = 0}, .full_identifier_id = StringPool::get().store("")});
+
+        // Create the global module, which is implicitely imported by all modules and contains all builtin types and functions
+        const ModuleId global_module_id{.value = 1};
+        modules.push_back({.id = global_module_id, .full_identifier_id = StringPool::get().store("__global")});
+        open_scope(global_module_id, ScopeType::File);
+
+        // Create builtin type symbols
+        // Not sure if a void type symbol is needed
+        /*create_builtin_type_symbol(type_table.Builtins.void_type_id);
+        const SymbolId bool_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.bool_type_id);
+        create_builtin_type_symbol(type_table.Builtins.string_type_id);
+        const SymbolId i8_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.i8_type_id);
+        const SymbolId i16_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.i16_type_id);
+        const SymbolId i32_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.i32_type_id);
+        const SymbolId i64_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.i64_type_id);
+        const SymbolId u8_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.u8_type_id);
+        const SymbolId u16_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.u16_type_id);
+        const SymbolId u32_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.u32_type_id);
+        const SymbolId u64_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.u64_type_id);
+        const SymbolId f32_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.f32_type_id);
+        const SymbolId f64_type_symbol_id = create_builtin_type_symbol(type_table.Builtins.f64_type_id);
+
+        // Create builtin type methods
+        create_builtin_bool_type_methods(bool_type_symbol_id);
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[i8_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[i16_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[i32_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[i64_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[u8_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[u16_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[u32_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[u64_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[f32_type_symbol_id.value]));
+        create_builtin_number_type_methods(static_cast<TypeSymbol*>(symbols[f64_type_symbol_id.value]));*/
     }
+
+    /*SymbolId SymbolTable::create_builtin_type_symbol(TypeId type_id) {
+        KPL_ASSERT_THAT(type_id != TypeId::invalid());
+        const ModuleId global_module_id = get_global_module()->id;
+        const StringId type_identifier_id = type_table.lookup(type_id)->identifier_id;
+        const auto type_symbol_id = create_struct(global_module_id, type_identifier_id);
+        KPL_ASSERT_THAT(type_symbol_id.has_value());
+        KPL_ASSERT_THAT(type_symbol_id.value().value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), type_symbol_id.value().value);
+        TypeSymbol* type_symbol = static_cast<TypeSymbol*>(symbols[type_symbol_id.value().value]);
+        type_symbol->type_id = type_id;
+        return type_symbol->id;
+    }
+
+    void SymbolTable::create_builtin_bool_type_methods(SymbolId type_symbol_id) {
+        KPL_ASSERT_THAT(type_symbol_id != SymbolId::invalid());
+        const ModuleId global_module_id = get_global_module()->id;
+
+        // Create operator methods
+        const StringId a_identifier_id = StringPool::get().store("a");
+        const StringId b_identifier_id = StringPool::get().store("b");
+        const TypeId bool_type_id = type_table.Builtins.bool_type_id;
+        const std::vector<TypeId> parameter_type_ids{bool_type_id, bool_type_id};
+        const std::vector<StringId> parameter_identifier_ids{a_identifier_id, b_identifier_id};
+        const auto equals_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::Equals),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(equals_symbol_id.has_value());
+
+        const auto not_equals_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::NotEquals),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(not_equals_symbol_id.has_value());
+
+        // Create cast methods
+        const StringId value_identifier_id = StringPool::get().store("value");
+        const StringId cast_identifier_id = StringPool::get().store("__cast");
+        const std::vector<TypeId> number_type_ids{
+            type_table.Builtins.i8_type_id,
+            type_table.Builtins.i16_type_id,
+            type_table.Builtins.i32_type_id,
+            type_table.Builtins.i64_type_id,
+            type_table.Builtins.u8_type_id,
+            type_table.Builtins.u16_type_id,
+            type_table.Builtins.u32_type_id,
+            type_table.Builtins.u64_type_id,
+            type_table.Builtins.f32_type_id,
+            type_table.Builtins.f64_type_id,
+        };
+        for (TypeId number_type_id : number_type_ids) {
+            const auto cast_symbol_id = create_prototype(global_module_id, bool_type_id, cast_identifier_id,
+                LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id);
+        }
+    }
+
+    void SymbolTable::create_builtin_number_type_methods(TypeSymbol* type_symbol) {
+        KPL_ASSERT_NOT_NULLPTR(type_symbol);
+        const ModuleId global_module_id = get_global_module()->id;
+        const TypeId type_id = type_symbol->type_id;
+        const SymbolId type_symbol_id = type_symbol->id;
+
+        // Create operator methods
+        const StringId a_identifier_id = StringPool::get().store("a");
+        const StringId b_identifier_id = StringPool::get().store("b");
+        const StringId value_identifier_id = StringPool::get().store("value");
+        const std::vector<TypeId> parameter_type_ids{type_id, type_id};
+        const std::vector<StringId> parameter_identifier_ids{a_identifier_id, b_identifier_id};
+        // Mathematical operators
+        const auto add_symbol_id = create_prototype(global_module_id, type_id, get_operator_name_id(OperatorType::Plus),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(add_symbol_id.has_value());
+
+        const auto sub_symbol_id = create_prototype(global_module_id, type_id, get_operator_name_id(OperatorType::Minus),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(sub_symbol_id.has_value());
+
+        const auto mul_symbol_id = create_prototype(global_module_id, type_id, get_operator_name_id(OperatorType::Multiplication),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(mul_symbol_id.has_value());
+
+        const auto div_symbol_id = create_prototype(global_module_id, type_id, get_operator_name_id(OperatorType::Division),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(div_symbol_id.has_value());
+
+        const auto math_neg_symbol_id = create_prototype(global_module_id, type_id, StringPool::get().store("__math_ned"),
+            LinkageType::Export, {type_id}, {value_identifier_id}, false, type_symbol_id);
+        KPL_ASSERT_THAT(math_neg_symbol_id.has_value());
+
+        // Comparison operators
+        const TypeId bool_type_id = type_table.Builtins.bool_type_id;
+        const auto less_than_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::LessThan),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(less_than_symbol_id.has_value());
+
+        const auto greater_than_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::GreaterThan),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(greater_than_symbol_id.has_value());
+
+        const auto equals_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::Equals),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(equals_symbol_id.has_value());
+
+        const auto not_equals_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::NotEquals),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(not_equals_symbol_id.has_value());
+
+        const auto less_equals_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::LessEquals),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(less_equals_symbol_id.has_value());
+
+        const auto greater_equals_symbol_id = create_prototype(global_module_id, bool_type_id, get_operator_name_id(OperatorType::GreaterEquals),
+            LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+        KPL_ASSERT_THAT(greater_equals_symbol_id.has_value());
+
+        // Create cast methods
+        const StringId cast_identifier_id = StringPool::get().store("__cast");
+        std::vector<TypeId> number_type_ids = {
+            type_table.Builtins.i8_type_id,
+            type_table.Builtins.i16_type_id,
+            type_table.Builtins.i32_type_id,
+            type_table.Builtins.i64_type_id,
+            type_table.Builtins.u8_type_id,
+            type_table.Builtins.u16_type_id,
+            type_table.Builtins.u32_type_id,
+            type_table.Builtins.u64_type_id,
+            type_table.Builtins.f32_type_id,
+            type_table.Builtins.f64_type_id,
+        };
+        for (TypeId number_type_id : number_type_ids) {
+            if (number_type_id == type_id) {
+                continue;
+            }
+            const auto cast_symbol_id = create_prototype(global_module_id, type_id, cast_identifier_id,
+                LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id);
+        }
+    }*/
 
     std::vector<Symbol*> SymbolTable::ScopeEntryVisitHandler::operator()(SymbolId symbol_id) const {
         KPL_ASSERT_NOT_NULLPTR(symbol_table);
@@ -85,7 +255,7 @@ namespace kepler {
 
     ModuleId SymbolTable::create_module(const IdentifierPath& module_path) {
         KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
-        Module* module = get_global_module();
+        Module* module = get_root_module();
         // Walk the module path and create all missing modules along the way
         for (size_t i = 0; i < module_path.identifier_parts.size(); i++) {
             const StringId part_identifier_id = module_path.identifier_parts[i].identifier_id;
@@ -112,14 +282,15 @@ namespace kepler {
                 module = &modules[it->second.value];
             }
         }
-        KPL_ASSERT_THAT(module != get_global_module());
+        KPL_ASSERT_THAT(module != get_root_module());
+        module->imported_module_ids.push_back(get_global_module()->id);
         return module->id;
     }
 
     std::expected<ModuleId, Diagnostic> SymbolTable::register_imported_module(ModuleId module_id, const IdentifierPath& imported_module_path) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(!imported_module_path.identifier_parts.empty());
-        Module* imported_module = find_submodule(get_global_module(), imported_module_path);
+        Module* imported_module = find_submodule(get_root_module(), imported_module_path);
         if (imported_module == nullptr) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::UnknownModule,
@@ -210,17 +381,17 @@ namespace kepler {
 
     // clang-format off
     std::expected<SymbolId, Diagnostic> SymbolTable::create_prototype(ModuleId module_id,
-        TypeId type_id,
+        TypeId return_type_id,
         StringId identifier_id,
         LinkageType linkage_type,
         std::vector<TypeId> parameter_type_ids,
         std::vector<StringId> parameter_type_identifier_ids,
         bool is_variadic,
-        TypeTable& type_table)
+        SymbolId type_symbol_id)
     {
         // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_THAT(type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(return_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(parameter_type_ids.size() == parameter_type_identifier_ids.size());
         Module& module = modules[module_id.value];
@@ -261,11 +432,16 @@ namespace kepler {
         PrototypeSymbol* symbol = symbol_allocator.allocate<PrototypeSymbol>(symbol_id,
             module_id,
             scope.id,
-            type_id,
+            return_type_id,
             identifier_id,
             linkage_type,
             std::move(parameter_type_ids),
             is_variadic);
+        if (type_symbol_id != SymbolId::invalid()) {
+            KPL_ASSERT_THAT(type_symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), type_symbol_id.value);
+            TypeSymbol* type_symbol = static_cast<TypeSymbol*>(symbols[type_symbol_id.value]);
+            type_symbol->method_symbol_ids.push_back(symbol_id);
+        }
         symbols.push_back(symbol);
         return symbol_id;
     }
@@ -280,24 +456,24 @@ namespace kepler {
         return symbols[symbol_id.value];
     }
 
-    std::expected<std::vector<Symbol*>, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, StringId identifier_id) {
-        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
-        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        return find_symbol_of_kind(module_id, identifier_id, SymbolKind::All, false, true, false);
-    }
-
     std::expected<std::vector<Symbol*>, Diagnostic> SymbolTable::find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         return find_symbol_of_kind(module_id, identifier_id, symbol_kind, false, true, false);
     }
 
-    std::expected<std::vector<Symbol*>, Diagnostic> SymbolTable::find_symbol(ModuleId module_id, const IdentifierPath& module_path, StringId identifier_id) {
+    // clang-format off
+    std::expected<std::vector<Symbol*>, Diagnostic> SymbolTable::find_symbol_of_kind(ModuleId module_id,
+        const IdentifierPath& module_path,
+        StringId identifier_id,
+        SymbolKind symbol_kind)
+    {
+        // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         std::vector<Module*> found_modules;
-        Module* fully_qualified_module = find_submodule(get_global_module(), module_path);
+        Module* fully_qualified_module = find_submodule(get_root_module(), module_path);
         if (fully_qualified_module != nullptr) {
             found_modules.push_back(fully_qualified_module);
         }
@@ -325,9 +501,9 @@ namespace kepler {
             });
         } else if (found_modules.size() == 1) {
             if (found_modules[0]->id == module_id) {
-                return find_symbol_of_kind(found_modules[0]->id, identifier_id, SymbolKind::All, false, false, false);
+                return find_symbol_of_kind(found_modules[0]->id, identifier_id, symbol_kind, false, false, false);
             } else {
-                return find_symbol_of_kind(found_modules[0]->id, identifier_id, SymbolKind::All, true, false, false);
+                return find_symbol_of_kind(found_modules[0]->id, identifier_id, symbol_kind, true, false, false);
             }
         } else {
             // TODO (improvement): Right now there will always be an error as soon as an ambiguous module path is found,
@@ -481,6 +657,57 @@ namespace kepler {
         module.current_scope_id = scope.parent_id;
     }
 
+    bool SymbolTable::is_symbol_visible_in_module(ModuleId module_id, SymbolId symbol_id) {
+        KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
+        KPL_ASSERT_THAT(symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), symbol_id.value);
+        const Symbol* symbol = symbols[symbol_id.value];
+        if (symbol->linkage_type != LinkageType::Export) {
+            return false;
+        }
+        if (symbol->module_id == get_global_module()->id) {
+            return true;
+        }
+
+        auto scope_entry_visit_handler = [symbol_id](const auto& scope_entry_value) -> bool {
+            using ValueType = std::decay_t<decltype(scope_entry_value)>;
+            if constexpr (std::is_same_v<ValueType, SymbolId>) {
+                return scope_entry_value == symbol_id;
+            } else if constexpr (std::is_same_v<ValueType, std::vector<SymbolId>>) {
+                for (SymbolId scope_entry_symbol_id : scope_entry_value) {
+                    if (scope_entry_symbol_id == symbol_id) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            KPL_ASSERT_UNREACHABLE("Missing visit implementation for ScopeEntry '{}'", typeid(scope_entry_value).name());
+        };
+
+        // Search own module
+        const Module& module = modules[module_id.value];
+        const Scope& module_scope = scopes[module.scope_ids.begin()->value];
+        for (const auto& [identifier_id, scope_entry] : module_scope.contained_symbols) {
+            const bool result = std::visit(scope_entry_visit_handler, scope_entry);
+            if (result) {
+                return true;
+            }
+        }
+
+        // Search imported modules
+        for (ModuleId imported_module_id : module.imported_module_ids) {
+            KPL_ASSERT_THAT(imported_module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), imported_module_id.value);
+            const Module& imported_module = modules[imported_module_id.value];
+            const Scope& imported_module_scope = scopes[imported_module.scope_ids.begin()->value];
+            for (const auto& [identifier_id, scope_entry] : imported_module_scope.contained_symbols) {
+                const bool result = std::visit(scope_entry_visit_handler, scope_entry);
+                if (result) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     Module* SymbolTable::find_submodule(Module* parent_module, const IdentifierPath& module_path) {
         KPL_ASSERT_NOT_NULLPTR(parent_module);
         KPL_ASSERT_THAT(!module_path.identifier_parts.empty());
@@ -501,6 +728,11 @@ namespace kepler {
     }
 
     Module* SymbolTable::get_global_module() {
+        KPL_ASSERT_THAT(modules.size() > 1);
+        return &modules[1];
+    }
+
+    Module* SymbolTable::get_root_module() {
         KPL_ASSERT_THAT(!modules.empty());
         return &modules.front();
     }

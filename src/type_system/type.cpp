@@ -8,9 +8,14 @@
  */
 
 #include "type_system/type.hpp"
+#include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
+#include "semantic_analysis/symbol.hpp"
+#include "semantic_analysis/symbol_id.hpp"
+#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
+#include "utils/builtin_utils.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -25,20 +30,54 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace kepler {
 
-    const Method* Type::find_method(StringId identifier_id, std::vector<TypeId> parameter_type_ids) const {
+    /*void Type::register_method(SymbolId prototype_symbol_id, SymbolTable* symbol_table, TypeTable* type_table) {
+        KPL_ASSERT_THAT(prototype_symbol_id != SymbolId::invalid());
+        KPL_ASSERT_NOT_NULLPTR(symbol_table);
+        KPL_ASSERT_NOT_NULLPTR(type_table);
+        const Symbol* symbol = symbol_table->lookup(prototype_symbol_id);
+        KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Prototype);
+        const PrototypeSymbol* prototype_symbol = static_cast<const PrototypeSymbol*>(symbol);
+        const Method* existing_method = find_method(prototype_symbol->type_id,
+            identifier_id,
+            prototype_symbol->parameter_type_ids,
+            prototype_symbol->is_variadic);
+        KPL_ASSERT_THAT(existing_method == nullptr);
+        methods.push_back({
+            .return_type_id = prototype_symbol->type_id,
+            .identifier_id = identifier_id,
+            .parameter_type_ids = prototype_symbol->parameter_type_ids,
+            .prototype_symbol_id = prototype_symbol_id,
+            .is_variadic = prototype_symbol->is_variadic,
+        });
+    }
+
+    // clang-format off
+    const Method* Type::find_method(TypeId return_type_id,
+        StringId identifier_id,
+        const std::vector<TypeId>& parameter_type_ids,
+        bool is_variadic,
+        SymbolTable* symbol_table) const
+    {
+        // clang-format on
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         for (const Method& method : methods) {
-            if (method.identifier_id == identifier_id && method.parameter_type_ids == parameter_type_ids) {
-                return &method;
+            // clang-format off
+            if (method.return_type_id == return_type_id
+                && method.identifier_id == identifier_id
+                && method.parameter_type_ids == parameter_type_ids
+                && method.is_variadic == is_variadic)
+            {
+                // clang-format on
+                if (symbol_table->)
+                    return &method;
             }
         }
         return nullptr;
-    }
+    }*/
 
     const StructTypeMember* StructType::find_member(StringId identifier_id) const {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
@@ -62,8 +101,6 @@ namespace kepler {
 
     StringId get_type_kind_name_id(TypeKind type_kind) {
         switch (type_kind) {
-            case TypeKind::Unknown:
-                return StringPool::get().store("__unknown");
             case TypeKind::Void:
                 return StringPool::get().store("void");
             case TypeKind::Bool:
@@ -94,6 +131,29 @@ namespace kepler {
                 return StringPool::get().store("struct");
         }
         KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind));
+    }
+
+    bool is_builtin_type(const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(type);
+        switch (type->type_kind) {
+            case TypeKind::Void:
+            case TypeKind::Bool:
+            case TypeKind::String:
+            case TypeKind::I8:
+            case TypeKind::I16:
+            case TypeKind::I32:
+            case TypeKind::I64:
+            case TypeKind::U8:
+            case TypeKind::U16:
+            case TypeKind::U32:
+            case TypeKind::U64:
+            case TypeKind::F32:
+            case TypeKind::F64:
+                return true;
+            case TypeKind::Struct:
+                return false;
+        }
+        KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type->type_kind));
     }
 
     bool is_integer_type(const Type* type) {
@@ -262,7 +322,7 @@ namespace kepler {
             return builder.CreateICmpEQ(lhs, rhs);
         } else if (is_floating_point_type(type)) {
             return builder.CreateFCmpUEQ(lhs, rhs);
-        } else if (type->id == TypeTable::Builtins.bool_type_id) {
+        } else if (type->id == get_builtin_type_id(TypeKind::Bool)) {
             return builder.CreateICmpEQ(lhs, rhs);
         }
         KPL_ASSERT_UNREACHABLE("Missing create equals implementation for type '{}'", *type);
@@ -276,7 +336,7 @@ namespace kepler {
             return builder.CreateICmpNE(lhs, rhs);
         } else if (is_floating_point_type(type)) {
             return builder.CreateFCmpUNE(lhs, rhs);
-        } else if (type->id == TypeTable::Builtins.bool_type_id) {
+        } else if (type->id == get_builtin_type_id(TypeKind::Bool)) {
             return builder.CreateICmpNE(lhs, rhs);
         }
         KPL_ASSERT_UNREACHABLE("Missing create not equals implementation for type '{}'", *type);
@@ -310,16 +370,17 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing create greater equals implementation for type '{}'", *type);
     }
 
-    /*namespace {
+    namespace {
         llvm::Value* create_cast_to_bool(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_THAT(TypeTable::Builtins.bool_type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.bool_type_id, "Can't create redundant cast for type '{}'", *original_type);
+            KPL_ASSERT_THAT(is_builtin_type(original_type));
+            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::Bool), "Can't create redundant cast for type '{}'", *original_type);
+            llvm::Type* llvm_original_type = get_builtin_llvm_type(original_type->type_kind, context);
             if (is_integer_type(original_type)) {
-                return builder.CreateICmpNE(value, llvm::ConstantInt::get(get_llvm_type(original_type, context), 0));
+                return builder.CreateICmpNE(value, llvm::ConstantInt::get(llvm_original_type, 0));
             } else if (is_floating_point_type(original_type)) {
-                return builder.CreateFCmpONE(value, llvm::ConstantFP::get(get_llvm_type(original_type, context), 0));
+                return builder.CreateFCmpONE(value, llvm::ConstantFP::get(llvm_original_type, 0));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to bool implementation for original type '{}'", *original_type);
         }
@@ -336,17 +397,20 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
             KPL_ASSERT_NOT_NULLPTR(target_type);
+            KPL_ASSERT_THAT(is_builtin_type(original_type));
+            KPL_ASSERT_THAT(is_builtin_type(target_type));
             KPL_ASSERT_THAT(original_type != target_type);
             // Clamp the value of the float to the integer boundaries because llvm poisons the result if the value is out of bounds
-            llvm::Type* llvm_float_type = get_llvm_type(original_type, context);
+            llvm::Type* llvm_float_type = get_builtin_llvm_type(original_type->type_kind, context);
             llvm::Value* min = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::lowest()));
             llvm::Value* max = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::max()));
             llvm::Value* clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
             clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
+            llvm::Type* llvm_target_type = get_builtin_llvm_type(target_type->type_kind, context);
             if (is_signed_integer_type(target_type)) {
-                return builder.CreateFPToSI(clamped, get_llvm_type(target_type, context));
+                return builder.CreateFPToSI(clamped, llvm_target_type);
             } else if (is_unsigned_integer_type(target_type)) {
-                return builder.CreateFPToUI(clamped, get_llvm_type(target_type, context));
+                return builder.CreateFPToUI(clamped, llvm_target_type);
             }
             KPL_ASSERT_UNREACHABLE("Target type must be of type int when creating cast from float to int");
         }
@@ -364,9 +428,10 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
             KPL_ASSERT_NOT_NULLPTR(target_type);
+            KPL_ASSERT_THAT(is_builtin_type(target_type));
             KPL_ASSERT_THAT(original_type != target_type);
             if (is_integer_type(original_type)) {
-                return builder.CreateIntCast(value, get_llvm_type(target_type, context), is_signed);
+                return builder.CreateIntCast(value, get_builtin_llvm_type(target_type->type_kind, context), is_signed);
             } else if (is_floating_point_type(original_type)) {
                 return create_cast_float_to_int<T>(value, original_type, target_type, context, builder);
             }
@@ -376,14 +441,12 @@ namespace kepler {
         llvm::Value* create_cast_to_f32(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_THAT(TypeTable::Builtins.f32_type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(TypeTable::Builtins.f64_type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.f32_type_id);
+            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F32));
             if (is_signed_integer_type(original_type)) {
                 return builder.CreateSIToFP(value, llvm::Type::getFloatTy(context));
             } else if (is_unsigned_integer_type(original_type)) {
                 return builder.CreateUIToFP(value, llvm::Type::getFloatTy(context));
-            } else if (original_type->id == TypeTable::Builtins.f64_type_id) {
+            } else if (original_type->id == get_builtin_type_id(TypeKind::F64)) {
                 return builder.CreateFPTrunc(value, llvm::Type::getFloatTy(context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f32 implementation for original type '{}'", *original_type);
@@ -392,14 +455,12 @@ namespace kepler {
         llvm::Value* create_cast_to_f64(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
             KPL_ASSERT_NOT_NULLPTR(value);
             KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_THAT(TypeTable::Builtins.f32_type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(TypeTable::Builtins.f64_type_id != TypeId::invalid());
-            KPL_ASSERT_THAT(original_type->id != TypeTable::Builtins.f64_type_id);
+            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F64));
             if (is_integer_type(original_type)) {
                 return builder.CreateSIToFP(value, llvm::Type::getDoubleTy(context));
             } else if (is_unsigned_integer_type(original_type)) {
                 return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(context));
-            } else if (original_type->id == TypeTable::Builtins.f32_type_id) {
+            } else if (original_type->id == get_builtin_type_id(TypeKind::F32)) {
                 return builder.CreateFPExt(value, llvm::Type::getDoubleTy(context));
             }
             KPL_ASSERT_UNREACHABLE("Missing create cast to f64 implementation for original type '{}'", *original_type);
@@ -412,7 +473,6 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(target_type);
         KPL_ASSERT_THAT(original_type != target_type);
         switch (target_type->type_kind) {
-            case TypeKind::Unknown:
             case TypeKind::Void:
             case TypeKind::String:
                 KPL_ASSERT_UNREACHABLE("Can't create a cast to target type '{}'", *target_type);
@@ -444,6 +504,6 @@ namespace kepler {
         }
 
         KPL_ASSERT_UNREACHABLE("Missing create cast implementation for target type '{}'", *target_type);
-    }*/
+    }
 
 }
