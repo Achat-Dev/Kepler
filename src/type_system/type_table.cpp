@@ -9,26 +9,16 @@
 
 #include "type_system/type_table.hpp"
 #include "ast/struct.hpp"
-#include "lexer/operator_type.hpp"
 #include "semantic_analysis/symbol_id.hpp"
-#include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <cstdint>
-#include <string>
 #include <utility>
 #include <vector>
 
 namespace kepler {
-
-    /*TypeTable::TypeTable()
-        : allocator(kibibyte_size * 16, "types") {
-        if (Builtins.void_type_id == TypeId::invalid()) {
-            create_builtin_types();
-        }
-    }*/
 
     TypeId TypeTable::create_type(StringId identifier_id, TypeKind type_kind, SymbolId symbol_id) {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
@@ -64,118 +54,5 @@ namespace kepler {
         KPL_ASSERT_THAT(type_id.value < types.size(), "Type count: {}, received id: {}", types.size(), type_id.value);
         return types[type_id.value];
     }
-
-    /*void TypeTable::create_builtin_types() {
-        KPL_ASSERT_THAT(Builtins.void_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.bool_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.string_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.i8_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.i16_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.i32_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.i64_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.u8_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.u16_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.u32_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.u64_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.f32_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(Builtins.f64_type_id == TypeId::invalid());
-
-        // Create the types first and fill in the methods afterwards because the methods need to reference the types
-        create_builtin_type(Builtins.void_type_id, TypeKind::Void);
-        create_builtin_type(Builtins.bool_type_id, TypeKind::Bool);
-        create_builtin_type(Builtins.string_type_id, TypeKind::String);
-        create_builtin_type(Builtins.i8_type_id, TypeKind::I8);
-        create_builtin_type(Builtins.i16_type_id, TypeKind::I16);
-        create_builtin_type(Builtins.i32_type_id, TypeKind::I32);
-        create_builtin_type(Builtins.i64_type_id, TypeKind::I64);
-        create_builtin_type(Builtins.u8_type_id, TypeKind::U8);
-        create_builtin_type(Builtins.u16_type_id, TypeKind::U16);
-        create_builtin_type(Builtins.u32_type_id, TypeKind::U32);
-        create_builtin_type(Builtins.u64_type_id, TypeKind::U64);
-        create_builtin_type(Builtins.f32_type_id, TypeKind::F32);
-        create_builtin_type(Builtins.f64_type_id, TypeKind::F64);
-
-        // Finish bool type
-        const StringId cast_id = StringPool::get().store("__cast");
-        const std::vector<Method> bool_methods{
-            {
-                .return_type_id = Builtins.bool_type_id,
-                .identifier_id = get_operator_name_id(OperatorType::Equals),
-                .parameter_type_ids = {Builtins.bool_type_id},
-            },
-            {
-                .return_type_id = Builtins.bool_type_id,
-                .identifier_id = get_operator_name_id(OperatorType::NotEquals),
-                .parameter_type_ids = {Builtins.bool_type_id},
-            },
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i8_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i16_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i32_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.i64_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u8_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u16_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u32_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.u64_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.f32_type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = cast_id, .parameter_type_ids = {Builtins.f64_type_id}},
-        };
-        types[Builtins.bool_type_id.value]->methods = std::move(bool_methods);
-
-        // Finish number types
-        add_methods_to_builtin_number_type(Builtins.i8_type_id);
-        add_methods_to_builtin_number_type(Builtins.i16_type_id);
-        add_methods_to_builtin_number_type(Builtins.i32_type_id);
-        add_methods_to_builtin_number_type(Builtins.i64_type_id);
-        add_methods_to_builtin_number_type(Builtins.u8_type_id);
-        add_methods_to_builtin_number_type(Builtins.u16_type_id);
-        add_methods_to_builtin_number_type(Builtins.u32_type_id);
-        add_methods_to_builtin_number_type(Builtins.u64_type_id);
-        add_methods_to_builtin_number_type(Builtins.f32_type_id);
-        add_methods_to_builtin_number_type(Builtins.f64_type_id);
-    }
-
-    void TypeTable::create_builtin_type(TypeId& type_id, TypeKind type_kind) {
-        KPL_ASSERT_THAT(type_id == TypeId::invalid());
-        type_id.value = static_cast<uint32_t>(types.size());
-        StringId type_name_id = get_type_kind_name_id(type_kind);
-        types.push_back(allocator.allocate<Type>(type_id, type_kind, type_name_id));
-    }*/
-
-    /*void TypeTable::add_methods_to_builtin_number_type(TypeId type_id) {
-        KPL_ASSERT_THAT(type_id.value < types.size(), "Type count: {}, received id: {}", types.size(), type_id.value);
-        static const std::vector<TypeId> number_type_ids = {
-            Builtins.i8_type_id,
-            Builtins.i16_type_id,
-            Builtins.i32_type_id,
-            Builtins.i64_type_id,
-            Builtins.u8_type_id,
-            Builtins.u16_type_id,
-            Builtins.u32_type_id,
-            Builtins.u64_type_id,
-            Builtins.f32_type_id,
-            Builtins.f64_type_id};
-        std::vector<Method> common_number_methods{
-            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Plus), .parameter_type_ids = {type_id}},
-            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Minus), .parameter_type_ids = {type_id}},
-            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Multiplication), .parameter_type_ids = {type_id}},
-            {.return_type_id = type_id, .identifier_id = get_operator_name_id(OperatorType::Division), .parameter_type_ids = {type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessThan), .parameter_type_ids = {type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterThan), .parameter_type_ids = {type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::Equals), .parameter_type_ids = {type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::NotEquals), .parameter_type_ids = {type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessEquals), .parameter_type_ids = {type_id}},
-            {.return_type_id = Builtins.bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterEquals), .parameter_type_ids = {type_id}},
-            {.return_type_id = type_id, .identifier_id = StringPool::get().store("__math_negate"), .parameter_type_ids = {type_id}},
-        };
-        const StringId cast_id = StringPool::get().store("__cast");
-        for (TypeId number_type : number_type_ids) {
-            if (type_id != number_type) {
-                common_number_methods.emplace_back(type_id, cast_id, std::vector<TypeId>{number_type}, false);
-            }
-        }
-        Type* type = types[type_id.value];
-        KPL_ASSERT_THAT(type->methods.empty());
-        type->methods = std::move(common_number_methods);
-    }*/
 
 }

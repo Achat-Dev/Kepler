@@ -70,9 +70,6 @@ namespace kepler {
         std::vector<Scope> scopes;
         ArenaAllocator symbol_allocator;
 
-        // SymbolId create_builtin_type_symbol(TypeId type_id);
-        // void create_builtin_bool_type_methods(SymbolId type_symbol_id);
-        // void create_builtin_number_type_methods(TypeSymbol* type_symbol);
         std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id,
             StringId identifier_id,
             SymbolKind requested_symbol_kind,

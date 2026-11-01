@@ -634,19 +634,6 @@ namespace kepler {
 
         std::vector<SymbolId> candidate_symbol_ids;
         for (const Symbol* found_symbol : found_symbols.value()) {
-            // To add a cast, append "&& found_symbol->get_symbol_kind() != SymbolKind::Type" to the condition
-            /*const SymbolKind found_symbol_kind = found_symbol->get_symbol_kind();
-            if (found_symbol_kind != SymbolKind::Prototype) {
-                std::string symbol_kind_identifier = std::format("{}", found_symbol_kind);
-                str_initial_to_lower_case(symbol_kind_identifier);
-                const std::string& callee_identifier = StringPool::get().lookup(callee_identifier_id);
-                const std::string message = std::format("Symbol '{}' is used as a function, but it's a {}",
-                    callee_identifier,
-                    std::move(symbol_kind_identifier));
-                diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::move(message), expression->source_location);
-                expression->node_type = ASTNodeType::Poison;
-                return {.poisoned = true};
-            }*/
             candidate_symbol_ids.push_back(found_symbol->id);
         }
         expression->candidate_symbol_ids = std::move(candidate_symbol_ids);

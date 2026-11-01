@@ -704,11 +704,6 @@ namespace kepler {
         } else if (matching_call_candidates.size() == 1) {
             update_call_argument_target_types(matching_call_candidates[0].literal_type_ids_to_update, expression->args);
             set_matching_call_candidate(expression, matching_call_candidates[0].symbol_id, argument_type_ids);
-            /*expression->symbol_id = matching_call_candidates[0].symbol_id;
-            if (argument_type_ids.size() == 1) {
-                // TODO: Only set this if the function is not variadic
-                expression->cast_data.argument_type_id = argument_type_ids[0];
-            }*/
         } else {
             // Multiple matching candidates -> check if there are exact matches
             std::map<MatchingCallCandidateKind, std::vector<MatchingCallCandidate>> sorted_candidates;
@@ -724,11 +719,6 @@ namespace kepler {
                     // Exactly one matching candidate in this priority found -> use it
                     update_call_argument_target_types(call_candidates[0].literal_type_ids_to_update, expression->args);
                     set_matching_call_candidate(expression, call_candidates[0].symbol_id, argument_type_ids);
-                    /*expression->symbol_id = call_candidates[0].symbol_id;
-                    if (argument_type_ids.size() == 1) {
-                        // TODO: Only set this if the function is not variadic
-                        expression->cast_data.argument_type_id = argument_type_ids[0];
-                    }*/
                     break;
                 } else {
                     break;
@@ -743,27 +733,6 @@ namespace kepler {
                 expression->node_type = ASTNodeType::Poison;
                 return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
             }
-
-            /*std::vector<MatchingCallCandidate> exact_matching_call_candidates;
-            for (const MatchingCallCandidate& matching_call_candidate : matching_call_candidates) {
-                if (matching_call_candidate.match_kind == MatchingCallCandidateKind::ExactMatch) {
-                    exact_matching_call_candidates.push_back(std::move(matching_call_candidate));
-                }
-            }
-
-            if (exact_matching_call_candidates.empty()) {
-                // No exact matching candidates found -> multiple matching variadic functions found
-                report_multiple_matching_call_candidates(expression, argument_type_ids, matching_call_candidates);
-                expression->node_type = ASTNodeType::Poison;
-                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
-            } else if (exact_matching_call_candidates.size() == 1) {
-                update_call_argument_target_types(exact_matching_call_candidates[0].literal_type_ids_to_update, expression->args);
-                expression->symbol_id = exact_matching_call_candidates[0].symbol_id;
-            } else {
-                report_multiple_matching_call_candidates(expression, argument_type_ids, exact_matching_call_candidates);
-                expression->node_type = ASTNodeType::Poison;
-                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
-            }*/
         }
 
         const Symbol* prototype_symbol = symbol_table.lookup(expression->symbol_id);

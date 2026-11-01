@@ -20,22 +20,6 @@ namespace kepler {
 
     class TypeTable {
     public:
-        /*inline static struct {
-            TypeId void_type_id;
-            TypeId bool_type_id;
-            TypeId string_type_id;
-            TypeId i8_type_id;
-            TypeId i16_type_id;
-            TypeId i32_type_id;
-            TypeId i64_type_id;
-            TypeId u8_type_id;
-            TypeId u16_type_id;
-            TypeId u32_type_id;
-            TypeId u64_type_id;
-            TypeId f32_type_id;
-            TypeId f64_type_id;
-        } Builtins{};*/
-
         TypeTable() : allocator(kibibyte_size * 16, "types") {}
         TypeId create_type(StringId identifier_id, TypeKind type_kind, SymbolId symbol_id);
         TypeId create_struct(StringId identifier_id, SymbolId symbol_id);
@@ -45,10 +29,6 @@ namespace kepler {
     private:
         std::vector<Type*> types;
         ArenaAllocator allocator;
-
-        // void create_builtin_types();
-        // void create_builtin_type(TypeId& type_id, TypeKind type_kind);
-        //  void add_methods_to_builtin_number_type(TypeId type_id);
     };
 
 }
