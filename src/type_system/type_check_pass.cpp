@@ -36,7 +36,6 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
-#include "utils/builtin_utils.hpp"
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>

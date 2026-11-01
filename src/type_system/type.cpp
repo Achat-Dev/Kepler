@@ -8,14 +8,14 @@
  */
 
 #include "type_system/type.hpp"
-#include "ast/prototype.hpp"
-#include "diagnostics/diagnostic.hpp"
+#include "ast/ast_node.hpp"
+#include "lexer/operator_type.hpp"
+#include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/assert.h"
-#include "utils/builtin_utils.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -30,54 +30,10 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace kepler {
-
-    /*void Type::register_method(SymbolId prototype_symbol_id, SymbolTable* symbol_table, TypeTable* type_table) {
-        KPL_ASSERT_THAT(prototype_symbol_id != SymbolId::invalid());
-        KPL_ASSERT_NOT_NULLPTR(symbol_table);
-        KPL_ASSERT_NOT_NULLPTR(type_table);
-        const Symbol* symbol = symbol_table->lookup(prototype_symbol_id);
-        KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Prototype);
-        const PrototypeSymbol* prototype_symbol = static_cast<const PrototypeSymbol*>(symbol);
-        const Method* existing_method = find_method(prototype_symbol->type_id,
-            identifier_id,
-            prototype_symbol->parameter_type_ids,
-            prototype_symbol->is_variadic);
-        KPL_ASSERT_THAT(existing_method == nullptr);
-        methods.push_back({
-            .return_type_id = prototype_symbol->type_id,
-            .identifier_id = identifier_id,
-            .parameter_type_ids = prototype_symbol->parameter_type_ids,
-            .prototype_symbol_id = prototype_symbol_id,
-            .is_variadic = prototype_symbol->is_variadic,
-        });
-    }
-
-    // clang-format off
-    const Method* Type::find_method(TypeId return_type_id,
-        StringId identifier_id,
-        const std::vector<TypeId>& parameter_type_ids,
-        bool is_variadic,
-        SymbolTable* symbol_table) const
-    {
-        // clang-format on
-        KPL_ASSERT_THAT(identifier_id != StringId::invalid());
-        for (const Method& method : methods) {
-            // clang-format off
-            if (method.return_type_id == return_type_id
-                && method.identifier_id == identifier_id
-                && method.parameter_type_ids == parameter_type_ids
-                && method.is_variadic == is_variadic)
-            {
-                // clang-format on
-                if (symbol_table->)
-                    return &method;
-            }
-        }
-        return nullptr;
-    }*/
 
     const StructTypeMember* StructType::find_member(StringId identifier_id) const {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
@@ -131,6 +87,325 @@ namespace kepler {
                 return StringPool::get().store("struct");
         }
         KPL_ASSERT_UNREACHABLE("Missing type name id implementation for type kind '{}'", static_cast<int>(type_kind));
+    }
+
+    namespace {
+        bool is_initialized = false;
+        std::unordered_map<TypeKind, SymbolId> builtin_type_symbol_ids;
+        std::unordered_map<TypeKind, TypeId> builtin_type_ids;
+
+        // clang-format off
+        void create_builtin_method(TypeId type_id,
+            SymbolId type_symbol_id,
+            const std::vector<TypeId>& parameter_type_ids,
+            const std::vector<StringId>& parameter_identifier_ids,
+            StringId type_identifier_id,
+            OperatorType operator_type,
+            SymbolTable& symbol_table)
+        {
+            // clang-format on
+            const ModuleId global_module_id = symbol_table.get_global_module()->id;
+            const std::string& type_identifier = StringPool::get().lookup(type_identifier_id);
+            const std::string& operator_identifier = StringPool::get().lookup(get_operator_name_id(operator_type));
+            const StringId method_identifier_id = StringPool::get().store(type_identifier + '.' + operator_identifier);
+            const auto symbol_id = symbol_table.create_prototype(global_module_id, type_id, method_identifier_id,
+                LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+            KPL_ASSERT_THAT(symbol_id.has_value());
+        }
+
+        void create_builtin_bool_type_methods(SymbolTable& symbol_table) {
+            const ModuleId global_module_id = symbol_table.get_global_module()->id;
+            const SymbolId type_symbol_id = builtin_type_symbol_ids[TypeKind::Bool];
+            const TypeId bool_type_id = builtin_type_ids[TypeKind::Bool];
+
+            // Create operator methods
+            const StringId a_identifier_id = StringPool::get().store("a");
+            const StringId b_identifier_id = StringPool::get().store("b");
+            const StringId bool_identifier_id = get_type_kind_name_id(TypeKind::Bool);
+            const std::vector<TypeId> parameter_type_ids{bool_type_id, bool_type_id};
+            const std::vector<StringId> parameter_identifier_ids{a_identifier_id, b_identifier_id};
+            create_builtin_method(bool_type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                bool_identifier_id, OperatorType::Equals, symbol_table);
+            create_builtin_method(bool_type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                bool_identifier_id, OperatorType::NotEquals, symbol_table);
+
+            // Create cast methods
+            const StringId value_identifier_id = StringPool::get().store("value");
+            const StringId cast_identifier_id = StringPool::get().store(StringPool::get().lookup(bool_identifier_id) + ".__cast");
+            const std::vector<TypeId> number_type_ids{
+                builtin_type_ids[TypeKind::I8],
+                builtin_type_ids[TypeKind::I16],
+                builtin_type_ids[TypeKind::I32],
+                builtin_type_ids[TypeKind::I64],
+                builtin_type_ids[TypeKind::U8],
+                builtin_type_ids[TypeKind::U16],
+                builtin_type_ids[TypeKind::U32],
+                builtin_type_ids[TypeKind::U64],
+                builtin_type_ids[TypeKind::F32],
+                builtin_type_ids[TypeKind::F64],
+            };
+            for (TypeId number_type_id : number_type_ids) {
+                const auto cast_symbol_id = symbol_table.create_prototype(global_module_id, bool_type_id, cast_identifier_id,
+                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id);
+            }
+        }
+
+        void create_builtin_number_type_methods(TypeKind type_kind, SymbolTable& symbol_table) {
+            KPL_ASSERT_THAT(type_kind != TypeKind::Struct);
+            const SymbolId type_symbol_id = builtin_type_symbol_ids[type_kind];
+            const TypeSymbol* type_symbol = static_cast<TypeSymbol*>(symbol_table.lookup(type_symbol_id));
+            const ModuleId global_module_id = symbol_table.get_global_module()->id;
+            const TypeId type_id = type_symbol->type_id;
+            const StringId type_identifier_id = get_type_kind_name_id(type_kind);
+
+            // Create operator methods
+            const StringId a_identifier_id = StringPool::get().store("a");
+            const StringId b_identifier_id = StringPool::get().store("b");
+            const StringId value_identifier_id = StringPool::get().store("value");
+            const std::vector<TypeId> parameter_type_ids{type_id, type_id};
+            const std::vector<StringId> parameter_identifier_ids{a_identifier_id, b_identifier_id};
+            // Mathematical operators
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::Plus, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::Minus, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::Multiplication, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::Division, symbol_table);
+            const StringId mneg_identifier_id = StringPool::get().store(StringPool::get().lookup(type_identifier_id) + ".__mneg");
+            const auto mneg_symbol_id = symbol_table.create_prototype(global_module_id, type_id, mneg_identifier_id,
+                LinkageType::Export, {type_id}, {value_identifier_id}, false, type_symbol_id);
+            KPL_ASSERT_THAT(mneg_symbol_id.has_value());
+
+            // Comparison operators
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::LessThan, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::GreaterThan, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::Equals, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::NotEquals, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::LessEquals, symbol_table);
+            create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
+                type_identifier_id, OperatorType::GreaterEquals, symbol_table);
+
+            // Create cast methods
+            const StringId cast_identifier_id = StringPool::get().store(StringPool::get().lookup(type_identifier_id) + ".__cast");
+            std::vector<TypeId> number_type_ids = {
+                builtin_type_ids[TypeKind::I8],
+                builtin_type_ids[TypeKind::I16],
+                builtin_type_ids[TypeKind::I32],
+                builtin_type_ids[TypeKind::I64],
+                builtin_type_ids[TypeKind::U8],
+                builtin_type_ids[TypeKind::U16],
+                builtin_type_ids[TypeKind::U32],
+                builtin_type_ids[TypeKind::U64],
+                builtin_type_ids[TypeKind::F32],
+                builtin_type_ids[TypeKind::F64],
+            };
+            for (TypeId number_type_id : number_type_ids) {
+                if (number_type_id == type_id) {
+                    continue;
+                }
+                const auto cast_symbol_id = symbol_table.create_prototype(global_module_id, type_id, cast_identifier_id,
+                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id);
+                KPL_ASSERT_THAT(cast_symbol_id.has_value());
+            }
+        }
+
+        SymbolId create_builtin_type(TypeKind type_kind, SymbolTable& symbol_table, TypeTable& type_table) {
+            KPL_ASSERT_THAT(type_kind != TypeKind::Struct);
+            const ModuleId global_module_id = symbol_table.get_global_module()->id;
+            const StringId identifier_id = get_type_kind_name_id(type_kind);
+            const auto symbol_id = symbol_table.create_struct(global_module_id, identifier_id);
+            KPL_ASSERT_THAT(symbol_id.has_value());
+            const TypeId type_id = type_table.create_type(identifier_id, type_kind, symbol_id.value());
+            symbol_table.lookup(symbol_id.value())->type_id = type_id;
+            builtin_type_ids.emplace(type_kind, type_id);
+            builtin_type_symbol_ids.emplace(type_kind, symbol_id.value());
+            return symbol_id.value();
+        }
+
+        llvm::Value* create_cast_to_bool(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
+            KPL_ASSERT_NOT_NULLPTR(value);
+            KPL_ASSERT_NOT_NULLPTR(original_type);
+            KPL_ASSERT_THAT(is_builtin_type(original_type));
+            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::Bool), "Can't create redundant cast for type '{}'", *original_type);
+            llvm::Type* llvm_original_type = get_builtin_llvm_type(original_type->type_kind, context);
+            if (is_integer_type(original_type)) {
+                return builder.CreateICmpNE(value, llvm::ConstantInt::get(llvm_original_type, 0));
+            } else if (is_floating_point_type(original_type)) {
+                return builder.CreateFCmpONE(value, llvm::ConstantFP::get(llvm_original_type, 0));
+            }
+            KPL_ASSERT_UNREACHABLE("Missing create cast to bool implementation for original type '{}'", *original_type);
+        }
+
+        template <typename T>
+        // clang-format off
+        llvm::Value* create_cast_float_to_int(llvm::Value* value,
+            const Type* original_type,
+            const Type* target_type,
+            llvm::LLVMContext& context,
+            llvm::IRBuilder<>& builder)
+        {
+            // clang-format on
+            KPL_ASSERT_NOT_NULLPTR(value);
+            KPL_ASSERT_NOT_NULLPTR(original_type);
+            KPL_ASSERT_NOT_NULLPTR(target_type);
+            KPL_ASSERT_THAT(is_builtin_type(original_type));
+            KPL_ASSERT_THAT(is_builtin_type(target_type));
+            KPL_ASSERT_THAT(original_type != target_type);
+            // Clamp the value of the float to the integer boundaries because llvm poisons the result if the value is out of bounds
+            llvm::Type* llvm_float_type = get_builtin_llvm_type(original_type->type_kind, context);
+            llvm::Value* min = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::lowest()));
+            llvm::Value* max = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::max()));
+            llvm::Value* clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
+            clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
+            llvm::Type* llvm_target_type = get_builtin_llvm_type(target_type->type_kind, context);
+            if (is_signed_integer_type(target_type)) {
+                return builder.CreateFPToSI(clamped, llvm_target_type);
+            } else if (is_unsigned_integer_type(target_type)) {
+                return builder.CreateFPToUI(clamped, llvm_target_type);
+            }
+            KPL_ASSERT_UNREACHABLE("Target type must be of type int when creating cast from float to int");
+        }
+
+        template <typename T>
+        // clang-format off
+        llvm::Value* create_cast_to_int(llvm::Value* value,
+            const Type* original_type,
+            const Type* target_type,
+            bool is_signed,
+            llvm::LLVMContext& context,
+            llvm::IRBuilder<>& builder)
+        {
+            // clang-format on
+            KPL_ASSERT_NOT_NULLPTR(value);
+            KPL_ASSERT_NOT_NULLPTR(original_type);
+            KPL_ASSERT_NOT_NULLPTR(target_type);
+            KPL_ASSERT_THAT(is_builtin_type(target_type));
+            KPL_ASSERT_THAT(original_type != target_type);
+            if (is_integer_type(original_type)) {
+                return builder.CreateIntCast(value, get_builtin_llvm_type(target_type->type_kind, context), is_signed);
+            } else if (is_floating_point_type(original_type)) {
+                return create_cast_float_to_int<T>(value, original_type, target_type, context, builder);
+            }
+            KPL_ASSERT_UNREACHABLE("Missing create cast to '{}' implementation for original type '{}'", *target_type, *original_type);
+        }
+
+        llvm::Value* create_cast_to_f32(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
+            KPL_ASSERT_NOT_NULLPTR(value);
+            KPL_ASSERT_NOT_NULLPTR(original_type);
+            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F32));
+            if (is_signed_integer_type(original_type)) {
+                return builder.CreateSIToFP(value, llvm::Type::getFloatTy(context));
+            } else if (is_unsigned_integer_type(original_type)) {
+                return builder.CreateUIToFP(value, llvm::Type::getFloatTy(context));
+            } else if (original_type->id == get_builtin_type_id(TypeKind::F64)) {
+                return builder.CreateFPTrunc(value, llvm::Type::getFloatTy(context));
+            }
+            KPL_ASSERT_UNREACHABLE("Missing create cast to f32 implementation for original type '{}'", *original_type);
+        }
+
+        llvm::Value* create_cast_to_f64(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
+            KPL_ASSERT_NOT_NULLPTR(value);
+            KPL_ASSERT_NOT_NULLPTR(original_type);
+            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F64));
+            if (is_integer_type(original_type)) {
+                return builder.CreateSIToFP(value, llvm::Type::getDoubleTy(context));
+            } else if (is_unsigned_integer_type(original_type)) {
+                return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(context));
+            } else if (original_type->id == get_builtin_type_id(TypeKind::F32)) {
+                return builder.CreateFPExt(value, llvm::Type::getDoubleTy(context));
+            }
+            KPL_ASSERT_UNREACHABLE("Missing create cast to f64 implementation for original type '{}'", *original_type);
+        }
+    }
+
+    void create_builtin_types(SymbolTable& symbol_table, TypeTable& type_table) {
+        KPL_ASSERT_THAT(!is_initialized);
+        // Create builtin types and type symbols
+        create_builtin_type(TypeKind::Void, symbol_table, type_table);
+        create_builtin_type(TypeKind::Bool, symbol_table, type_table);
+        create_builtin_type(TypeKind::String, symbol_table, type_table);
+        create_builtin_type(TypeKind::I8, symbol_table, type_table);
+        create_builtin_type(TypeKind::I16, symbol_table, type_table);
+        create_builtin_type(TypeKind::I32, symbol_table, type_table);
+        create_builtin_type(TypeKind::I64, symbol_table, type_table);
+        create_builtin_type(TypeKind::U8, symbol_table, type_table);
+        create_builtin_type(TypeKind::U16, symbol_table, type_table);
+        create_builtin_type(TypeKind::U32, symbol_table, type_table);
+        create_builtin_type(TypeKind::U64, symbol_table, type_table);
+        create_builtin_type(TypeKind::F32, symbol_table, type_table);
+        create_builtin_type(TypeKind::F64, symbol_table, type_table);
+
+        // Create builtin type methods
+        create_builtin_bool_type_methods(symbol_table);
+        create_builtin_number_type_methods(TypeKind::I8, symbol_table);
+        create_builtin_number_type_methods(TypeKind::I16, symbol_table);
+        create_builtin_number_type_methods(TypeKind::I32, symbol_table);
+        create_builtin_number_type_methods(TypeKind::I64, symbol_table);
+        create_builtin_number_type_methods(TypeKind::U8, symbol_table);
+        create_builtin_number_type_methods(TypeKind::U16, symbol_table);
+        create_builtin_number_type_methods(TypeKind::U32, symbol_table);
+        create_builtin_number_type_methods(TypeKind::U64, symbol_table);
+        create_builtin_number_type_methods(TypeKind::F32, symbol_table);
+        create_builtin_number_type_methods(TypeKind::F64, symbol_table);
+
+        is_initialized = true;
+    }
+
+    SymbolId get_builtin_type_symbol_id(TypeKind type_kind) {
+        KPL_ASSERT_THAT(is_initialized);
+        KPL_ASSERT_THAT(builtin_type_symbol_ids.contains(type_kind), "Builtin type symbols dont't contain type kind {}", type_kind);
+        return builtin_type_symbol_ids[type_kind];
+    }
+
+    TypeId get_builtin_type_id(TypeKind type_kind) {
+        KPL_ASSERT_THAT(is_initialized);
+        KPL_ASSERT_THAT(builtin_type_symbol_ids.contains(type_kind), "Builtin types dont't contain type kind {}", type_kind);
+        return builtin_type_ids[type_kind];
+    }
+
+    llvm::Type* get_builtin_llvm_type(TypeKind type_kind, llvm::LLVMContext& context) {
+        KPL_ASSERT_THAT(is_initialized);
+        switch (type_kind) {
+            case TypeKind::Void:
+                return llvm::Type::getVoidTy(context);
+            case TypeKind::Bool:
+                return llvm::Type::getInt1Ty(context);
+            case TypeKind::String:
+                // A string is internally represented as an immutable array of i8
+                // However, to get the llvm::Type* of that, the length of the array is needed
+                // That's why the type of a string is an i8* (since llvm uses opaque pointers, the pointer is not explicitly typed)
+                return llvm::PointerType::get(context, 0);
+            case TypeKind::I8:
+                return llvm::Type::getInt8Ty(context);
+            case TypeKind::I16:
+                return llvm::Type::getInt16Ty(context);
+            case TypeKind::I32:
+                return llvm::Type::getInt32Ty(context);
+            case TypeKind::I64:
+                return llvm::Type::getInt64Ty(context);
+            case TypeKind::U8:
+                return llvm::Type::getInt8Ty(context);
+            case TypeKind::U16:
+                return llvm::Type::getInt16Ty(context);
+            case TypeKind::U32:
+                return llvm::Type::getInt32Ty(context);
+            case TypeKind::U64:
+                return llvm::Type::getInt64Ty(context);
+            case TypeKind::F32:
+                return llvm::Type::getFloatTy(context);
+            case TypeKind::F64:
+                return llvm::Type::getDoubleTy(context);
+            case TypeKind::Struct:
+                KPL_ASSERT_UNREACHABLE("Cannot map type kind '{}' to llvm type", TypeKind::Struct);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing llvm type mapping for type kind {}", static_cast<int>(type_kind));
     }
 
     bool is_builtin_type(const Type* type) {
@@ -368,103 +643,6 @@ namespace kepler {
             return builder.CreateFCmpUGE(lhs, rhs);
         }
         KPL_ASSERT_UNREACHABLE("Missing create greater equals implementation for type '{}'", *type);
-    }
-
-    namespace {
-        llvm::Value* create_cast_to_bool(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
-            KPL_ASSERT_NOT_NULLPTR(value);
-            KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_THAT(is_builtin_type(original_type));
-            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::Bool), "Can't create redundant cast for type '{}'", *original_type);
-            llvm::Type* llvm_original_type = get_builtin_llvm_type(original_type->type_kind, context);
-            if (is_integer_type(original_type)) {
-                return builder.CreateICmpNE(value, llvm::ConstantInt::get(llvm_original_type, 0));
-            } else if (is_floating_point_type(original_type)) {
-                return builder.CreateFCmpONE(value, llvm::ConstantFP::get(llvm_original_type, 0));
-            }
-            KPL_ASSERT_UNREACHABLE("Missing create cast to bool implementation for original type '{}'", *original_type);
-        }
-
-        template <typename T>
-        // clang-format off
-        llvm::Value* create_cast_float_to_int(llvm::Value* value,
-            const Type* original_type,
-            const Type* target_type,
-            llvm::LLVMContext& context,
-            llvm::IRBuilder<>& builder)
-        {
-            // clang-format on
-            KPL_ASSERT_NOT_NULLPTR(value);
-            KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_NOT_NULLPTR(target_type);
-            KPL_ASSERT_THAT(is_builtin_type(original_type));
-            KPL_ASSERT_THAT(is_builtin_type(target_type));
-            KPL_ASSERT_THAT(original_type != target_type);
-            // Clamp the value of the float to the integer boundaries because llvm poisons the result if the value is out of bounds
-            llvm::Type* llvm_float_type = get_builtin_llvm_type(original_type->type_kind, context);
-            llvm::Value* min = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::lowest()));
-            llvm::Value* max = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::max()));
-            llvm::Value* clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
-            clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
-            llvm::Type* llvm_target_type = get_builtin_llvm_type(target_type->type_kind, context);
-            if (is_signed_integer_type(target_type)) {
-                return builder.CreateFPToSI(clamped, llvm_target_type);
-            } else if (is_unsigned_integer_type(target_type)) {
-                return builder.CreateFPToUI(clamped, llvm_target_type);
-            }
-            KPL_ASSERT_UNREACHABLE("Target type must be of type int when creating cast from float to int");
-        }
-
-        template <typename T>
-        // clang-format off
-        llvm::Value* create_cast_to_int(llvm::Value* value,
-            const Type* original_type,
-            const Type* target_type,
-            bool is_signed,
-            llvm::LLVMContext& context,
-            llvm::IRBuilder<>& builder)
-        {
-            // clang-format on
-            KPL_ASSERT_NOT_NULLPTR(value);
-            KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_NOT_NULLPTR(target_type);
-            KPL_ASSERT_THAT(is_builtin_type(target_type));
-            KPL_ASSERT_THAT(original_type != target_type);
-            if (is_integer_type(original_type)) {
-                return builder.CreateIntCast(value, get_builtin_llvm_type(target_type->type_kind, context), is_signed);
-            } else if (is_floating_point_type(original_type)) {
-                return create_cast_float_to_int<T>(value, original_type, target_type, context, builder);
-            }
-            KPL_ASSERT_UNREACHABLE("Missing create cast to '{}' implementation for original type '{}'", *target_type, *original_type);
-        }
-
-        llvm::Value* create_cast_to_f32(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
-            KPL_ASSERT_NOT_NULLPTR(value);
-            KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F32));
-            if (is_signed_integer_type(original_type)) {
-                return builder.CreateSIToFP(value, llvm::Type::getFloatTy(context));
-            } else if (is_unsigned_integer_type(original_type)) {
-                return builder.CreateUIToFP(value, llvm::Type::getFloatTy(context));
-            } else if (original_type->id == get_builtin_type_id(TypeKind::F64)) {
-                return builder.CreateFPTrunc(value, llvm::Type::getFloatTy(context));
-            }
-            KPL_ASSERT_UNREACHABLE("Missing create cast to f32 implementation for original type '{}'", *original_type);
-        }
-
-        llvm::Value* create_cast_to_f64(llvm::Value* value, const Type* original_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {
-            KPL_ASSERT_NOT_NULLPTR(value);
-            KPL_ASSERT_NOT_NULLPTR(original_type);
-            KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F64));
-            if (is_integer_type(original_type)) {
-                return builder.CreateSIToFP(value, llvm::Type::getDoubleTy(context));
-            } else if (is_unsigned_integer_type(original_type)) {
-                return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(context));
-            } else if (original_type->id == get_builtin_type_id(TypeKind::F32)) {
-                return builder.CreateFPExt(value, llvm::Type::getDoubleTy(context));
-            }
-            KPL_ASSERT_UNREACHABLE("Missing create cast to f64 implementation for original type '{}'", *original_type);
-        }
     }
 
     llvm::Value* create_cast(llvm::Value* value, const Type* original_type, const Type* target_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder) {

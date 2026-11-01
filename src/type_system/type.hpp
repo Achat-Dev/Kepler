@@ -9,11 +9,9 @@
 
 #pragma once
 
-#include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "utils/string_pool.hpp"
 #include <cstdint>
-#include <expected>
 #include <format>
 #include <functional>
 #include <limits>
@@ -50,30 +48,11 @@ namespace kepler {
         static constexpr TypeId invalid() { return TypeId{}; }
     };
 
-    /*struct Method {
-        TypeId return_type_id;
-        StringId identifier_id;
-        std::vector<TypeId> parameter_type_ids;
-        SymbolId prototype_symbol_id;
-        bool is_variadic = false;
-    };*/
-
-    // struct SymbolTable;
-    // struct TypeTable;
-
     struct Type {
         TypeId id;
         TypeKind type_kind;
         StringId identifier_id;
         SymbolId symbol_id;
-        /*std::vector<Method> methods;
-
-        void register_method(SymbolId prototype_symbol_id, SymbolTable* symbol_table, TypeTable* type_table);
-        const Method* find_method(TypeId return_type_id,
-            StringId identifier_id,
-            const std::vector<TypeId>& parameter_type_ids,
-            bool is_variadic,
-            SymbolTable* symbol_table) const;*/
     };
 
     struct StructTypeMember {
@@ -88,7 +67,14 @@ namespace kepler {
         uint32_t get_member_index(StringId identifier_id) const;
     };
 
+    struct SymbolTable;
+    struct TypeTable;
+
+    void create_builtin_types(SymbolTable& symbol_table, TypeTable& type_table);
     StringId get_type_kind_name_id(TypeKind type_kind);
+    SymbolId get_builtin_type_symbol_id(TypeKind type_kind);
+    TypeId get_builtin_type_id(TypeKind type_kind);
+    llvm::Type* get_builtin_llvm_type(TypeKind type_kind, llvm::LLVMContext& context);
     bool is_builtin_type(const Type* type);
     bool is_integer_type(const Type* type);
     bool is_signed_integer_type(const Type* type);
