@@ -16,6 +16,7 @@
 
 namespace kepler::log {
 
+    // TODO (improvement): Add a method that returns the correct sub line for different diagnostic severities
     inline constexpr char error_sub_line[] = "  \u2502        ";
     inline constexpr char indented[] = "  \u251C\u2500 ";
     inline constexpr char last_indented[] = "  \u2514\u2500 ";

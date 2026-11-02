@@ -223,7 +223,22 @@ namespace kepler {
             return {.poisoned = true};
         }
 
-        // TODO: Check if it's a cast to void and report a diagnostic
+        // Check if this prototype a cast to a different type, which is invalid
+        // We do this here even though it has something to do with typechecking because that way
+        // we don't even create the prototype symbol, which means that it will never show as the result of a search
+        if (member_function_type_symbol != nullptr) {
+            KPL_ASSERT_THAT(member_function_identifier_id != StringId::invalid());
+            bool is_cast = member_function_identifier_id == StringPool::get().store("__cast");
+            bool is_return_type_member_type = return_type_symbol.value()->type_id == member_function_type_symbol->type_id;
+            if (is_cast && !is_return_type_member_type) {
+                const std::string message = std::format("Type mismatch: A cast must return the type it's defined for (expected '{}', got '{}')",
+                    *type_table.lookup(member_function_type_symbol->type_id),
+                    *type_table.lookup(return_type_symbol.value()->type_id));
+                diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), prototype->source_location);
+                prototype->node_type = ASTNodeType::Poison;
+                return {.poisoned = true};
+            }
+        }
 
         // Check if valid parameters
         std::vector<TypeId> parameter_type_ids;
