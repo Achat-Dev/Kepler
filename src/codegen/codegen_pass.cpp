@@ -95,20 +95,19 @@ namespace kepler {
           builder(context)
     {
         // clang-format on
-        // TODO: use builtin utils to insert these mappings
         llvm_types.emplace(get_builtin_type_id(TypeKind::Void), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::Bool), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::String), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I8), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I16), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I32), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::I64), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U8), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U16), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U32), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::U64), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::F32), get_builtin_llvm_type(TypeKind::Void, context));
-        llvm_types.emplace(get_builtin_type_id(TypeKind::F64), get_builtin_llvm_type(TypeKind::Void, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::Bool), get_builtin_llvm_type(TypeKind::Bool, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::String), get_builtin_llvm_type(TypeKind::String, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I8), get_builtin_llvm_type(TypeKind::I8, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I16), get_builtin_llvm_type(TypeKind::I16, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I32), get_builtin_llvm_type(TypeKind::I32, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::I64), get_builtin_llvm_type(TypeKind::I64, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U8), get_builtin_llvm_type(TypeKind::U8, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U16), get_builtin_llvm_type(TypeKind::U16, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U32), get_builtin_llvm_type(TypeKind::U32, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::U64), get_builtin_llvm_type(TypeKind::U64, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::F32), get_builtin_llvm_type(TypeKind::F32, context));
+        llvm_types.emplace(get_builtin_type_id(TypeKind::F64), get_builtin_llvm_type(TypeKind::F64, context));
     }
 
     std::optional<std::vector<std::unique_ptr<llvm::Module>>> CodegenPass::run(std::vector<AbstractSyntaxTree>& asts) {
