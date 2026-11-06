@@ -20,6 +20,7 @@
 
 namespace kepler::internal {
 
+    // TODO (improvement): Add stacktrace to this and then remove some of the unnecessary asserts
     template <typename... Args>
     void print_assertion(const char* file_path, int line_number, std::format_string<Args...> format, Args&&... args) {
         std::string_view relative_file_path(file_path);

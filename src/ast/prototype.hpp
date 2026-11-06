@@ -12,7 +12,7 @@
 #include "ast/ast_node.hpp"
 #include "ast/expressions/member_expression.hpp"
 #include "diagnostics/source_location.hpp"
-#include "semantic_analysis/symbol.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"

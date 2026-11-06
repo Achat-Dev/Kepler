@@ -226,6 +226,7 @@ namespace kepler {
         // Check if this prototype a cast to a different type, which is invalid
         // We do this here even though it has something to do with typechecking because that way
         // we don't even create the prototype symbol, which means that it will never show as the result of a search
+        // TODO: Also do this for the operators
         if (member_function_type_symbol != nullptr) {
             KPL_ASSERT_THAT(member_function_identifier_id != StringId::invalid());
             bool is_cast = member_function_identifier_id == StringPool::get().store("__cast");
@@ -615,23 +616,23 @@ namespace kepler {
         const bool is_cast = callee_type_symbol.has_value();
         expression->cast_data.is_cast = is_cast;
 
-        std::expected<std::vector<Symbol*>, Diagnostic> found_symbols;
+        std::expected<std::vector<Symbol*>, Diagnostic> candidate_symbols;
         if (expression->module_path.identifier_parts.empty()) {
             if (is_cast) {
-                found_symbols = symbol_table.find_symbol_of_kind(module_id, callee_identifier_id, SymbolKind::Type);
+                candidate_symbols = symbol_table.find_symbol_of_kind(module_id, callee_identifier_id, SymbolKind::Type);
             } else {
-                found_symbols = symbol_table.find_symbol_of_kind(module_id, callee_identifier_id, SymbolKind::Prototype);
+                candidate_symbols = symbol_table.find_symbol_of_kind(module_id, callee_identifier_id, SymbolKind::Prototype);
             }
         } else {
             if (is_cast) {
-                found_symbols = symbol_table.find_symbol_of_kind(module_id, expression->module_path, callee_identifier_id, SymbolKind::Type);
+                candidate_symbols = symbol_table.find_symbol_of_kind(module_id, expression->module_path, callee_identifier_id, SymbolKind::Type);
             } else {
-                found_symbols = symbol_table.find_symbol_of_kind(module_id, expression->module_path, callee_identifier_id, SymbolKind::Prototype);
+                candidate_symbols = symbol_table.find_symbol_of_kind(module_id, expression->module_path, callee_identifier_id, SymbolKind::Prototype);
             }
         }
 
-        if (!found_symbols.has_value()) {
-            const Diagnostic diagnostic = found_symbols.error();
+        if (!candidate_symbols.has_value()) {
+            const Diagnostic diagnostic = candidate_symbols.error();
             if (diagnostic.code == DiagnosticCode::UnknownModule || diagnostic.code == DiagnosticCode::AmbiguousModulePath) {
                 diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->module_path.source_location);
             } else {
@@ -640,7 +641,7 @@ namespace kepler {
             expression->node_type = ASTNodeType::Poison;
             return {.poisoned = true};
         }
-        if (found_symbols.value().empty()) {
+        if (candidate_symbols.value().empty()) {
             const std::string& identifier = StringPool::get().lookup(callee_identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
             expression->node_type = ASTNodeType::Poison;
@@ -648,7 +649,7 @@ namespace kepler {
         }
 
         std::vector<SymbolId> candidate_symbol_ids;
-        for (const Symbol* found_symbol : found_symbols.value()) {
+        for (const Symbol* found_symbol : candidate_symbols.value()) {
             candidate_symbol_ids.push_back(found_symbol->id);
         }
         expression->candidate_symbol_ids = std::move(candidate_symbol_ids);

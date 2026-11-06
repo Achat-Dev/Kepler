@@ -706,32 +706,28 @@ namespace kepler {
             set_matching_call_candidate(expression, matching_call_candidates[0].symbol_id, argument_type_ids);
         } else {
             // Multiple matching candidates -> check if there are exact matches
-            std::map<MatchingCallCandidateKind, std::vector<MatchingCallCandidate>> sorted_candidates;
+            std::map<MatchingCallCandidateKind, std::vector<MatchingCallCandidate>> sorted_matching_call_candidates;
             for (const MatchingCallCandidate& matching_call_candidate : matching_call_candidates) {
-                sorted_candidates[matching_call_candidate.match_kind].push_back(matching_call_candidate);
+                sorted_matching_call_candidates[matching_call_candidate.match_kind].push_back(matching_call_candidate);
             }
 
-            for (const auto& [match_kind, call_candidates] : sorted_candidates) {
-                if (call_candidates.empty()) {
-                    // No matching candidates found in this priority -> try the next priority
+            for (const auto& [match_kind, matching_call_candidate_group] : sorted_matching_call_candidates) {
+                if (matching_call_candidate_group.empty()) {
+                    // No matching candidates found for this match kind -> try the next match kind
                     continue;
-                } else if (call_candidates.size() == 1) {
-                    // Exactly one matching candidate in this priority found -> use it
-                    update_call_argument_target_types(call_candidates[0].literal_type_ids_to_update, expression->args);
-                    set_matching_call_candidate(expression, call_candidates[0].symbol_id, argument_type_ids);
+                } else if (matching_call_candidate_group.size() == 1) {
+                    // Exactly one matching candidate for this match kind found -> use it
+                    update_call_argument_target_types(matching_call_candidate_group[0].literal_type_ids_to_update, expression->args);
+                    set_matching_call_candidate(expression, matching_call_candidate_group[0].symbol_id, argument_type_ids);
                     break;
                 } else {
-                    break;
-                    report_multiple_matching_call_candidates(expression, argument_type_ids, call_candidates);
+                    // Multiple matching candidates for this match kind found -> report them
+                    // This means that there are multiple matching candidates with the same (highest) priority,
+                    // which is why we only report those and not all the others
+                    report_multiple_matching_call_candidates(expression, argument_type_ids, matching_call_candidate_group);
                     expression->node_type = ASTNodeType::Poison;
                     return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
                 }
-            }
-
-            if (expression->symbol_id == SymbolId::invalid()) {
-                report_multiple_matching_call_candidates(expression, argument_type_ids, matching_call_candidates);
-                expression->node_type = ASTNodeType::Poison;
-                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
             }
         }
 
@@ -785,29 +781,31 @@ namespace kepler {
             // Typecheck arguments and compare them with the expected parameter types
             for (size_t i = 0; i < argument_count_to_typecheck; i++) {
                 KPL_ASSERT_NOT_NULLPTR(args[i]);
-                KPL_ASSERT_THAT(candidate_prototype_symbol->parameter_type_ids[i] != TypeId::invalid());
-                KPL_ASSERT_THAT(argument_type_ids[i] != TypeId::invalid());
-                if (candidate_prototype_symbol->parameter_type_ids[i] == argument_type_ids[i]) {
+                const TypeId parameter_type_id = candidate_prototype_symbol->parameter_type_ids[i];
+                KPL_ASSERT_THAT(parameter_type_id != TypeId::invalid());
+                const TypeId argument_type_id = argument_type_ids[i];
+                KPL_ASSERT_THAT(argument_type_id != TypeId::invalid());
+                if (parameter_type_id == argument_type_id) {
                     continue;
                 }
 
                 // If the expected and actual types don't match we still check if the expression is a literal that can produce the expected type
-                const Type* argument_type = type_table.lookup(argument_type_ids[i]);
-                const Type* parameter_type = type_table.lookup(candidate_prototype_symbol->parameter_type_ids[i]);
+                const Type* parameter_type = type_table.lookup(parameter_type_id);
+                const Type* argument_type = type_table.lookup(argument_type_id);
                 const ASTNodeType node_type = args[i]->node_type;
                 bool argument_can_be_adjusted = false;
                 // Integer argument and expected integer or floating point parameter
                 // -> check if it'a a literal and store which type it should produce if this candidate is used
                 if (is_integer_type(argument_type) && (is_integer_type(parameter_type) || is_floating_point_type(parameter_type))) {
                     if (node_type == ASTNodeType::IntegerLiteralExpression) {
-                        matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                        matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type_id);
                         argument_can_be_adjusted = true;
                     } else if (node_type == ASTNodeType::MathematicalNegationExpression) {
                         const MathematicalNegationExpression* mathematical_negation_expression =
                             static_cast<const MathematicalNegationExpression*>(args[i].get());
                         const ASTNodeType negated_expression_node_type = mathematical_negation_expression->expression->node_type;
                         if (negated_expression_node_type == ASTNodeType::IntegerLiteralExpression) {
-                            matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                            matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type_id);
                             argument_can_be_adjusted = true;
                         }
                     }
@@ -816,20 +814,20 @@ namespace kepler {
                 // -> check if it'a a literal and store which type it should produce if this candidate is used
                 else if (is_floating_point_type(argument_type) && is_floating_point_type(parameter_type)) {
                     if (node_type == ASTNodeType::IntegerLiteralExpression || node_type == ASTNodeType::FloatingPointLiteralExpression) {
-                        matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                        matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type_id);
                         argument_can_be_adjusted = true;
                     } else if (node_type == ASTNodeType::MathematicalNegationExpression) {
                         const MathematicalNegationExpression* mathematical_negation_expression =
                             static_cast<const MathematicalNegationExpression*>(args[i].get());
                         const ASTNodeType negated_expression_node_type = mathematical_negation_expression->expression->node_type;
                         if (negated_expression_node_type == ASTNodeType::IntegerLiteralExpression || negated_expression_node_type == ASTNodeType::FloatingPointLiteralExpression) {
-                            matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type->id);
+                            matching_call_candidate.literal_type_ids_to_update.emplace(i, parameter_type_id);
                             argument_can_be_adjusted = true;
                         }
                     }
                 }
 
-                // No literal at all or no literal that could produce the expected type -> Candidate doesn't match
+                // No literal at all or no literal that could produce the expected type -> candidate doesn't match
                 if (!argument_can_be_adjusted) {
                     matching_call_candidate.symbol_id = SymbolId::invalid();
                     break;
@@ -891,9 +889,9 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         std::vector<Symbol*> candidate_symbols;
         candidate_symbols.reserve(matching_call_candidates.size());
-        for (const MatchingCallCandidate& call_candidate : matching_call_candidates) {
-            KPL_ASSERT_THAT(call_candidate.symbol_id != SymbolId::invalid());
-            candidate_symbols.push_back(symbol_table.lookup(call_candidate.symbol_id));
+        for (const MatchingCallCandidate& matching_call_candidate : matching_call_candidates) {
+            KPL_ASSERT_THAT(matching_call_candidate.symbol_id != SymbolId::invalid());
+            candidate_symbols.push_back(symbol_table.lookup(matching_call_candidate.symbol_id));
         }
         const bool is_fully_qualified_call = !expression->module_path.identifier_parts.empty();
         const StringId callee_signature_id = StringPool::get().store(get_full_identifier_from_path(expression->identifier_path));
@@ -912,9 +910,9 @@ namespace kepler {
         KPL_ASSERT_THAT(candidate_symbol_id != SymbolId::invalid());
         expression->symbol_id = candidate_symbol_id;
 
-        // Check if builtin cast
+        // Check if it's a builtin cast
         // Criterias:
-        // - Casts to a builtin type
+        // - Cast to a builtin type
         // - Has exactly one argument of a builtin type
         // - Is not variadic
         if (!expression->cast_data.is_cast) {

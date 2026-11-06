@@ -58,6 +58,8 @@ namespace kepler {
         }
     };
 
+    // Important: The order of these determines the priority of the match kind
+    // Lower means hihger priority
     enum class MatchingCallCandidateKind {
         ExactMatch,
         ExactMatchWithAdjustments,
