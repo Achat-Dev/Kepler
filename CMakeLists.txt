@@ -7,6 +7,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Import LLVM
 find_package(LLVM REQUIRED CONFIG)
 
+if(LLVM_PACKAGE_VERSION VERSION_LESS 21 OR NOT LLVM_PACKAGE_VERSION VERSION_LESS 22)
+    message(FATAL_ERROR "This project requires LLVM version 21.x, but found ${LLVM_PACKAGE_VERSION}.\nUse -DLLVM_DIR=/path/to/llvm21/dir_with_LLVMConfig.cmake")
+endif()
+
 add_executable(${CMAKE_PROJECT_NAME}
     src/ast/ast_node.cpp
     src/ast/prototype.cpp
