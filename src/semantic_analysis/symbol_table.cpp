@@ -499,7 +499,7 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), symbol_id.value);
         const Symbol* symbol = symbols[symbol_id.value];
-        if (symbol->linkage_type != LinkageType::Export) {
+        if (symbol->module_id != module_id && symbol->linkage_type != LinkageType::Export) {
             return false;
         }
         if (symbol->module_id == get_global_module()->id) {
@@ -538,7 +538,7 @@ namespace kepler {
             const Scope& imported_module_scope = scopes[imported_module.scope_ids.begin()->value];
             for (const auto& [identifier_id, scope_entry] : imported_module_scope.contained_symbols) {
                 const bool result = std::visit(scope_entry_visit_handler, scope_entry);
-                if (result) {
+                if (result && symbol->linkage_type == LinkageType::Export) {
                     return true;
                 }
             }
