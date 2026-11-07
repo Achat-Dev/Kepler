@@ -44,9 +44,16 @@ namespace kepler {
         StringId identifier_id;
         StringId mangled_identifier_id;
         LinkageType linkage_type;
+        bool is_builtin;
 
-        Symbol(SymbolId id, ModuleId module_id, ScopeId scope_id, TypeId type_id, StringId identifier_id, LinkageType linkage_type)
-            : id(id), module_id(module_id), scope_id(scope_id), type_id(type_id), identifier_id(identifier_id), linkage_type(linkage_type) {}
+        Symbol(SymbolId id, ModuleId module_id, ScopeId scope_id, TypeId type_id, StringId identifier_id, LinkageType linkage_type, bool is_builtin)
+            : id(id),
+              module_id(module_id),
+              scope_id(scope_id),
+              type_id(type_id),
+              identifier_id(identifier_id),
+              linkage_type(linkage_type),
+              is_builtin(is_builtin) {}
 
         constexpr virtual SymbolKind get_symbol_kind() const = 0;
         virtual ~Symbol() = default;
@@ -54,7 +61,7 @@ namespace kepler {
 
     struct VariableSymbol : Symbol {
         VariableSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, TypeId type_id, StringId identifier_id)
-            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id, LinkageType::Internal) {}
+            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id, LinkageType::Internal, false) {}
 
         constexpr SymbolKind get_symbol_kind() const override {
             return SymbolKind::Variable;
@@ -73,8 +80,9 @@ namespace kepler {
             StringId identifier_id,
             LinkageType linkage_type,
             std::vector<TypeId> parameter_type_ids,
-            bool is_variadic)
-            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id, linkage_type),
+            bool is_variadic,
+            bool is_builtin)
+            : Symbol(symbol_id, module_id, scope_id, type_id, identifier_id, linkage_type, is_builtin),
               parameter_type_ids(std::move(parameter_type_ids)),
               is_variadic(is_variadic) {}
 
@@ -88,8 +96,8 @@ namespace kepler {
     struct TypeSymbol : Symbol {
         std::vector<SymbolId> method_symbol_ids;
 
-        TypeSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, StringId identifier_id)
-            : Symbol(symbol_id, module_id, scope_id, TypeId::invalid(), identifier_id, LinkageType::Internal) {}
+        TypeSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, StringId identifier_id, bool is_builtin)
+            : Symbol(symbol_id, module_id, scope_id, TypeId::invalid(), identifier_id, LinkageType::Internal, is_builtin) {}
 
         constexpr SymbolKind get_symbol_kind() const override {
             return SymbolKind::Type;
@@ -98,7 +106,8 @@ namespace kepler {
             const std::vector<TypeId>& parameter_type_ids,
             bool is_variadic,
             ModuleId searching_module_id,
-            SymbolTable* symbol_table) const;
+            SymbolTable* symbol_table,
+            TypeTable* type_table) const;
     };
 
     struct SymbolDiagnosticSorter {

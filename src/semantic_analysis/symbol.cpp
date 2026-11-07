@@ -8,6 +8,7 @@
  */
 
 #include "semantic_analysis/symbol.hpp"
+#include "ast/ast_node.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/module.hpp"
@@ -90,7 +91,8 @@ namespace kepler {
         const std::vector<TypeId>& parameter_type_ids,
         bool is_variadic,
         ModuleId searching_module_id,
-        SymbolTable* symbol_table) const
+        SymbolTable* symbol_table,
+        TypeTable* type_table) const
     {
         // clang-format on
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
@@ -110,13 +112,20 @@ namespace kepler {
                 if (symbol_table->is_symbol_visible_in_module(searching_module_id, method_symbol_id)) {
                     return method_symbol_id;
                 } else {
-                    // TODO (improvement): Better diagnostic message depending on if the symbol is not exported and if the module not imported
+                    const Module* symbol_module = symbol_table->lookup(method_symbol->module_id);
                     const Module* searching_module = symbol_table->lookup(searching_module_id);
+                    std::string message = std::format("Method '{}' found in module '{}', but it's not visible in the calling module ('{}')",
+                        get_prototype_signature(full_identifier_id, parameter_type_ids, is_variadic, *type_table),
+                        StringPool::get().lookup(symbol_module->full_identifier_id),
+                        StringPool::get().lookup(searching_module->full_identifier_id));
+                    if (method_symbol->linkage_type == LinkageType::Export) {
+                        message += " because the module is not imported";
+                    } else {
+                        message += " because it's not exported";
+                    }
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::WrongVisibility,
-                        .message = std::format("Symbol '{}' is not visible in module '{}'",
-                            StringPool::get().lookup(identifier_id),
-                            StringPool::get().lookup(searching_module->full_identifier_id)),
+                        .message = std::move(message),
                     });
                 }
             }

@@ -12,6 +12,7 @@
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
+#include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
 #include <memory>
 #include <utility>
@@ -23,6 +24,7 @@ namespace kepler {
         std::unique_ptr<Expression> lhs;
         std::unique_ptr<Expression> rhs;
         TypeId target_type_id;
+        SymbolId method_symbol_id;
 
         BinaryExpression(OperatorType operator_type,
             std::unique_ptr<Expression> lhs,

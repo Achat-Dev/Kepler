@@ -113,7 +113,7 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
             KPL_ASSERT_THAT(struct_node->type_id == TypeId::invalid());
-            const auto symbol_id = symbol_table.create_struct(module_id, struct_node->identifier_id);
+            const auto symbol_id = symbol_table.create_struct(module_id, struct_node->identifier_id, false);
             if (!symbol_id.has_value()) {
                 const Diagnostic& diagnostic = symbol_id.error();
                 diagnostic_sink.report(diagnostic.code, diagnostic.message, struct_node->source_location);
@@ -266,7 +266,8 @@ namespace kepler {
             std::move(parameter_type_ids),
             std::move(parameter_type_identifier_ids),
             prototype->is_variadic,
-            object_type_symbol == nullptr ? SymbolId::invalid() : object_type_symbol->id);
+            object_type_symbol == nullptr ? SymbolId::invalid() : object_type_symbol->id,
+            false);
         if (!symbol_id.has_value()) {
             const Diagnostic& diagnostic = symbol_id.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, prototype->identifier_source_location);

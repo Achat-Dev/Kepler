@@ -727,6 +727,14 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        if (expression->method_symbol_id != SymbolId::invalid()) {
+            const Symbol* operator_method_symbol = symbol_table.lookup(expression->method_symbol_id);
+            if (!operator_method_symbol->is_builtin) {
+                return create_call(expression->method_symbol_id,
+                    {expression->lhs.get(), expression->rhs.get()},
+                    StringPool::get().lookup(operator_method_symbol->identifier_id));
+            }
+        }
 
         const CodegenResult lhs_cr = codegen_node(expression->lhs.get());
         KPL_ASSERT_NOT_NULLPTR(lhs_cr.llvm_value);
@@ -780,32 +788,48 @@ namespace kepler {
             };
         }
 
-        KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
-        llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[expression->symbol_id]);
+        // Create the normal call otherwise
+        std::vector<Expression*> args;
+        args.reserve(expression->args.size());
+        for (const std::unique_ptr<Expression>& arg : expression->args) {
+            args.push_back(arg.get());
+        }
+        return create_call(expression->symbol_id, std::move(args), get_full_identifier_from_path(expression->identifier_path));
+    }
+
+    // clang-format off
+    CodegenResult CodegenPass::create_call(SymbolId prototype_symbol_id,
+        const std::vector<Expression*>& args,
+        const std::string& prototype_identifier)
+    {
+        // clang-format on
+        KPL_ASSERT_THAT(prototype_symbol_id != SymbolId::invalid());
+        KPL_ASSERT_THAT(llvm_values.contains(prototype_symbol_id));
+        llvm::Function* llvm_function = static_cast<llvm::Function*>(llvm_values[prototype_symbol_id]);
         // llvm can't create a call to a function in a different module
         // That's why we use getOrInsertFunction to create an extern declaration if it doesn't exist
         llvm::FunctionCallee llvm_function_callee = current_llvm_module->getOrInsertFunction(llvm_function->getName(), llvm_function->getFunctionType());
-        const Symbol* symbol = symbol_table.lookup(expression->symbol_id);
+        const Symbol* symbol = symbol_table.lookup(prototype_symbol_id);
         KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Prototype);
         const PrototypeSymbol* prototype_symbol = static_cast<const PrototypeSymbol*>(symbol);
         const bool is_variadic = prototype_symbol->is_variadic;
         const size_t parameter_count = prototype_symbol->parameter_type_ids.size();
         KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(), "Internal variadic: {}, LLVM variadic: {}", is_variadic, llvm_function->isVarArg());
         if (!is_variadic) {
-            KPL_ASSERT_THAT(expression->args.size() == parameter_count,
+            KPL_ASSERT_THAT(args.size() == parameter_count,
                 "Internal arg count: {}, internal parameter count: {}",
-                expression->args.size(),
+                args.size(),
                 parameter_count);
-            KPL_ASSERT_THAT(expression->args.size() == llvm_function->arg_size(),
+            KPL_ASSERT_THAT(args.size() == llvm_function->arg_size(),
                 "Internal arg count: {}, LLVM arg count: {}",
-                expression->args.size(),
+                args.size(),
                 llvm_function->arg_size());
         }
 
         std::vector<llvm::Value*> arg_values;
-        for (size_t i = 0; i < expression->args.size(); i++) {
-            KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
-            const CodegenResult codegen_result = codegen_node(expression->args[i].get());
+        for (size_t i = 0; i < args.size(); i++) {
+            KPL_ASSERT_NOT_NULLPTR(args[i]);
+            const CodegenResult codegen_result = codegen_node(args[i]);
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
             // Promote all variadic float arguments to doubles (this is required for C functions)
             if (is_variadic && i >= parameter_count && codegen_result.llvm_value->getType() == llvm::Type::getFloatTy(context)) {
@@ -823,7 +847,7 @@ namespace kepler {
         if (symbol->type_id == get_builtin_type_id(TypeKind::Void)) {
             value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
         } else {
-            value = builder.CreateCall(llvm_function_callee, std::move(arg_values), get_full_identifier_from_path(expression->identifier_path));
+            value = builder.CreateCall(llvm_function_callee, std::move(arg_values), prototype_identifier);
         }
 #else
         value = builder.CreateCall(llvm_function_callee, std::move(arg_values));
@@ -836,6 +860,14 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        if (expression->method_symbol_id != SymbolId::invalid()) {
+            const Symbol* operator_method_symbol = symbol_table.lookup(expression->method_symbol_id);
+            if (!operator_method_symbol->is_builtin) {
+                return create_call(expression->method_symbol_id,
+                    {expression->expression.get()},
+                    StringPool::get().lookup(operator_method_symbol->identifier_id));
+            }
+        }
 
         const CodegenResult codegen_result = codegen_node(expression->expression.get());
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);

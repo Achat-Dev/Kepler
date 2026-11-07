@@ -111,7 +111,7 @@ namespace kepler {
             const std::string& type_identifier = StringPool::get().lookup(type_identifier_id);
             const StringId method_identifier_id = StringPool::get().store(type_identifier + '.' + operator_identifier);
             const auto symbol_id = symbol_table.create_prototype(global_module_id, type_id, method_identifier_id,
-                LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
+                LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id, true);
             KPL_ASSERT_THAT(symbol_id.has_value());
         }
 
@@ -148,7 +148,7 @@ namespace kepler {
             };
             for (TypeId number_type_id : number_type_ids) {
                 const auto cast_symbol_id = symbol_table.create_prototype(global_module_id, bool_type_id, cast_identifier_id,
-                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id);
+                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id, true);
             }
         }
 
@@ -177,7 +177,7 @@ namespace kepler {
                 type_identifier_id, OperatorType::Division, symbol_table);
             const StringId mneg_identifier_id = StringPool::get().store(StringPool::get().lookup(type_identifier_id) + ".__mneg");
             const auto mneg_symbol_id = symbol_table.create_prototype(global_module_id, type_id, mneg_identifier_id,
-                LinkageType::Export, {type_id}, {value_identifier_id}, false, type_symbol_id);
+                LinkageType::Export, {type_id}, {value_identifier_id}, false, type_symbol_id, true);
             KPL_ASSERT_THAT(mneg_symbol_id.has_value());
 
             // Comparison operators
@@ -213,7 +213,7 @@ namespace kepler {
                     continue;
                 }
                 const auto cast_symbol_id = symbol_table.create_prototype(global_module_id, type_id, cast_identifier_id,
-                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id);
+                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id, true);
                 KPL_ASSERT_THAT(cast_symbol_id.has_value());
             }
         }
@@ -222,7 +222,7 @@ namespace kepler {
             KPL_ASSERT_THAT(type_kind != TypeKind::Struct);
             const ModuleId global_module_id = symbol_table.get_global_module()->id;
             const StringId identifier_id = get_type_kind_name_id(type_kind);
-            const auto symbol_id = symbol_table.create_struct(global_module_id, identifier_id);
+            const auto symbol_id = symbol_table.create_struct(global_module_id, identifier_id, true);
             KPL_ASSERT_THAT(symbol_id.has_value());
             const TypeId type_id = type_table.create_type(identifier_id, type_kind, symbol_id.value());
             symbol_table.lookup(symbol_id.value())->type_id = type_id;

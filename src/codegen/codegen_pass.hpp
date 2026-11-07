@@ -14,6 +14,7 @@
 #include "ast/ast_pass.hpp"
 #include "ast/expressions/binary_expression.hpp"
 #include "ast/expressions/call_expression.hpp"
+#include "ast/expressions/expression.hpp"
 #include "ast/expressions/literals/boolean_literal_expression.hpp"
 #include "ast/expressions/literals/floating_point_literal_expression.hpp"
 #include "ast/expressions/literals/integer_literal_expression.hpp"
@@ -50,6 +51,7 @@
 #include <llvm/TargetParser/Triple.h>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -110,6 +112,9 @@ namespace kepler {
         CodegenResult codegen_string_literal_expression(const StringLiteralExpression* expression);
         CodegenResult codegen_binary_expression(const BinaryExpression* expression);
         CodegenResult codegen_call_expression(const CallExpression* expression);
+        CodegenResult create_call(SymbolId prototype_symbol_id,
+            const std::vector<Expression*>& args,
+            const std::string& prototype_identifier);
         CodegenResult codegen_mathematical_negation_expression(const MathematicalNegationExpression* expression);
         CodegenResult codegen_member_expression(const MemberExpression* expression);
         CodegenResult codegen_object_initializer_expression(const ObjectInitializerExpression* expression);

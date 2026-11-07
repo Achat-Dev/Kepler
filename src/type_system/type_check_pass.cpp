@@ -586,7 +586,19 @@ namespace kepler {
         const Symbol* target_type_symbol = symbol_table.lookup(lhs_type->symbol_id);
         KPL_ASSERT_THAT(target_type_symbol->get_symbol_kind() == SymbolKind::Type);
         const TypeSymbol* target_type_type_symbol = static_cast<const TypeSymbol*>(target_type_symbol);
-        if (!target_type_type_symbol->find_method(operator_name_id, {rhs_tcr.type_id}, false, module_id, &symbol_table)) {
+        const auto method_symbol_id = target_type_type_symbol->find_method(operator_name_id,
+            {lhs_tcr.type_id, rhs_tcr.type_id},
+            false,
+            module_id,
+            &symbol_table,
+            &type_table);
+        if (!method_symbol_id.has_value()) {
+            const Diagnostic& diagnostic = method_symbol_id.error();
+            diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
+        }
+        if (method_symbol_id.value() == SymbolId::invalid()) {
             const Type* rhs_type = type_table.lookup(rhs_tcr.type_id);
             const std::string message = std::format("No implementation of binary operator '{}' between types '{}' and '{}'",
                 expression->operator_type,
@@ -597,8 +609,9 @@ namespace kepler {
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
         }
 
-        // Use lhs_tcr.type instead of requested_type because that could be unknown
+        // Use lhs_tcr.type instead of requested_type because that could be TypeId::invalid()
         expression->target_type_id = lhs_tcr.type_id;
+        expression->method_symbol_id = method_symbol_id.value();
         return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = lhs_tcr.type_id};
     }
 
@@ -970,12 +983,25 @@ namespace kepler {
         const TypeSymbol* target_type_type_symbol = static_cast<const TypeSymbol*>(target_type_symbol);
         // The data type of the expression to negate maybe doesn't support mathematical negation
         // This can be the case either if the typecheck fulfills the requested data type or the typechecks fails but doesn't report a diagnostic
-        if (!target_type_type_symbol->find_method(StringPool::get().store("__mneg"), {typecheck_result.type_id}, false, module_id, &symbol_table)) {
+        const auto method_symbol_id = target_type_type_symbol->find_method(StringPool::get().store("__mneg"),
+            {typecheck_result.type_id},
+            false,
+            module_id,
+            &symbol_table,
+            &type_table);
+        if (!method_symbol_id.has_value()) {
+            const Diagnostic& diagnostic = method_symbol_id.error();
+            diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            expression->node_type = ASTNodeType::Poison;
+            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
+        }
+        if (method_symbol_id.value() == SymbolId::invalid()) {
             const std::string message = std::format("Type '{}' doesn't support unary operator '-'", *target_type);
             diagnostic_sink.report(DiagnosticCode::InvalidMathematicalNegation, message, expression->source_location);
             expression->node_type = ASTNodeType::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
         }
+        expression->method_symbol_id = method_symbol_id.value();
 
         // If the data type supports mathematical negation but the typecheck didn't report a diagnostic we have to propagate that
         // because this ast node doesn't know a proper diagnostic

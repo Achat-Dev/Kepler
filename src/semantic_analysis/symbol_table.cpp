@@ -157,7 +157,7 @@ namespace kepler {
         return imported_module->id;
     }
 
-    std::expected<SymbolId, Diagnostic> SymbolTable::create_struct(ModuleId module_id, StringId identifier_id) {
+    std::expected<SymbolId, Diagnostic> SymbolTable::create_struct(ModuleId module_id, StringId identifier_id, bool is_builtin) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         Module& module = modules[module_id.value];
@@ -179,7 +179,7 @@ namespace kepler {
         Scope& scope = scopes[module.current_scope_id.value];
         const SymbolId symbol_id{.value = static_cast<uint32_t>(symbols.size())};
         scope.contained_symbols.emplace(identifier_id, symbol_id);
-        Symbol* symbol = symbol_allocator.allocate<TypeSymbol>(symbol_id, module_id, scope.id, identifier_id);
+        Symbol* symbol = symbol_allocator.allocate<TypeSymbol>(symbol_id, module_id, scope.id, identifier_id, is_builtin);
         symbols.push_back(symbol);
         return symbol_id;
     }
@@ -225,7 +225,8 @@ namespace kepler {
         std::vector<TypeId> parameter_type_ids,
         std::vector<StringId> parameter_type_identifier_ids,
         bool is_variadic,
-        SymbolId type_symbol_id)
+        SymbolId type_symbol_id,
+        bool is_builtin)
     {
         // clang-format on
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
@@ -274,7 +275,8 @@ namespace kepler {
             identifier_id,
             linkage_type,
             std::move(parameter_type_ids),
-            is_variadic);
+            is_variadic,
+            is_builtin);
         if (type_symbol_id != SymbolId::invalid()) {
             KPL_ASSERT_THAT(type_symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), type_symbol_id.value);
             TypeSymbol* type_symbol = static_cast<TypeSymbol*>(symbols[type_symbol_id.value]);
@@ -495,6 +497,7 @@ namespace kepler {
         module.current_scope_id = scope.parent_id;
     }
 
+    // TODO (improvement): We can avoid searching through all imported symbols by storing the modules that see a symbol in the symbol
     bool SymbolTable::is_symbol_visible_in_module(ModuleId module_id, SymbolId symbol_id) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), symbol_id.value);
