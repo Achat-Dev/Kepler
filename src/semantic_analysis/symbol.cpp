@@ -96,11 +96,13 @@ namespace kepler {
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(searching_module_id != ModuleId::invalid());
         KPL_ASSERT_NOT_NULLPTR(symbol_table);
+        const std::string full_identifier = StringPool::get().lookup(this->identifier_id) + '.' + StringPool::get().lookup(identifier_id);
+        const StringId full_identifier_id = StringPool::get().store(std::move(full_identifier));
         for (SymbolId method_symbol_id : method_symbol_ids) {
             KPL_ASSERT_THAT(method_symbol_id != SymbolId::invalid());
             const PrototypeSymbol* method_symbol = static_cast<const PrototypeSymbol*>(symbol_table->lookup(method_symbol_id));
             // clang-format off
-            if (method_symbol->identifier_id == identifier_id
+            if (method_symbol->identifier_id == full_identifier_id
                 && method_symbol->parameter_type_ids == parameter_type_ids
                 && method_symbol->is_variadic == is_variadic)
             {
