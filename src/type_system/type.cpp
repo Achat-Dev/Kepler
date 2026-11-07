@@ -105,8 +105,10 @@ namespace kepler {
         {
             // clang-format on
             const ModuleId global_module_id = symbol_table.get_global_module()->id;
-            const std::string& type_identifier = StringPool::get().lookup(type_identifier_id);
+            // Lookup the operator identifier first, because that one might store a new string,
+            // which could invalidate the type identifier if that is looked up first
             const std::string& operator_identifier = StringPool::get().lookup(get_operator_name_id(operator_type));
+            const std::string& type_identifier = StringPool::get().lookup(type_identifier_id);
             const StringId method_identifier_id = StringPool::get().store(type_identifier + '.' + operator_identifier);
             const auto symbol_id = symbol_table.create_prototype(global_module_id, type_id, method_identifier_id,
                 LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id);
