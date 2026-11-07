@@ -29,6 +29,7 @@
 #include "ast/struct.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
+#include "lexer/operator_type.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
@@ -40,6 +41,7 @@
 #include "utils/string_pool.hpp"
 #include "utils/string_utils.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <format>
 #include <memory>
@@ -175,10 +177,10 @@ namespace kepler {
         }
 
         // Check if valid identifier
-        TypeSymbol* member_function_type_symbol = nullptr;
-        StringId member_function_identifier_id;
+        TypeSymbol* object_type_symbol = nullptr;
+        StringId method_identifier_id;
         const StringId identifier_id = std::visit(
-            [this, prototype, &member_function_type_symbol, &member_function_identifier_id](const auto& prototype_identifier) -> StringId {
+            [this, prototype, &object_type_symbol, &method_identifier_id](const auto& prototype_identifier) -> StringId {
                 using ValueType = std::decay_t<decltype(prototype_identifier)>;
                 if constexpr (std::is_same_v<ValueType, StringId>) {
                     KPL_ASSERT_THAT(prototype_identifier != StringId::invalid());
@@ -202,7 +204,7 @@ namespace kepler {
                         prototype->node_type = ASTNodeType::Poison;
                         return StringId::invalid();
                     }
-                    member_function_type_symbol = type_symbol.value();
+                    object_type_symbol = type_symbol.value();
                     // Resolve member identifier part of path (Type.*Function*)
                     const auto identifier_type_id = resolve_type_identifier_to_type_symbol(prototype_identifier.identifier_id);
                     if (identifier_type_id.has_value()) {
@@ -212,7 +214,7 @@ namespace kepler {
                         prototype->node_type = ASTNodeType::Poison;
                         return StringId::invalid();
                     }
-                    member_function_identifier_id = prototype_identifier.identifier_id;
+                    method_identifier_id = prototype_identifier.identifier_id;
                     return get_prototype_identifier_id(prototype);
                 }
                 KPL_ASSERT_UNREACHABLE("Missing visit implementation for PrototypeIdentifier '{}'",
@@ -221,24 +223,6 @@ namespace kepler {
             prototype->identifier);
         if (identifier_id == StringId::invalid()) {
             return {.poisoned = true};
-        }
-
-        // Check if this prototype a cast to a different type, which is invalid
-        // We do this here even though it has something to do with typechecking because that way
-        // we don't even create the prototype symbol, which means that it will never show as the result of a search
-        // TODO: Also do this for the operators
-        if (member_function_type_symbol != nullptr) {
-            KPL_ASSERT_THAT(member_function_identifier_id != StringId::invalid());
-            bool is_cast = member_function_identifier_id == StringPool::get().store("__cast");
-            bool is_return_type_member_type = return_type_symbol.value()->type_id == member_function_type_symbol->type_id;
-            if (is_cast && !is_return_type_member_type) {
-                const std::string message = std::format("Type mismatch: A cast must return the type it's defined for (expected '{}', got '{}')",
-                    *type_table.lookup(member_function_type_symbol->type_id),
-                    *type_table.lookup(return_type_symbol.value()->type_id));
-                diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), prototype->source_location);
-                prototype->node_type = ASTNodeType::Poison;
-                return {.poisoned = true};
-            }
         }
 
         // Check if valid parameters
@@ -264,6 +248,17 @@ namespace kepler {
             parameter_type_identifier_ids.push_back(parameter_data.type_identifier_id);
         }
 
+        if (object_type_symbol != nullptr && method_identifier_id != StringId::invalid()) {
+            const NameResolutionResult operator_signature_nrr = ensure_operator_signatures(prototype,
+                object_type_symbol->type_id,
+                method_identifier_id,
+                parameter_type_ids.size());
+            if (operator_signature_nrr.poisoned) {
+                prototype->node_type = ASTNodeType::Poison;
+                return {.poisoned = true};
+            }
+        }
+
         const auto symbol_id = symbol_table.create_prototype(module_id,
             return_type_symbol.value()->type_id,
             identifier_id,
@@ -271,7 +266,7 @@ namespace kepler {
             std::move(parameter_type_ids),
             std::move(parameter_type_identifier_ids),
             prototype->is_variadic,
-            member_function_type_symbol == nullptr ? SymbolId::invalid() : member_function_type_symbol->id);
+            object_type_symbol == nullptr ? SymbolId::invalid() : object_type_symbol->id);
         if (!symbol_id.has_value()) {
             const Diagnostic& diagnostic = symbol_id.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, prototype->identifier_source_location);
@@ -280,6 +275,120 @@ namespace kepler {
         }
         prototype->symbol_id = symbol_id.value();
         return {.poisoned = false};
+    }
+
+    // clang-format off
+    NameResolutionResult NameResolutionPass::ensure_operator_signatures(Prototype* prototype,
+        TypeId object_type_id,
+        StringId method_identifier_id,
+        uint32_t parameter_count) const
+    {
+        // clang-format on
+        // Make sure that the signature of the prototype is correct if it's an operator or a cast
+        // We do this here even though it has something to do with typechecking because that way
+        // we don't even create the prototype symbol, which means that it will never show as the result of a search,
+        // which will result in better performance
+        KPL_ASSERT_NOT_NULLPTR(prototype);
+        KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(object_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(method_identifier_id != StringId::invalid());
+        if (method_identifier_id == StringPool::get().store("__cast") && prototype->return_type_id != object_type_id) {
+            const std::string message = std::format("Type mismatch: A cast must return the type it's defined for (expected '{}', got '{}')",
+                *type_table.lookup(object_type_id),
+                *type_table.lookup(prototype->return_type_id));
+            diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), prototype->source_location);
+            prototype->node_type = ASTNodeType::Poison;
+            return {.poisoned = true};
+        }
+
+        const OperatorSignatureData actual_signature{
+            .return_type_id = prototype->return_type_id,
+            .identifier_id = method_identifier_id,
+            .parameter_count = parameter_count,
+        };
+        ensure_operator_signature(prototype,
+            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Plus), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Minus), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Multiplication), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Division), .parameter_count = 2},
+            actual_signature);
+        const TypeId bool_type_id = get_builtin_type_id(TypeKind::Bool);
+        ensure_operator_signature(prototype,
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessThan), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterThan), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::Equals), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::NotEquals), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessEquals), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterEquals), .parameter_count = 2},
+            actual_signature);
+        ensure_operator_signature(prototype,
+            {.return_type_id = object_type_id, .identifier_id = StringPool::get().store("__mneg"), .parameter_count = 1},
+            actual_signature);
+
+        return {.poisoned = false};
+    }
+
+    // clang-format off
+    void NameResolutionPass::ensure_operator_signature(Prototype* prototype,
+        const OperatorSignatureData& expected_signature,
+        const OperatorSignatureData& actual_signature) const
+    {
+        // clang-format on
+        KPL_ASSERT_NOT_NULLPTR(prototype);
+        KPL_ASSERT_THAT(expected_signature.identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(expected_signature.return_type_id != TypeId::invalid());
+        KPL_ASSERT_THAT(actual_signature.identifier_id != StringId::invalid());
+        KPL_ASSERT_THAT(actual_signature.return_type_id != TypeId::invalid());
+        if (prototype->node_type == ASTNodeType::Poison) {
+            return;
+        }
+        if (expected_signature.identifier_id != actual_signature.identifier_id) {
+            return;
+        }
+
+        if (expected_signature.return_type_id != actual_signature.return_type_id) {
+            std::string message = "Type mismatch: Operator '" + StringPool::get().lookup(expected_signature.identifier_id) + "' must return ";
+            if (expected_signature.return_type_id == get_builtin_type_id(TypeKind::Bool)) {
+                message += std::format("'{}', got '{}'",
+                    *type_table.lookup(expected_signature.return_type_id),
+                    *type_table.lookup(actual_signature.return_type_id));
+            } else {
+                message += std::format("the type it's defined for (expected '{}', got '{}'",
+                    *type_table.lookup(expected_signature.return_type_id),
+                    *type_table.lookup(actual_signature.return_type_id));
+            }
+            diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), prototype->source_location);
+            prototype->node_type = ASTNodeType::Poison;
+            return;
+        }
+
+        if (expected_signature.parameter_count != actual_signature.parameter_count) {
+            const std::string message = std::format("Parameter count mismatch: Operator '{}' expects {} parameters, got {})",
+                StringPool::get().lookup(expected_signature.identifier_id),
+                expected_signature.parameter_count,
+                actual_signature.parameter_count);
+            // TODO (improvement): Point the source location at the mismatched parameters
+            diagnostic_sink.report(DiagnosticCode::MismatchingOperatorParameterCount, std::move(message), prototype->source_location);
+            prototype->node_type = ASTNodeType::Poison;
+            return;
+        }
     }
 
     void NameResolutionPass::create_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {

@@ -66,7 +66,7 @@ namespace kepler {
         TypeMismatch,
         InvalidIdentifier,
         InvalidVariableType,
-        MismatchingArgumentCount,
+        MismatchingOperatorParameterCount,
         IntegerLiteralOutOfBounds,
         UnsupportedMathematicalOperation,
         AmbiguousObjectInitializer,

@@ -58,7 +58,7 @@ namespace kepler {
             case DiagnosticCode::TypeMismatch:
             case DiagnosticCode::InvalidIdentifier:
             case DiagnosticCode::InvalidVariableType:
-            case DiagnosticCode::MismatchingArgumentCount:
+            case DiagnosticCode::MismatchingOperatorParameterCount:
             case DiagnosticCode::IntegerLiteralOutOfBounds:
             case DiagnosticCode::UnsupportedMathematicalOperation:
             case DiagnosticCode::AmbiguousObjectInitializer:

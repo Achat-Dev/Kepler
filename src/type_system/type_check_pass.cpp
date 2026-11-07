@@ -1031,6 +1031,7 @@ namespace kepler {
 
         expression->type_id = target_type_id;
         const Type* target_type = type_table.lookup(target_type_id);
+        // TODO (fix): This is wrong, see 'bool vec3.__equals(vec3 a, vec3 b) return {} end'
         KPL_ASSERT_THAT(target_type->type_kind == TypeKind::Struct);
         const StructType* target_struct_type = static_cast<const StructType*>(target_type);
         for (size_t i = 0; i < expression->member_initializers.size(); i++) {

@@ -36,6 +36,7 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include "utils/string_pool.hpp"
+#include <cstdint>
 #include <expected>
 #include <memory>
 #include <unordered_map>
@@ -45,6 +46,12 @@ namespace kepler {
 
     struct NameResolutionResult {
         bool poisoned = false;
+    };
+
+    struct OperatorSignatureData {
+        TypeId return_type_id;
+        StringId identifier_id;
+        uint32_t parameter_count;
     };
 
     class NameResolutionPass : public ASTPass<void> {
@@ -65,6 +72,13 @@ namespace kepler {
         void create_struct_symbol(Struct* struct_node);
         void create_prototype_symbols(const std::vector<std::unique_ptr<ASTNode>>& top_level_nodes);
         NameResolutionResult create_prototype_symbol(Prototype* prototype, LinkageType linkage_type) const;
+        NameResolutionResult ensure_operator_signatures(Prototype* prototype,
+            TypeId object_type_id,
+            StringId method_identifier_id,
+            uint32_t parameter_count) const;
+        void ensure_operator_signature(Prototype* prototype,
+            const OperatorSignatureData& expected_signature,
+            const OperatorSignatureData& actual_signature) const;
 
         void create_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
         NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
