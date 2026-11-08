@@ -67,6 +67,10 @@ namespace kepler {
             case DiagnosticCode::UnknownMember:
             case DiagnosticCode::WrongVisibility:
             case DiagnosticCode::MultipleMainMethods:
+            case DiagnosticCode::NoMatchingCallCandidates:
+            case DiagnosticCode::MultipleMatchingCallCandidates:
+            case DiagnosticCode::NoOperatorImplementation:
+            case DiagnosticCode::MultipleOperatorImplementations:
                 return DiagnosticSeverity::Error;
 
             case DiagnosticCode::Unsupported:

@@ -29,6 +29,7 @@
 #include "ast/statements/if_statement.hpp"
 #include "ast/statements/return_statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
+#include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/module.hpp"
@@ -37,6 +38,7 @@
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -103,16 +105,18 @@ namespace kepler {
         TypeCheckResult typecheck_integer_literal_expression(IntegerLiteralExpression* expression, TypeId requested_type_id, bool is_negative) const;
         TypeCheckResult typecheck_string_literal_expression(StringLiteralExpression* expression, TypeId requested_type_id) const;
         TypeCheckResult typecheck_binary_expression(BinaryExpression* expression, TypeId requested_type_id);
-        TypeCheckResult typecheck_binary_expression_side(BinaryExpression* binary_expression, Expression* side_expression, TypeId requested_type_id);
         TypeCheckResult typecheck_call_expression(CallExpression* expression, TypeId requested_type_id);
+        std::expected<SymbolId, Diagnostic> find_matching_prototype_symbol(TypeId return_type_id,
+            const std::vector<SymbolId>& candidate_symbol_ids,
+            const std::vector<Expression*>& argument_expressions,
+            const std::vector<TypeId>& argument_type_ids);
+        // IMPORTANT: This method expects the candidate_symbol_ids to have already been filtered based on their names.
+        // In other words, this method only checks the arguments of the candidates and not their names
         std::vector<MatchingCallCandidate> find_matching_call_candidates(const std::vector<SymbolId>& candidate_symbol_ids,
             const std::vector<TypeId>& argument_type_ids,
-            const std::vector<std::unique_ptr<Expression>>& args) const;
+            const std::vector<Expression*>& argument_expressions) const;
         void update_call_argument_target_types(const std::unordered_map<uint32_t, TypeId>& argument_indices_to_update,
-            const std::vector<std::unique_ptr<Expression>>& argument_expressions);
-        void report_multiple_matching_call_candidates(const CallExpression* expression,
-            const std::vector<TypeId>& argument_type_ids,
-            const std::vector<MatchingCallCandidate>& matching_call_candidates);
+            const std::vector<Expression*>& argument_expressions);
         void set_matching_call_candidate(CallExpression* expression, SymbolId candidate_symbol_id, const std::vector<TypeId>& argument_type_ids);
         TypeCheckResult typecheck_mathematical_negation_expression(MathematicalNegationExpression* expression, TypeId requested_type_id);
         TypeCheckResult typecheck_member_expression(MemberExpression* expression, TypeId requested_type_id) const;

@@ -23,7 +23,7 @@ namespace kepler {
     struct CastData {
         bool is_cast = false;
         bool is_builtin_cast = false;
-        TypeId argument_type_id;
+        TypeId original_argument_type_id;
     };
 
     struct CallExpression : Expression {

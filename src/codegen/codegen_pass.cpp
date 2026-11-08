@@ -775,7 +775,7 @@ namespace kepler {
 
         // Create the builtin cast if it's one
         if (expression->cast_data.is_builtin_cast) {
-            const Type* original_type = type_table.lookup(expression->cast_data.argument_type_id);
+            const Type* original_type = type_table.lookup(expression->cast_data.original_argument_type_id);
             const Symbol* callee_symbol = symbol_table.lookup(expression->symbol_id);
             KPL_ASSERT_THAT(callee_symbol->get_symbol_kind() == SymbolKind::Prototype);
             KPL_ASSERT_THAT(callee_symbol->type_id != TypeId::invalid());

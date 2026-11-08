@@ -17,6 +17,7 @@
 
 namespace kepler {
 
+    // TODO (check): Check which of these are actually still in use and maybe sort them a bit better
     enum class DiagnosticCode {
         // Usage
         HelpRequested = 100,
@@ -76,6 +77,10 @@ namespace kepler {
         WrongVisibility,
         RedundantCast,
         MultipleMainMethods,
+        NoMatchingCallCandidates,
+        MultipleMatchingCallCandidates,
+        NoOperatorImplementation,
+        MultipleOperatorImplementations,
 
         Unsupported = 999,
     };
