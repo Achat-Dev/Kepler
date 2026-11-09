@@ -1017,8 +1017,16 @@ namespace kepler {
             }
             target_type_id = expression->type_id;
         } else {
+            const Type* requested_type = type_table.lookup(requested_type_id);
+            if (is_builtin_type(requested_type)) {
+                const std::string message = std::format("Object initializers can only be used to create values for structs (expected '{}', which is not a struct)",
+                    *requested_type);
+                diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->source_location);
+                expression->node_type = ASTNodeType::Poison;
+                return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
+            }
+
             if (expression->type_id != TypeId::invalid() && requested_type_id != expression->type_id) {
-                const Type* requested_type = type_table.lookup(requested_type_id);
                 const Type* object_type = type_table.lookup(expression->type_id);
                 const std::string message = std::format("Type mismatch: Expected '{}', got '{}'", *requested_type, *object_type);
                 diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), expression->type_source_location);
@@ -1030,7 +1038,6 @@ namespace kepler {
 
         expression->type_id = target_type_id;
         const Type* target_type = type_table.lookup(target_type_id);
-        // TODO (fix): This is wrong, see 'bool vec3.__equals(vec3 a, vec3 b) return {} end'
         KPL_ASSERT_THAT(target_type->type_kind == TypeKind::Struct);
         const StructType* target_struct_type = static_cast<const StructType*>(target_type);
         for (size_t i = 0; i < expression->member_initializers.size(); i++) {
