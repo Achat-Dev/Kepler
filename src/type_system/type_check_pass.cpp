@@ -601,10 +601,20 @@ namespace kepler {
         // Determine which of the candidates match the parameter types
         std::vector<SymbolId> candidate_symbol_ids;
         if (expression->cast_data.is_cast) {
-            // TODO (fix): Check if it's a cast to builtin cast to self and if it is, report the correct diagnostic
             KPL_ASSERT_THAT(expression->candidate_symbol_ids.size() == 1);
             const Symbol* symbol = symbol_table.lookup(expression->candidate_symbol_ids[0]);
             KPL_ASSERT_THAT(symbol->get_symbol_kind() == SymbolKind::Type);
+            const Type* target_type = type_table.lookup(symbol->type_id);
+
+            // Check if it's a builtin cast to self and report a diagnostic
+            if (is_builtin_type(target_type) && argument_type_ids.size() == 1 && target_type->id == argument_type_ids[0]) {
+                const std::string message = std::format("Redundant cast of type '{}' to itself (the cast will be discarded, but consider removing it)",
+                    *target_type);
+                diagnostic_sink.report(DiagnosticCode::RedundantCast, std::move(message), expression->source_location);
+                return {.status = TypeCheckResult::Status::RequestFulfilled, .type_id = target_type->id};
+            }
+
+            // No builtin cast to self -> collect candidate symbol ids
             const TypeSymbol* type_symbol = static_cast<const TypeSymbol*>(symbol);
             const StringId cast_identifier_id = StringPool::get().store(StringPool::get().lookup(type_symbol->identifier_id) + ".__cast");
             for (SymbolId method_symbol_id : type_symbol->method_symbol_ids) {
