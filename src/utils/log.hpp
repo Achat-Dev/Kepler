@@ -9,15 +9,15 @@
 
 #pragma once
 
+#include "diagnostics/diagnostic.hpp"
 #include "utils/ansi_codes.hpp"
+#include "utils/assert.h"
 #include <format>
 #include <print>
 #include <utility>
 
 namespace kepler::log {
 
-    // TODO (improvement): Add a method that returns the correct sub line for different diagnostic severities
-    inline constexpr char error_sub_line[] = "  \u2502        ";
     inline constexpr char indented[] = "  \u251C\u2500 ";
     inline constexpr char last_indented[] = "  \u2514\u2500 ";
 
@@ -34,6 +34,21 @@ namespace kepler::log {
     template <typename... Args>
     void error(std::format_string<Args...> format, Args&&... args) {
         std::println("{}{}[ Internal error ]{}: {}", ansi_codes::bold, ansi_codes::red, ansi_codes::reset, std::format(format, std::forward<Args>(args)...));
+    }
+
+    inline constexpr const char* get_subline_indent(DiagnosticCode diagnostic_code) {
+        const DiagnosticSeverity severity = get_diagnostic_severity(diagnostic_code);
+        switch (severity) {
+            case DiagnosticSeverity::Note:
+                return "  \u2502       ";
+            case DiagnosticSeverity::Warning:
+                return "  \u2502          ";
+            case DiagnosticSeverity::Error:
+                return "  \u2502        ";
+            case DiagnosticSeverity::Unsupported:
+                return "  \u2502                         ";
+        }
+        KPL_ASSERT_UNREACHABLE("Missing subline implementation for diagnostic severity {}", static_cast<int>(severity));
     }
 
 }

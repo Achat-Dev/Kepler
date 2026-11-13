@@ -549,7 +549,7 @@ namespace kepler {
                     *lhs_type,
                     *rhs_type);
                 diagnostic_sink.report(DiagnosticCode::NoOperatorImplementation, std::move(message), expression->source_location);
-            } else if (diagnostic.code == DiagnosticCode::MultipleMatchingCallCandidates) {
+            } else if (diagnostic.code == DiagnosticCode::MultipleMatchingSymbolCandidates) {
                 const Type* rhs_type = type_table.lookup(rhs_tcr.type_id);
                 const std::string message = std::format("Multiple implementations of binary operator '{}' between types '{}' and '{}' found:\n{}",
                     expression->operator_type,
@@ -656,7 +656,7 @@ namespace kepler {
                     message += get_candidate_symbol_diagnostic_list(candidate_symbols, !is_fully_qualified_call, false, module_id, symbol_table, type_table);
                 }
                 diagnostic_sink.report(diagnostic.code, std::move(message), expression->source_location);
-            } else if (diagnostic.code == DiagnosticCode::MultipleMatchingCallCandidates) {
+            } else if (diagnostic.code == DiagnosticCode::MultipleMatchingSymbolCandidates) {
                 const bool is_fully_qualified_call = !expression->module_path.identifier_parts.empty();
                 const StringId callee_signature_id = StringPool::get().store(get_full_identifier_from_path(expression->identifier_path));
                 std::string message = std::format("Multiple matching overloads for function '{}'",
@@ -724,7 +724,7 @@ namespace kepler {
                         matching_candidate_symbols.push_back(symbol_table.lookup(matching_call_candidate.symbol_id));
                     }
                     return std::unexpected(Diagnostic{
-                        .code = DiagnosticCode::MultipleMatchingCallCandidates,
+                        .code = DiagnosticCode::MultipleMatchingSymbolCandidates,
                         .message = get_candidate_symbol_diagnostic_list(matching_candidate_symbols,
                             true,
                             false,

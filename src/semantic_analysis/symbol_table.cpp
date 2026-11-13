@@ -349,15 +349,19 @@ namespace kepler {
             // TODO (improvement): Right now there will always be an error as soon as an ambiguous module path is found,
             // even if the wanted symbol only exists in one module.
             // It would be nice to only report a diagnostic if the symbol actually exists in multiple modules
+            const DiagnosticCode diagnostic_code = DiagnosticCode::AmbiguousModulePath;
             std::string message = std::format("Module '{}' refers to multiple modules:\n",
                 get_full_identifier_from_path(module_path));
             for (size_t i = 0; i < found_modules.size(); i++) {
-                message += std::format("{}  {}) {}", log::error_sub_line, i + 1, StringPool::get().lookup(found_modules[i]->full_identifier_id));
+                message += std::format("{}  {}) {}",
+                    log::get_subline_indent(diagnostic_code),
+                    i + 1,
+                    StringPool::get().lookup(found_modules[i]->full_identifier_id));
                 if (i < found_modules.size() - 1) {
                     message += '\n';
                 }
             }
-            return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousModulePath, .message = std::move(message)});
+            return std::unexpected(Diagnostic{.code = diagnostic_code, .message = std::move(message)});
         }
     }
 
@@ -463,14 +467,15 @@ namespace kepler {
         }
 
         // Ambiguous symbols found -> return diagnostic
+        const DiagnosticCode diagnostic_code = DiagnosticCode::AmbiguousSymbolImport;
         std::string message = std::format("Identifier '{}' refers to multiple symbols:\n", StringPool::get().lookup(identifier_id));
         message += get_candidate_symbol_diagnostic_list(result, true, true, module_id, *this, type_table);
         const Module& imported_module = modules[candidate_symbol_map.begin()->first.value];
         message += std::format("\n{}Use the fully qualified name of a candidate (e. g. '{}::{}...')",
-            log::error_sub_line,
+            log::get_subline_indent(diagnostic_code),
             StringPool::get().lookup(imported_module.full_identifier_id),
             StringPool::get().lookup(identifier_id));
-        return std::unexpected(Diagnostic{.code = DiagnosticCode::AmbiguousSymbolImport, .message = std::move(message)});
+        return std::unexpected(Diagnostic{.code = diagnostic_code, .message = std::move(message)});
     }
 
     void SymbolTable::open_scope(ModuleId module_id, ScopeType type) {

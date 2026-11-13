@@ -10,7 +10,6 @@
 #pragma once
 
 #include "utils/ansi_codes.hpp"
-#include "utils/log.hpp"
 #include <cstddef>
 #include <cstdlib>
 #include <format>
@@ -19,6 +18,11 @@
 #include <utility>
 
 namespace kepler::internal {
+
+    // Copied from log.hpp
+    // This is to avoid a cyclic include between log.hpp -> diagnostics.hpp -> assert.hpp
+    // It isn't pretty, but it's the least dirty solution
+    inline constexpr char last_indented[] = "  \u2514\u2500 ";
 
     // TODO (improvement): Add stacktrace to this and then remove some of the unnecessary asserts
     template <typename... Args>
@@ -32,7 +36,7 @@ namespace kepler::internal {
                 ansi_codes::red,
                 ansi_codes::reset,
                 std::format(std::move(format), std::forward<Args>(args)...),
-                log::last_indented,
+                last_indented,
                 relative_file_path,
                 line_number);
         } else {

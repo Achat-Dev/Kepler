@@ -78,7 +78,7 @@ namespace kepler {
         RedundantCast,
         MultipleMainMethods,
         NoMatchingCallCandidates,
-        MultipleMatchingCallCandidates,
+        MultipleMatchingSymbolCandidates,
         NoOperatorImplementation,
         MultipleOperatorImplementations,
 

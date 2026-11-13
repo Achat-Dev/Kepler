@@ -204,7 +204,7 @@ namespace kepler {
         // Check if header is needed
         if (include_module || include_sybmol_kind) {
             message = std::format("{}    {}{}{}{:{}}{}{}\n",
-                log::error_sub_line,
+                log::get_subline_indent(DiagnosticCode::MultipleMatchingSymbolCandidates),
                 std::string(highest_numbering_digit_count, ' '),
                 ansi_codes::dim,
                 include_sybmol_kind ? "Kind  " : "",
@@ -230,7 +230,11 @@ namespace kepler {
                 candidate_symbol_identifier = StringPool::get().lookup(candidate_symbol->identifier_id);
             }
             const uint32_t numbering = i + 1;
-            message += std::format("{}  {}) {:{}}", log::error_sub_line, numbering, "", highest_numbering_digit_count - get_digit_count(numbering));
+            message += std::format("{}  {}) {:{}}",
+                log::get_subline_indent(DiagnosticCode::MultipleMatchingSymbolCandidates),
+                numbering,
+                "",
+                highest_numbering_digit_count - get_digit_count(numbering));
             if (include_sybmol_kind) {
                 message += std::format("{:{}}  ", get_short_symbol_kind_identifier(candidate_symbol->get_symbol_kind()), longest_candidate_symbol_kind);
             }
