@@ -29,7 +29,7 @@ namespace kepler {
             StringId identifier_id,
             AssignmentStatement* assignment_statement,
             SourceLocation source_location)
-            : Statement(ASTNodeType::VariableDefinitionStatement, std::move(source_location)),
+            : Statement(ASTNodeKind::VariableDefinitionStatement, std::move(source_location)),
               type_identifier_id(type_id),
               identifier_id(identifier_id),
               assignment_statement(assignment_statement) {}

@@ -23,7 +23,7 @@
 
 namespace kepler {
 
-    enum class ReturnCheckBodyType {
+    enum class ReturnCheckBodyKind {
         FunctionBody,
         ForBody,
         IfBody,
@@ -46,24 +46,24 @@ namespace kepler {
         TypeTable& type_table;
 
         void check_function(Function* function);
-        ReturnCheckResult check_body(const std::vector<ASTNode*>& nodes, ReturnCheckBodyType body_type);
-        ReturnCheckResult handle_return(size_t index, const std::vector<ASTNode*>& nodes, ReturnCheckBodyType body_type);
+        ReturnCheckResult check_body(const std::vector<ASTNode*>& nodes, ReturnCheckBodyKind body_kind);
+        ReturnCheckResult handle_return(size_t index, const std::vector<ASTNode*>& nodes, ReturnCheckBodyKind body_kind);
     };
 }
 
 template <>
-struct std::formatter<kepler::ReturnCheckBodyType> : std::formatter<std::string> {
-    auto format(const kepler::ReturnCheckBodyType& body_type, std::format_context& ctx) const {
-        switch (body_type) {
-            case kepler::ReturnCheckBodyType::FunctionBody:
+struct std::formatter<kepler::ReturnCheckBodyKind> : std::formatter<std::string> {
+    auto format(const kepler::ReturnCheckBodyKind& body_kind, std::format_context& ctx) const {
+        switch (body_kind) {
+            case kepler::ReturnCheckBodyKind::FunctionBody:
                 return std::formatter<std::string>::format("function body", ctx);
-            case kepler::ReturnCheckBodyType::ForBody:
+            case kepler::ReturnCheckBodyKind::ForBody:
                 return std::formatter<std::string>::format("'for' body", ctx);
-            case kepler::ReturnCheckBodyType::IfBody:
+            case kepler::ReturnCheckBodyKind::IfBody:
                 return std::formatter<std::string>::format("'if' body", ctx);
-            case kepler::ReturnCheckBodyType::ElseBody:
+            case kepler::ReturnCheckBodyKind::ElseBody:
                 return std::formatter<std::string>::format("'else' body", ctx);
         }
-        KPL_ASSERT_UNREACHABLE("Missing format implementation for return check body type '{}'", static_cast<int>(body_type));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for return check body kind '{}'", static_cast<int>(body_kind));
     }
 };

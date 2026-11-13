@@ -30,7 +30,7 @@ namespace kepler {
             Expression* step_value,
             std::vector<ASTNode*> body,
             SourceLocation source_location)
-            : Statement(ASTNodeType::ForStatement, std::move(source_location)),
+            : Statement(ASTNodeKind::ForStatement, std::move(source_location)),
               loop_variable_definition(loop_variable_definition),
               end_value(end_value),
               step_value(step_value),

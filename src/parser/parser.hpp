@@ -27,7 +27,7 @@
 #include "ast/struct.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
 #include "diagnostics/source_location.hpp"
-#include "lexer/operator_type.hpp"
+#include "lexer/operator_kind.hpp"
 #include "lexer/token.hpp"
 #include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
@@ -63,13 +63,13 @@ namespace kepler {
         const Token* current_token;
         size_t current_token_index = 0;
 
-        int get_operator_precedence(OperatorType operator_type) const;
+        int get_operator_precedence(OperatorKind operator_kind) const;
         void next_token(bool skip_newline);
         void previous_token(bool skip_newline);
-        TokenType peek_next_token_type(size_t lookahead, bool skip_newline) const;
+        TokenKind peek_next_token_kind(size_t lookahead, bool skip_newline) const;
         void jump_to_token(size_t index);
-        std::optional<IdentifierPath> parse_identifier_path(TokenType delimiter_token,
-            IdentifierPathParseKind path_return_kind,
+        std::optional<IdentifierPath> parse_identifier_path(TokenKind delimiter_token,
+            IdentifierPathParseKind path_parse_kind,
             const std::string& diagnostic_ending);
         IdentifierPath identifier_id_to_path(StringId identifier_id, SourceLocation source_location) const;
 
@@ -77,11 +77,11 @@ namespace kepler {
         ModuleStatement* parse_module();
         ImportStatement* parse_import();
         ExportableNode* parse_export();
-        Extern* parse_extern(LinkageType linkage_type);
+        Extern* parse_extern(LinkageKind linkage_kind);
         Prototype* parse_prototype();
-        Struct* parse_struct(LinkageType linkage_type);
-        ExportableNode* parse_top_level_identifier(LinkageType linkage_type);
-        Function* parse_function(LinkageType linkage_type);
+        Struct* parse_struct(LinkageKind linkage_kind);
+        ExportableNode* parse_top_level_identifier(LinkageKind linkage_kind);
+        Function* parse_function(LinkageKind linkage_kind);
 
         // Main body nodes
         ASTNode* parse_statement();
@@ -112,29 +112,29 @@ namespace kepler {
         ReturnStatement* parse_return();
         VariableDefinitionStatement* parse_variable_definition();
 
-        template <TokenType... T>
+        template <TokenKind... T>
         struct SynchronizationSet {};
 
-        template <TokenType... Sync, TokenType... Consume>
+        template <TokenKind... Sync, TokenKind... Consume>
         void recover(SynchronizationSet<Sync...> synchronisation_tokens, SynchronizationSet<Consume...> consume_tokens) {
-            while (!synchronisation_tokens_contains<Sync...>(current_token->type) && current_token->type != TokenType::EndOfFile) {
+            while (!synchronisation_tokens_contains<Sync...>(current_token->token_kind) && current_token->token_kind != TokenKind::EndOfFile) {
                 next_token(false);
             }
-            if (synchronisation_tokens_contains<Consume...>(current_token->type)) {
+            if (synchronisation_tokens_contains<Consume...>(current_token->token_kind)) {
                 next_token(true);
             }
         }
 
-        template <TokenType... T>
-        bool synchronisation_tokens_contains(TokenType token_type) {
-            return ((token_type == T) || ...);
+        template <TokenKind... T>
+        bool synchronisation_tokens_contains(TokenKind token_kind) {
+            return ((token_kind == T) || ...);
         }
 
-        template <TokenType... T>
+        template <TokenKind... T>
         std::optional<std::vector<ASTNode*>> parse_body(std::string diagnostic_message_on_end, SourceLocation source_location) {
             std::vector<ASTNode*> body;
-            while (((current_token->type != T) && ...)) {
-                if (current_token->type == TokenType::EndOfFile) {
+            while (((current_token->token_kind != T) && ...)) {
+                if (current_token->token_kind == TokenKind::EndOfFile) {
                     diagnostic_sink.report(DiagnosticCode::MissingEndKeyword, std::move(diagnostic_message_on_end), source_location);
                     return std::nullopt;
                 }

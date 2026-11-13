@@ -27,7 +27,7 @@ namespace kepler {
             std::vector<ASTNode*> if_body,
             std::vector<ASTNode*> else_body,
             SourceLocation source_location)
-            : Statement(ASTNodeType::IfStatement, std::move(source_location)),
+            : Statement(ASTNodeKind::IfStatement, std::move(source_location)),
               condition(condition),
               if_body{.nodes = std::move(if_body)},
               else_body{.nodes = std::move(else_body)} {}

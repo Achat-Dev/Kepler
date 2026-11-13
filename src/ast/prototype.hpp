@@ -49,7 +49,7 @@ namespace kepler {
             bool is_variadic,
             SourceLocation type_source_location,
             SourceLocation identifier_source_location)
-            : ASTNode(ASTNodeType::Prototype, std::move(type_source_location)),
+            : ASTNode(ASTNodeKind::Prototype, std::move(type_source_location)),
               identifier_source_location(std::move(identifier_source_location)),
               return_type_identifier_id(return_type_identifier_id),
               identifier(std::move(identifier)),

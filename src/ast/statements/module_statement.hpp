@@ -23,7 +23,7 @@ namespace kepler {
         IdentifierPath module_path;
 
         ModuleStatement(IdentifierPath module_path, SourceLocation source_location)
-            : Statement(ASTNodeType::ModuleStatement, std::move(source_location)),
+            : Statement(ASTNodeKind::ModuleStatement, std::move(source_location)),
               module_path(std::move(module_path)) {}
     };
 

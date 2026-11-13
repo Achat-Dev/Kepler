@@ -16,8 +16,8 @@
 namespace kepler {
 
     struct Statement : ASTNode {
-        Statement(ASTNodeType node_type, SourceLocation source_location)
-            : ASTNode(node_type, std::move(source_location)) {}
+        Statement(ASTNodeKind node_kind, SourceLocation source_location)
+            : ASTNode(node_kind, std::move(source_location)) {}
     };
 
 }

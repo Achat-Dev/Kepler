@@ -39,7 +39,7 @@ namespace kepler {
         std::vector<MemberAccessData> access_data;
 
         MemberExpression(IdentifierPath member_path)
-            : Expression(ASTNodeType::MemberExpression, member_path.source_location), member_path(std::move(member_path)) {}
+            : Expression(ASTNodeKind::MemberExpression, member_path.source_location), member_path(std::move(member_path)) {}
     };
 
 }

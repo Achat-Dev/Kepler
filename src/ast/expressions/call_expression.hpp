@@ -37,7 +37,7 @@ namespace kepler {
             std::vector<Expression*> arguments,
             IdentifierPath module_path,
             SourceLocation source_location)
-            : Expression(ASTNodeType::CallExpression, std::move(source_location)),
+            : Expression(ASTNodeKind::CallExpression, std::move(source_location)),
               identifier_path(std::move(identifier_path)),
               module_path(std::move(module_path)),
               arguments(std::move(arguments)) {}

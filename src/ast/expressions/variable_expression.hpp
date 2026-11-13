@@ -22,7 +22,7 @@ namespace kepler {
         SymbolId symbol_id;
 
         VariableExpression(StringId identifier_id, SourceLocation source_location)
-            : Expression(ASTNodeType::VariableExpression, source_location), identifier_id(std::move(identifier_id)) {}
+            : Expression(ASTNodeKind::VariableExpression, source_location), identifier_id(std::move(identifier_id)) {}
     };
 
 }

@@ -70,7 +70,7 @@ namespace kepler {
     struct TypeTable;
 
     void create_builtin_types(SymbolTable& symbol_table, TypeTable& type_table);
-    StringId get_type_kind_name_id(TypeKind type_kind);
+    StringId get_type_kind_identifier_id(TypeKind type_kind);
     SymbolId get_builtin_type_symbol_id(TypeKind type_kind);
     TypeId get_builtin_type_id(TypeKind type_kind);
     llvm::Type* get_builtin_llvm_type(TypeKind type_kind, llvm::LLVMContext& context);
@@ -87,7 +87,7 @@ template <>
 struct std::formatter<kepler::TypeKind> : std::formatter<std::string> {
     auto format(const kepler::TypeKind& type_kind, std::format_context& ctx) const {
         // A raw switch case would be more efficient, but this avoids duplicating the names
-        const kepler::StringId type_name_id = kepler::get_type_kind_name_id(type_kind);
+        const kepler::StringId type_name_id = kepler::get_type_kind_identifier_id(type_kind);
         const std::string& type_name = kepler::StringPool::get().lookup(type_name_id);
         return std::formatter<std::string>::format(std::format("{}", type_name), ctx);
     }

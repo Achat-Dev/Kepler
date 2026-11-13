@@ -48,7 +48,7 @@ namespace kepler::log {
             case DiagnosticSeverity::Unsupported:
                 return "  \u2502                         ";
         }
-        KPL_ASSERT_UNREACHABLE("Missing subline implementation for diagnostic severity {}", static_cast<int>(severity));
+        KPL_ASSERT_UNREACHABLE("Missing subline implementation for diagnostic severity '{}'", static_cast<int>(severity));
     }
 
 }

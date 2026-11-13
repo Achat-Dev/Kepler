@@ -28,16 +28,16 @@ namespace kepler {
         static constexpr ScopeId invalid() { return ScopeId{}; }
     };
 
-    enum class ScopeType {
+    enum class ScopeKind {
         File,
         Function,
         Block,
     };
 
     struct Scope {
-        ScopeType type;
         ScopeId id;
         ScopeId parent_id;
+        ScopeKind scope_kind;
         std::unordered_map<StringId, ScopeEntry> contained_symbols;
     };
 

@@ -99,7 +99,7 @@ namespace kepler {
 
         void forward_declare_structs(const std::vector<Struct*>& struct_nodes);
         void forward_declare_prototypes(const std::vector<ASTNode*>& nodes);
-        void forward_declare_prototype(const Prototype* prototype, LinkageType linkage_type, bool is_extern);
+        void forward_declare_prototype(const Prototype* prototype, LinkageKind linkage_kind, bool is_extern);
         void codegen_struct_bodies(const std::vector<Struct*>& struct_nodes);
         void codegen_nodes(const std::vector<ASTNode*>& nodes);
         CodegenResult codegen_node(const ASTNode* node);

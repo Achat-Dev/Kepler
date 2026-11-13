@@ -47,7 +47,7 @@ namespace kepler {
         // Create the global module, which is implicitely imported by all modules and contains all builtin types and functions
         const ModuleId global_module_id{.value = 1};
         modules.push_back({.id = global_module_id, .full_identifier_id = StringPool::get().store("__global")});
-        open_scope(global_module_id, ScopeType::File);
+        open_scope(global_module_id, ScopeKind::File);
     }
 
     std::vector<Symbol*> SymbolTable::ScopeEntryVisitHandler::operator()(SymbolId symbol_id) const {
@@ -60,7 +60,7 @@ namespace kepler {
         if (is_imported_module) {
             // TODO (improvement): Maybe create a special diagnostic if a fitting symbol is found but it is not exported
             // (That diagnostic shouldn't be displayed immediately, but only when no fitting symbol is found in all imported modules)
-            if (symbol->linkage_type == LinkageType::Export) {
+            if (symbol->linkage_kind == LinkageKind::Export) {
                 return std::vector<Symbol*>{symbol};
             }
         }
@@ -81,7 +81,7 @@ namespace kepler {
             if (is_imported_module) {
                 // TODO (improvement): Maybe create a special diagnostic if a fitting symbol is found but it is not exported
                 // (That diagnostic shouldn't be displayed immediately, but only when no fitting symbol is found in all imported modules)
-                if (symbol->linkage_type == LinkageType::Export) {
+                if (symbol->linkage_kind == LinkageKind::Export) {
                     result.push_back(symbol);
                 }
             } else {
@@ -114,7 +114,7 @@ namespace kepler {
                     .id = submodule_id,
                     .full_identifier_id = StringPool::get().store(get_full_identifier_from_path(submodule_path)),
                 });
-                open_scope(submodule_id, ScopeType::File);
+                open_scope(submodule_id, ScopeKind::File);
                 module = &modules[submodule_id.value];
             } else {
                 module = &modules[it->second.value];
@@ -221,7 +221,7 @@ namespace kepler {
     std::expected<SymbolId, Diagnostic> SymbolTable::create_prototype(ModuleId module_id,
         TypeId return_type_id,
         StringId identifier_id,
-        LinkageType linkage_type,
+        LinkageKind linkage_kind,
         std::vector<TypeId> parameter_type_ids,
         std::vector<StringId> parameter_type_identifier_ids,
         bool is_variadic,
@@ -273,7 +273,7 @@ namespace kepler {
             scope.id,
             return_type_id,
             identifier_id,
-            linkage_type,
+            linkage_kind,
             std::move(parameter_type_ids),
             is_variadic,
             is_builtin);
@@ -478,16 +478,16 @@ namespace kepler {
         return std::unexpected(Diagnostic{.code = diagnostic_code, .message = std::move(message)});
     }
 
-    void SymbolTable::open_scope(ModuleId module_id, ScopeType type) {
+    void SymbolTable::open_scope(ModuleId module_id, ScopeKind scope_kind) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         const ScopeId scope_id = {.value = static_cast<uint32_t>(scopes.size())};
         Module& module = modules[module_id.value];
         // This check is theoretically not needed because module.current_scope_id is ScopeId::invalid() if no scope exists in the module
         // But do it like this because it's more explicit
         if (module.scope_ids.empty()) {
-            scopes.emplace_back(type, scope_id, ScopeId::invalid(), std::unordered_map<StringId, ScopeEntry>{});
+            scopes.emplace_back(scope_id, ScopeId::invalid(), scope_kind, std::unordered_map<StringId, ScopeEntry>{});
         } else {
-            scopes.emplace_back(type, scope_id, module.current_scope_id, std::unordered_map<StringId, ScopeEntry>{});
+            scopes.emplace_back(scope_id, module.current_scope_id, scope_kind, std::unordered_map<StringId, ScopeEntry>{});
         }
         module.scope_ids.push_back(scope_id);
         module.current_scope_id = scope_id;
@@ -507,7 +507,7 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(symbol_id.value < symbols.size(), "Symbol count: {}, received id: {}", symbols.size(), symbol_id.value);
         const Symbol* symbol = symbols[symbol_id.value];
-        if (symbol->module_id != module_id && symbol->linkage_type != LinkageType::Export) {
+        if (symbol->module_id != module_id && symbol->linkage_kind != LinkageKind::Export) {
             return false;
         }
         if (symbol->module_id == get_global_module()->id) {
@@ -546,7 +546,7 @@ namespace kepler {
             const Scope& imported_module_scope = scopes[imported_module.scope_ids.begin()->value];
             for (const auto& [identifier_id, scope_entry] : imported_module_scope.contained_symbols) {
                 const bool result = std::visit(scope_entry_visit_handler, scope_entry);
-                if (result && symbol->linkage_type == LinkageType::Export) {
+                if (result && symbol->linkage_kind == LinkageKind::Export) {
                     return true;
                 }
             }

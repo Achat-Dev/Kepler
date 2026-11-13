@@ -83,14 +83,14 @@ namespace kepler {
 
             // Set the option value
             std::expected<void, Diagnostic> parse_result = {};
-            switch (option->value_type) {
-                case CmdOptionValueType::NoValue:
+            switch (option->value_kind) {
+                case CmdOptionValueKind::NoValue:
                     parse_result = parse_no_value_option(option, argc, argv, index);
                     break;
-                case CmdOptionValueType::OneValue:
+                case CmdOptionValueKind::OneValue:
                     parse_result = parse_one_value_option(option, argc, argv, index);
                     break;
-                case CmdOptionValueType::List:
+                case CmdOptionValueKind::List:
                     parse_result = parse_list_option(option, argc, argv, index);
                     break;
             }
@@ -128,14 +128,14 @@ namespace kepler {
         result += std::format("Usage:\n    kepler [OPTIONS]\n\nAvailable options:\n");
         for (const CmdOption& option : options) {
             result += std::format("    -{},--{}", option.short_name, StringPool::get().lookup(option.long_name_id));
-            switch (option.value_type) {
-                case CmdOptionValueType::NoValue:
+            switch (option.value_kind) {
+                case CmdOptionValueKind::NoValue:
                     result += '\n';
                     break;
-                case CmdOptionValueType::OneValue:
+                case CmdOptionValueKind::OneValue:
                     result += " <arg>\n";
                     break;
-                case CmdOptionValueType::List:
+                case CmdOptionValueKind::List:
                     result += " <args...>\n";
                     break;
             }
@@ -291,7 +291,7 @@ namespace kepler {
                 command += ' ' + original_args[i];
                 arrows += std::string(strlen_utf8(original_args[i]) + 1, ' '); // +1 for the space
             } else {
-                const std::string severity_highlight = get_severity_highlight(DiagnosticSeverity::Error);
+                const std::string severity_highlight = get_diagnostic_console_highlighting(DiagnosticSeverity::Error);
                 command += std::format(" {}{}{}", severity_highlight, original_args[i], ansi_codes::reset);
                 if (last_arrow_index == i - 1) {
                     // Both the last and this arg are errors, so also highlight the space between (that's the reson for +1)

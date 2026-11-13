@@ -18,7 +18,7 @@ namespace kepler {
 
     // TODO (improvement): Add unary operators
     // Need to check if that is worth it when more unary operators exist
-    enum class OperatorType {
+    enum class OperatorKind {
         Plus,
         Minus,
         Multiplication,
@@ -31,36 +31,36 @@ namespace kepler {
         GreaterEquals,
     };
 
-    StringId get_operator_name_id(OperatorType operator_type);
+    StringId get_operator_identifier_id(OperatorKind operator_kind);
 
 }
 
 template <>
-struct std::formatter<kepler::OperatorType> : std::formatter<std::string> {
-    auto format(const kepler::OperatorType& operator_type, std::format_context& ctx) const {
-        switch (operator_type) {
-            case kepler::OperatorType::Plus:
+struct std::formatter<kepler::OperatorKind> : std::formatter<std::string> {
+    auto format(const kepler::OperatorKind& operator_kind, std::format_context& ctx) const {
+        switch (operator_kind) {
+            case kepler::OperatorKind::Plus:
                 return std::formatter<std::string>::format("+", ctx);
-            case kepler::OperatorType::Minus:
+            case kepler::OperatorKind::Minus:
                 return std::formatter<std::string>::format("-", ctx);
-            case kepler::OperatorType::Multiplication:
+            case kepler::OperatorKind::Multiplication:
                 return std::formatter<std::string>::format("*", ctx);
-            case kepler::OperatorType::Division:
+            case kepler::OperatorKind::Division:
                 return std::formatter<std::string>::format("/", ctx);
-            case kepler::OperatorType::LessThan:
+            case kepler::OperatorKind::LessThan:
                 return std::formatter<std::string>::format("<", ctx);
-            case kepler::OperatorType::GreaterThan:
+            case kepler::OperatorKind::GreaterThan:
                 return std::formatter<std::string>::format(">", ctx);
-            case kepler::OperatorType::Equals:
+            case kepler::OperatorKind::Equals:
                 return std::formatter<std::string>::format("==", ctx);
-            case kepler::OperatorType::NotEquals:
+            case kepler::OperatorKind::NotEquals:
                 return std::formatter<std::string>::format("!=", ctx);
-            case kepler::OperatorType::LessEquals:
+            case kepler::OperatorKind::LessEquals:
                 return std::formatter<std::string>::format("<=", ctx);
-            case kepler::OperatorType::GreaterEquals:
+            case kepler::OperatorKind::GreaterEquals:
                 return std::formatter<std::string>::format(">=", ctx);
         }
 
-        KPL_ASSERT_UNREACHABLE("Missing format implementation for operator type '{}'", static_cast<int>(operator_type));
+        KPL_ASSERT_UNREACHABLE("Missing format implementation for operator kind '{}'", static_cast<int>(operator_kind));
     }
 };

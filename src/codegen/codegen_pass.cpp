@@ -33,7 +33,7 @@
 #include "codegen/optimizer.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
-#include "lexer/operator_type.hpp"
+#include "lexer/operator_kind.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_id.hpp"
@@ -262,30 +262,30 @@ namespace kepler {
     void CodegenPass::forward_declare_prototypes(const std::vector<ASTNode*>& nodes) {
         for (const ASTNode* node : nodes) {
             KPL_ASSERT_NOT_NULLPTR(node);
-            switch (node->node_type) {
-                case ASTNodeType::Extern: {
+            switch (node->node_kind) {
+                case ASTNodeKind::Extern: {
                     const Extern* ext = static_cast<const Extern*>(node);
                     KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-                    forward_declare_prototype(ext->prototype, ext->linkage_type, true);
+                    forward_declare_prototype(ext->prototype, ext->linkage_kind, true);
                     break;
                 }
-                case ASTNodeType::Function: {
+                case ASTNodeKind::Function: {
                     const Function* function = static_cast<const Function*>(node);
                     KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                    forward_declare_prototype(function->prototype, function->linkage_type, false);
+                    forward_declare_prototype(function->prototype, function->linkage_kind, false);
                     break;
                 }
                 default:
-                    KPL_ASSERT_UNREACHABLE("Invalid ast node type on top level during prototype forward declaration");
+                    KPL_ASSERT_UNREACHABLE("Invalid ast node kind on top level during prototype forward declaration");
             }
         }
     }
 
-    void CodegenPass::forward_declare_prototype(const Prototype* prototype, LinkageType linkage_type, bool is_extern) {
+    void CodegenPass::forward_declare_prototype(const Prototype* prototype, LinkageKind linkage_kind, bool is_extern) {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(prototype->symbol_id != SymbolId::invalid());
-        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(prototype->node_kind != ASTNodeKind::Poison);
 
         std::vector<llvm::Type*> parameter_types;
         for (const ParameterData& parameter_data : prototype->parameter_data) {
@@ -301,7 +301,7 @@ namespace kepler {
                     "'main' method is already defined and can only be defined once",
                     prototype->identifier_source_location);
             }
-            linkage_type = LinkageType::External;
+            linkage_kind = LinkageKind::External;
             main_method_found = true;
         } else {
             // Only mangle name if it's not an extern
@@ -316,7 +316,7 @@ namespace kepler {
 
         const std::string& prototype_name = StringPool::get().lookup(identifier_id);
         llvm::FunctionType* function_type = llvm::FunctionType::get(get_llvm_type(prototype->return_type_id), parameter_types, prototype->is_variadic);
-        llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_type(linkage_type), prototype_name, *current_llvm_module);
+        llvm::Function* function = llvm::Function::Create(function_type, get_llvm_linkage_kind(linkage_kind), prototype_name, *current_llvm_module);
 
 #ifndef NDEBUG
         unsigned int index = 0;
@@ -360,58 +360,58 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_node(const ASTNode* node) {
         KPL_ASSERT_NOT_NULLPTR(node);
-        switch (node->node_type) {
-            case ASTNodeType::Poison:
-            case ASTNodeType::Struct:
-            case ASTNodeType::Prototype:
-            case ASTNodeType::ImportStatement:
-            case ASTNodeType::ModuleStatement:
-                KPL_ASSERT_UNREACHABLE("Cannot codegen a node of type '{}' as part of the top level nodes", node->node_type);
+        switch (node->node_kind) {
+            case ASTNodeKind::Poison:
+            case ASTNodeKind::Struct:
+            case ASTNodeKind::Prototype:
+            case ASTNodeKind::ImportStatement:
+            case ASTNodeKind::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot codegen a node kind '{}' as part of the top level nodes", node->node_kind);
 
-            case ASTNodeType::Extern:
+            case ASTNodeKind::Extern:
                 return {.llvm_value = nullptr, .returns = false};
-            case ASTNodeType::Function:
+            case ASTNodeKind::Function:
                 codegen_function(static_cast<const Function*>(node));
                 return {.llvm_value = nullptr, .returns = false};
-            case ASTNodeType::AssignmentStatement:
+            case ASTNodeKind::AssignmentStatement:
                 return codegen_assignment_statement(static_cast<const AssignmentStatement*>(node));
-            case ASTNodeType::ForStatement:
+            case ASTNodeKind::ForStatement:
                 return codegen_for_statement(static_cast<const ForStatement*>(node));
-            case ASTNodeType::IfStatement:
+            case ASTNodeKind::IfStatement:
                 return codegen_if_statement(static_cast<const IfStatement*>(node));
-            case ASTNodeType::ReturnStatement:
+            case ASTNodeKind::ReturnStatement:
                 return codegen_return_statement(static_cast<const ReturnStatement*>(node));
-            case ASTNodeType::VariableDefinitionStatement:
+            case ASTNodeKind::VariableDefinitionStatement:
                 return codegen_variable_definition_statement(static_cast<const VariableDefinitionStatement*>(node));
-            case ASTNodeType::BooleanLiteralExpression:
+            case ASTNodeKind::BooleanLiteralExpression:
                 return codegen_boolean_literal_expression(static_cast<const BooleanLiteralExpression*>(node));
-            case ASTNodeType::FloatingPointLiteralExpression:
+            case ASTNodeKind::FloatingPointLiteralExpression:
                 return codegen_floating_point_literal_expression(static_cast<const FloatingPointLiteralExpression*>(node));
-            case ASTNodeType::IntegerLiteralExpression:
+            case ASTNodeKind::IntegerLiteralExpression:
                 return codegen_integer_literal_expression(static_cast<const IntegerLiteralExpression*>(node));
-            case ASTNodeType::StringLiteralExpression:
+            case ASTNodeKind::StringLiteralExpression:
                 return codegen_string_literal_expression(static_cast<const StringLiteralExpression*>(node));
-            case ASTNodeType::BinaryExpression:
+            case ASTNodeKind::BinaryExpression:
                 return codegen_binary_expression(static_cast<const BinaryExpression*>(node));
-            case ASTNodeType::CallExpression:
+            case ASTNodeKind::CallExpression:
                 return codegen_call_expression(static_cast<const CallExpression*>(node));
-            case ASTNodeType::MathematicalNegationExpression:
+            case ASTNodeKind::MathematicalNegationExpression:
                 return codegen_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node));
-            case ASTNodeType::MemberExpression:
+            case ASTNodeKind::MemberExpression:
                 return codegen_member_expression(static_cast<const MemberExpression*>(node));
-            case ASTNodeType::ObjectInitializerExpression:
+            case ASTNodeKind::ObjectInitializerExpression:
                 return codegen_object_initializer_expression(static_cast<const ObjectInitializerExpression*>(node));
-            case ASTNodeType::VariableExpression:
+            case ASTNodeKind::VariableExpression:
                 return codegen_variable_expression(static_cast<const VariableExpression*>(node));
         }
-        KPL_ASSERT_UNREACHABLE("Missing codegen implementation for node type '{}'", node->node_type);
+        KPL_ASSERT_UNREACHABLE("Missing codegen implementation for node kind '{}'", node->node_kind);
     }
 
     void CodegenPass::codegen_function(const Function* function) {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_THAT(function->prototype->symbol_id != SymbolId::invalid());
-        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(function->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(llvm_values.contains(function->prototype->symbol_id));
 
         // Create entry block
@@ -465,7 +465,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_assignment_statement(const AssignmentStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
 
         llvm::Value* target_ptr = std::visit(
             [this](const auto& expression) -> llvm::Value* {
@@ -475,7 +475,7 @@ namespace kepler {
                     KPL_ASSERT_NOT_NULLPTR(expression);
                     KPL_ASSERT_THAT(!expression->access_data.empty());
                     KPL_ASSERT_THAT(expression->object_symbol_id != SymbolId::invalid());
-                    KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+                    KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
                     KPL_ASSERT_THAT(llvm_values.contains(expression->object_symbol_id));
                     KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->object_symbol_id]));
                     llvm::Value* gep = llvm_values[expression->object_symbol_id];
@@ -508,7 +508,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
 
         open_scope();
         const CodegenResult variable_cr = codegen_variable_definition_statement(statement->loop_variable_definition);
@@ -584,7 +584,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_if_statement(const IfStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         const CodegenResult condition_cr = codegen_node(statement->condition);
         KPL_ASSERT_NOT_NULLPTR(condition_cr.llvm_value);
 
@@ -625,7 +625,7 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_return_statement(const ReturnStatement* statement) {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         if (statement->expression == nullptr) {
             llvm::ReturnInst* return_inst = builder.CreateRetVoid();
             return {.llvm_value = return_inst, .returns = true};
@@ -641,7 +641,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->assignment_statement);
         KPL_ASSERT_THAT(statement->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
 
         const AssignmentTargetExpression& assignment_target_expression = statement->assignment_statement->assignment_target_expression;
         KPL_ASSERT_THAT(std::holds_alternative<VariableExpression*>(assignment_target_expression));
@@ -662,14 +662,14 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_boolean_literal_expression(const BooleanLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         return {.llvm_value = llvm::ConstantInt::getBool(context, expression->value), .returns = false};
     }
 
     CodegenResult CodegenPass::codegen_floating_point_literal_expression(const FloatingPointLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         llvm::Type* llvm_type = get_llvm_type(expression->target_type_id);
         return {.llvm_value = llvm::ConstantFP::get(llvm_type, expression->value), .returns = false};
     }
@@ -678,7 +678,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         constexpr const uint8_t radix = 10; // This is basically the base for the llvm values -> base 10
         const std::string& literal_string = StringPool::get().lookup(expression->value_id);
         KPL_ASSERT_THAT(!literal_string.empty());
@@ -700,7 +700,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_string_literal_expression(const StringLiteralExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
 
         const std::string& string_value = StringPool::get().lookup(expression->value_id);
         KPL_ASSERT_THAT(!string_value.empty());
@@ -728,7 +728,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         if (expression->method_symbol_id != SymbolId::invalid()) {
             const Symbol* operator_method_symbol = symbol_table.lookup(expression->method_symbol_id);
             if (!operator_method_symbol->is_builtin) {
@@ -743,36 +743,36 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(rhs_cr.llvm_value);
 
         const Type* target_type = type_table.lookup(expression->target_type_id);
-        switch (expression->operator_type) {
-            case OperatorType::Plus:
+        switch (expression->operator_kind) {
+            case OperatorKind::Plus:
                 return {.llvm_value = create_add(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::Minus:
+            case OperatorKind::Minus:
                 return {.llvm_value = create_sub(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::Multiplication:
+            case OperatorKind::Multiplication:
                 return {.llvm_value = create_mul(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::Division:
+            case OperatorKind::Division:
                 return {.llvm_value = create_div(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::LessThan:
+            case OperatorKind::LessThan:
                 return {.llvm_value = create_less_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::GreaterThan:
+            case OperatorKind::GreaterThan:
                 return {.llvm_value = create_greater_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::Equals:
+            case OperatorKind::Equals:
                 return {.llvm_value = create_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::NotEquals:
+            case OperatorKind::NotEquals:
                 return {.llvm_value = create_not_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::LessEquals:
+            case OperatorKind::LessEquals:
                 return {.llvm_value = create_less_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
-            case OperatorType::GreaterEquals:
+            case OperatorKind::GreaterEquals:
                 return {.llvm_value = create_greater_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
         }
-        KPL_ASSERT_UNREACHABLE("Missing codegen implementation for operator type '{}'", expression->operator_type);
+        KPL_ASSERT_UNREACHABLE("Missing codegen implementation for operator kind '{}'", expression->operator_kind);
     }
 
     CodegenResult CodegenPass::codegen_call_expression(const CallExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(!expression->identifier_path.identifier_parts.empty());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
 
         // Create the builtin cast if it's one
         if (expression->cast_data.is_builtin_cast) {
@@ -855,7 +855,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
         KPL_ASSERT_THAT(expression->target_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         if (expression->method_symbol_id != SymbolId::invalid()) {
             const Symbol* operator_method_symbol = symbol_table.lookup(expression->method_symbol_id);
             if (!operator_method_symbol->is_builtin) {
@@ -879,7 +879,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(!expression->access_data.empty());
         KPL_ASSERT_THAT(expression->object_symbol_id != SymbolId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(llvm_values.contains(expression->object_symbol_id));
         KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->object_symbol_id]));
 
@@ -900,7 +900,7 @@ namespace kepler {
     CodegenResult CodegenPass::codegen_object_initializer_expression(const ObjectInitializerExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         const Type* type = type_table.lookup(expression->type_id);
         KPL_ASSERT_THAT(type->type_kind == TypeKind::Struct);
         const StructType* struct_type = static_cast<const StructType*>(type);
@@ -913,7 +913,7 @@ namespace kepler {
         for (const MemberInitializerData& member_initializer_data : expression->member_initializers) {
             KPL_ASSERT_NOT_NULLPTR(member_initializer_data.value_expression);
             KPL_ASSERT_THAT(member_initializer_data.identifier_id != StringId::invalid());
-            KPL_ASSERT_THAT(member_initializer_data.value_expression->node_type != ASTNodeType::Poison);
+            KPL_ASSERT_THAT(member_initializer_data.value_expression->node_kind != ASTNodeKind::Poison);
             const CodegenResult codegen_result = codegen_node(member_initializer_data.value_expression);
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
             const uint32_t field_index = struct_type->get_member_index(member_initializer_data.identifier_id);
@@ -924,7 +924,7 @@ namespace kepler {
 
     CodegenResult CodegenPass::codegen_variable_expression(const VariableExpression* expression) {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
         KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));

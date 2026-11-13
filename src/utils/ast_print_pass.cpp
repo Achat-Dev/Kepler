@@ -140,7 +140,7 @@ namespace kepler {
 
     void ASTPrintPass::print_node(const ASTNode* node, const std::string& prefix, std::string indent, bool is_last) const {
         KPL_ASSERT_NOT_NULLPTR(node);
-        if (node->node_type == ASTNodeType::Poison) {
+        if (node->node_kind == ASTNodeKind::Poison) {
             std::print(ansi_codes::magenta);
         }
 
@@ -152,86 +152,86 @@ namespace kepler {
             std::print(item_prefix);
             indent += vertical_line;
         }
-        std::println("{}{}{}", prefix, node->node_type, ansi_codes::reset);
+        std::println("{}{}{}", prefix, node->node_kind, ansi_codes::reset);
 
-        switch (node->node_type) {
-            case ASTNodeType::Struct:
-            case ASTNodeType::ImportStatement:
-            case ASTNodeType::ModuleStatement:
-                KPL_ASSERT_UNREACHABLE("Cannot print a node of type '{}' as part of the top level nodes", node->node_type);
+        switch (node->node_kind) {
+            case ASTNodeKind::Struct:
+            case ASTNodeKind::ImportStatement:
+            case ASTNodeKind::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot print a node kind '{}' as part of the top level nodes", node->node_kind);
 
-            case ASTNodeType::Poison:
+            case ASTNodeKind::Poison:
                 return;
-            case ASTNodeType::Extern:
+            case ASTNodeKind::Extern:
                 print_extern(static_cast<const Extern*>(node), indent);
                 return;
-            case ASTNodeType::Function:
+            case ASTNodeKind::Function:
                 print_function(static_cast<const Function*>(node), indent);
                 return;
-            case ASTNodeType::Prototype:
+            case ASTNodeKind::Prototype:
                 print_prototype(static_cast<const Prototype*>(node), indent);
                 return;
-            case ASTNodeType::AssignmentStatement:
+            case ASTNodeKind::AssignmentStatement:
                 print_assignment_statement(static_cast<const AssignmentStatement*>(node), indent);
                 return;
-            case ASTNodeType::ForStatement:
+            case ASTNodeKind::ForStatement:
                 print_for_statement(static_cast<const ForStatement*>(node), indent);
                 return;
-            case ASTNodeType::IfStatement:
+            case ASTNodeKind::IfStatement:
                 print_if_statement(static_cast<const IfStatement*>(node), indent);
                 return;
-            case ASTNodeType::ReturnStatement:
+            case ASTNodeKind::ReturnStatement:
                 print_return_statement(static_cast<const ReturnStatement*>(node), indent);
                 return;
-            case ASTNodeType::VariableDefinitionStatement:
+            case ASTNodeKind::VariableDefinitionStatement:
                 print_variable_definition_statement(static_cast<const VariableDefinitionStatement*>(node), indent);
                 return;
-            case ASTNodeType::BooleanLiteralExpression:
+            case ASTNodeKind::BooleanLiteralExpression:
                 print_boolean_literal_expression(static_cast<const BooleanLiteralExpression*>(node), indent);
                 return;
-            case ASTNodeType::FloatingPointLiteralExpression:
+            case ASTNodeKind::FloatingPointLiteralExpression:
                 print_floating_point_literal_expression(static_cast<const FloatingPointLiteralExpression*>(node), indent);
                 return;
-            case ASTNodeType::IntegerLiteralExpression:
+            case ASTNodeKind::IntegerLiteralExpression:
                 print_integer_literal_expression(static_cast<const IntegerLiteralExpression*>(node), indent);
                 return;
-            case ASTNodeType::StringLiteralExpression:
+            case ASTNodeKind::StringLiteralExpression:
                 print_string_literal_expression(static_cast<const StringLiteralExpression*>(node), indent);
                 return;
-            case ASTNodeType::BinaryExpression:
+            case ASTNodeKind::BinaryExpression:
                 print_binary_expression(static_cast<const BinaryExpression*>(node), indent);
                 return;
-            case ASTNodeType::CallExpression:
+            case ASTNodeKind::CallExpression:
                 print_call_expression(static_cast<const CallExpression*>(node), indent);
                 return;
-            case ASTNodeType::MathematicalNegationExpression:
+            case ASTNodeKind::MathematicalNegationExpression:
                 print_mathematical_negation_expression(static_cast<const MathematicalNegationExpression*>(node), indent);
                 return;
-            case ASTNodeType::MemberExpression:
+            case ASTNodeKind::MemberExpression:
                 print_member_expression(static_cast<const MemberExpression*>(node), indent);
                 return;
-            case ASTNodeType::ObjectInitializerExpression:
+            case ASTNodeKind::ObjectInitializerExpression:
                 print_object_initializer_expression(static_cast<const ObjectInitializerExpression*>(node), indent);
                 return;
-            case ASTNodeType::VariableExpression:
+            case ASTNodeKind::VariableExpression:
                 print_variable_expression(static_cast<const VariableExpression*>(node), indent);
                 return;
         }
 
-        KPL_ASSERT_UNREACHABLE("Missing ast printer implementation for node of type '{}'", node->node_type);
+        KPL_ASSERT_UNREACHABLE("Missing ast printer implementation for node kind '{}'", node->node_kind);
     }
 
     void ASTPrintPass::print_extern(const Extern* ext, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(ext);
         KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-        KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison);
-        std::println("{}{}Linkage: {}", indent, item_prefix, ext->linkage_type);
+        KPL_ASSERT_THAT(ext->node_kind != ASTNodeKind::Poison);
+        std::println("{}{}Linkage: {}", indent, item_prefix, ext->linkage_kind);
         print_node(ext->prototype, "", indent, true);
     }
 
     void ASTPrintPass::print_struct(const Struct* struct_node, std::string indent, bool is_last) const {
         KPL_ASSERT_NOT_NULLPTR(struct_node);
-        KPL_ASSERT_THAT(struct_node->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(struct_node->node_kind != ASTNodeKind::Poison);
         if (is_last) {
             std::println("{}{}Struct", indent, last_item_prefix);
             indent += space;
@@ -239,7 +239,7 @@ namespace kepler {
             std::println("{}{}Struct", indent, item_prefix);
             indent += vertical_line;
         }
-        std::println("{}{}Linkage: {}", indent, item_prefix, struct_node->linkage_type);
+        std::println("{}{}Linkage: {}", indent, item_prefix, struct_node->linkage_kind);
         KPL_ASSERT_THAT(struct_node->identifier_id != StringId::invalid());
         std::println("{}{}Identifier: {}", indent, item_prefix, StringPool::get().lookup(struct_node->identifier_id));
         if (struct_node->members.empty()) {
@@ -268,15 +268,15 @@ namespace kepler {
     void ASTPrintPass::print_function(const Function* function, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
-        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
-        std::println("{}{}Linkage: {}", indent, item_prefix, function->linkage_type);
+        KPL_ASSERT_THAT(function->node_kind != ASTNodeKind::Poison);
+        std::println("{}{}Linkage: {}", indent, item_prefix, function->linkage_kind);
         print_node(function->prototype, "", indent, false);
         print_body(function->body, "Body", indent, true);
     }
 
     void ASTPrintPass::print_prototype(const Prototype* prototype, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
-        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(prototype->node_kind != ASTNodeKind::Poison);
         if (prototype->return_type_id == TypeId::invalid()) {
             KPL_ASSERT_THAT(prototype->return_type_identifier_id != StringId::invalid());
             const std::string& type_name = StringPool::get().lookup(prototype->return_type_identifier_id);
@@ -341,7 +341,7 @@ namespace kepler {
     void ASTPrintPass::print_assignment_statement(const AssignmentStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         std::visit(
             [this, &indent](const auto& expression) {
                 KPL_ASSERT_NOT_NULLPTR(expression);
@@ -355,7 +355,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         print_node(statement->loop_variable_definition, "", indent, false);
         print_node(statement->end_value, "End: ", indent, false);
         if (statement->step_value == nullptr) {
@@ -369,7 +369,7 @@ namespace kepler {
     void ASTPrintPass::print_if_statement(const IfStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         print_node(statement->condition, "", indent, false);
         print_body(statement->if_body, "If body", indent, false);
         print_body(statement->else_body, "Else body", indent, true);
@@ -377,7 +377,7 @@ namespace kepler {
 
     void ASTPrintPass::print_return_statement(const ReturnStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         if (statement->expression == nullptr) {
             std::println("{}{}Expression: {}nullptr{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -388,7 +388,7 @@ namespace kepler {
     void ASTPrintPass::print_variable_definition_statement(const VariableDefinitionStatement* statement, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         if (statement->type_id == TypeId::invalid()) {
             KPL_ASSERT_THAT(statement->type_identifier_id != StringId::invalid());
             const std::string& type_name = StringPool::get().lookup(statement->type_identifier_id);
@@ -404,13 +404,13 @@ namespace kepler {
 
     void ASTPrintPass::print_boolean_literal_expression(const BooleanLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         std::println("{}{}{}", indent, last_item_prefix, expression->value);
     }
 
     void ASTPrintPass::print_floating_point_literal_expression(const FloatingPointLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -422,7 +422,7 @@ namespace kepler {
 
     void ASTPrintPass::print_integer_literal_expression(const IntegerLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -436,7 +436,7 @@ namespace kepler {
     void ASTPrintPass::print_string_literal_expression(const StringLiteralExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->value_id != StringId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         std::string string(StringPool::get().lookup(expression->value_id));
         str_trim_end(string);
         std::println("{}{}{}", indent, last_item_prefix, string);
@@ -446,8 +446,8 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
-        std::println("{}{}Operator: {}", indent, item_prefix, expression->operator_type);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
+        std::println("{}{}Operator: {}", indent, item_prefix, expression->operator_kind);
         if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -461,7 +461,7 @@ namespace kepler {
     void ASTPrintPass::print_call_expression(const CallExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(!expression->identifier_path.identifier_parts.empty());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         const std::string identifier = get_full_identifier_from_path(expression->identifier_path);
         if (expression->module_path.identifier_parts.empty()) {
             std::println("{}{}Module path: {}Empty{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
@@ -493,7 +493,7 @@ namespace kepler {
     void ASTPrintPass::print_mathematical_negation_expression(const MathematicalNegationExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         if (expression->target_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -506,7 +506,7 @@ namespace kepler {
     void ASTPrintPass::print_member_expression(const MemberExpression* expression, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->member_path.identifier_parts.size() > 1);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         std::println("{}{}Path: {}", indent, item_prefix, get_full_identifier_from_path(expression->member_path));
         if (expression->member_type_id == TypeId::invalid()) {
             std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
@@ -551,7 +551,7 @@ namespace kepler {
 
     void ASTPrintPass::print_object_initializer_expression(const ObjectInitializerExpression* expression, std::string indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         if (expression->type_identifier_id == StringId::invalid()) {
             std::println("{}{}Type: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
@@ -588,7 +588,7 @@ namespace kepler {
     void ASTPrintPass::print_variable_expression(const VariableExpression* expression, const std::string& indent) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         const std::string& identifier = StringPool::get().lookup(expression->identifier_id);
         std::println("{}{}{}", indent, item_prefix, identifier);
 

@@ -118,7 +118,7 @@ namespace kepler {
                         get_prototype_signature(full_identifier_id, parameter_type_ids, is_variadic, *type_table),
                         StringPool::get().lookup(symbol_module->full_identifier_id),
                         StringPool::get().lookup(searching_module->full_identifier_id));
-                    if (method_symbol->linkage_type == LinkageType::Export) {
+                    if (method_symbol->linkage_kind == LinkageKind::Export) {
                         message += " because the module is not imported";
                     } else {
                         message += " because it's not exported";

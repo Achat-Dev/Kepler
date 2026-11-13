@@ -29,7 +29,7 @@
 #include "ast/struct.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
-#include "lexer/operator_type.hpp"
+#include "lexer/operator_kind.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
@@ -116,7 +116,7 @@ namespace kepler {
             if (!symbol_id.has_value()) {
                 const Diagnostic& diagnostic = symbol_id.error();
                 diagnostic_sink.report(diagnostic.code, diagnostic.message, struct_node->source_location);
-                struct_node->node_type = ASTNodeType::Poison;
+                struct_node->node_kind = ASTNodeKind::Poison;
                 continue;
             }
             const TypeId type_id = type_table.create_struct(struct_node->identifier_id, symbol_id.value());
@@ -130,44 +130,44 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         for (ASTNode* node : top_level_nodes) {
             KPL_ASSERT_NOT_NULLPTR(node);
-            switch (node->node_type) {
-                case ASTNodeType::Extern: {
+            switch (node->node_kind) {
+                case ASTNodeKind::Extern: {
                     Extern* ext = static_cast<Extern*>(node);
                     KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-                    const NameResolutionResult resolution_result = create_prototype_symbol(ext->prototype, ext->linkage_type);
+                    const NameResolutionResult resolution_result = create_prototype_symbol(ext->prototype, ext->linkage_kind);
                     if (resolution_result.poisoned) {
-                        ext->node_type = ASTNodeType::Poison;
+                        ext->node_kind = ASTNodeKind::Poison;
                     }
                     break;
                 }
-                case ASTNodeType::Function: {
+                case ASTNodeKind::Function: {
                     Function* function = static_cast<Function*>(node);
                     KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                    const NameResolutionResult resolution_result = create_prototype_symbol(function->prototype, function->linkage_type);
+                    const NameResolutionResult resolution_result = create_prototype_symbol(function->prototype, function->linkage_kind);
                     if (resolution_result.poisoned) {
-                        function->node_type = ASTNodeType::Poison;
+                        function->node_kind = ASTNodeKind::Poison;
                     }
                     break;
                 }
                 default:
-                    KPL_ASSERT_UNREACHABLE("Invalid ast node type of type '{}' on top level during name resolution", node->node_type);
+                    KPL_ASSERT_UNREACHABLE("Invalid ast node kind '{}' on top level during name resolution", node->node_kind);
             }
         }
     }
 
-    NameResolutionResult NameResolutionPass::create_prototype_symbol(Prototype* prototype, LinkageType linkage_type) const {
+    NameResolutionResult NameResolutionPass::create_prototype_symbol(Prototype* prototype, LinkageKind linkage_type) const {
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(prototype->return_type_id == TypeId::invalid());
-        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(prototype->node_kind != ASTNodeKind::Poison);
 
         // Check if valid return type
         const auto return_type_symbol = resolve_type_identifier_to_type_symbol(prototype->return_type_identifier_id);
         if (!return_type_symbol.has_value()) {
             const Diagnostic& diagnostic = return_type_symbol.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), prototype->source_location);
-            prototype->node_type = ASTNodeType::Poison;
+            prototype->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         } else {
             KPL_ASSERT_NOT_NULLPTR(return_type_symbol.value());
@@ -188,7 +188,7 @@ namespace kepler {
                         const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                             StringPool::get().lookup(prototype_identifier));
                         diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), prototype->identifier_source_location);
-                        prototype->node_type = ASTNodeType::Poison;
+                        prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
                     return prototype_identifier;
@@ -200,7 +200,7 @@ namespace kepler {
                     if (!type_symbol.has_value()) {
                         const Diagnostic& diagnostic = type_symbol.error();
                         diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), prototype_identifier.type_source_location);
-                        prototype->node_type = ASTNodeType::Poison;
+                        prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
                     object_type_symbol = type_symbol.value();
@@ -210,7 +210,7 @@ namespace kepler {
                         const std::string message = std::format("Type name '{}' cannot be used as a member function identifier",
                             StringPool::get().lookup(prototype_identifier.identifier_id));
                         diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), prototype_identifier.identifier_source_location);
-                        prototype->node_type = ASTNodeType::Poison;
+                        prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
                     method_identifier_id = prototype_identifier.identifier_id;
@@ -236,7 +236,7 @@ namespace kepler {
             if (!parameter_type_symbol.has_value()) {
                 const Diagnostic& diagnostic = parameter_type_symbol.error();
                 diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), parameter_data.type_source_location);
-                prototype->node_type = ASTNodeType::Poison;
+                prototype->node_kind = ASTNodeKind::Poison;
                 return {.poisoned = true};
             }
             KPL_ASSERT_NOT_NULLPTR(parameter_type_symbol.value());
@@ -253,7 +253,7 @@ namespace kepler {
                 method_identifier_id,
                 parameter_type_ids.size());
             if (operator_signature_nrr.poisoned) {
-                prototype->node_type = ASTNodeType::Poison;
+                prototype->node_kind = ASTNodeKind::Poison;
                 return {.poisoned = true};
             }
         }
@@ -270,7 +270,7 @@ namespace kepler {
         if (!symbol_id.has_value()) {
             const Diagnostic& diagnostic = symbol_id.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, prototype->identifier_source_location);
-            prototype->node_type = ASTNodeType::Poison;
+            prototype->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         prototype->symbol_id = symbol_id.value();
@@ -290,7 +290,7 @@ namespace kepler {
         // which will result in better performance
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->return_type_id != TypeId::invalid());
-        KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(prototype->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(object_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(method_identifier_id != StringId::invalid());
         if (method_identifier_id == StringPool::get().store("__cast") && prototype->return_type_id != object_type_id) {
@@ -298,7 +298,7 @@ namespace kepler {
                 *type_table.lookup(object_type_id),
                 *type_table.lookup(prototype->return_type_id));
             diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), prototype->source_location);
-            prototype->node_type = ASTNodeType::Poison;
+            prototype->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
 
@@ -308,35 +308,35 @@ namespace kepler {
             .parameter_count = parameter_count,
         };
         ensure_operator_signature(prototype,
-            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Plus), .parameter_count = 2},
+            {.return_type_id = object_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::Plus), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Minus), .parameter_count = 2},
+            {.return_type_id = object_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::Minus), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Multiplication), .parameter_count = 2},
+            {.return_type_id = object_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::Multiplication), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = object_type_id, .identifier_id = get_operator_name_id(OperatorType::Division), .parameter_count = 2},
+            {.return_type_id = object_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::Division), .parameter_count = 2},
             actual_signature);
         const TypeId bool_type_id = get_builtin_type_id(TypeKind::Bool);
         ensure_operator_signature(prototype,
-            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessThan), .parameter_count = 2},
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::LessThan), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterThan), .parameter_count = 2},
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::GreaterThan), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::Equals), .parameter_count = 2},
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::Equals), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::NotEquals), .parameter_count = 2},
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::NotEquals), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::LessEquals), .parameter_count = 2},
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::LessEquals), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
-            {.return_type_id = bool_type_id, .identifier_id = get_operator_name_id(OperatorType::GreaterEquals), .parameter_count = 2},
+            {.return_type_id = bool_type_id, .identifier_id = get_operator_identifier_id(OperatorKind::GreaterEquals), .parameter_count = 2},
             actual_signature);
         ensure_operator_signature(prototype,
             {.return_type_id = object_type_id, .identifier_id = StringPool::get().store("__mneg"), .parameter_count = 1},
@@ -356,7 +356,7 @@ namespace kepler {
         KPL_ASSERT_THAT(expected_signature.return_type_id != TypeId::invalid());
         KPL_ASSERT_THAT(actual_signature.identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(actual_signature.return_type_id != TypeId::invalid());
-        if (prototype->node_type == ASTNodeType::Poison) {
+        if (prototype->node_kind == ASTNodeKind::Poison) {
             return;
         }
         if (expected_signature.identifier_id != actual_signature.identifier_id) {
@@ -370,12 +370,12 @@ namespace kepler {
                     *type_table.lookup(expected_signature.return_type_id),
                     *type_table.lookup(actual_signature.return_type_id));
             } else {
-                message += std::format("the type it's defined for (expected '{}', got '{}'",
+                message += std::format("the type it's defined for (expected '{}', got '{}')",
                     *type_table.lookup(expected_signature.return_type_id),
                     *type_table.lookup(actual_signature.return_type_id));
             }
             diagnostic_sink.report(DiagnosticCode::TypeMismatch, std::move(message), prototype->source_location);
-            prototype->node_type = ASTNodeType::Poison;
+            prototype->node_kind = ASTNodeKind::Poison;
             return;
         }
 
@@ -386,7 +386,7 @@ namespace kepler {
                 actual_signature.parameter_count);
             // TODO (improvement): Point the source location at the mismatched parameters
             diagnostic_sink.report(DiagnosticCode::MismatchingOperatorParameterCount, std::move(message), prototype->source_location);
-            prototype->node_type = ASTNodeType::Poison;
+            prototype->node_kind = ASTNodeKind::Poison;
             return;
         }
     }
@@ -405,7 +405,7 @@ namespace kepler {
                 if (!type_symbol.has_value()) {
                     const Diagnostic& diagnostic = type_symbol.error();
                     diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), member.type_source_location);
-                    struct_node->node_type = ASTNodeType::Poison;
+                    struct_node->node_kind = ASTNodeKind::Poison;
                     continue;
                 }
                 KPL_ASSERT_NOT_NULLPTR(type_symbol.value());
@@ -417,7 +417,7 @@ namespace kepler {
                     const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                         StringPool::get().lookup(member.identifier_id));
                     diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), member.identifier_source_location);
-                    struct_node->node_type = ASTNodeType::Poison;
+                    struct_node->node_kind = ASTNodeKind::Poison;
                     continue;
                 }
                 // Check if duplicate identifier
@@ -428,7 +428,7 @@ namespace kepler {
                             StringPool::get().lookup(member.identifier_id),
                             StringPool::get().lookup(struct_node->identifier_id));
                         diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), member.identifier_source_location);
-                        struct_node->node_type = ASTNodeType::Poison;
+                        struct_node->node_kind = ASTNodeKind::Poison;
                         is_duplicate_member = true;
                         break;
                     }
@@ -457,74 +457,74 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_node(ASTNode* node) const {
         KPL_ASSERT_NOT_NULLPTR(node);
-        switch (node->node_type) {
-            case ASTNodeType::Struct:
-            case ASTNodeType::Prototype:
-            case ASTNodeType::ImportStatement:
-            case ASTNodeType::ModuleStatement:
-                KPL_ASSERT_UNREACHABLE("Cannot do name resolution for a node of type '{}' as part of the top level nodes", node->node_type);
+        switch (node->node_kind) {
+            case ASTNodeKind::Struct:
+            case ASTNodeKind::Prototype:
+            case ASTNodeKind::ImportStatement:
+            case ASTNodeKind::ModuleStatement:
+                KPL_ASSERT_UNREACHABLE("Cannot do name resolution for a node kind '{}' as part of the top level nodes", node->node_kind);
 
             // Literals cannot be analysed for symbols
-            case ASTNodeType::BooleanLiteralExpression:
-            case ASTNodeType::FloatingPointLiteralExpression:
-            case ASTNodeType::IntegerLiteralExpression:
-            case ASTNodeType::StringLiteralExpression:
+            case ASTNodeKind::BooleanLiteralExpression:
+            case ASTNodeKind::FloatingPointLiteralExpression:
+            case ASTNodeKind::IntegerLiteralExpression:
+            case ASTNodeKind::StringLiteralExpression:
                 return {.poisoned = false};
 
-            case ASTNodeType::Poison:
+            case ASTNodeKind::Poison:
                 return {.poisoned = true};
-            case ASTNodeType::Extern:
+            case ASTNodeKind::Extern:
                 resolve_extern(static_cast<Extern*>(node));
                 return {.poisoned = false};
-            case ASTNodeType::Function:
+            case ASTNodeKind::Function:
                 resolve_function(static_cast<Function*>(node));
                 return {.poisoned = false};
-            case ASTNodeType::AssignmentStatement:
+            case ASTNodeKind::AssignmentStatement:
                 return resolve_assignment_statement(static_cast<AssignmentStatement*>(node), SymbolId::invalid());
-            case ASTNodeType::ForStatement:
+            case ASTNodeKind::ForStatement:
                 return resolve_for_statement(static_cast<ForStatement*>(node));
-            case ASTNodeType::IfStatement:
+            case ASTNodeKind::IfStatement:
                 return resolve_if_statement(static_cast<IfStatement*>(node));
-            case ASTNodeType::ReturnStatement:
+            case ASTNodeKind::ReturnStatement:
                 return resolve_return_statement(static_cast<ReturnStatement*>(node));
-            case ASTNodeType::VariableDefinitionStatement:
+            case ASTNodeKind::VariableDefinitionStatement:
                 return resolve_variable_definition_statement(static_cast<VariableDefinitionStatement*>(node));
-            case ASTNodeType::BinaryExpression:
+            case ASTNodeKind::BinaryExpression:
                 return resolve_binary_expression(static_cast<BinaryExpression*>(node));
-            case ASTNodeType::CallExpression:
+            case ASTNodeKind::CallExpression:
                 return resolve_call_expression(static_cast<CallExpression*>(node));
-            case ASTNodeType::MathematicalNegationExpression:
+            case ASTNodeKind::MathematicalNegationExpression:
                 return resolve_mathematical_negation_expression(static_cast<MathematicalNegationExpression*>(node));
-            case ASTNodeType::MemberExpression:
+            case ASTNodeKind::MemberExpression:
                 return resolve_member_expression(static_cast<MemberExpression*>(node));
-            case ASTNodeType::ObjectInitializerExpression:
+            case ASTNodeKind::ObjectInitializerExpression:
                 return resolve_object_initializer_expression(static_cast<ObjectInitializerExpression*>(node));
-            case ASTNodeType::VariableExpression:
+            case ASTNodeKind::VariableExpression:
                 return resolve_variable_expression(static_cast<VariableExpression*>(node), SymbolId::invalid());
         }
 
-        KPL_ASSERT_UNREACHABLE("Missing name resolution implementation for node of type '{}'", node->node_type);
+        KPL_ASSERT_UNREACHABLE("Missing name resolution implementation for node kind '{}'", node->node_kind);
     }
 
     void NameResolutionPass::resolve_extern(Extern* ext) const {
         KPL_ASSERT_NOT_NULLPTR(ext);
         KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-        KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(ext->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        symbol_table.open_scope(module_id, ScopeType::Function);
+        symbol_table.open_scope(module_id, ScopeKind::Function);
         const NameResolutionResult prototype_result = resolve_prototype(ext->prototype);
         symbol_table.close_scope(module_id);
         if (prototype_result.poisoned) {
-            ext->node_type = ASTNodeType::Poison;
+            ext->node_kind = ASTNodeKind::Poison;
         }
     }
 
     void NameResolutionPass::resolve_function(Function* function) const {
         KPL_ASSERT_NOT_NULLPTR(function);
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
-        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(function->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        symbol_table.open_scope(module_id, ScopeType::Function);
+        symbol_table.open_scope(module_id, ScopeKind::Function);
         resolve_prototype(function->prototype);
         resolve_nodes(function->body.nodes);
         symbol_table.close_scope(module_id);
@@ -534,7 +534,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(prototype);
         // Normally this assert would be there,
         // but because function overloading isn't implemented yet, prototypes poison themselves when trying to overload a function
-        // KPL_ASSERT_THAT(prototype->node_type != ASTNodeType::Poison);
+        // KPL_ASSERT_THAT(prototype->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         for (ParameterData& parameter_data : prototype->parameter_data) {
             KPL_ASSERT_THAT(parameter_data.type_id != TypeId::invalid());
@@ -545,7 +545,7 @@ namespace kepler {
                 const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                     StringPool::get().lookup(parameter_data.identifier_id));
                 diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), parameter_data.identifier_source_location);
-                prototype->node_type = ASTNodeType::Poison;
+                prototype->node_kind = ASTNodeKind::Poison;
                 continue;
             }
 
@@ -553,22 +553,22 @@ namespace kepler {
             if (!symbol_id) {
                 const Diagnostic& diagnostic = symbol_id.error();
                 diagnostic_sink.report(diagnostic.code, diagnostic.message, parameter_data.identifier_source_location);
-                prototype->node_type = ASTNodeType::Poison;
+                prototype->node_kind = ASTNodeKind::Poison;
             } else {
                 parameter_data.symbol_id = *symbol_id;
             }
         }
-        return {.poisoned = prototype->node_type == ASTNodeType::Poison};
+        return {.poisoned = prototype->node_kind == ASTNodeKind::Poison};
     }
 
     NameResolutionResult NameResolutionPass::resolve_assignment_statement(AssignmentStatement* statement, SymbolId variable_symbol_id) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->value_expression);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         const NameResolutionResult assignment_target_nrr = std::visit(
             [this, variable_symbol_id](auto& expression) -> NameResolutionResult {
                 KPL_ASSERT_NOT_NULLPTR(expression);
-                KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+                KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
                 using ValueType = std::decay_t<decltype(expression)>;
                 if constexpr (std::is_same_v<ValueType, VariableExpression*>) {
                     VariableExpression* variable_expression = static_cast<VariableExpression*>(expression);
@@ -581,7 +581,7 @@ namespace kepler {
             statement->assignment_target_expression);
         const NameResolutionResult value_nrr = resolve_node(statement->value_expression);
         if (assignment_target_nrr.poisoned || value_nrr.poisoned) {
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         return {.poisoned = false};
@@ -591,9 +591,9 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
-        symbol_table.open_scope(module_id, ScopeType::Block);
+        symbol_table.open_scope(module_id, ScopeKind::Block);
         const NameResolutionResult definition_nrr = resolve_variable_definition_statement(statement->loop_variable_definition);
         const NameResolutionResult end_nrr = resolve_node(statement->end_value);
         NameResolutionResult step_nrr{.poisoned = false};
@@ -604,7 +604,7 @@ namespace kepler {
         symbol_table.close_scope(module_id);
 
         if (definition_nrr.poisoned || end_nrr.poisoned || step_nrr.poisoned || body_nrr.poisoned) {
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         return {.poisoned = false};
@@ -613,20 +613,20 @@ namespace kepler {
     NameResolutionResult NameResolutionPass::resolve_if_statement(IfStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         const NameResolutionResult condition_nrr = resolve_node(statement->condition);
 
-        symbol_table.open_scope(module_id, ScopeType::Block);
+        symbol_table.open_scope(module_id, ScopeKind::Block);
         const NameResolutionResult if_body_nrr = resolve_nodes(statement->if_body.nodes);
         symbol_table.close_scope(module_id);
 
-        symbol_table.open_scope(module_id, ScopeType::Block);
+        symbol_table.open_scope(module_id, ScopeKind::Block);
         const NameResolutionResult else_body_nrr = resolve_nodes(statement->else_body.nodes);
         symbol_table.close_scope(module_id);
 
         if (condition_nrr.poisoned || if_body_nrr.poisoned || else_body_nrr.poisoned) {
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         return {.poisoned = false};
@@ -634,14 +634,14 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_return_statement(ReturnStatement* statement) const {
         KPL_ASSERT_NOT_NULLPTR(statement);
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         if (statement->expression == nullptr) {
             return {.poisoned = false};
         }
 
         const NameResolutionResult resolution_result = resolve_node(statement->expression);
         if (resolution_result.poisoned) {
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         return {.poisoned = false};
@@ -653,7 +653,7 @@ namespace kepler {
         KPL_ASSERT_THAT(statement->type_id == TypeId::invalid());
         KPL_ASSERT_THAT(statement->type_identifier_id != StringId::invalid());
         KPL_ASSERT_THAT(statement->identifier_id != StringId::invalid());
-        KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(statement->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         const AssignmentTargetExpression& assignment_target_expression = statement->assignment_statement->assignment_target_expression;
         KPL_ASSERT_THAT(std::holds_alternative<VariableExpression*>(assignment_target_expression));
@@ -662,7 +662,7 @@ namespace kepler {
         if (identifier_type_symbol.has_value()) {
             const std::string message = std::format("Type name '{}' cannot be used as an identifier", StringPool::get().lookup(statement->identifier_id));
             diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), variable_expression->source_location);
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
 
@@ -670,7 +670,7 @@ namespace kepler {
         if (!type_symbol.has_value()) {
             const Diagnostic& diagnostic = type_symbol.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), statement->source_location);
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         KPL_ASSERT_NOT_NULLPTR(type_symbol.value());
@@ -682,13 +682,13 @@ namespace kepler {
         if (!symbol_id) {
             const Diagnostic& diagnostic = symbol_id.error();
             diagnostic_sink.report(diagnostic.code, diagnostic.message, variable_expression->source_location);
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
 
         const NameResolutionResult resolution_result = resolve_assignment_statement(statement->assignment_statement, symbol_id.value());
         if (resolution_result.poisoned) {
-            statement->node_type = ASTNodeType::Poison;
+            statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         return {.poisoned = false};
@@ -698,11 +698,11 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(expression->rhs);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         const NameResolutionResult lhs_nrr = resolve_node(expression->lhs);
         const NameResolutionResult rhs_nrr = resolve_node(expression->rhs);
         if (lhs_nrr.poisoned || rhs_nrr.poisoned) {
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         return {.poisoned = false};
@@ -712,7 +712,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(!expression->identifier_path.identifier_parts.empty());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
 
         // Right now this is fine because there are no member method calls
@@ -747,13 +747,13 @@ namespace kepler {
             } else {
                 diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
             }
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         if (candidate_symbols.value().empty()) {
             const std::string& identifier = StringPool::get().lookup(callee_identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Call to unknown function '{}'", identifier), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
 
@@ -767,19 +767,19 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(argument);
             const NameResolutionResult resolution_result = resolve_node(argument);
             if (resolution_result.poisoned) {
-                expression->node_type = ASTNodeType::Poison;
+                expression->node_kind = ASTNodeKind::Poison;
             }
         }
-        return {.poisoned = expression->node_type == ASTNodeType::Poison};
+        return {.poisoned = expression->node_kind == ASTNodeKind::Poison};
     }
 
     NameResolutionResult NameResolutionPass::resolve_mathematical_negation_expression(MathematicalNegationExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_NOT_NULLPTR(expression->expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         const NameResolutionResult resolution_result = resolve_node(expression->expression);
         if (resolution_result.poisoned) {
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
         }
         return resolution_result;
     }
@@ -788,7 +788,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->object_symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(expression->access_data.empty());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         const std::vector<IdentifierPathPart> member_path_parts = expression->member_path.identifier_parts;
         KPL_ASSERT_THAT(member_path_parts.size() > 1);
         const IdentifierPathPart& first_path_part = member_path_parts[0];
@@ -797,13 +797,13 @@ namespace kepler {
         if (!found_symbols.has_value()) {
             const Diagnostic& diagnostic = found_symbols.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), first_path_part.source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         if (found_symbols.value().empty()) {
             const std::string& identifier = StringPool::get().lookup(first_path_part.identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Unknown symbol '{}'", identifier), first_path_part.source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
 
@@ -816,7 +816,7 @@ namespace kepler {
                 StringPool::get().lookup(first_path_part.identifier_id),
                 *object_type);
             diagnostic_sink.report(DiagnosticCode::InvalidMemberAccess, std::move(message), first_path_part.source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         expression->object_symbol_id = object_symbol->id;
@@ -833,7 +833,7 @@ namespace kepler {
                     StringPool::get().lookup(identifier_path_part.identifier_id),
                     *object_type);
                 diagnostic_sink.report(DiagnosticCode::UnknownMember, std::move(message), identifier_path_part.source_location);
-                expression->node_type = ASTNodeType::Poison;
+                expression->node_kind = ASTNodeKind::Poison;
                 return {.poisoned = true};
             }
             KPL_ASSERT_THAT(member->type_id != TypeId::invalid());
@@ -852,7 +852,7 @@ namespace kepler {
                     StringPool::get().lookup(identifier_path_part.identifier_id),
                     *member_type);
                 diagnostic_sink.report(DiagnosticCode::InvalidMemberAccess, std::move(message), identifier_path_part.source_location);
-                expression->node_type = ASTNodeType::Poison;
+                expression->node_kind = ASTNodeKind::Poison;
                 return {.poisoned = true};
             }
         }
@@ -866,13 +866,13 @@ namespace kepler {
 
     NameResolutionResult NameResolutionPass::resolve_object_initializer_expression(ObjectInitializerExpression* expression) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         if (expression->type_identifier_id != StringId::invalid()) {
             const auto type_symbol = resolve_type_identifier_to_type_symbol(expression->type_identifier_id);
             if (!type_symbol.has_value()) {
                 const Diagnostic& diagnostic = type_symbol.error();
                 diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->type_source_location);
-                expression->node_type = ASTNodeType::Poison;
+                expression->node_kind = ASTNodeKind::Poison;
                 return {.poisoned = true};
             }
             KPL_ASSERT_NOT_NULLPTR(type_symbol.value());
@@ -884,24 +884,24 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(member_initializer_data.value_expression);
             const NameResolutionResult resolution_result = resolve_node(member_initializer_data.value_expression);
             if (resolution_result.poisoned) {
-                expression->node_type = ASTNodeType::Poison;
+                expression->node_kind = ASTNodeKind::Poison;
             }
         }
-        return {.poisoned = expression->node_type == ASTNodeType::Poison};
+        return {.poisoned = expression->node_kind == ASTNodeKind::Poison};
     }
 
     NameResolutionResult NameResolutionPass::resolve_variable_expression(VariableExpression* expression, SymbolId variable_symbol_id) const {
         KPL_ASSERT_NOT_NULLPTR(expression);
         KPL_ASSERT_THAT(expression->symbol_id == SymbolId::invalid());
         KPL_ASSERT_THAT(expression->identifier_id != StringId::invalid());
-        KPL_ASSERT_THAT(expression->node_type != ASTNodeType::Poison);
+        KPL_ASSERT_THAT(expression->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         const auto identifier_type_symbol = resolve_type_identifier_to_type_symbol(expression->identifier_id);
         if (identifier_type_symbol.has_value()) {
             const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                 StringPool::get().lookup(expression->identifier_id));
             diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
 
@@ -916,13 +916,13 @@ namespace kepler {
         if (!found_symbols.has_value()) {
             const Diagnostic diagnostic = found_symbols.error();
             diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         if (found_symbols.value().empty()) {
             const std::string& identifier = StringPool::get().lookup(expression->identifier_id);
             diagnostic_sink.report(DiagnosticCode::UnknownSymbol, std::format("Unknown symbol '{}'", identifier), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         KPL_ASSERT_THAT(found_symbols.value().size() == 1);
@@ -936,7 +936,7 @@ namespace kepler {
                 identifier,
                 std::move(variable_symbol_kind_identifier));
             diagnostic_sink.report(DiagnosticCode::InvalidSymbolUsage, std::move(message), expression->source_location);
-            expression->node_type = ASTNodeType::Poison;
+            expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
         expression->symbol_id = variable_symbol->id;

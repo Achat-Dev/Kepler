@@ -20,7 +20,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     src/diagnostics/diagnostic_sink.cpp
     src/io/file.cpp
     src/io/file_manager.cpp
-    src/lexer/operator_type.cpp
+    src/lexer/operator_kind.cpp
     src/lexer/tokenizer.cpp
     src/parser/parser.cpp
     src/parser/parser.expressions.cpp

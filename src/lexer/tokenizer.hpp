@@ -39,7 +39,7 @@ namespace kepler {
         Token read_string_literal();
         Token read_numeric_literal();
         void read_comment();
-        void register_keyword(const std::string& keyword, TokenType token_type, TokenData token_data = std::monostate{});
+        void register_keyword(const std::string& keyword, TokenKind token_kind, TokenData token_data = std::monostate{});
 
         static std::unordered_map<StringId, Token> keyword_map;
     };

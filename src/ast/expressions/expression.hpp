@@ -16,8 +16,8 @@
 namespace kepler {
 
     struct Expression : ASTNode {
-        Expression(ASTNodeType node_type, SourceLocation source_location)
-            : ASTNode(node_type, std::move(source_location)) {}
+        Expression(ASTNodeKind node_kind, SourceLocation source_location)
+            : ASTNode(node_kind, std::move(source_location)) {}
     };
 
 }

@@ -20,7 +20,7 @@ namespace kepler {
         StringId value_id;
 
         StringLiteralExpression(StringId value, SourceLocation source_location)
-            : Expression(ASTNodeType::StringLiteralExpression, std::move(source_location)), value_id(value) {}
+            : Expression(ASTNodeKind::StringLiteralExpression, std::move(source_location)), value_id(value) {}
     };
 
 }

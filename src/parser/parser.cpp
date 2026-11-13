@@ -31,13 +31,13 @@ namespace kepler {
 
     AbstractSyntaxTree Parser::parse() {
         KPL_ASSERT_THAT(!tokens.empty());
-        KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Final token should be EOF, received '{}'", tokens.back().type);
+        KPL_ASSERT_THAT(tokens.back().token_kind == TokenKind::EndOfFile, "Final token should be EOF, received '{}'", tokens.back().token_kind);
 
         AbstractSyntaxTree ast{.allocator = ArenaAllocator(kibibyte_size * 16, file->path.filename().string())};
         allocator = &ast.allocator;
-        while (current_token->type != TokenType::EndOfFile) {
-            switch (current_token->type) {
-                case TokenType::Module: {
+        while (current_token->token_kind != TokenKind::EndOfFile) {
+            switch (current_token->token_kind) {
+                case TokenKind::Module: {
                     ModuleStatement* ast_node = parse_module();
                     if (ast_node) {
                         if (ast.module_statement != nullptr) {
@@ -51,17 +51,17 @@ namespace kepler {
                     }
                     break;
                 }
-                case TokenType::Import: {
+                case TokenKind::Import: {
                     ImportStatement* ast_node = parse_import();
                     if (ast_node) {
                         ast.import_statements.push_back(ast_node);
                     }
                     break;
                 }
-                case TokenType::Export: {
+                case TokenKind::Export: {
                     ExportableNode* ast_node = parse_export();
                     if (ast_node) {
-                        if (ast_node->node_type == ASTNodeType::Struct) {
+                        if (ast_node->node_kind == ASTNodeKind::Struct) {
                             ast.struct_nodes.push_back(static_cast<Struct*>(ast_node));
                         } else {
                             ast.top_level_nodes.push_back(ast_node);
@@ -69,41 +69,41 @@ namespace kepler {
                     }
                     break;
                 }
-                case TokenType::Extern: {
-                    Extern* ast_node = parse_extern(LinkageType::External);
+                case TokenKind::Extern: {
+                    Extern* ast_node = parse_extern(LinkageKind::External);
                     if (ast_node) {
                         ast.top_level_nodes.push_back(ast_node);
                     }
                     break;
                 }
-                case TokenType::Struct: {
-                    Struct* ast_node = parse_struct(LinkageType::Internal);
+                case TokenKind::Struct: {
+                    Struct* ast_node = parse_struct(LinkageKind::Internal);
                     if (ast_node) {
                         ast.struct_nodes.push_back(ast_node);
                     }
                     break;
                 }
-                case TokenType::Identifier: {
-                    ExportableNode* ast_node = parse_top_level_identifier(LinkageType::Internal);
+                case TokenKind::Identifier: {
+                    ExportableNode* ast_node = parse_top_level_identifier(LinkageKind::Internal);
                     if (ast_node) {
                         ast.top_level_nodes.push_back(ast_node);
                     }
                     break;
                 }
-                case TokenType::Newline:
+                case TokenKind::Newline:
                     next_token(true);
                     break;
                 default:
                     diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
                         std::format("Unexpected token '{}' on top level, expected '{}', '{}', '{}', '{}', '{}' or function definition",
-                            current_token->type,
-                            TokenType::Module,
-                            TokenType::Import,
-                            TokenType::Struct,
-                            TokenType::Export,
-                            TokenType::Extern),
+                            current_token->token_kind,
+                            TokenKind::Module,
+                            TokenKind::Import,
+                            TokenKind::Struct,
+                            TokenKind::Export,
+                            TokenKind::Extern),
                         current_token->source_location);
-                    recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+                    recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
                     break;
             }
         }
@@ -122,26 +122,25 @@ namespace kepler {
         return ast;
     }
 
-    int Parser::get_operator_precedence(OperatorType operator_type) const {
-        switch (operator_type) {
-            case OperatorType::LessThan:
-            case OperatorType::GreaterThan:
-            case OperatorType::Equals:
-            case OperatorType::NotEquals:
-            case OperatorType::LessEquals:
-            case OperatorType::GreaterEquals:
+    int Parser::get_operator_precedence(OperatorKind operator_kind) const {
+        switch (operator_kind) {
+            case OperatorKind::LessThan:
+            case OperatorKind::GreaterThan:
+            case OperatorKind::Equals:
+            case OperatorKind::NotEquals:
+            case OperatorKind::LessEquals:
+            case OperatorKind::GreaterEquals:
                 return 10;
 
-            case OperatorType::Plus:
-            case OperatorType::Minus:
+            case OperatorKind::Plus:
+            case OperatorKind::Minus:
                 return 20;
 
-            case OperatorType::Multiplication:
-            case OperatorType::Division:
+            case OperatorKind::Multiplication:
+            case OperatorKind::Division:
                 return 30;
         }
-
-        KPL_ASSERT_UNREACHABLE("Missing binary operator precedence implementation for operator '{}'", static_cast<int>(operator_type));
+        KPL_ASSERT_UNREACHABLE("Missing binary operator precedence implementation for operator kind '{}'", static_cast<int>(operator_kind));
     }
 
     void Parser::next_token(bool skip_newline) {
@@ -149,7 +148,7 @@ namespace kepler {
             current_token_index++;
             current_token = &tokens[current_token_index];
 
-            if (current_token->type == TokenType::Newline && skip_newline) {
+            if (current_token->token_kind == TokenKind::Newline && skip_newline) {
                 next_token(skip_newline);
             }
         }
@@ -160,23 +159,23 @@ namespace kepler {
             current_token_index--;
             current_token = &tokens[current_token_index];
 
-            if (current_token->type == TokenType::Newline && skip_newline) {
+            if (current_token->token_kind == TokenKind::Newline && skip_newline) {
                 previous_token(skip_newline);
             }
         }
     }
 
-    TokenType Parser::peek_next_token_type(size_t lookahead, bool skip_newline) const {
+    TokenKind Parser::peek_next_token_kind(size_t lookahead, bool skip_newline) const {
         KPL_ASSERT_THAT(lookahead > 0);
-        TokenType result = TokenType::EndOfFile;
+        TokenKind result = TokenKind::EndOfFile;
         size_t i = 1;
         while (i <= lookahead) {
             if (current_token_index + i >= tokens.size()) {
-                return TokenType::EndOfFile;
+                return TokenKind::EndOfFile;
             }
 
-            result = tokens[current_token_index + i].type;
-            if (result == TokenType::Newline && skip_newline) {
+            result = tokens[current_token_index + i].token_kind;
+            if (result == TokenKind::Newline && skip_newline) {
                 lookahead++;
             }
             i++;
@@ -192,26 +191,26 @@ namespace kepler {
 
     // TODO (improvement): Maybe don't allow newlines between submodule identifiers
     // clang-format off
-    std::optional<IdentifierPath> Parser::parse_identifier_path(TokenType delimiter_token,
-        IdentifierPathParseKind path_return_kind,
+    std::optional<IdentifierPath> Parser::parse_identifier_path(TokenKind delimiter_token,
+        IdentifierPathParseKind path_parse_kind,
         const std::string& diagnostic_ending)
     {
         // clang-format on
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Identifier);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const uint32_t source_location_start_position = current_token->source_location.position;
         std::vector<IdentifierPathPart> identifier_parts{
             {std::get<StringId>(current_token->data), current_token->source_location},
         };
         next_token(true); // eat identifier
-        while (current_token->type == delimiter_token) {
+        while (current_token->token_kind == delimiter_token) {
             next_token(true); // eat delimiter
-            if (current_token->type != TokenType::Identifier) {
+            if (current_token->token_kind != TokenKind::Identifier) {
                 const SourceLocation& unexpected_token_source_location = current_token->source_location;
                 previous_token(true); // jump back to delimiter because otherwise the next line will be skipped because of the recovery
                 const std::string message = std::format("Expected identifier after '{}' {}", delimiter_token, diagnostic_ending);
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::move(message), unexpected_token_source_location);
-                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+                recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
                 return std::nullopt;
             }
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
@@ -229,7 +228,7 @@ namespace kepler {
             .size = (current_token->source_location.position + current_token->source_location.size) - source_location_start_position,
         };
 
-        switch (path_return_kind) {
+        switch (path_parse_kind) {
             case IdentifierPathParseKind::IncludeLastIdentifier:
                 next_token(true); // eat last identifier
                 break;
@@ -242,7 +241,7 @@ namespace kepler {
                 next_token(true); // eat last delimiter
                 break;
             default:
-                KPL_ASSERT_UNREACHABLE("Missing identifier path parse implementation for return kind '{}'", static_cast<int>(path_return_kind));
+                KPL_ASSERT_UNREACHABLE("Missing identifier path parse implementation for parse kind '{}'", static_cast<int>(path_parse_kind));
         }
         return IdentifierPath{
             .identifier_parts = std::move(identifier_parts),

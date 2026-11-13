@@ -260,8 +260,8 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(file);
         KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
         for (const ASTNode* node : ast.top_level_nodes) {
-            bool is_valid_top_level_node = node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function;
-            KPL_ASSERT_THAT(is_valid_top_level_node, "Malformed ast with node of type '{}' on top level", node->node_type);
+            bool is_valid_top_level_node = node->node_kind == ASTNodeKind::Extern || node->node_kind == ASTNodeKind::Function;
+            KPL_ASSERT_THAT(is_valid_top_level_node, "Malformed ast with node kind '{}' on top level", node->node_kind);
         }
     }
 

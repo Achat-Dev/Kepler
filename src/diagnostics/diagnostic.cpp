@@ -80,7 +80,7 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Missing format implementation for severity mapping of diagnostic code '{}'", static_cast<int>(diagnostic_code));
     }
 
-    std::string get_severity_highlight(DiagnosticSeverity severity) {
+    std::string get_diagnostic_console_highlighting(DiagnosticSeverity severity) {
         switch (severity) {
             case DiagnosticSeverity::Note:
                 return ansi_codes::bold;

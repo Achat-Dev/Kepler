@@ -32,16 +32,19 @@ namespace kepler {
     ModuleStatement* Parser::parse_module() {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Module, "Required token: '{}', received: '{}'", TokenType::Module, current_token->type);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Module,
+            "Required token: '{}', received: '{}'",
+            TokenKind::Module,
+            current_token->token_kind);
         const SourceLocation& module_source_location = current_token->source_location;
         next_token(true); // eat 'module' keyword
-        if (current_token->type != TokenType::Identifier) {
+        if (current_token->token_kind != TokenKind::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'module'", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
 
-        const auto module_path_parse_result = parse_identifier_path(TokenType::DoubleColon,
+        const auto module_path_parse_result = parse_identifier_path(TokenKind::DoubleColon,
             IdentifierPathParseKind::IncludeLastIdentifier,
             "in module path");
         if (!module_path_parse_result.has_value()) {
@@ -53,16 +56,19 @@ namespace kepler {
     ImportStatement* Parser::parse_import() {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Import, "Required token: '{}', received: '{}'", TokenType::Import, current_token->type);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Import,
+            "Required token: '{}', received: '{}'",
+            TokenKind::Import,
+            current_token->token_kind);
         const SourceLocation& import_source_location = current_token->source_location;
         next_token(true); // eat 'import' keyword
-        if (current_token->type != TokenType::Identifier) {
+        if (current_token->token_kind != TokenKind::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'import'", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
 
-        const auto module_path_parse_result = parse_identifier_path(TokenType::DoubleColon,
+        const auto module_path_parse_result = parse_identifier_path(TokenKind::DoubleColon,
             IdentifierPathParseKind::IncludeLastIdentifier,
             "in imported module path");
         if (!module_path_parse_result.has_value()) {
@@ -73,35 +79,40 @@ namespace kepler {
 
     ExportableNode* Parser::parse_export() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Export, "Required token: '{}', received: '{}'", TokenType::Export, current_token->type);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Export,
+            "Required token: '{}', received: '{}'",
+            TokenKind::Export,
+            current_token->token_kind);
         next_token(true); // eat 'export'
-        switch (current_token->type) {
-            case TokenType::Extern:
-                return parse_extern(LinkageType::Export);
+        switch (current_token->token_kind) {
+            case TokenKind::Extern:
+                return parse_extern(LinkageKind::Export);
                 break;
-            case TokenType::Struct:
-                return parse_struct(LinkageType::Export);
+            case TokenKind::Struct:
+                return parse_struct(LinkageKind::Export);
                 break;
-            case TokenType::Identifier:
-                return parse_top_level_identifier(LinkageType::Export);
+            case TokenKind::Identifier:
+                return parse_top_level_identifier(LinkageKind::Export);
                 break;
             default:
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected 'extern' or type after 'export'", current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+                recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
                 return nullptr;
         }
     }
 
-    Extern* Parser::parse_extern(LinkageType linkage_type) {
+    Extern* Parser::parse_extern(LinkageKind linkage_kind) {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Extern, "Required token: '{}', received: '{}'", TokenType::Extern, current_token->type);
-
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Extern,
+            "Required token: '{}', received: '{}'",
+            TokenKind::Extern,
+            current_token->token_kind);
         const SourceLocation& extern_source_location = current_token->source_location;
         next_token(true); // eat 'extern' keyword
-        if (current_token->type != TokenType::Identifier) {
+        if (current_token->token_kind != TokenKind::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type after 'extern'", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
 
@@ -109,20 +120,23 @@ namespace kepler {
         if (!prototype) {
             return nullptr;
         }
-        return allocator->allocate<Extern>(prototype, linkage_type, extern_source_location);
+        return allocator->allocate<Extern>(prototype, linkage_kind, extern_source_location);
     }
 
     Prototype* Parser::parse_prototype() {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Identifier,
+            "Required token: '{}', received: '{}'",
+            TokenKind::Identifier,
+            current_token->token_kind);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId return_type_identifier_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type identifier
-        if (current_token->type != TokenType::Identifier) {
+        if (current_token->token_kind != TokenKind::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after return type of prototype", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
@@ -131,13 +145,13 @@ namespace kepler {
         const Token* identifier_token = current_token;
 
         next_token(true); // eat identifier
-        if (current_token->type == TokenType::Dot) {
+        if (current_token->token_kind == TokenKind::Dot) {
             // Don't use parse_identifier_path because a prototype path must be exactly two parts long (Type identifier + function identifier)
             next_token(true); // eat '.'
-            if (current_token->type != TokenType::Identifier) {
+            if (current_token->token_kind != TokenKind::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after '.' in prototype identifier",
                     current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+                recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
                 return nullptr;
             }
             identifier_source_location = {
@@ -154,30 +168,35 @@ namespace kepler {
             };
             next_token(true); // eat second identifier
         }
-        if (current_token->type != TokenType::BracketOpen) {
+        if (current_token->token_kind != TokenKind::BracketOpen) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after prototype identifier", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
 
         next_token(true); // eat '('
-        if (current_token->type != TokenType::Identifier && current_token->type != TokenType::Variadic && current_token->type != TokenType::BracketClose) {
+                          // clang-format off
+        if (current_token->token_kind != TokenKind::Identifier
+            && current_token->token_kind != TokenKind::Variadic
+            && current_token->token_kind != TokenKind::BracketClose)
+        {
+            // clang-format on
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type or ')' after '(' in prototype", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
 
         // Parse parameters
         std::vector<ParameterData> parameter_data;
         bool is_variadic = false;
-        while (current_token->type == TokenType::Identifier) {
+        while (current_token->token_kind == TokenKind::Identifier) {
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const StringId parameter_type_id = std::get<StringId>(current_token->data);
 
             next_token(true); // eat type identifier
-            if (current_token->type != TokenType::Identifier) {
+            if (current_token->token_kind != TokenKind::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after parameter type", current_token->source_location);
-                recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+                recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
                 return nullptr;
             }
 
@@ -190,26 +209,26 @@ namespace kepler {
             });
 
             next_token(true); // eat identifier
-            if (current_token->type == TokenType::Comma) {
+            if (current_token->token_kind == TokenKind::Comma) {
                 next_token(true); // eat ','
                 // Lookahead for correct diagnostic
-                if (current_token->type != TokenType::Identifier && current_token->type != TokenType::Variadic) {
+                if (current_token->token_kind != TokenKind::Identifier && current_token->token_kind != TokenKind::Variadic) {
                     diagnostic_sink.report(DiagnosticCode::UnexpectedToken,
                         "Expected type after ',' in prototype parameters",
                         current_token->source_location);
-                    recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+                    recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
                     return nullptr;
                 }
             }
         }
 
         // Check for variadic function
-        if (current_token->type == TokenType::Variadic) {
+        if (current_token->token_kind == TokenKind::Variadic) {
             next_token(true); // eat '...'
             is_variadic = true;
         }
 
-        if (current_token->type != TokenType::BracketClose) {
+        if (current_token->token_kind != TokenKind::BracketClose) {
             std::string message;
             if (is_variadic) {
                 message = "Expected ')' after variadic parameter in prototype (variadic must be the last parameter)";
@@ -217,7 +236,7 @@ namespace kepler {
                 message = "Expected ')' after function parameters in prototype";
             }
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, std::move(message), current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
         next_token(true); // eat ')'
@@ -230,15 +249,15 @@ namespace kepler {
             std::move(identifier_source_location));
     }
 
-    Struct* Parser::parse_struct(LinkageType linkage_type) {
+    Struct* Parser::parse_struct(LinkageKind linkage_kind) {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Struct);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Struct);
         const SourceLocation& struct_source_location = current_token->source_location;
         next_token(true); // eat 'struct' keyword
-        if (current_token->type != TokenType::Identifier) {
+        if (current_token->token_kind != TokenKind::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after 'struct'", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline, TokenType::End>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline, TokenKind::End>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
 
@@ -247,26 +266,26 @@ namespace kepler {
         next_token(true); // eat identifier
 
         std::vector<StructNodeMember> members;
-        while (current_token->type != TokenType::End) {
-            if (current_token->type == TokenType::EndOfFile) {
+        while (current_token->token_kind != TokenKind::End) {
+            if (current_token->token_kind == TokenKind::EndOfFile) {
                 const StringId identifier_id = std::get<StringId>(identifier_token->data);
                 const std::string message = std::format("struct '{}' was not closed with an 'end' keyword", StringPool::get().lookup(identifier_id));
                 diagnostic_sink.report(DiagnosticCode::MissingEndKeyword, std::move(message), struct_source_location);
                 return nullptr;
             }
 
-            if (current_token->type != TokenType::Identifier) {
+            if (current_token->token_kind != TokenKind::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected type for struct member", current_token->source_location);
-                recover(SynchronizationSet<TokenType::End>{}, SynchronizationSet<>{});
+                recover(SynchronizationSet<TokenKind::End>{}, SynchronizationSet<>{});
                 continue;
             }
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
             const Token* member_type_token = current_token;
 
             next_token(true); // eat type identifier
-            if (current_token->type != TokenType::Identifier) {
+            if (current_token->token_kind != TokenKind::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after type for struct member", current_token->source_location);
-                recover(SynchronizationSet<TokenType::End>{}, SynchronizationSet<>{});
+                recover(SynchronizationSet<TokenKind::End>{}, SynchronizationSet<>{});
                 continue;
             }
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
@@ -282,56 +301,62 @@ namespace kepler {
         next_token(true); // eat 'end'
         return allocator->allocate<Struct>(std::get<StringId>(identifier_token->data),
             std::move(members),
-            linkage_type,
+            linkage_kind,
             identifier_token->source_location);
     }
 
-    ExportableNode* Parser::parse_top_level_identifier(LinkageType linkage_type) {
+    ExportableNode* Parser::parse_top_level_identifier(LinkageKind linkage_kind) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Identifier,
+            "Required token: '{}', received: '{}'",
+            TokenKind::Identifier,
+            current_token->token_kind);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
         const StringId type_identifier_id = std::get<StringId>(current_token->data);
         const SourceLocation& type_source_location = current_token->source_location;
         next_token(true); // eat type identifier
-        if (current_token->type != TokenType::Identifier) {
+        if (current_token->token_kind != TokenKind::Identifier) {
             diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after type on top level", current_token->source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
         }
 
         next_token(true); // eat identifier
         // Variable definition
-        if (current_token->type == TokenType::Assignment) {
+        if (current_token->token_kind == TokenKind::Assignment) {
             diagnostic_sink.report(DiagnosticCode::Unsupported, "Global variables are not supported yet", type_source_location);
-            recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+            recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
             return nullptr;
-        } else if (current_token->type == TokenType::Dot || current_token->type == TokenType::BracketOpen) {
+        } else if (current_token->token_kind == TokenKind::Dot || current_token->token_kind == TokenKind::BracketOpen) {
             previous_token(true); // Go back to identifier
             previous_token(true); // Go back to type
-            return parse_function(linkage_type);
+            return parse_function(linkage_kind);
         }
 
         diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after identifier on top level", current_token->source_location);
-        recover(SynchronizationSet<TokenType::Newline>{}, SynchronizationSet<TokenType::Newline>{});
+        recover(SynchronizationSet<TokenKind::Newline>{}, SynchronizationSet<TokenKind::Newline>{});
         return nullptr;
     }
 
-    Function* Parser::parse_function(LinkageType linkage_type) {
+    Function* Parser::parse_function(LinkageKind linkage_kind) {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
-        KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
+        KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Identifier,
+            "Required token: '{}', received: '{}'",
+            TokenKind::Identifier,
+            current_token->token_kind);
         next_token(true); // eat type identifier
         const Token* identifier_token = current_token;
         previous_token(true); // Go back to type for parsing prototype
         Prototype* prototype = parse_prototype();
-        if (current_token->type == TokenType::End) {
+        if (current_token->token_kind == TokenKind::End) {
             next_token(true); // eat 'end'
             if (prototype == nullptr) {
                 return nullptr;
             }
             return allocator->allocate<Function>(prototype,
                 std::vector<ASTNode*>{},
-                linkage_type,
+                linkage_kind,
                 identifier_token->source_location);
         }
 
@@ -339,13 +364,13 @@ namespace kepler {
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         const std::string& identifier = StringPool::get().lookup(identifier_id);
         const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", identifier);
-        const auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
+        const auto body = parse_body<TokenKind::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end' or 'EOF'
 
         if (prototype == nullptr || !body.has_value()) {
             return nullptr;
         }
-        return allocator->allocate<Function>(prototype, std::move(body.value()), linkage_type, identifier_token->source_location);
+        return allocator->allocate<Function>(prototype, std::move(body.value()), linkage_kind, identifier_token->source_location);
     }
 
 }

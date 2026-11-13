@@ -98,7 +98,7 @@ namespace kepler {
             std::println("{}In '{}'", log::indented, file->path.string());
 
             // Print lines
-            const std::string highlight_styling = get_severity_highlight(severity);
+            const std::string highlight_styling = get_diagnostic_console_highlighting(severity);
             const uint32_t diagnostic_end_position = diagnostic.source_location.position + diagnostic.source_location.size;
             auto start_it = find_line_info(line_infos, diagnostic.source_location.position);
             auto end_it = find_line_info(line_infos, diagnostic_end_position);

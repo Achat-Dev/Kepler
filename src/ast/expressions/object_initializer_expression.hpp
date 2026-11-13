@@ -35,7 +35,7 @@ namespace kepler {
             std::vector<MemberInitializerData> member_initializers,
             SourceLocation source_location,
             SourceLocation type_source_location)
-            : Expression(ASTNodeType::ObjectInitializerExpression, std::move(source_location)),
+            : Expression(ASTNodeKind::ObjectInitializerExpression, std::move(source_location)),
               type_identifier_id(type_identifier_id),
               member_initializers(std::move(member_initializers)),
               type_source_location(std::move(type_source_location)) {}

@@ -32,9 +32,9 @@ namespace kepler {
         KPL_ASSERT_THAT(!asts.empty());
         for (const AbstractSyntaxTree& ast : asts) {
             for (ASTNode* node : ast.top_level_nodes) {
-                KPL_ASSERT_THAT(node->node_type != ASTNodeType::Poison);
-                switch (node->node_type) {
-                    case ASTNodeType::Function: {
+                KPL_ASSERT_THAT(node->node_kind != ASTNodeKind::Poison);
+                switch (node->node_kind) {
+                    case ASTNodeKind::Function: {
                         check_function(static_cast<Function*>(node));
                         break;
                     }
@@ -48,8 +48,8 @@ namespace kepler {
     void ReturnCheckPass::check_function(Function* function) {
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_THAT(function->body.contains_return == false);
-        KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
-        const ReturnCheckResult return_result = check_body(function->body.nodes, ReturnCheckBodyType::FunctionBody);
+        KPL_ASSERT_THAT(function->node_kind != ASTNodeKind::Poison);
+        const ReturnCheckResult return_result = check_body(function->body.nodes, ReturnCheckBodyKind::FunctionBody);
         if (return_result.contains_return) {
             function->body.contains_return = true;
             return;
@@ -66,16 +66,16 @@ namespace kepler {
         diagnostic_sink.report(DiagnosticCode::MissingReturn, std::move(message), function->source_location);
     }
 
-    ReturnCheckResult ReturnCheckPass::check_body(const std::vector<ASTNode*>& nodes, ReturnCheckBodyType body_type) {
+    ReturnCheckResult ReturnCheckPass::check_body(const std::vector<ASTNode*>& nodes, ReturnCheckBodyKind body_kind) {
         for (size_t i = 0; i < nodes.size(); i++) {
-            KPL_ASSERT_THAT(nodes[i]->node_type != ASTNodeType::Poison);
-            switch (nodes[i]->node_type) {
-                case ASTNodeType::IfStatement: {
+            KPL_ASSERT_THAT(nodes[i]->node_kind != ASTNodeKind::Poison);
+            switch (nodes[i]->node_kind) {
+                case ASTNodeKind::IfStatement: {
                     IfStatement* if_statement = static_cast<IfStatement*>(nodes[i]);
                     KPL_ASSERT_THAT(if_statement->if_body.contains_return == false);
                     KPL_ASSERT_THAT(if_statement->else_body.contains_return == false);
-                    const ReturnCheckResult if_body_rcr = check_body(if_statement->if_body.nodes, ReturnCheckBodyType::IfBody);
-                    const ReturnCheckResult else_body_rcr = check_body(if_statement->else_body.nodes, ReturnCheckBodyType::ElseBody);
+                    const ReturnCheckResult if_body_rcr = check_body(if_statement->if_body.nodes, ReturnCheckBodyKind::IfBody);
+                    const ReturnCheckResult else_body_rcr = check_body(if_statement->else_body.nodes, ReturnCheckBodyKind::ElseBody);
                     if (if_body_rcr.contains_return) {
                         if_statement->if_body.contains_return = true;
                     }
@@ -83,22 +83,22 @@ namespace kepler {
                         if_statement->else_body.contains_return = true;
                     }
                     if (if_body_rcr.contains_return && else_body_rcr.contains_return) {
-                        return handle_return(i, nodes, body_type);
+                        return handle_return(i, nodes, body_kind);
                     }
                     break;
                 }
-                case ASTNodeType::ForStatement: {
+                case ASTNodeKind::ForStatement: {
                     ForStatement* for_statement = static_cast<ForStatement*>(nodes[i]);
                     KPL_ASSERT_THAT(for_statement->body.contains_return == false);
-                    const ReturnCheckResult for_body_rcr = check_body(for_statement->body.nodes, ReturnCheckBodyType::ForBody);
+                    const ReturnCheckResult for_body_rcr = check_body(for_statement->body.nodes, ReturnCheckBodyKind::ForBody);
                     if (for_body_rcr.contains_return) {
                         for_statement->body.contains_return = true;
-                        return handle_return(i, nodes, body_type);
+                        return handle_return(i, nodes, body_kind);
                     }
                     break;
                 }
-                case ASTNodeType::ReturnStatement:
-                    return handle_return(i, nodes, body_type);
+                case ASTNodeKind::ReturnStatement:
+                    return handle_return(i, nodes, body_kind);
                 default:
                     break;
             }
@@ -106,9 +106,9 @@ namespace kepler {
         return {.contains_return = false, .contains_unreachable = false};
     }
 
-    ReturnCheckResult ReturnCheckPass::handle_return(size_t index, const std::vector<ASTNode*>& nodes, ReturnCheckBodyType body_type) {
+    ReturnCheckResult ReturnCheckPass::handle_return(size_t index, const std::vector<ASTNode*>& nodes, ReturnCheckBodyKind body_kind) {
         if (index < nodes.size() - 1) {
-            const std::string message = std::format("Unreachable code in {} detected, starting from here:", body_type);
+            const std::string message = std::format("Unreachable code in {} detected, starting from here:", body_kind);
             diagnostic_sink.report(DiagnosticCode::UnreachableCode, std::move(message), nodes[index + 1]->source_location);
             return {.contains_return = true, .contains_unreachable = true};
         }

@@ -7,37 +7,37 @@
  * If not, see <https://www.gnu.org/licenses/>
  */
 
-#include "lexer/operator_type.hpp"
+#include "lexer/operator_kind.hpp"
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 
 namespace kepler {
 
-    StringId get_operator_name_id(OperatorType operator_type) {
-        switch (operator_type) {
-            case OperatorType::Plus:
+    StringId get_operator_identifier_id(OperatorKind operator_kind) {
+        switch (operator_kind) {
+            case OperatorKind::Plus:
                 return StringPool::get().store("__add");
-            case OperatorType::Minus:
+            case OperatorKind::Minus:
                 return StringPool::get().store("__sub");
-            case OperatorType::Multiplication:
+            case OperatorKind::Multiplication:
                 return StringPool::get().store("__mul");
-            case OperatorType::Division:
+            case OperatorKind::Division:
                 return StringPool::get().store("__div");
-            case OperatorType::LessThan:
+            case OperatorKind::LessThan:
                 return StringPool::get().store("__less_than");
-            case OperatorType::GreaterThan:
+            case OperatorKind::GreaterThan:
                 return StringPool::get().store("__greater_than");
-            case OperatorType::Equals:
+            case OperatorKind::Equals:
                 return StringPool::get().store("__equals");
-            case OperatorType::NotEquals:
+            case OperatorKind::NotEquals:
                 return StringPool::get().store("__not_equals");
-            case OperatorType::LessEquals:
+            case OperatorKind::LessEquals:
                 return StringPool::get().store("__less_equals");
-            case OperatorType::GreaterEquals:
+            case OperatorKind::GreaterEquals:
                 return StringPool::get().store("__greater_equals");
         }
 
-        KPL_ASSERT_UNREACHABLE("Missing operator name id implementation for operator type '{}'", static_cast<int>(operator_type));
+        KPL_ASSERT_UNREACHABLE("Missing operator name id implementation for operator kind '{}'", static_cast<int>(operator_kind));
     }
 
 }

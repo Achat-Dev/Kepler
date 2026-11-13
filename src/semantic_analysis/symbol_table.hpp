@@ -37,7 +37,7 @@ namespace kepler {
         std::expected<SymbolId, Diagnostic> create_prototype(ModuleId module_id,
             TypeId return_type_id,
             StringId identifier_id,
-            LinkageType linkage_type,
+            LinkageKind linkage_kind,
             std::vector<TypeId> parameter_type_ids,
             std::vector<StringId> parameter_type_identifier_ids,
             bool is_variadic,
@@ -52,7 +52,7 @@ namespace kepler {
             const IdentifierPath& module_path,
             StringId identifier_id,
             SymbolKind symbol_kind);
-        void open_scope(ModuleId module_id, ScopeType type);
+        void open_scope(ModuleId module_id, ScopeKind scope_kind);
         void close_scope(ModuleId module_id);
         bool is_symbol_visible_in_module(ModuleId module_id, SymbolId symbol_id);
         Module* get_global_module();

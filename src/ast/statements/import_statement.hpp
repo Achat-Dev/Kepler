@@ -21,7 +21,7 @@ namespace kepler {
         IdentifierPath module_path;
 
         ImportStatement(IdentifierPath module_path, SourceLocation source_location)
-            : Statement(ASTNodeType::ImportStatement, std::move(source_location)),
+            : Statement(ASTNodeKind::ImportStatement, std::move(source_location)),
               module_path(std::move(module_path)) {}
     };
 

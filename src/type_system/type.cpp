@@ -9,7 +9,7 @@
 
 #include "type_system/type.hpp"
 #include "ast/ast_node.hpp"
-#include "lexer/operator_type.hpp"
+#include "lexer/operator_kind.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_id.hpp"
@@ -52,7 +52,7 @@ namespace kepler {
         KPL_ASSERT_UNREACHABLE("Couldn't find an index mapping for struct member '{}'", StringPool::get().lookup(identifier_id));
     }
 
-    StringId get_type_kind_name_id(TypeKind type_kind) {
+    StringId get_type_kind_identifier_id(TypeKind type_kind) {
         switch (type_kind) {
             case TypeKind::Void:
                 return StringPool::get().store("void");
@@ -97,18 +97,18 @@ namespace kepler {
             const std::vector<TypeId>& parameter_type_ids,
             const std::vector<StringId>& parameter_identifier_ids,
             StringId type_identifier_id,
-            OperatorType operator_type,
+            OperatorKind operator_kind,
             SymbolTable& symbol_table)
         {
             // clang-format on
             const ModuleId global_module_id = symbol_table.get_global_module()->id;
             // Lookup the operator identifier first, because that one might store a new string,
             // which could invalidate the type identifier if that is looked up first
-            const std::string& operator_identifier = StringPool::get().lookup(get_operator_name_id(operator_type));
+            const std::string& operator_identifier = StringPool::get().lookup(get_operator_identifier_id(operator_kind));
             const std::string& type_identifier = StringPool::get().lookup(type_identifier_id);
             const StringId method_identifier_id = StringPool::get().store(type_identifier + '.' + operator_identifier);
             const auto symbol_id = symbol_table.create_prototype(global_module_id, type_id, method_identifier_id,
-                LinkageType::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id, true);
+                LinkageKind::Export, parameter_type_ids, parameter_identifier_ids, false, type_symbol_id, true);
             KPL_ASSERT_THAT(symbol_id.has_value());
         }
 
@@ -120,13 +120,13 @@ namespace kepler {
             // Create operator methods
             const StringId a_identifier_id = StringPool::get().store("a");
             const StringId b_identifier_id = StringPool::get().store("b");
-            const StringId bool_identifier_id = get_type_kind_name_id(TypeKind::Bool);
+            const StringId bool_identifier_id = get_type_kind_identifier_id(TypeKind::Bool);
             const std::vector<TypeId> parameter_type_ids{bool_type_id, bool_type_id};
             const std::vector<StringId> parameter_identifier_ids{a_identifier_id, b_identifier_id};
             create_builtin_method(bool_type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                bool_identifier_id, OperatorType::Equals, symbol_table);
+                bool_identifier_id, OperatorKind::Equals, symbol_table);
             create_builtin_method(bool_type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                bool_identifier_id, OperatorType::NotEquals, symbol_table);
+                bool_identifier_id, OperatorKind::NotEquals, symbol_table);
 
             // Create cast methods
             const StringId value_identifier_id = StringPool::get().store("value");
@@ -145,7 +145,7 @@ namespace kepler {
             };
             for (TypeId number_type_id : number_type_ids) {
                 const auto cast_symbol_id = symbol_table.create_prototype(global_module_id, bool_type_id, cast_identifier_id,
-                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id, true);
+                    LinkageKind::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id, true);
             }
         }
 
@@ -155,7 +155,7 @@ namespace kepler {
             const TypeSymbol* type_symbol = static_cast<TypeSymbol*>(symbol_table.lookup(type_symbol_id));
             const ModuleId global_module_id = symbol_table.get_global_module()->id;
             const TypeId type_id = type_symbol->type_id;
-            const StringId type_identifier_id = get_type_kind_name_id(type_kind);
+            const StringId type_identifier_id = get_type_kind_identifier_id(type_kind);
 
             // Create operator methods
             const StringId a_identifier_id = StringPool::get().store("a");
@@ -165,31 +165,31 @@ namespace kepler {
             const std::vector<StringId> parameter_identifier_ids{a_identifier_id, b_identifier_id};
             // Mathematical operators
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::Plus, symbol_table);
+                type_identifier_id, OperatorKind::Plus, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::Minus, symbol_table);
+                type_identifier_id, OperatorKind::Minus, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::Multiplication, symbol_table);
+                type_identifier_id, OperatorKind::Multiplication, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::Division, symbol_table);
+                type_identifier_id, OperatorKind::Division, symbol_table);
             const StringId mneg_identifier_id = StringPool::get().store(StringPool::get().lookup(type_identifier_id) + ".__mneg");
             const auto mneg_symbol_id = symbol_table.create_prototype(global_module_id, type_id, mneg_identifier_id,
-                LinkageType::Export, {type_id}, {value_identifier_id}, false, type_symbol_id, true);
+                LinkageKind::Export, {type_id}, {value_identifier_id}, false, type_symbol_id, true);
             KPL_ASSERT_THAT(mneg_symbol_id.has_value());
 
             // Comparison operators
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::LessThan, symbol_table);
+                type_identifier_id, OperatorKind::LessThan, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::GreaterThan, symbol_table);
+                type_identifier_id, OperatorKind::GreaterThan, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::Equals, symbol_table);
+                type_identifier_id, OperatorKind::Equals, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::NotEquals, symbol_table);
+                type_identifier_id, OperatorKind::NotEquals, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::LessEquals, symbol_table);
+                type_identifier_id, OperatorKind::LessEquals, symbol_table);
             create_builtin_method(type_id, type_symbol_id, parameter_type_ids, parameter_identifier_ids,
-                type_identifier_id, OperatorType::GreaterEquals, symbol_table);
+                type_identifier_id, OperatorKind::GreaterEquals, symbol_table);
 
             // Create cast methods
             const StringId cast_identifier_id = StringPool::get().store(StringPool::get().lookup(type_identifier_id) + ".__cast");
@@ -210,7 +210,7 @@ namespace kepler {
                     continue;
                 }
                 const auto cast_symbol_id = symbol_table.create_prototype(global_module_id, type_id, cast_identifier_id,
-                    LinkageType::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id, true);
+                    LinkageKind::Export, {number_type_id}, {value_identifier_id}, false, type_symbol_id, true);
                 KPL_ASSERT_THAT(cast_symbol_id.has_value());
             }
         }
@@ -218,7 +218,7 @@ namespace kepler {
         SymbolId create_builtin_type(TypeKind type_kind, SymbolTable& symbol_table, TypeTable& type_table) {
             KPL_ASSERT_THAT(type_kind != TypeKind::Struct);
             const ModuleId global_module_id = symbol_table.get_global_module()->id;
-            const StringId identifier_id = get_type_kind_name_id(type_kind);
+            const StringId identifier_id = get_type_kind_identifier_id(type_kind);
             const auto symbol_id = symbol_table.create_struct(global_module_id, identifier_id, true);
             KPL_ASSERT_THAT(symbol_id.has_value());
             const TypeId type_id = type_table.create_type(identifier_id, type_kind, symbol_id.value());
@@ -309,7 +309,7 @@ namespace kepler {
             case TypeKind::Struct:
                 KPL_ASSERT_UNREACHABLE("Cannot map type kind '{}' to llvm type", TypeKind::Struct);
         }
-        KPL_ASSERT_UNREACHABLE("Missing llvm type mapping for type kind {}", static_cast<int>(type_kind));
+        KPL_ASSERT_UNREACHABLE("Missing llvm type mapping for type kind '{}'", static_cast<int>(type_kind));
     }
 
     bool is_builtin_type(const Type* type) {

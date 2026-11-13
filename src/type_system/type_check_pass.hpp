@@ -31,7 +31,7 @@
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
-#include "lexer/operator_type.hpp"
+#include "lexer/operator_kind.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "semantic_analysis/symbol_table.hpp"
@@ -87,7 +87,7 @@ namespace kepler {
         ModuleId module_id;
         TypeId current_function_return_type_id;
 
-        bool is_boolean_operator(OperatorType type) const;
+        bool is_boolean_operator(OperatorKind operator_kind) const;
         bool is_number_literal_expression(const Expression* expression) const;
 
         TypeCheckResult typecheck_nodes(const std::vector<ASTNode*>& nodes);

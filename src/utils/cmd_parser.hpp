@@ -25,7 +25,7 @@
 
 namespace kepler {
 
-    enum class CmdOptionValueType {
+    enum class CmdOptionValueKind {
         NoValue,
         OneValue,
         List,
@@ -35,7 +35,7 @@ namespace kepler {
         char short_name = ' ';
         StringId long_name_id;
         StringId description_id;
-        CmdOptionValueType value_type;
+        CmdOptionValueKind value_kind;
         int original_arg_index = -1;
 
         std::function<std::expected<void, Diagnostic>(const std::vector<std::string>&, const CmdOption*, int)> set_value;
@@ -64,22 +64,22 @@ namespace kepler {
             const StringId long_name_id = StringPool::get().store(long_name);
             KPL_ASSERT_THAT(find_option(long_name_id) == nullptr, "Option '--{}' is already added", long_name);
 
-            CmdOptionValueType value_type = CmdOptionValueType::OneValue;
+            CmdOptionValueKind value_kind = CmdOptionValueKind::OneValue;
             if constexpr (std::is_same_v<T, bool>) {
-                value_type = CmdOptionValueType::NoValue;
+                value_kind = CmdOptionValueKind::NoValue;
             } else if constexpr (kepler::is_vector<std::remove_cvref_t<T>>::value) {
                 using vector_type = typename kepler::is_vector<std::remove_cvref_t<T>>::value_type;
                 if constexpr (kepler::is_vector<std::remove_cvref_t<vector_type>>::value) {
                     KPL_ASSERT_THAT(true, "Cmd option '{}' is a nested vector", long_name);
                 }
-                value_type = CmdOptionValueType::List;
+                value_kind = CmdOptionValueKind::List;
             }
 
             options.push_back(CmdOption{
                 .short_name = short_name,
                 .long_name_id = long_name_id,
                 .description_id = StringPool::get().store(std::move(description)),
-                .value_type = value_type,
+                .value_kind = value_kind,
                 .original_arg_index = -1,
                 .set_value = [this, value](const std::vector<std::string>& args, const CmdOption* option, int value_arg_index) {
                     return set_value(*value, args, option, value_arg_index);

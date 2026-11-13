@@ -13,17 +13,17 @@
 
 namespace kepler {
 
-    llvm::Function::LinkageTypes get_llvm_linkage_type(LinkageType linkage_type) {
-        switch (linkage_type) {
-            case LinkageType::Internal:
+    llvm::Function::LinkageTypes get_llvm_linkage_kind(LinkageKind linkage_kind) {
+        switch (linkage_kind) {
+            case LinkageKind::Internal:
                 return llvm::Function::InternalLinkage;
-            case LinkageType::External:
+            case LinkageKind::External:
                 return llvm::Function::ExternalLinkage;
-            case LinkageType::Export:
+            case LinkageKind::Export:
                 return llvm::Function::ExternalLinkage;
         }
 
-        KPL_ASSERT_UNREACHABLE("Missing llvm linkage type mapping for linkage type '{}'", static_cast<int>(linkage_type));
+        KPL_ASSERT_UNREACHABLE("Missing llvm linkage type mapping for linkage kind '{}'", static_cast<int>(linkage_kind));
     }
 
 }

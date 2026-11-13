@@ -21,7 +21,7 @@ namespace kepler {
         Expression* expression;
 
         ReturnStatement(Expression* expression, SourceLocation source_location)
-            : Statement(ASTNodeType::ReturnStatement, std::move(source_location)), expression(expression) {}
+            : Statement(ASTNodeKind::ReturnStatement, std::move(source_location)), expression(expression) {}
     };
 
 }

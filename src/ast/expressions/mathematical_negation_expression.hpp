@@ -23,7 +23,7 @@ namespace kepler {
         SymbolId method_symbol_id;
 
         MathematicalNegationExpression(Expression* expression, SourceLocation source_location)
-            : Expression(ASTNodeType::MathematicalNegationExpression, std::move(source_location)), expression(expression) {}
+            : Expression(ASTNodeKind::MathematicalNegationExpression, std::move(source_location)), expression(expression) {}
     };
 
 }

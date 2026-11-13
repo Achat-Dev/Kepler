@@ -20,7 +20,7 @@ namespace kepler {
         bool value;
 
         BooleanLiteralExpression(bool value, SourceLocation source_location)
-            : Expression(ASTNodeType::BooleanLiteralExpression, std::move(source_location)), value(value) {}
+            : Expression(ASTNodeKind::BooleanLiteralExpression, std::move(source_location)), value(value) {}
     };
 
 }

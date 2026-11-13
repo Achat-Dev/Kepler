@@ -11,7 +11,7 @@
 
 #include "ast/expressions/expression.hpp"
 #include "diagnostics/source_location.hpp"
-#include "lexer/operator_type.hpp"
+#include "lexer/operator_kind.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
 #include <utility>
@@ -19,18 +19,18 @@
 namespace kepler {
 
     struct BinaryExpression : Expression {
-        OperatorType operator_type;
+        OperatorKind operator_kind;
         Expression* lhs;
         Expression* rhs;
         TypeId target_type_id;
         SymbolId method_symbol_id;
 
-        BinaryExpression(OperatorType operator_type,
+        BinaryExpression(OperatorKind operator_kind,
             Expression* lhs,
             Expression* rhs,
             SourceLocation source_location)
-            : Expression(ASTNodeType::BinaryExpression, std::move(source_location)),
-              operator_type(operator_type),
+            : Expression(ASTNodeKind::BinaryExpression, std::move(source_location)),
+              operator_kind(operator_kind),
               lhs(lhs),
               rhs(rhs) {}
     };

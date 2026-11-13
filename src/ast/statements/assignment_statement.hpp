@@ -29,7 +29,7 @@ namespace kepler {
         AssignmentStatement(AssignmentTargetExpression assignment_target_expression,
             Expression* value_expression,
             SourceLocation source_location)
-            : Statement(ASTNodeType::AssignmentStatement, std::move(source_location)),
+            : Statement(ASTNodeKind::AssignmentStatement, std::move(source_location)),
               assignment_target_expression(assignment_target_expression),
               value_expression(value_expression) {}
     };

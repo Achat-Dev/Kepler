@@ -21,7 +21,7 @@ namespace kepler {
         TypeId target_type_id;
 
         FloatingPointLiteralExpression(double value, SourceLocation source_location)
-            : Expression(ASTNodeType::FloatingPointLiteralExpression, std::move(source_location)), value(value) {}
+            : Expression(ASTNodeKind::FloatingPointLiteralExpression, std::move(source_location)), value(value) {}
     };
 
 }
