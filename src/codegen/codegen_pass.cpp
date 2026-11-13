@@ -572,7 +572,7 @@ namespace kepler {
 
         // Codegen increment
         llvm::Value* variable_load = builder.CreateLoad(variable_type, variable_cr.llvm_value);
-        llvm::Value* incremented_variable_value = create_add(variable_load, step_value, loop_variable_type, builder);
+        llvm::Value* incremented_variable_value = create_add(variable_load, step_value, loop_variable_type);
         builder.CreateStore(incremented_variable_value, variable_cr.llvm_value);
         builder.CreateBr(header_block);
 
@@ -745,25 +745,25 @@ namespace kepler {
         const Type* target_type = type_table.lookup(expression->target_type_id);
         switch (expression->operator_type) {
             case OperatorType::Plus:
-                return {.llvm_value = create_add(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_add(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::Minus:
-                return {.llvm_value = create_sub(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_sub(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::Multiplication:
-                return {.llvm_value = create_mul(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_mul(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::Division:
-                return {.llvm_value = create_div(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_div(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::LessThan:
-                return {.llvm_value = create_less_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_less_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::GreaterThan:
-                return {.llvm_value = create_greater_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_greater_than(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::Equals:
-                return {.llvm_value = create_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::NotEquals:
-                return {.llvm_value = create_not_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_not_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::LessEquals:
-                return {.llvm_value = create_less_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_less_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
             case OperatorType::GreaterEquals:
-                return {.llvm_value = create_greater_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type, builder), .returns = false};
+                return {.llvm_value = create_greater_equals(lhs_cr.llvm_value, rhs_cr.llvm_value, target_type), .returns = false};
         }
         KPL_ASSERT_UNREACHABLE("Missing codegen implementation for operator type '{}'", expression->operator_type);
     }
@@ -784,7 +784,7 @@ namespace kepler {
             const CodegenResult codegen_result = codegen_node(expression->arguments[0]);
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
             return {
-                .llvm_value = create_cast(codegen_result.llvm_value, original_type, target_type, context, builder),
+                .llvm_value = create_cast(codegen_result.llvm_value, original_type, target_type),
                 .returns = false,
             };
         }
@@ -941,6 +941,219 @@ namespace kepler {
         llvm::Value* value = builder.CreateLoad(get_llvm_type(symbol->type_id), llvm_values[expression->symbol_id]);
 #endif
         return {.llvm_value = value, .returns = false};
+    }
+
+    llvm::Value* CodegenPass::create_add(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_integer_type(type)) {
+            return builder.CreateAdd(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFAdd(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create add implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_sub(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_integer_type(type)) {
+            return builder.CreateSub(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFSub(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create sub implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_mul(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_integer_type(type)) {
+            return builder.CreateMul(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFMul(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create mul implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_div(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_signed_integer_type(type)) {
+            return builder.CreateSDiv(lhs, rhs);
+        } else if (is_unsigned_integer_type(type)) {
+            return builder.CreateUDiv(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFDiv(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create div implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_less_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_signed_integer_type(type)) {
+            return builder.CreateICmpSLT(lhs, rhs);
+        } else if (is_unsigned_integer_type(type)) {
+            return builder.CreateICmpULT(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFCmpULT(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create less than implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_greater_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_signed_integer_type(type)) {
+            return builder.CreateICmpSGT(lhs, rhs);
+        } else if (is_unsigned_integer_type(type)) {
+            return builder.CreateICmpUGT(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFCmpUGT(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create greater than implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_integer_type(type)) {
+            return builder.CreateICmpEQ(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFCmpUEQ(lhs, rhs);
+        } else if (type->id == get_builtin_type_id(TypeKind::Bool)) {
+            return builder.CreateICmpEQ(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create equals implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_not_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_integer_type(type)) {
+            return builder.CreateICmpNE(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFCmpUNE(lhs, rhs);
+        } else if (type->id == get_builtin_type_id(TypeKind::Bool)) {
+            return builder.CreateICmpNE(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create not equals implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_less_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_signed_integer_type(type)) {
+            return builder.CreateICmpSLE(lhs, rhs);
+        } else if (is_unsigned_integer_type(type)) {
+            return builder.CreateICmpULE(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFCmpULE(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create less equals implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_greater_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type) {
+        KPL_ASSERT_NOT_NULLPTR(lhs);
+        KPL_ASSERT_NOT_NULLPTR(rhs);
+        KPL_ASSERT_NOT_NULLPTR(type);
+        if (is_signed_integer_type(type)) {
+            return builder.CreateICmpSGE(lhs, rhs);
+        } else if (is_unsigned_integer_type(type)) {
+            return builder.CreateICmpUGE(lhs, rhs);
+        } else if (is_floating_point_type(type)) {
+            return builder.CreateFCmpUGE(lhs, rhs);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create greater equals implementation for type '{}'", *type);
+    }
+
+    llvm::Value* CodegenPass::create_cast(llvm::Value* value, const Type* original_type, const Type* target_type) {
+        KPL_ASSERT_NOT_NULLPTR(value);
+        KPL_ASSERT_NOT_NULLPTR(original_type);
+        KPL_ASSERT_NOT_NULLPTR(target_type);
+        KPL_ASSERT_THAT(original_type != target_type);
+        switch (target_type->type_kind) {
+            case TypeKind::Void:
+            case TypeKind::String:
+            case TypeKind::Struct:
+                KPL_ASSERT_UNREACHABLE("Can't create a builtin cast to target type '{}'", *target_type);
+
+            case TypeKind::Bool:
+                return create_cast_to_bool(value, original_type);
+            case TypeKind::I8:
+                return create_cast_to_int<int8_t>(value, original_type, target_type, true);
+            case TypeKind::I16:
+                return create_cast_to_int<int16_t>(value, original_type, target_type, true);
+            case TypeKind::I32:
+                return create_cast_to_int<int32_t>(value, original_type, target_type, true);
+            case TypeKind::I64:
+                return create_cast_to_int<int64_t>(value, original_type, target_type, true);
+            case TypeKind::U8:
+                return create_cast_to_int<uint8_t>(value, original_type, target_type, false);
+            case TypeKind::U16:
+                return create_cast_to_int<uint16_t>(value, original_type, target_type, false);
+            case TypeKind::U32:
+                return create_cast_to_int<uint32_t>(value, original_type, target_type, false);
+            case TypeKind::U64:
+                return create_cast_to_int<uint64_t>(value, original_type, target_type, false);
+            case TypeKind::F32:
+                return create_cast_to_f32(value, original_type);
+            case TypeKind::F64:
+                return create_cast_to_f64(value, original_type);
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create cast implementation for target type '{}'", *target_type);
+    }
+
+    llvm::Value* CodegenPass::create_cast_to_bool(llvm::Value* value, const Type* original_type) {
+        KPL_ASSERT_NOT_NULLPTR(value);
+        KPL_ASSERT_NOT_NULLPTR(original_type);
+        KPL_ASSERT_THAT(is_builtin_type(original_type));
+        KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::Bool), "Can't create redundant cast for type '{}'", *original_type);
+        llvm::Type* llvm_original_type = get_builtin_llvm_type(original_type->type_kind, context);
+        if (is_integer_type(original_type)) {
+            return builder.CreateICmpNE(value, llvm::ConstantInt::get(llvm_original_type, 0));
+        } else if (is_floating_point_type(original_type)) {
+            return builder.CreateFCmpONE(value, llvm::ConstantFP::get(llvm_original_type, 0));
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create cast to bool implementation for original type '{}'", *original_type);
+    }
+
+    llvm::Value* CodegenPass::create_cast_to_f32(llvm::Value* value, const Type* original_type) {
+        KPL_ASSERT_NOT_NULLPTR(value);
+        KPL_ASSERT_NOT_NULLPTR(original_type);
+        KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F32));
+        if (is_signed_integer_type(original_type)) {
+            return builder.CreateSIToFP(value, llvm::Type::getFloatTy(context));
+        } else if (is_unsigned_integer_type(original_type)) {
+            return builder.CreateUIToFP(value, llvm::Type::getFloatTy(context));
+        } else if (original_type->id == get_builtin_type_id(TypeKind::F64)) {
+            return builder.CreateFPTrunc(value, llvm::Type::getFloatTy(context));
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create cast to f32 implementation for original type '{}'", *original_type);
+    }
+
+    llvm::Value* CodegenPass::create_cast_to_f64(llvm::Value* value, const Type* original_type) {
+        KPL_ASSERT_NOT_NULLPTR(value);
+        KPL_ASSERT_NOT_NULLPTR(original_type);
+        KPL_ASSERT_THAT(original_type->id != get_builtin_type_id(TypeKind::F64));
+        if (is_integer_type(original_type)) {
+            return builder.CreateSIToFP(value, llvm::Type::getDoubleTy(context));
+        } else if (is_unsigned_integer_type(original_type)) {
+            return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(context));
+        } else if (original_type->id == get_builtin_type_id(TypeKind::F32)) {
+            return builder.CreateFPExt(value, llvm::Type::getDoubleTy(context));
+        }
+        KPL_ASSERT_UNREACHABLE("Missing create cast to f64 implementation for original type '{}'", *original_type);
     }
 
 }

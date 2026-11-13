@@ -37,8 +37,12 @@
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type.hpp"
 #include "type_system/type_table.hpp"
+#include "utils/assert.h"
 #include "utils/string_pool.hpp"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/Target/TargetMachine.h"
+#include <limits>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
@@ -119,6 +123,60 @@ namespace kepler {
         CodegenResult codegen_member_expression(const MemberExpression* expression);
         CodegenResult codegen_object_initializer_expression(const ObjectInitializerExpression* expression);
         CodegenResult codegen_variable_expression(const VariableExpression* expression);
+
+        // Operation creation
+        llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_mul(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_div(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_less_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_greater_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_not_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_less_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_greater_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type);
+        llvm::Value* create_cast(llvm::Value* value, const Type* original_type, const Type* target_type);
+        llvm::Value* create_cast_to_bool(llvm::Value* value, const Type* original_type);
+        llvm::Value* create_cast_to_f32(llvm::Value* value, const Type* original_type);
+        llvm::Value* create_cast_to_f64(llvm::Value* value, const Type* original_type);
+
+        template <typename T>
+        llvm::Value* create_cast_float_to_int(llvm::Value* value, const Type* original_type, const Type* target_type) {
+            KPL_ASSERT_NOT_NULLPTR(value);
+            KPL_ASSERT_NOT_NULLPTR(original_type);
+            KPL_ASSERT_NOT_NULLPTR(target_type);
+            KPL_ASSERT_THAT(is_builtin_type(original_type));
+            KPL_ASSERT_THAT(is_builtin_type(target_type));
+            KPL_ASSERT_THAT(original_type != target_type);
+            // Clamp the value of the float to the integer boundaries because llvm poisons the result if the value is out of bounds
+            llvm::Type* llvm_float_type = get_builtin_llvm_type(original_type->type_kind, context);
+            llvm::Value* min = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::lowest()));
+            llvm::Value* max = llvm::ConstantFP::get(llvm_float_type, static_cast<double>(std::numeric_limits<T>::max()));
+            llvm::Value* clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::maxnum, value, min);
+            clamped = builder.CreateBinaryIntrinsic(llvm::Intrinsic::minnum, clamped, max);
+            llvm::Type* llvm_target_type = get_builtin_llvm_type(target_type->type_kind, context);
+            if (is_signed_integer_type(target_type)) {
+                return builder.CreateFPToSI(clamped, llvm_target_type);
+            } else if (is_unsigned_integer_type(target_type)) {
+                return builder.CreateFPToUI(clamped, llvm_target_type);
+            }
+            KPL_ASSERT_UNREACHABLE("Target type must be of type int when creating cast from float to int");
+        }
+
+        template <typename T>
+        llvm::Value* create_cast_to_int(llvm::Value* value, const Type* original_type, const Type* target_type, bool is_signed) {
+            KPL_ASSERT_NOT_NULLPTR(value);
+            KPL_ASSERT_NOT_NULLPTR(original_type);
+            KPL_ASSERT_NOT_NULLPTR(target_type);
+            KPL_ASSERT_THAT(is_builtin_type(target_type));
+            KPL_ASSERT_THAT(original_type != target_type);
+            if (is_integer_type(original_type)) {
+                return builder.CreateIntCast(value, get_builtin_llvm_type(target_type->type_kind, context), is_signed);
+            } else if (is_floating_point_type(original_type)) {
+                return create_cast_float_to_int<T>(value, original_type, target_type);
+            }
+            KPL_ASSERT_UNREACHABLE("Missing create cast to '{}' implementation for original type '{}'", *target_type, *original_type);
+        }
     };
 
 }

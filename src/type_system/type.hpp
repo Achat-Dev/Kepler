@@ -15,9 +15,8 @@
 #include <format>
 #include <functional>
 #include <limits>
-#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Value.h>
+#include <llvm/IR/Type.h>
 #include <string>
 #include <vector>
 
@@ -81,18 +80,6 @@ namespace kepler {
     bool is_unsigned_integer_type(const Type* type);
     bool is_floating_point_type(const Type* type);
     uint32_t get_integer_bitwidth(const Type* type);
-
-    llvm::Value* create_add(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_sub(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_mul(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_div(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_less_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_greater_than(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_not_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_less_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_greater_equals(llvm::Value* lhs, llvm::Value* rhs, const Type* type, llvm::IRBuilder<>& builder);
-    llvm::Value* create_cast(llvm::Value* value, const Type* original_type, const Type* target_type, llvm::LLVMContext& context, llvm::IRBuilder<>& builder);
 
 }
 
