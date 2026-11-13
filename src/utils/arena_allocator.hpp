@@ -26,7 +26,7 @@ namespace kepler {
         ArenaAllocator(size_t size, std::string label);
         ArenaAllocator(const ArenaAllocator&) = delete;
         ArenaAllocator& operator=(const ArenaAllocator&) = delete;
-        ArenaAllocator(ArenaAllocator&&) = delete;
+        ArenaAllocator(ArenaAllocator&&); // Allow move construction
         ArenaAllocator& operator=(ArenaAllocator&&) = delete;
         ~ArenaAllocator();
 
@@ -42,7 +42,7 @@ namespace kepler {
 
             // Block doesn't have enough space left, so create new block and allocate again
             if (memory == nullptr) {
-                blocks.emplace_back(this, block_size);
+                blocks.emplace_back(block_size);
                 current_block = &blocks.back();
                 memory = current_block->allocate(sizeof(T), alignof(T));
             }
@@ -62,12 +62,11 @@ namespace kepler {
         };
 
         struct Block {
-            ArenaAllocator* parent;
             uint8_t* data;
             size_t size;
             size_t offset;
 
-            Block(ArenaAllocator* parent, size_t size);
+            Block(size_t size);
             Block(const Block&) = delete;
             Block& operator=(const Block&) = delete;
             Block(Block&& other);

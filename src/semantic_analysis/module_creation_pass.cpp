@@ -18,7 +18,6 @@
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <format>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -50,7 +49,7 @@ namespace kepler {
             // Register explicit imports
             std::vector<size_t> import_indices_to_remove;
             for (size_t i = 0; i < ast.import_statements.size(); i++) {
-                const std::unique_ptr<ImportStatement>& import_statement = ast.import_statements[i];
+                const ImportStatement* import_statement = ast.import_statements[i];
                 KPL_ASSERT_NOT_NULLPTR(import_statement);
                 KPL_ASSERT_THAT(!import_statement->module_path.identifier_parts.empty());
                 const StringId imported_module_identifier_id = StringPool::get().store(get_full_identifier_from_path(import_statement->module_path));

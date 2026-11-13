@@ -29,11 +29,11 @@
 #include "diagnostics/source_location.hpp"
 #include "lexer/operator_type.hpp"
 #include "lexer/token.hpp"
+#include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -46,19 +46,20 @@ namespace kepler {
         ReturnAtLastIdentifier,
     };
 
-    // TODO (improvement): Replacing unique_ptrs with raw pointers and an arena allocator could improve performance
     class Parser {
     public:
-        Parser(const File* file, const std::vector<Token>& tokens, DiagnosticSink& diagnostic_sink)
-            : file(file), tokens(tokens), diagnostic_sink(diagnostic_sink), current_token(&tokens[0]) {
+        Parser(const File* file, const std::vector<Token> tokens, DiagnosticSink& diagnostic_sink)
+            : file(file), tokens(std::move(tokens)), diagnostic_sink(diagnostic_sink), current_token(&this->tokens[0]) {
             KPL_ASSERT_NOT_NULLPTR(file);
+            KPL_ASSERT_NOT_NULLPTR(current_token);
         }
         AbstractSyntaxTree parse();
 
     private:
         const File* file;
-        const std::vector<Token>& tokens;
+        const std::vector<Token> tokens;
         DiagnosticSink& diagnostic_sink;
+        ArenaAllocator* allocator;
         const Token* current_token;
         size_t current_token_index = 0;
 
@@ -73,43 +74,43 @@ namespace kepler {
         IdentifierPath identifier_id_to_path(StringId identifier_id, SourceLocation source_location) const;
 
         // Top level
-        std::unique_ptr<ModuleStatement> parse_module();
-        std::unique_ptr<ImportStatement> parse_import();
-        std::unique_ptr<ExportableNode> parse_export();
-        std::unique_ptr<Extern> parse_extern(LinkageType linkage_type);
-        std::unique_ptr<Prototype> parse_prototype();
-        std::unique_ptr<Struct> parse_struct(LinkageType linkage_type);
-        std::unique_ptr<ExportableNode> parse_top_level_identifier(LinkageType linkage_type);
-        std::unique_ptr<Function> parse_function(LinkageType linkage_type);
+        ModuleStatement* parse_module();
+        ImportStatement* parse_import();
+        ExportableNode* parse_export();
+        Extern* parse_extern(LinkageType linkage_type);
+        Prototype* parse_prototype();
+        Struct* parse_struct(LinkageType linkage_type);
+        ExportableNode* parse_top_level_identifier(LinkageType linkage_type);
+        Function* parse_function(LinkageType linkage_type);
 
         // Main body nodes
-        std::unique_ptr<ASTNode> parse_statement();
-        std::unique_ptr<Expression> parse_expression();
+        ASTNode* parse_statement();
+        Expression* parse_expression();
 
         // Expressions
-        std::unique_ptr<Expression> parse_binary_expression_rhs(std::unique_ptr<Expression> lhs, int expression_precedence);
-        std::unique_ptr<Expression> parse_primary();
-        std::unique_ptr<Expression> parse_literal();
-        std::unique_ptr<Expression> parse_parenthesis();
-        std::unique_ptr<Expression> parse_identifier_expression();
-        std::unique_ptr<CallExpression> parse_call(std::optional<IdentifierPath> module_path, IdentifierPath callee_identifier);
-        std::unique_ptr<MathematicalNegationExpression> parse_negative();
-        std::unique_ptr<ObjectInitializerExpression> parse_object_initializer();
+        Expression* parse_binary_expression_rhs(Expression* lhs, int expression_precedence);
+        Expression* parse_primary();
+        Expression* parse_literal();
+        Expression* parse_parenthesis();
+        Expression* parse_identifier_expression();
+        CallExpression* parse_call(std::optional<IdentifierPath> module_path, IdentifierPath callee_identifier);
+        MathematicalNegationExpression* parse_negative();
+        ObjectInitializerExpression* parse_object_initializer();
 
         // Statements
-        std::unique_ptr<ASTNode> parse_identifier_statement();
-        std::unique_ptr<AssignmentStatement> parse_assignment(IdentifierPath identifier_path);
-        std::unique_ptr<IfStatement> parse_if();
-        std::unique_ptr<ForStatement> parse_for();
-        std::unique_ptr<ForStatement> create_for_statement(const Token* variable_type_token,
+        ASTNode* parse_identifier_statement();
+        AssignmentStatement* parse_assignment(IdentifierPath identifier_path);
+        IfStatement* parse_if();
+        ForStatement* parse_for();
+        ForStatement* create_for_statement(const Token* variable_type_token,
             const Token* variable_identifier_token,
-            std::unique_ptr<Expression> start_value,
-            std::unique_ptr<Expression> end_value,
-            std::unique_ptr<Expression> step_value,
+            Expression* start_value,
+            Expression* end_value,
+            Expression* step_value,
             SourceLocation for_source_location);
         void recover_for_definition_and_parse_body(SourceLocation source_location);
-        std::unique_ptr<ReturnStatement> parse_return();
-        std::unique_ptr<VariableDefinitionStatement> parse_variable_definition();
+        ReturnStatement* parse_return();
+        VariableDefinitionStatement* parse_variable_definition();
 
         template <TokenType... T>
         struct SynchronizationSet {};
@@ -130,17 +131,17 @@ namespace kepler {
         }
 
         template <TokenType... T>
-        std::optional<std::vector<std::unique_ptr<ASTNode>>> parse_body(std::string diagnostic_message_on_end, SourceLocation source_location) {
-            std::vector<std::unique_ptr<ASTNode>> body;
+        std::optional<std::vector<ASTNode*>> parse_body(std::string diagnostic_message_on_end, SourceLocation source_location) {
+            std::vector<ASTNode*> body;
             while (((current_token->type != T) && ...)) {
                 if (current_token->type == TokenType::EndOfFile) {
                     diagnostic_sink.report(DiagnosticCode::MissingEndKeyword, std::move(diagnostic_message_on_end), source_location);
                     return std::nullopt;
                 }
 
-                std::unique_ptr<ASTNode> statement = parse_statement();
+                ASTNode* statement = parse_statement();
                 if (statement) {
-                    body.push_back(std::move(statement));
+                    body.push_back(statement);
                 }
             }
             return body;

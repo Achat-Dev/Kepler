@@ -14,7 +14,6 @@
 #include "diagnostics/source_location.hpp"
 #include "type_system/type.hpp"
 #include "utils/string_pool.hpp"
-#include <memory>
 #include <utility>
 #include <vector>
 
@@ -23,7 +22,7 @@ namespace kepler {
     struct MemberInitializerData {
         StringId identifier_id;
         SourceLocation source_location;
-        std::unique_ptr<Expression> value_expression;
+        Expression* value_expression;
     };
 
     struct ObjectInitializerExpression : Expression {

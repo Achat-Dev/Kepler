@@ -13,16 +13,17 @@
 #include "ast/statements/import_statement.hpp"
 #include "ast/statements/module_statement.hpp"
 #include "ast/struct.hpp"
-#include <memory>
+#include "utils/arena_allocator.hpp"
 #include <vector>
 
 namespace kepler {
 
     struct AbstractSyntaxTree {
-        std::unique_ptr<ModuleStatement> module_statement;
-        std::vector<std::unique_ptr<ImportStatement>> import_statements;
-        std::vector<std::unique_ptr<Struct>> struct_nodes;
-        std::vector<std::unique_ptr<ASTNode>> top_level_nodes;
+        ArenaAllocator allocator;
+        ModuleStatement* module_statement;
+        std::vector<ImportStatement*> import_statements;
+        std::vector<Struct*> struct_nodes;
+        std::vector<ASTNode*> top_level_nodes;
     };
 
 }

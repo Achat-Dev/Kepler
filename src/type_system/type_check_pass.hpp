@@ -39,7 +39,6 @@
 #include "type_system/type_table.hpp"
 #include <cstdint>
 #include <expected>
-#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -91,7 +90,7 @@ namespace kepler {
         bool is_boolean_operator(OperatorType type) const;
         bool is_number_literal_expression(const Expression* expression) const;
 
-        TypeCheckResult typecheck_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
+        TypeCheckResult typecheck_nodes(const std::vector<ASTNode*>& nodes);
         TypeCheckResult typecheck_node(ASTNode* node, TypeId requested_type_id);
         void typecheck_function(Function* function);
         TypeCheckResult typecheck_assignment_statement(AssignmentStatement* statement);
@@ -108,7 +107,7 @@ namespace kepler {
         TypeCheckResult typecheck_call_expression(CallExpression* expression, TypeId requested_type_id);
         std::expected<SymbolId, Diagnostic> find_matching_prototype_symbol(TypeId return_type_id,
             const std::vector<SymbolId>& candidate_symbol_ids,
-            const std::vector<Expression*>& argument_expressions,
+            const std::vector<Expression*>& arguments,
             const std::vector<TypeId>& argument_type_ids);
         // IMPORTANT: This method expects the candidate_symbol_ids to have already been filtered based on their names.
         // In other words, this method only checks the arguments of the candidates and not their names

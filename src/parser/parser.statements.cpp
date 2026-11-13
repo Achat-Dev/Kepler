@@ -25,7 +25,6 @@
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <format>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -34,7 +33,7 @@
 
 namespace kepler {
 
-    std::unique_ptr<ASTNode> Parser::parse_statement() {
+    ASTNode* Parser::parse_statement() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         switch (current_token->type) {
             case TokenType::If:
@@ -54,7 +53,7 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<ASTNode> Parser::parse_identifier_statement() {
+    ASTNode* Parser::parse_identifier_statement() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         switch (peek_next_token_type(1, true)) {
@@ -115,29 +114,31 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<AssignmentStatement> Parser::parse_assignment(IdentifierPath identifier_path) {
+    AssignmentStatement* Parser::parse_assignment(IdentifierPath identifier_path) {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Assignment, "Required token: '{}', received: '{}'", TokenType::Assignment, current_token->type);
         KPL_ASSERT_THAT(!identifier_path.identifier_parts.empty());
         AssignmentTargetExpression assignment_target_expression;
         if (identifier_path.identifier_parts.size() == 1) {
             const IdentifierPathPart identifier_path_part = identifier_path.identifier_parts[0];
-            assignment_target_expression = std::make_unique<VariableExpression>(identifier_path_part.identifier_id, identifier_path_part.source_location);
+            assignment_target_expression = allocator->allocate<VariableExpression>(identifier_path_part.identifier_id, identifier_path_part.source_location);
         } else {
-            assignment_target_expression = std::make_unique<MemberExpression>(std::move(identifier_path));
+            assignment_target_expression = allocator->allocate<MemberExpression>(std::move(identifier_path));
         }
 
         const SourceLocation& assignment_source_location = current_token->source_location;
         next_token(true); // eat '='
-        std::unique_ptr<Expression> value_expression = parse_expression();
+        Expression* value_expression = parse_expression();
         if (!value_expression) {
             return nullptr;
         }
 
-        return std::make_unique<AssignmentStatement>(std::move(assignment_target_expression), std::move(value_expression), assignment_source_location);
+        return allocator->allocate<AssignmentStatement>(assignment_target_expression, value_expression, assignment_source_location);
     }
 
-    std::unique_ptr<IfStatement> Parser::parse_if() {
+    IfStatement* Parser::parse_if() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::If || current_token->type == TokenType::Elseif,
             "Required token: '{}' or '{}', received: '{}'",
@@ -146,7 +147,7 @@ namespace kepler {
             current_token->type);
         const Token* if_token = current_token;
 
-        std::unique_ptr<Expression> condition = nullptr;
+        Expression* condition = nullptr;
         next_token(true); // eat 'if' or 'elseif'
         if (current_token->type != TokenType::BracketOpen) {
             const std::string message = std::format("Expected '(' after '{}'", if_token->type);
@@ -181,38 +182,36 @@ namespace kepler {
             next_token(true); // eat ')'
         }
         const std::string message = std::format("'{}' statement was not closed with an 'end' keyword", if_token->type);
-        auto if_body = parse_body<TokenType::Elseif, TokenType::Else, TokenType::End>(message, if_token->source_location);
+        const auto if_body = parse_body<TokenType::Elseif, TokenType::Else, TokenType::End>(message, if_token->source_location);
 
         // Setup behaviour for different 'if' ending cases
         switch (current_token->type) {
             case TokenType::Elseif: {
                 // Don' eat the 'elseif', it will be eaten by parse_if
-                std::unique_ptr<IfStatement> elseif = parse_if();
-                if (!condition || !if_body || !elseif) {
+                IfStatement* elseif = parse_if();
+                if (!condition || !if_body.has_value() || !elseif) {
                     return nullptr;
                 }
-                std::vector<std::unique_ptr<ASTNode>> elseif_body;
-                elseif_body.push_back(std::move(elseif));
-                return std::make_unique<IfStatement>(std::move(condition), std::move(*if_body), std::move(elseif_body), if_token->source_location);
+                return allocator->allocate<IfStatement>(condition, std::move(if_body.value()), std::vector<ASTNode*>{elseif}, if_token->source_location);
             }
             case TokenType::Else: {
                 const SourceLocation& source_location = current_token->source_location;
                 next_token(true); // eat 'else'
-                auto else_body = parse_body<TokenType::End>("'else' statement was not closed with an 'end' keyword", source_location);
+                const auto else_body = parse_body<TokenType::End>("'else' statement was not closed with an 'end' keyword", source_location);
                 next_token(true); // eat 'end'
-                if (!condition || !if_body || !else_body) {
+                if (!condition || !if_body.has_value() || !else_body.has_value()) {
                     return nullptr;
                 }
-                return std::make_unique<IfStatement>(std::move(condition), std::move(*if_body), std::move(*else_body), if_token->source_location);
+                return allocator->allocate<IfStatement>(condition, std::move(if_body.value()), std::move(else_body.value()), if_token->source_location);
             }
             case TokenType::End: {
                 next_token(true); // eat 'end'
                 if (!condition || !if_body) {
                     return nullptr;
                 }
-                return std::make_unique<IfStatement>(std::move(condition),
-                    std::move(*if_body),
-                    std::vector<std::unique_ptr<ASTNode>>{},
+                return allocator->allocate<IfStatement>(condition,
+                    std::move(if_body.value()),
+                    std::vector<ASTNode*>{},
                     if_token->source_location);
             }
             default:
@@ -220,7 +219,8 @@ namespace kepler {
         }
     }
 
-    std::unique_ptr<ForStatement> Parser::parse_for() {
+    ForStatement* Parser::parse_for() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::For, "Required token: '{}', received: '{}'", TokenType::For, current_token->type);
         const SourceLocation& for_source_location = current_token->source_location;
@@ -261,7 +261,7 @@ namespace kepler {
         }
 
         next_token(true); // eat ':'
-        std::unique_ptr<Expression> first_value = parse_expression();
+        Expression* first_value = parse_expression();
         if (!first_value) {
             if (current_token->type == TokenType::End) {
                 next_token(true); // eat 'end'
@@ -275,11 +275,11 @@ namespace kepler {
         // Only end value is given, start and step are implicit
         if (current_token->type == TokenType::BracketClose) {
             const StringId integer_value_id = StringPool::get().store("0");
-            std::unique_ptr<IntegerLiteralExpression> start_value = std::make_unique<IntegerLiteralExpression>(integer_value_id, variable_type_token->source_location);
+            IntegerLiteralExpression* start_value = allocator->allocate<IntegerLiteralExpression>(integer_value_id, variable_type_token->source_location);
             return create_for_statement(variable_type_token,
                 variable_identifier_token,
-                std::move(start_value),
-                std::move(first_value),
+                start_value,
+                first_value,
                 nullptr,
                 for_source_location);
         } else if (current_token->type != TokenType::Comma) {
@@ -289,7 +289,7 @@ namespace kepler {
         }
 
         next_token(true); // eat ','
-        std::unique_ptr<Expression> end_value = parse_expression();
+        Expression* end_value = parse_expression();
         if (!end_value) {
             if (current_token->type == TokenType::End) {
                 next_token(true); // eat 'end'
@@ -304,8 +304,8 @@ namespace kepler {
         if (current_token->type == TokenType::BracketClose) {
             return create_for_statement(variable_type_token,
                 variable_identifier_token,
-                std::move(first_value),
-                std::move(end_value),
+                first_value,
+                end_value,
                 nullptr,
                 for_source_location);
         } else if (current_token->type != TokenType::Comma) {
@@ -315,7 +315,7 @@ namespace kepler {
         }
 
         next_token(true); // eat ','
-        std::unique_ptr<Expression> step_value = parse_expression();
+        Expression* step_value = parse_expression();
         if (!step_value) {
             if (current_token->type == TokenType::End) {
                 next_token(true); // eat 'end'
@@ -330,9 +330,9 @@ namespace kepler {
         if (current_token->type == TokenType::BracketClose) {
             return create_for_statement(variable_type_token,
                 variable_identifier_token,
-                std::move(first_value),
-                std::move(end_value),
-                std::move(step_value),
+                first_value,
+                end_value,
+                step_value,
                 for_source_location);
         }
 
@@ -342,11 +342,11 @@ namespace kepler {
     }
 
     // clang-format off
-    std::unique_ptr<ForStatement> Parser::create_for_statement(const Token* variable_type_token,
+    ForStatement* Parser::create_for_statement(const Token* variable_type_token,
         const Token* variable_identifier_token,
-        std::unique_ptr<Expression> start_value,
-        std::unique_ptr<Expression> end_value,
-        std::unique_ptr<Expression> step_value,
+        Expression* start_value,
+        Expression* end_value,
+        Expression* step_value,
         SourceLocation for_source_location)
     {
         // clang-format on
@@ -356,32 +356,28 @@ namespace kepler {
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(variable_identifier_token->data));
         KPL_ASSERT_NOT_NULLPTR(start_value);
         KPL_ASSERT_NOT_NULLPTR(end_value);
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::BracketClose, "Required token: '{}', received: '{}'", TokenType::BracketOpen, current_token->type);
         next_token(true); // eat ')'
-        auto body = parse_body<TokenType::End>("'for' statement was not closed with an 'end' keyword", for_source_location);
+        const auto body = parse_body<TokenType::End>("'for' statement was not closed with an 'end' keyword", for_source_location);
         next_token(true); // eat 'end'
-        if (!body) {
+        if (!body.has_value()) {
             return nullptr;
         }
 
         const StringId variable_type_id = std::get<StringId>(variable_type_token->data);
         const StringId variable_identifier_id = std::get<StringId>(variable_identifier_token->data);
-        std::unique_ptr<VariableExpression> variable = std::make_unique<VariableExpression>(variable_identifier_id,
+        VariableExpression* variable = allocator->allocate<VariableExpression>(variable_identifier_id, variable_identifier_token->source_location);
+        AssignmentStatement* assignment_statement = allocator->allocate<AssignmentStatement>(variable,
+            start_value,
             variable_identifier_token->source_location);
-        std::unique_ptr<AssignmentStatement> assignment_statement = std::make_unique<AssignmentStatement>(std::move(variable),
-            std::move(start_value),
-            variable_identifier_token->source_location);
-        std::unique_ptr<VariableDefinitionStatement> variable_definition_statement = std::make_unique<VariableDefinitionStatement>(variable_type_id,
+        VariableDefinitionStatement* variable_definition_statement = allocator->allocate<VariableDefinitionStatement>(variable_type_id,
             variable_identifier_id,
-            std::move(assignment_statement),
+            assignment_statement,
             variable_type_token->source_location);
 
-        return std::make_unique<ForStatement>(std::move(variable_definition_statement),
-            std::move(end_value),
-            std::move(step_value),
-            std::move(*body),
-            for_source_location);
+        return allocator->allocate<ForStatement>(variable_definition_statement, end_value, step_value, std::move(body.value()), for_source_location);
     }
 
     void Parser::recover_for_definition_and_parse_body(SourceLocation source_location) {
@@ -394,7 +390,8 @@ namespace kepler {
         }
     }
 
-    std::unique_ptr<ReturnStatement> Parser::parse_return() {
+    ReturnStatement* Parser::parse_return() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Return, "Required token: '{}', received: '{}'", TokenType::Return, current_token->type);
         const SourceLocation& return_source_location = current_token->source_location;
@@ -414,18 +411,19 @@ namespace kepler {
                 return nullptr;
             }
             case TokenType::End:
-                return std::make_unique<ReturnStatement>(nullptr, return_source_location);
+                return allocator->allocate<ReturnStatement>(nullptr, return_source_location);
             default: {
-                std::unique_ptr<Expression> expression = parse_expression();
+                Expression* expression = parse_expression();
                 if (!expression) {
                     return nullptr;
                 }
-                return std::make_unique<ReturnStatement>(std::move(expression), return_source_location);
+                return allocator->allocate<ReturnStatement>(expression, return_source_location);
             }
         }
     }
 
-    std::unique_ptr<VariableDefinitionStatement> Parser::parse_variable_definition() {
+    VariableDefinitionStatement* Parser::parse_variable_definition() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         const SourceLocation& type_source_location = current_token->source_location;
@@ -451,11 +449,11 @@ namespace kepler {
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         const IdentifierPath identifier_path = identifier_id_to_path(identifier_id, identifier_token->source_location);
-        std::unique_ptr<AssignmentStatement> assignment_statement = parse_assignment(std::move(identifier_path));
+        AssignmentStatement* assignment_statement = parse_assignment(std::move(identifier_path));
         if (!assignment_statement) {
             return nullptr; // parse_assignment already recovered, so no need to recover here
         }
-        return std::make_unique<VariableDefinitionStatement>(type_id, identifier_id, std::move(assignment_statement), type_source_location);
+        return allocator->allocate<VariableDefinitionStatement>(type_id, identifier_id, assignment_statement, type_source_location);
     }
 
 }

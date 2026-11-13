@@ -21,7 +21,6 @@
 #include "utils/assert.h"
 #include "utils/string_pool.hpp"
 #include <format>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -30,7 +29,8 @@
 
 namespace kepler {
 
-    std::unique_ptr<ModuleStatement> Parser::parse_module() {
+    ModuleStatement* Parser::parse_module() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Module, "Required token: '{}', received: '{}'", TokenType::Module, current_token->type);
         const SourceLocation& module_source_location = current_token->source_location;
@@ -47,10 +47,11 @@ namespace kepler {
         if (!module_path_parse_result.has_value()) {
             return nullptr;
         }
-        return std::make_unique<ModuleStatement>(std::move(module_path_parse_result.value()), module_source_location);
+        return allocator->allocate<ModuleStatement>(std::move(module_path_parse_result.value()), module_source_location);
     }
 
-    std::unique_ptr<ImportStatement> Parser::parse_import() {
+    ImportStatement* Parser::parse_import() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Import, "Required token: '{}', received: '{}'", TokenType::Import, current_token->type);
         const SourceLocation& import_source_location = current_token->source_location;
@@ -67,10 +68,10 @@ namespace kepler {
         if (!module_path_parse_result.has_value()) {
             return nullptr;
         }
-        return std::make_unique<ImportStatement>(std::move(module_path_parse_result.value()), import_source_location);
+        return allocator->allocate<ImportStatement>(std::move(module_path_parse_result.value()), import_source_location);
     }
 
-    std::unique_ptr<ExportableNode> Parser::parse_export() {
+    ExportableNode* Parser::parse_export() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Export, "Required token: '{}', received: '{}'", TokenType::Export, current_token->type);
         next_token(true); // eat 'export'
@@ -91,7 +92,8 @@ namespace kepler {
         }
     }
 
-    std::unique_ptr<Extern> Parser::parse_extern(LinkageType linkage_type) {
+    Extern* Parser::parse_extern(LinkageType linkage_type) {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Extern, "Required token: '{}', received: '{}'", TokenType::Extern, current_token->type);
 
@@ -103,14 +105,15 @@ namespace kepler {
             return nullptr;
         }
 
-        std::unique_ptr<Prototype> prototype = parse_prototype();
+        Prototype* prototype = parse_prototype();
         if (!prototype) {
             return nullptr;
         }
-        return std::make_unique<Extern>(std::move(prototype), linkage_type, extern_source_location);
+        return allocator->allocate<Extern>(prototype, linkage_type, extern_source_location);
     }
 
-    std::unique_ptr<Prototype> Parser::parse_prototype() {
+    Prototype* Parser::parse_prototype() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
@@ -219,15 +222,16 @@ namespace kepler {
         }
         next_token(true); // eat ')'
 
-        return std::make_unique<Prototype>(return_type_identifier_id,
+        return allocator->allocate<Prototype>(return_type_identifier_id,
             std::move(prototype_identifier),
             std::move(parameter_data),
             is_variadic,
             type_source_location,
-            identifier_source_location);
+            std::move(identifier_source_location));
     }
 
-    std::unique_ptr<Struct> Parser::parse_struct(LinkageType linkage_type) {
+    Struct* Parser::parse_struct(LinkageType linkage_type) {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Struct);
         const SourceLocation& struct_source_location = current_token->source_location;
@@ -276,13 +280,13 @@ namespace kepler {
         }
 
         next_token(true); // eat 'end'
-        return std::make_unique<Struct>(std::get<StringId>(identifier_token->data),
+        return allocator->allocate<Struct>(std::get<StringId>(identifier_token->data),
             std::move(members),
             linkage_type,
             identifier_token->source_location);
     }
 
-    std::unique_ptr<ExportableNode> Parser::parse_top_level_identifier(LinkageType linkage_type) {
+    ExportableNode* Parser::parse_top_level_identifier(LinkageType linkage_type) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
@@ -312,20 +316,21 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<Function> Parser::parse_function(LinkageType linkage_type) {
+    Function* Parser::parse_function(LinkageType linkage_type) {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
         next_token(true); // eat type identifier
         const Token* identifier_token = current_token;
         previous_token(true); // Go back to type for parsing prototype
-        std::unique_ptr<Prototype> prototype = parse_prototype();
+        Prototype* prototype = parse_prototype();
         if (current_token->type == TokenType::End) {
             next_token(true); // eat 'end'
             if (prototype == nullptr) {
                 return nullptr;
             }
-            return std::make_unique<Function>(std::move(prototype),
-                std::vector<std::unique_ptr<ASTNode>>{},
+            return allocator->allocate<Function>(prototype,
+                std::vector<ASTNode*>{},
                 linkage_type,
                 identifier_token->source_location);
         }
@@ -334,13 +339,13 @@ namespace kepler {
         const StringId identifier_id = std::get<StringId>(identifier_token->data);
         const std::string& identifier = StringPool::get().lookup(identifier_id);
         const std::string message = std::format("Function '{}' was not closed with an 'end' keyword", identifier);
-        auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
+        const auto body = parse_body<TokenType::End>(message, identifier_token->source_location);
         next_token(true); // eat 'end' or 'EOF'
 
-        if (!prototype || !body) {
+        if (prototype == nullptr || !body.has_value()) {
             return nullptr;
         }
-        return std::make_unique<Function>(std::move(prototype), std::move(*body), linkage_type, identifier_token->source_location);
+        return allocator->allocate<Function>(prototype, std::move(body.value()), linkage_type, identifier_token->source_location);
     }
 
 }

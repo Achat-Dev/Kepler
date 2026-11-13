@@ -50,7 +50,7 @@ namespace kepler {
 
         std::optional<std::vector<AbstractSyntaxTree>> create_asts(const std::vector<std::filesystem::path>& file_paths,
             DiagnosticSink& diagnostic_sink) const;
-        void verify_ast(AbstractSyntaxTree& ast, const File* file) const;
+        void verify_ast(const AbstractSyntaxTree& ast, const File* file) const;
 
         std::optional<std::vector<std::unique_ptr<llvm::Module>>> run_ast_passes(std::vector<AbstractSyntaxTree>& asts,
             DiagnosticSink& diagnostic_sink,

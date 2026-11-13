@@ -12,22 +12,21 @@
 #include "ast/ast_node.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/source_location.hpp"
-#include <memory>
 #include <utility>
 #include <vector>
 
 namespace kepler {
 
     struct Function : ExportableNode {
-        std::unique_ptr<Prototype> prototype;
+        Prototype* prototype;
         NodeBody body;
 
-        Function(std::unique_ptr<Prototype> prototype,
-            std::vector<std::unique_ptr<ASTNode>> body,
+        Function(Prototype* prototype,
+            std::vector<ASTNode*> body,
             LinkageType linkage_type,
             SourceLocation source_location)
             : ExportableNode(ASTNodeType::Function, linkage_type, std::move(source_location)),
-              prototype(std::move(prototype)),
+              prototype(prototype),
               body{.nodes = std::move(body)} {}
     };
 

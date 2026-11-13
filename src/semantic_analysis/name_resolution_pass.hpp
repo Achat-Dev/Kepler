@@ -38,7 +38,6 @@
 #include "utils/string_pool.hpp"
 #include <cstdint>
 #include <expected>
-#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -68,9 +67,9 @@ namespace kepler {
         std::unordered_map<StringId, SymbolId> builtin_type_symbol_ids;
 
         void register_builtin_type_symbol(TypeKind type_kind);
-        void create_struct_symbols_and_types(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
+        void create_struct_symbols_and_types(const std::vector<Struct*>& struct_nodes);
         void create_struct_symbol(Struct* struct_node);
-        void create_prototype_symbols(const std::vector<std::unique_ptr<ASTNode>>& top_level_nodes);
+        void create_prototype_symbols(const std::vector<ASTNode*>& top_level_nodes);
         NameResolutionResult create_prototype_symbol(Prototype* prototype, LinkageType linkage_type) const;
         NameResolutionResult ensure_operator_signatures(Prototype* prototype,
             TypeId object_type_id,
@@ -80,8 +79,8 @@ namespace kepler {
             const OperatorSignatureData& expected_signature,
             const OperatorSignatureData& actual_signature) const;
 
-        void create_struct_members(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
-        NameResolutionResult resolve_nodes(std::vector<std::unique_ptr<ASTNode>>& nodes) const;
+        void create_struct_members(const std::vector<Struct*>& struct_nodes);
+        NameResolutionResult resolve_nodes(std::vector<ASTNode*>& nodes) const;
         NameResolutionResult resolve_node(ASTNode* node) const;
         void resolve_extern(Extern* ext) const;
         void resolve_function(Function* function) const;

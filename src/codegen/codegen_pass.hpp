@@ -93,11 +93,11 @@ namespace kepler {
         bool is_main_method(const Prototype* prototype) const;
         llvm::Type* get_llvm_type(TypeId type_id);
 
-        void forward_declare_structs(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
-        void forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
+        void forward_declare_structs(const std::vector<Struct*>& struct_nodes);
+        void forward_declare_prototypes(const std::vector<ASTNode*>& nodes);
         void forward_declare_prototype(const Prototype* prototype, LinkageType linkage_type, bool is_extern);
-        void codegen_struct_bodies(const std::vector<std::unique_ptr<Struct>>& struct_nodes);
-        void codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes);
+        void codegen_struct_bodies(const std::vector<Struct*>& struct_nodes);
+        void codegen_nodes(const std::vector<ASTNode*>& nodes);
         CodegenResult codegen_node(const ASTNode* node);
         void codegen_function(const Function* function);
         llvm::AllocaInst* create_entry_block_alloca(llvm::Function* function, llvm::Type* type);
@@ -113,7 +113,7 @@ namespace kepler {
         CodegenResult codegen_binary_expression(const BinaryExpression* expression);
         CodegenResult codegen_call_expression(const CallExpression* expression);
         CodegenResult create_call(SymbolId prototype_symbol_id,
-            const std::vector<Expression*>& args,
+            const std::vector<Expression*>& arguments,
             const std::string& prototype_identifier);
         CodegenResult codegen_mathematical_negation_expression(const MathematicalNegationExpression* expression);
         CodegenResult codegen_member_expression(const MemberExpression* expression);

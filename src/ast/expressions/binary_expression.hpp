@@ -14,26 +14,25 @@
 #include "lexer/operator_type.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
-#include <memory>
 #include <utility>
 
 namespace kepler {
 
     struct BinaryExpression : Expression {
         OperatorType operator_type;
-        std::unique_ptr<Expression> lhs;
-        std::unique_ptr<Expression> rhs;
+        Expression* lhs;
+        Expression* rhs;
         TypeId target_type_id;
         SymbolId method_symbol_id;
 
         BinaryExpression(OperatorType operator_type,
-            std::unique_ptr<Expression> lhs,
-            std::unique_ptr<Expression> rhs,
+            Expression* lhs,
+            Expression* rhs,
             SourceLocation source_location)
             : Expression(ASTNodeType::BinaryExpression, std::move(source_location)),
               operator_type(operator_type),
-              lhs(std::move(lhs)),
-              rhs(std::move(rhs)) {}
+              lhs(lhs),
+              rhs(rhs) {}
     };
 
 }

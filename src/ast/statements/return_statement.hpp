@@ -13,16 +13,15 @@
 #include "ast/expressions/expression.hpp"
 #include "ast/statements/statement.hpp"
 #include "diagnostics/source_location.hpp"
-#include <memory>
 #include <utility>
 
 namespace kepler {
 
     struct ReturnStatement : Statement {
-        std::unique_ptr<Expression> expression;
+        Expression* expression;
 
-        ReturnStatement(std::unique_ptr<Expression> expression, SourceLocation source_location)
-            : Statement(ASTNodeType::ReturnStatement, source_location), expression(std::move(expression)) {}
+        ReturnStatement(Expression* expression, SourceLocation source_location)
+            : Statement(ASTNodeType::ReturnStatement, std::move(source_location)), expression(expression) {}
     };
 
 }

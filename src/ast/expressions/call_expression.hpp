@@ -14,7 +14,6 @@
 #include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
 #include "utils/identifier_path.hpp"
-#include <memory>
 #include <utility>
 #include <vector>
 
@@ -31,17 +30,17 @@ namespace kepler {
         SymbolId symbol_id;
         CastData cast_data;
         IdentifierPath module_path;
-        std::vector<std::unique_ptr<Expression>> args;
+        std::vector<Expression*> arguments;
         std::vector<SymbolId> candidate_symbol_ids;
 
         CallExpression(IdentifierPath identifier_path,
-            std::vector<std::unique_ptr<Expression>> args,
+            std::vector<Expression*> arguments,
             IdentifierPath module_path,
             SourceLocation source_location)
             : Expression(ASTNodeType::CallExpression, std::move(source_location)),
               identifier_path(std::move(identifier_path)),
               module_path(std::move(module_path)),
-              args(std::move(args)) {}
+              arguments(std::move(arguments)) {}
     };
 
 }

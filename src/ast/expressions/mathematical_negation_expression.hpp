@@ -13,18 +13,17 @@
 #include "diagnostics/source_location.hpp"
 #include "semantic_analysis/symbol_id.hpp"
 #include "type_system/type.hpp"
-#include <memory>
 #include <utility>
 
 namespace kepler {
 
     struct MathematicalNegationExpression : Expression {
-        std::unique_ptr<Expression> expression;
+        Expression* expression;
         TypeId target_type_id;
         SymbolId method_symbol_id;
 
-        MathematicalNegationExpression(std::unique_ptr<Expression> expression, SourceLocation source_location)
-            : Expression(ASTNodeType::MathematicalNegationExpression, std::move(source_location)), expression(std::move(expression)) {}
+        MathematicalNegationExpression(Expression* expression, SourceLocation source_location)
+            : Expression(ASTNodeType::MathematicalNegationExpression, std::move(source_location)), expression(expression) {}
     };
 
 }

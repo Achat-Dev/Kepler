@@ -20,8 +20,20 @@ namespace kepler {
     ArenaAllocator::ArenaAllocator(size_t block_size, std::string label)
         : block_size(block_size), label(std::move(label)) {
         KPL_ASSERT_THAT(block_size > 0);
-        blocks.emplace_back(this, block_size);
+        blocks.emplace_back(block_size);
         current_block = &blocks.back();
+    }
+
+    // clang-format off
+    ArenaAllocator::ArenaAllocator(ArenaAllocator&& other)
+        : block_size(other.block_size),
+          label(std::move(other.label)),
+          blocks(std::move(other.blocks)),
+          destructors(std::move(other.destructors)),
+          current_block(other.current_block)
+    {
+        // clang-format on
+        other.current_block = nullptr;
     }
 
     ArenaAllocator::~ArenaAllocator() {
@@ -40,14 +52,13 @@ namespace kepler {
         blocks.clear();
     }
 
-    ArenaAllocator::Block::Block(ArenaAllocator* parent, size_t size)
-        : parent(parent), size(size), offset(0) {
+    ArenaAllocator::Block::Block(size_t size)
+        : size(size), offset(0) {
         data = static_cast<uint8_t*>(std::malloc(size));
     }
 
     ArenaAllocator::Block::Block(Block&& other)
-        : parent(other.parent), size(other.size), offset(other.offset), data(other.data) {
-        other.parent = nullptr;
+        : size(other.size), offset(other.offset), data(other.data) {
         other.data = nullptr;
         other.size = 0;
         other.offset = 0;
@@ -58,12 +69,10 @@ namespace kepler {
             if (data != nullptr) {
                 std::free(data);
             }
-            parent = other.parent;
             data = other.data;
             size = other.size;
             offset = other.offset;
 
-            other.parent = nullptr;
             other.data = nullptr;
             other.size = 0;
             other.offset = 0;

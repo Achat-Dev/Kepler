@@ -18,7 +18,6 @@
 #include "utils/assert.h"
 #include <cstddef>
 #include <format>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -47,8 +46,8 @@ namespace kepler {
         TypeTable& type_table;
 
         void check_function(Function* function);
-        ReturnCheckResult check_body(const std::vector<std::unique_ptr<ASTNode>>& nodes, ReturnCheckBodyType body_type);
-        ReturnCheckResult handle_return(size_t index, const std::vector<std::unique_ptr<ASTNode>>& nodes, ReturnCheckBodyType body_type);
+        ReturnCheckResult check_body(const std::vector<ASTNode*>& nodes, ReturnCheckBodyType body_type);
+        ReturnCheckResult handle_return(size_t index, const std::vector<ASTNode*>& nodes, ReturnCheckBodyType body_type);
     };
 }
 

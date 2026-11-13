@@ -40,7 +40,6 @@
 #include <cstddef>
 #include <cstring>
 #include <format>
-#include <memory>
 #include <print>
 #include <string>
 #include <variant>
@@ -103,7 +102,7 @@ namespace kepler {
             for (size_t i = 0; i < ast.struct_nodes.size(); i++) {
                 KPL_ASSERT_NOT_NULLPTR(ast.struct_nodes[i]);
                 bool is_last = ast.top_level_nodes.size() == 0 && i == ast.struct_nodes.size() - 1;
-                print_struct(static_cast<const Struct*>(ast.struct_nodes[i].get()), "", is_last);
+                print_struct(static_cast<const Struct*>(ast.struct_nodes[i]), "", is_last);
             }
 
             // Print other top level nodes
@@ -111,12 +110,12 @@ namespace kepler {
             for (size_t i = 0; i < ast.top_level_nodes.size(); i++) {
                 KPL_ASSERT_NOT_NULLPTR(ast.top_level_nodes[i]);
                 bool is_last = i == ast.top_level_nodes.size() - 1;
-                print_node(ast.top_level_nodes[i].get(), "", "", is_last);
+                print_node(ast.top_level_nodes[i], "", "", is_last);
             }
         }
     }
 
-    void ASTPrintPass::print_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes, const std::string& label, std::string indent, bool is_last) const {
+    void ASTPrintPass::print_nodes(const std::vector<ASTNode*>& nodes, const std::string& label, std::string indent, bool is_last) const {
         if (is_last) {
             std::print("{}{}{}: ", indent, last_item_prefix, label);
             indent += space;
@@ -135,7 +134,7 @@ namespace kepler {
         for (size_t i = 0; i < nodes.size(); i++) {
             KPL_ASSERT_NOT_NULLPTR(nodes[i]);
             bool is_last = i == nodes.size() - 1;
-            print_node(nodes[i].get(), "", indent, is_last);
+            print_node(nodes[i], "", indent, is_last);
         }
     }
 
@@ -227,7 +226,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(ext->prototype);
         KPL_ASSERT_THAT(ext->node_type != ASTNodeType::Poison);
         std::println("{}{}Linkage: {}", indent, item_prefix, ext->linkage_type);
-        print_node(ext->prototype.get(), "", indent, true);
+        print_node(ext->prototype, "", indent, true);
     }
 
     void ASTPrintPass::print_struct(const Struct* struct_node, std::string indent, bool is_last) const {
@@ -271,7 +270,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(function->prototype);
         KPL_ASSERT_THAT(function->node_type != ASTNodeType::Poison);
         std::println("{}{}Linkage: {}", indent, item_prefix, function->linkage_type);
-        print_node(function->prototype.get(), "", indent, false);
+        print_node(function->prototype, "", indent, false);
         print_body(function->body, "Body", indent, true);
     }
 
@@ -346,10 +345,10 @@ namespace kepler {
         std::visit(
             [this, &indent](const auto& expression) {
                 KPL_ASSERT_NOT_NULLPTR(expression);
-                print_node(expression.get(), "", indent, false);
+                print_node(expression, "", indent, false);
             },
             statement->assignment_target_expression);
-        print_node(statement->value_expression.get(), "Value: ", indent, true);
+        print_node(statement->value_expression, "Value: ", indent, true);
     }
 
     void ASTPrintPass::print_for_statement(const ForStatement* statement, const std::string& indent) const {
@@ -357,12 +356,12 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(statement->end_value);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
-        print_node(statement->loop_variable_definition.get(), "", indent, false);
-        print_node(statement->end_value.get(), "End: ", indent, false);
+        print_node(statement->loop_variable_definition, "", indent, false);
+        print_node(statement->end_value, "End: ", indent, false);
         if (statement->step_value == nullptr) {
             std::println("{}{}Step: {}implicit{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            print_node(statement->step_value.get(), "Step: ", indent, false);
+            print_node(statement->step_value, "Step: ", indent, false);
         }
         print_body(statement->body, "Body", indent, true);
     }
@@ -371,7 +370,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
-        print_node(statement->condition.get(), "", indent, false);
+        print_node(statement->condition, "", indent, false);
         print_body(statement->if_body, "If body", indent, false);
         print_body(statement->else_body, "Else body", indent, true);
     }
@@ -382,7 +381,7 @@ namespace kepler {
         if (statement->expression == nullptr) {
             std::println("{}{}Expression: {}nullptr{}", indent, last_item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            print_node(statement->expression.get(), "", indent, true);
+            print_node(statement->expression, "", indent, true);
         }
     }
 
@@ -400,7 +399,7 @@ namespace kepler {
         }
         const std::string& identifier = StringPool::get().lookup(statement->identifier_id);
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
-        print_node(statement->assignment_statement.get(), "", indent, true);
+        print_node(statement->assignment_statement, "", indent, true);
     }
 
     void ASTPrintPass::print_boolean_literal_expression(const BooleanLiteralExpression* expression, const std::string& indent) const {
@@ -455,8 +454,8 @@ namespace kepler {
             const Type* target_type = type_table.lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
-        print_node(expression->lhs.get(), "lhs: ", indent, false);
-        print_node(expression->rhs.get(), "rhs: ", indent, true);
+        print_node(expression->lhs, "lhs: ", indent, false);
+        print_node(expression->rhs, "rhs: ", indent, true);
     }
 
     void ASTPrintPass::print_call_expression(const CallExpression* expression, const std::string& indent) const {
@@ -471,14 +470,14 @@ namespace kepler {
         }
         std::println("{}{}Identifier: {}", indent, item_prefix, identifier);
 
-        if (expression->args.empty()) {
-            std::println("{}{}Args: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
+        if (expression->arguments.empty()) {
+            std::println("{}{}Arguments: {}None{}", indent, item_prefix, ansi_codes::dim, ansi_codes::reset);
         } else {
-            std::println("{}{}Args: ", indent, item_prefix);
-            for (size_t i = 0; i < expression->args.size(); i++) {
-                KPL_ASSERT_NOT_NULLPTR(expression->args[i]);
-                bool is_last = i == expression->args.size() - 1;
-                print_node(expression->args[i].get(), "", indent + vertical_line, is_last);
+            std::println("{}{}Arguments: ", indent, item_prefix);
+            for (size_t i = 0; i < expression->arguments.size(); i++) {
+                KPL_ASSERT_NOT_NULLPTR(expression->arguments[i]);
+                bool is_last = i == expression->arguments.size() - 1;
+                print_node(expression->arguments[i], "", indent + vertical_line, is_last);
             }
         }
 
@@ -501,7 +500,7 @@ namespace kepler {
             const Type* target_type = type_table.lookup(expression->target_type_id);
             std::println("{}{}Type: {}", indent, item_prefix, *target_type);
         }
-        print_node(expression->expression.get(), "", indent, true);
+        print_node(expression->expression, "", indent, true);
     }
 
     void ASTPrintPass::print_member_expression(const MemberExpression* expression, std::string indent) const {
@@ -578,10 +577,10 @@ namespace kepler {
             const std::string& member_identifier = StringPool::get().lookup(member_initializer_data.identifier_id);
             if (is_last) {
                 std::println("{}{}{}:", indent, last_item_prefix, member_identifier);
-                print_node(member_initializer_data.value_expression.get(), "", indent + space, true);
+                print_node(member_initializer_data.value_expression, "", indent + space, true);
             } else {
                 std::println("{}{}{}:", indent, item_prefix, member_identifier);
-                print_node(member_initializer_data.value_expression.get(), "", indent + vertical_line, true);
+                print_node(member_initializer_data.value_expression, "", indent + vertical_line, true);
             }
         }
     }

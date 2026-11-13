@@ -13,7 +13,6 @@
 #include "utils/assert.h"
 #include <format>
 #include <llvm/IR/Function.h>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -68,7 +67,7 @@ namespace kepler {
     };
 
     struct NodeBody {
-        std::vector<std::unique_ptr<ASTNode>> nodes;
+        std::vector<ASTNode*> nodes;
         bool contains_return = false;
     };
 

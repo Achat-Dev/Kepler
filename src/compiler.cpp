@@ -256,10 +256,10 @@ namespace kepler {
         return asts;
     }
 
-    void Compiler::verify_ast(AbstractSyntaxTree& ast, const File* file) const {
+    void Compiler::verify_ast(const AbstractSyntaxTree& ast, const File* file) const {
         KPL_ASSERT_NOT_NULLPTR(file);
         KPL_ASSERT_NOT_NULLPTR(ast.module_statement);
-        for (const std::unique_ptr<ASTNode>& node : ast.top_level_nodes) {
+        for (const ASTNode* node : ast.top_level_nodes) {
             bool is_valid_top_level_node = node->node_type == ASTNodeType::Extern || node->node_type == ASTNodeType::Function;
             KPL_ASSERT_THAT(is_valid_top_level_node, "Malformed ast with node of type '{}' on top level", node->node_type);
         }

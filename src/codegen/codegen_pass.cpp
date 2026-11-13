@@ -140,11 +140,13 @@ namespace kepler {
         }
 
         // Code generation
-        for (const AbstractSyntaxTree& ast : asts) {
+        for (AbstractSyntaxTree& ast : asts) {
             KPL_ASSERT_THAT(llvm_modules.contains(ast.module_statement->module_id));
             current_llvm_module = llvm_modules[ast.module_statement->module_id].get();
             codegen_nodes(ast.top_level_nodes);
-            current_llvm_module->print(llvm::outs(), nullptr);
+
+            // Clean up ast after code generation
+            ast.allocator.free();
         }
         current_llvm_module = nullptr;
 
@@ -242,8 +244,8 @@ namespace kepler {
         return llvm_types[type_id];
     }
 
-    void CodegenPass::forward_declare_structs(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
-        for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
+    void CodegenPass::forward_declare_structs(const std::vector<Struct*>& struct_nodes) {
+        for (const Struct* struct_node : struct_nodes) {
             // TODO (fix): Don't mangle name if it's an extern once extern structs are implemented
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             KPL_ASSERT_THAT(struct_node->identifier_id != StringId::invalid());
@@ -257,20 +259,20 @@ namespace kepler {
         }
     }
 
-    void CodegenPass::forward_declare_prototypes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
-        for (const std::unique_ptr<ASTNode>& node : nodes) {
+    void CodegenPass::forward_declare_prototypes(const std::vector<ASTNode*>& nodes) {
+        for (const ASTNode* node : nodes) {
             KPL_ASSERT_NOT_NULLPTR(node);
             switch (node->node_type) {
                 case ASTNodeType::Extern: {
-                    const Extern* ext = static_cast<Extern*>(node.get());
+                    const Extern* ext = static_cast<const Extern*>(node);
                     KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-                    forward_declare_prototype(ext->prototype.get(), ext->linkage_type, true);
+                    forward_declare_prototype(ext->prototype, ext->linkage_type, true);
                     break;
                 }
                 case ASTNodeType::Function: {
-                    const Function* function = static_cast<Function*>(node.get());
+                    const Function* function = static_cast<const Function*>(node);
                     KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                    forward_declare_prototype(function->prototype.get(), function->linkage_type, false);
+                    forward_declare_prototype(function->prototype, function->linkage_type, false);
                     break;
                 }
                 default:
@@ -328,8 +330,8 @@ namespace kepler {
         llvm_values[prototype->symbol_id] = function;
     }
 
-    void CodegenPass::codegen_struct_bodies(const std::vector<std::unique_ptr<Struct>>& struct_nodes) {
-        for (const std::unique_ptr<Struct>& struct_node : struct_nodes) {
+    void CodegenPass::codegen_struct_bodies(const std::vector<Struct*>& struct_nodes) {
+        for (const Struct* struct_node : struct_nodes) {
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             std::vector<llvm::Type*> member_types;
             member_types.reserve(struct_node->members.size());
@@ -346,10 +348,10 @@ namespace kepler {
         }
     }
 
-    void CodegenPass::codegen_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
-        for (const std::unique_ptr<ASTNode>& node : nodes) {
+    void CodegenPass::codegen_nodes(const std::vector<ASTNode*>& nodes) {
+        for (const ASTNode* node : nodes) {
             KPL_ASSERT_NOT_NULLPTR(node);
-            CodegenResult codegen_result = codegen_node(node.get());
+            CodegenResult codegen_result = codegen_node(node);
             if (codegen_result.returns) {
                 break;
             }
@@ -469,7 +471,7 @@ namespace kepler {
             [this](const auto& expression) -> llvm::Value* {
                 KPL_ASSERT_NOT_NULLPTR(expression);
                 using ValueType = std::decay_t<decltype(expression)>;
-                if constexpr (std::is_same_v<ValueType, std::unique_ptr<MemberExpression>>) {
+                if constexpr (std::is_same_v<ValueType, MemberExpression*>) {
                     KPL_ASSERT_NOT_NULLPTR(expression);
                     KPL_ASSERT_THAT(!expression->access_data.empty());
                     KPL_ASSERT_THAT(expression->object_symbol_id != SymbolId::invalid());
@@ -485,7 +487,7 @@ namespace kepler {
                         gep = builder.CreateStructGEP(llvm_struct_type, gep, access_data.member_index);
                     }
                     return gep;
-                } else if constexpr (std::is_same_v<ValueType, std::unique_ptr<VariableExpression>>) {
+                } else if constexpr (std::is_same_v<ValueType, VariableExpression*>) {
                     KPL_ASSERT_THAT(expression->symbol_id != SymbolId::invalid());
                     KPL_ASSERT_THAT(llvm_values.contains(expression->symbol_id));
                     KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(llvm_values[expression->symbol_id]));
@@ -496,7 +498,7 @@ namespace kepler {
             statement->assignment_target_expression);
 
         KPL_ASSERT_NOT_NULLPTR(target_ptr);
-        const CodegenResult codegen_result = codegen_node(statement->value_expression.get());
+        const CodegenResult codegen_result = codegen_node(statement->value_expression);
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
         builder.CreateStore(codegen_result.llvm_value, target_ptr);
         return {.llvm_value = nullptr, .returns = false};
@@ -509,10 +511,10 @@ namespace kepler {
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         open_scope();
-        const CodegenResult variable_cr = codegen_variable_definition_statement(statement->loop_variable_definition.get());
+        const CodegenResult variable_cr = codegen_variable_definition_statement(statement->loop_variable_definition);
         KPL_ASSERT_NOT_NULLPTR(variable_cr.llvm_value);
         KPL_ASSERT_THAT(llvm::isa<llvm::AllocaInst>(variable_cr.llvm_value));
-        const CodegenResult end_cr = codegen_node(statement->end_value.get());
+        const CodegenResult end_cr = codegen_node(statement->end_value);
         KPL_ASSERT_NOT_NULLPTR(end_cr.llvm_value);
 
         // Codegen step value
@@ -531,7 +533,7 @@ namespace kepler {
                 llvm::ConstantInt::get(variable_type, 1),
                 llvm::ConstantInt::getSigned(variable_type, -1));
         } else {
-            const CodegenResult step_cr = codegen_node(statement->step_value.get());
+            const CodegenResult step_cr = codegen_node(statement->step_value);
             KPL_ASSERT_NOT_NULLPTR(step_cr.llvm_value);
             step_value = step_cr.llvm_value;
         }
@@ -583,7 +585,7 @@ namespace kepler {
         KPL_ASSERT_NOT_NULLPTR(statement);
         KPL_ASSERT_NOT_NULLPTR(statement->condition);
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
-        const CodegenResult condition_cr = codegen_node(statement->condition.get());
+        const CodegenResult condition_cr = codegen_node(statement->condition);
         KPL_ASSERT_NOT_NULLPTR(condition_cr.llvm_value);
 
         // Prepare BasicBlocks
@@ -628,7 +630,7 @@ namespace kepler {
             llvm::ReturnInst* return_inst = builder.CreateRetVoid();
             return {.llvm_value = return_inst, .returns = true};
         } else {
-            const CodegenResult codegen_result = codegen_node(statement->expression.get());
+            const CodegenResult codegen_result = codegen_node(statement->expression);
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
             llvm::ReturnInst* return_inst = builder.CreateRet(codegen_result.llvm_value);
             return {.llvm_value = return_inst, .returns = true};
@@ -642,8 +644,8 @@ namespace kepler {
         KPL_ASSERT_THAT(statement->node_type != ASTNodeType::Poison);
 
         const AssignmentTargetExpression& assignment_target_expression = statement->assignment_statement->assignment_target_expression;
-        KPL_ASSERT_THAT(std::holds_alternative<std::unique_ptr<VariableExpression>>(assignment_target_expression));
-        const std::unique_ptr<VariableExpression>& variable_expression = std::get<std::unique_ptr<VariableExpression>>(assignment_target_expression);
+        KPL_ASSERT_THAT(std::holds_alternative<VariableExpression*>(assignment_target_expression));
+        const VariableExpression* variable_expression = std::get<VariableExpression*>(assignment_target_expression);
 
         llvm::Function* llvm_function = builder.GetInsertBlock()->getParent();
         KPL_ASSERT_NOT_NULLPTR(llvm_function);
@@ -654,7 +656,7 @@ namespace kepler {
         KPL_ASSERT_THAT(!llvm_values.contains(variable_symbol_id));
         llvm_values.emplace(variable_symbol_id, alloca);
         symbol_id_scopes.back().push_back(variable_symbol_id);
-        codegen_assignment_statement(statement->assignment_statement.get());
+        codegen_assignment_statement(statement->assignment_statement);
         return {.llvm_value = alloca, .returns = false};
     }
 
@@ -730,15 +732,14 @@ namespace kepler {
         if (expression->method_symbol_id != SymbolId::invalid()) {
             const Symbol* operator_method_symbol = symbol_table.lookup(expression->method_symbol_id);
             if (!operator_method_symbol->is_builtin) {
-                return create_call(expression->method_symbol_id,
-                    {expression->lhs.get(), expression->rhs.get()},
-                    StringPool::get().lookup(operator_method_symbol->identifier_id));
+                const std::vector<Expression*> argument_expression{expression->lhs, expression->rhs};
+                return create_call(expression->method_symbol_id, argument_expression, StringPool::get().lookup(operator_method_symbol->identifier_id));
             }
         }
 
-        const CodegenResult lhs_cr = codegen_node(expression->lhs.get());
+        const CodegenResult lhs_cr = codegen_node(expression->lhs);
         KPL_ASSERT_NOT_NULLPTR(lhs_cr.llvm_value);
-        const CodegenResult rhs_cr = codegen_node(expression->rhs.get());
+        const CodegenResult rhs_cr = codegen_node(expression->rhs);
         KPL_ASSERT_NOT_NULLPTR(rhs_cr.llvm_value);
 
         const Type* target_type = type_table.lookup(expression->target_type_id);
@@ -780,7 +781,7 @@ namespace kepler {
             KPL_ASSERT_THAT(callee_symbol->get_symbol_kind() == SymbolKind::Prototype);
             KPL_ASSERT_THAT(callee_symbol->type_id != TypeId::invalid());
             const Type* target_type = type_table.lookup(callee_symbol->type_id);
-            const CodegenResult codegen_result = codegen_node(expression->args[0].get());
+            const CodegenResult codegen_result = codegen_node(expression->arguments[0]);
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
             return {
                 .llvm_value = create_cast(codegen_result.llvm_value, original_type, target_type, context, builder),
@@ -789,17 +790,12 @@ namespace kepler {
         }
 
         // Create the normal call otherwise
-        std::vector<Expression*> args;
-        args.reserve(expression->args.size());
-        for (const std::unique_ptr<Expression>& arg : expression->args) {
-            args.push_back(arg.get());
-        }
-        return create_call(expression->symbol_id, std::move(args), get_full_identifier_from_path(expression->identifier_path));
+        return create_call(expression->symbol_id, expression->arguments, get_full_identifier_from_path(expression->identifier_path));
     }
 
     // clang-format off
     CodegenResult CodegenPass::create_call(SymbolId prototype_symbol_id,
-        const std::vector<Expression*>& args,
+        const std::vector<Expression*>& arguments,
         const std::string& prototype_identifier)
     {
         // clang-format on
@@ -816,20 +812,20 @@ namespace kepler {
         const size_t parameter_count = prototype_symbol->parameter_type_ids.size();
         KPL_ASSERT_THAT(is_variadic == llvm_function->isVarArg(), "Internal variadic: {}, LLVM variadic: {}", is_variadic, llvm_function->isVarArg());
         if (!is_variadic) {
-            KPL_ASSERT_THAT(args.size() == parameter_count,
+            KPL_ASSERT_THAT(arguments.size() == parameter_count,
                 "Internal arg count: {}, internal parameter count: {}",
-                args.size(),
+                arguments.size(),
                 parameter_count);
-            KPL_ASSERT_THAT(args.size() == llvm_function->arg_size(),
+            KPL_ASSERT_THAT(arguments.size() == llvm_function->arg_size(),
                 "Internal arg count: {}, LLVM arg count: {}",
-                args.size(),
+                arguments.size(),
                 llvm_function->arg_size());
         }
 
         std::vector<llvm::Value*> arg_values;
-        for (size_t i = 0; i < args.size(); i++) {
-            KPL_ASSERT_NOT_NULLPTR(args[i]);
-            const CodegenResult codegen_result = codegen_node(args[i]);
+        for (size_t i = 0; i < arguments.size(); i++) {
+            KPL_ASSERT_NOT_NULLPTR(arguments[i]);
+            const CodegenResult codegen_result = codegen_node(arguments[i]);
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
             // Promote all variadic float arguments to doubles (this is required for C functions)
             if (is_variadic && i >= parameter_count && codegen_result.llvm_value->getType() == llvm::Type::getFloatTy(context)) {
@@ -863,13 +859,12 @@ namespace kepler {
         if (expression->method_symbol_id != SymbolId::invalid()) {
             const Symbol* operator_method_symbol = symbol_table.lookup(expression->method_symbol_id);
             if (!operator_method_symbol->is_builtin) {
-                return create_call(expression->method_symbol_id,
-                    {expression->expression.get()},
-                    StringPool::get().lookup(operator_method_symbol->identifier_id));
+                const std::vector<Expression*> arguments{expression->expression};
+                return create_call(expression->method_symbol_id, arguments, StringPool::get().lookup(operator_method_symbol->identifier_id));
             }
         }
 
-        const CodegenResult codegen_result = codegen_node(expression->expression.get());
+        const CodegenResult codegen_result = codegen_node(expression->expression);
         KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
         const Type* target_type = type_table.lookup(expression->target_type_id);
         if (is_integer_type(target_type)) {
@@ -919,7 +914,7 @@ namespace kepler {
             KPL_ASSERT_NOT_NULLPTR(member_initializer_data.value_expression);
             KPL_ASSERT_THAT(member_initializer_data.identifier_id != StringId::invalid());
             KPL_ASSERT_THAT(member_initializer_data.value_expression->node_type != ASTNodeType::Poison);
-            const CodegenResult codegen_result = codegen_node(member_initializer_data.value_expression.get());
+            const CodegenResult codegen_result = codegen_node(member_initializer_data.value_expression);
             KPL_ASSERT_NOT_NULLPTR(codegen_result.llvm_value);
             const uint32_t field_index = struct_type->get_member_index(member_initializer_data.identifier_id);
             llvm_value = builder.CreateInsertValue(llvm_value, codegen_result.llvm_value, {field_index});

@@ -14,27 +14,26 @@
 #include "ast/statements/statement.hpp"
 #include "ast/statements/variable_definition_statement.hpp"
 #include "diagnostics/source_location.hpp"
-#include <memory>
 #include <utility>
 #include <vector>
 
 namespace kepler {
 
     struct ForStatement : Statement {
-        std::unique_ptr<VariableDefinitionStatement> loop_variable_definition;
-        std::unique_ptr<Expression> end_value;
-        std::unique_ptr<Expression> step_value;
+        VariableDefinitionStatement* loop_variable_definition;
+        Expression* end_value;
+        Expression* step_value;
         NodeBody body;
 
-        ForStatement(std::unique_ptr<VariableDefinitionStatement> loop_variable_definition,
-            std::unique_ptr<Expression> end_value,
-            std::unique_ptr<Expression> step_value,
-            std::vector<std::unique_ptr<ASTNode>> body,
+        ForStatement(VariableDefinitionStatement* loop_variable_definition,
+            Expression* end_value,
+            Expression* step_value,
+            std::vector<ASTNode*> body,
             SourceLocation source_location)
             : Statement(ASTNodeType::ForStatement, std::move(source_location)),
-              loop_variable_definition(std::move(loop_variable_definition)),
-              end_value(std::move(end_value)),
-              step_value(std::move(step_value)),
+              loop_variable_definition(loop_variable_definition),
+              end_value(end_value),
+              step_value(step_value),
               body{.nodes = std::move(body)} {}
     };
 

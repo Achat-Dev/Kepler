@@ -28,7 +28,6 @@
 #include "utils/string_pool.hpp"
 #include <cstdint>
 #include <format>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -37,19 +36,19 @@
 
 namespace kepler {
 
-    std::unique_ptr<Expression> Parser::parse_expression() {
-        std::unique_ptr<Expression> expression = parse_primary();
+    Expression* Parser::parse_expression() {
+        Expression* expression = parse_primary();
         if (!expression) {
             return nullptr;
         }
 
         if (current_token->type == TokenType::Operator) {
-            return parse_binary_expression_rhs(std::move(expression), 0);
+            return parse_binary_expression_rhs(expression, 0);
         }
         return expression;
     }
 
-    std::unique_ptr<Expression> Parser::parse_binary_expression_rhs(std::unique_ptr<Expression> lhs, int expression_precedence) {
+    Expression* Parser::parse_binary_expression_rhs(Expression* lhs, int expression_precedence) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         while (true) {
             if (current_token->type != TokenType::Operator) {
@@ -65,36 +64,30 @@ namespace kepler {
             }
 
             next_token(true); // eat binary operator
-            std::unique_ptr<Expression> rhs = parse_primary();
+            Expression* rhs = parse_primary();
             if (!rhs) {
                 return nullptr;
             }
 
             if (current_token->type != TokenType::Operator) {
-                return std::make_unique<BinaryExpression>(current_operator_type,
-                    std::move(lhs),
-                    std::move(rhs),
-                    operator_source_location);
+                return allocator->allocate<BinaryExpression>(current_operator_type, lhs, rhs, operator_source_location);
             }
 
             KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
             const OperatorType next_operator_type = std::get<OperatorType>(current_token->data);
             const int next_operator_precedence = get_operator_precedence(next_operator_type);
             if (current_operator_precedence < next_operator_precedence) {
-                rhs = parse_binary_expression_rhs(std::move(rhs), current_operator_precedence + 1);
+                rhs = parse_binary_expression_rhs(rhs, current_operator_precedence + 1);
                 if (!rhs) {
                     return nullptr;
                 }
             }
 
-            lhs = std::make_unique<BinaryExpression>(current_operator_type,
-                std::move(lhs),
-                std::move(rhs),
-                operator_source_location);
+            lhs = allocator->allocate<BinaryExpression>(current_operator_type, lhs, rhs, operator_source_location);
         }
     }
 
-    std::unique_ptr<Expression> Parser::parse_primary() {
+    Expression* Parser::parse_primary() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         switch (current_token->type) {
             case TokenType::Identifier:
@@ -120,7 +113,8 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<Expression> Parser::parse_identifier_expression() {
+    Expression* Parser::parse_identifier_expression() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Identifier, "Required token: '{}', received: '{}'", TokenType::Identifier, current_token->type);
 
@@ -161,7 +155,7 @@ namespace kepler {
                 if (current_token->type == TokenType::BracketOpen) {
                     return parse_call(std::nullopt, std::move(member_path.value()));
                 }
-                return std::make_unique<MemberExpression>(std::move(member_path.value()));
+                return allocator->allocate<MemberExpression>(std::move(member_path.value()));
             }
             case TokenType::CurlyBracketOpen:
                 return parse_object_initializer();
@@ -170,7 +164,7 @@ namespace kepler {
                 const StringId identifier_id = std::get<StringId>(current_token->data);
                 const SourceLocation& identifier_source_location = current_token->source_location;
                 next_token(true); // eat identifier
-                return std::make_unique<VariableExpression>(identifier_id, identifier_source_location);
+                return allocator->allocate<VariableExpression>(identifier_id, identifier_source_location);
             }
         }
 
@@ -179,11 +173,11 @@ namespace kepler {
         return nullptr;
     }
 
-    std::unique_ptr<CallExpression> Parser::parse_call(std::optional<IdentifierPath> module_path, IdentifierPath callee_identifier) {
+    CallExpression* Parser::parse_call(std::optional<IdentifierPath> module_path, IdentifierPath callee_identifier) {
         KPL_ASSERT_THAT(!callee_identifier.identifier_parts.empty());
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token: '{}', received: '{}'", TokenType::BracketOpen, current_token->type);
-        SourceLocation identifier_source_location = callee_identifier.source_location;
         if (!module_path.has_value()) {
             module_path = IdentifierPath{};
         }
@@ -195,23 +189,24 @@ namespace kepler {
         }
         next_token(true); // eat '('
         // Call with no arguments
+        const SourceLocation& identifier_source_location = callee_identifier.source_location;
         if (current_token->type == TokenType::BracketClose) {
             next_token(true); // eat ')'
-            return std::make_unique<CallExpression>(
+            return allocator->allocate<CallExpression>(
                 std::move(callee_identifier),
-                std::vector<std::unique_ptr<Expression>>{},
+                std::vector<Expression*>{},
                 std::move(module_path.value()),
-                std::move(identifier_source_location));
+                identifier_source_location);
         }
 
         // Call with arguments
-        std::vector<std::unique_ptr<Expression>> args;
+        std::vector<Expression*> arguments;
         while (current_token->type != TokenType::BracketClose) {
-            std::unique_ptr<Expression> arg = parse_expression();
-            if (!arg) {
+            Expression* argument = parse_expression();
+            if (!argument) {
                 return nullptr;
             }
-            args.push_back(std::move(arg));
+            arguments.push_back(argument);
 
             if (current_token->type == TokenType::Comma) {
                 next_token(true); // eat ','
@@ -226,14 +221,15 @@ namespace kepler {
         }
 
         next_token(true); // eat ')'
-        return std::make_unique<CallExpression>(
+        return allocator->allocate<CallExpression>(
             std::move(callee_identifier),
-            std::move(args),
+            std::move(arguments),
             std::move(module_path.value()),
-            std::move(identifier_source_location));
+            identifier_source_location);
     }
 
-    std::unique_ptr<Expression> Parser::parse_literal() {
+    Expression* Parser::parse_literal() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Literal, "Required token: '{}', received: '{}'", TokenType::Literal, current_token->type);
         const SourceLocation& source_location = current_token->source_location;
@@ -241,23 +237,22 @@ namespace kepler {
         next_token(true); // eat the literal
 
         if (std::holds_alternative<double>(literal_data)) {
-            return std::make_unique<FloatingPointLiteralExpression>(std::get<double>(literal_data), source_location);
+            return allocator->allocate<FloatingPointLiteralExpression>(std::get<double>(literal_data), source_location);
         } else if (std::holds_alternative<IntegerLiteralTokenData>(literal_data)) {
-            return std::make_unique<IntegerLiteralExpression>(std::get<IntegerLiteralTokenData>(literal_data).literal_id, source_location);
+            return allocator->allocate<IntegerLiteralExpression>(std::get<IntegerLiteralTokenData>(literal_data).literal_id, source_location);
         } else if (std::holds_alternative<StringId>(literal_data)) {
-            return std::make_unique<StringLiteralExpression>(std::get<StringId>(literal_data), source_location);
+            return allocator->allocate<StringLiteralExpression>(std::get<StringId>(literal_data), source_location);
         } else if (std::holds_alternative<bool>(literal_data)) {
-            return std::make_unique<BooleanLiteralExpression>(std::get<bool>(literal_data), source_location);
+            return allocator->allocate<BooleanLiteralExpression>(std::get<bool>(literal_data), source_location);
         }
-
         KPL_ASSERT_UNREACHABLE("Literal token doesn't contain the correct literal data");
     }
 
-    std::unique_ptr<Expression> Parser::parse_parenthesis() {
+    Expression* Parser::parse_parenthesis() {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::BracketOpen, "Required token: '{}', received: '{}'", TokenType::BracketOpen, current_token->type);
         next_token(true); // eat '('
-        std::unique_ptr<Expression> expression = parse_expression();
+        Expression* expression = parse_expression();
         if (!expression) {
             return nullptr; // parse_expression has already recovered at this point, so no need to recover again
         }
@@ -278,7 +273,8 @@ namespace kepler {
         return expression;
     }
 
-    std::unique_ptr<MathematicalNegationExpression> Parser::parse_negative() {
+    MathematicalNegationExpression* Parser::parse_negative() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->type == TokenType::Operator, "Required token: '{}', received: '{}'", TokenType::Operator, current_token->type);
         KPL_ASSERT_THAT(std::holds_alternative<OperatorType>(current_token->data));
@@ -286,7 +282,7 @@ namespace kepler {
         KPL_ASSERT_THAT(operator_type == OperatorType::Minus, "Required operator: '{}', received: '{}'", OperatorType::Minus, operator_type);
         const SourceLocation& source_location = current_token->source_location;
         next_token(true); // eat '-'
-        std::unique_ptr<Expression> expression = nullptr;
+        Expression* expression = nullptr;
         switch (current_token->type) {
             case TokenType::Identifier:
                 expression = parse_identifier_expression();
@@ -317,10 +313,11 @@ namespace kepler {
         if (!expression) {
             return nullptr;
         }
-        return std::make_unique<MathematicalNegationExpression>(std::move(expression), source_location);
+        return allocator->allocate<MathematicalNegationExpression>(expression, source_location);
     }
 
-    std::unique_ptr<ObjectInitializerExpression> Parser::parse_object_initializer() {
+    ObjectInitializerExpression* Parser::parse_object_initializer() {
+        KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         StringId type_identifier_id;
         SourceLocation type_source_location;
@@ -373,7 +370,7 @@ namespace kepler {
                 return nullptr;
             }
 
-            std::unique_ptr<Expression> member_value_expression = parse_expression();
+            Expression* member_value_expression = parse_expression();
             if (!member_value_expression) {
                 return nullptr;
             }
@@ -393,13 +390,13 @@ namespace kepler {
             member_initializers.push_back({
                 .identifier_id = std::get<StringId>(member_identifier_token->data),
                 .source_location = member_identifier_token->source_location,
-                .value_expression = std::move(member_value_expression),
+                .value_expression = member_value_expression,
             });
         }
 
         KPL_ASSERT_THAT(current_token->type == TokenType::CurlyBracketClose);
         next_token(true); // eat '}'
-        return std::make_unique<ObjectInitializerExpression>(type_identifier_id,
+        return allocator->allocate<ObjectInitializerExpression>(type_identifier_id,
             std::move(member_initializers),
             initializer_source_location,
             std::move(type_source_location));

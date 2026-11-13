@@ -17,13 +17,13 @@
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/source_location.hpp"
 #include "lexer/token.hpp"
+#include "utils/arena_allocator.hpp"
 #include "utils/assert.h"
 #include "utils/identifier_path.hpp"
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <memory>
 #include <utility>
 #include <vector>
 
@@ -33,11 +33,12 @@ namespace kepler {
         KPL_ASSERT_THAT(!tokens.empty());
         KPL_ASSERT_THAT(tokens.back().type == TokenType::EndOfFile, "Final token should be EOF, received '{}'", tokens.back().type);
 
-        AbstractSyntaxTree ast;
+        AbstractSyntaxTree ast{.allocator = ArenaAllocator(kibibyte_size * 16, file->path.filename().string())};
+        allocator = &ast.allocator;
         while (current_token->type != TokenType::EndOfFile) {
             switch (current_token->type) {
                 case TokenType::Module: {
-                    std::unique_ptr<ModuleStatement> ast_node = parse_module();
+                    ModuleStatement* ast_node = parse_module();
                     if (ast_node) {
                         if (ast.module_statement != nullptr) {
                             diagnostic_sink.report(DiagnosticCode::ModuleRedefinition,
@@ -46,46 +47,46 @@ namespace kepler {
                             break;
                         }
 
-                        ast.module_statement = std::move(ast_node);
+                        ast.module_statement = ast_node;
                     }
                     break;
                 }
                 case TokenType::Import: {
-                    std::unique_ptr<ImportStatement> ast_node = parse_import();
+                    ImportStatement* ast_node = parse_import();
                     if (ast_node) {
-                        ast.import_statements.push_back(std::move(ast_node));
+                        ast.import_statements.push_back(ast_node);
                     }
                     break;
                 }
                 case TokenType::Export: {
-                    std::unique_ptr<ExportableNode> ast_node = parse_export();
+                    ExportableNode* ast_node = parse_export();
                     if (ast_node) {
                         if (ast_node->node_type == ASTNodeType::Struct) {
-                            ast.struct_nodes.push_back(std::unique_ptr<Struct>(static_cast<Struct*>(ast_node.release())));
+                            ast.struct_nodes.push_back(static_cast<Struct*>(ast_node));
                         } else {
-                            ast.top_level_nodes.push_back(std::move(ast_node));
+                            ast.top_level_nodes.push_back(ast_node);
                         }
                     }
                     break;
                 }
                 case TokenType::Extern: {
-                    std::unique_ptr<Extern> ast_node = parse_extern(LinkageType::External);
+                    Extern* ast_node = parse_extern(LinkageType::External);
                     if (ast_node) {
-                        ast.top_level_nodes.push_back(std::move(ast_node));
+                        ast.top_level_nodes.push_back(ast_node);
                     }
                     break;
                 }
                 case TokenType::Struct: {
-                    std::unique_ptr<Struct> ast_node = parse_struct(LinkageType::Internal);
+                    Struct* ast_node = parse_struct(LinkageType::Internal);
                     if (ast_node) {
-                        ast.struct_nodes.push_back(std::move(ast_node));
+                        ast.struct_nodes.push_back(ast_node);
                     }
                     break;
                 }
                 case TokenType::Identifier: {
-                    std::unique_ptr<ExportableNode> ast_node = parse_top_level_identifier(LinkageType::Internal);
+                    ExportableNode* ast_node = parse_top_level_identifier(LinkageType::Internal);
                     if (ast_node) {
-                        ast.top_level_nodes.push_back(std::move(ast_node));
+                        ast.top_level_nodes.push_back(ast_node);
                     }
                     break;
                 }
@@ -110,13 +111,14 @@ namespace kepler {
         if (ast.module_statement == nullptr) {
             const StringId fallback_identifier_id = StringPool::get().store("__file://" + file->path.string());
             // clang-format off
-            ast.module_statement = std::make_unique<ModuleStatement>(IdentifierPath{
+            ast.module_statement = ast.allocator.allocate<ModuleStatement>(IdentifierPath{
                     .identifier_parts = {{.identifier_id = fallback_identifier_id, .source_location = {}}}
                 },
                 SourceLocation{});
             // clang-format on
         }
 
+        allocator = nullptr;
         return ast;
     }
 

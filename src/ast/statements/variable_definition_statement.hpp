@@ -15,7 +15,6 @@
 #include "diagnostics/source_location.hpp"
 #include "type_system/type.hpp"
 #include "utils/string_pool.hpp"
-#include <memory>
 #include <utility>
 
 namespace kepler {
@@ -24,16 +23,16 @@ namespace kepler {
         StringId type_identifier_id;
         StringId identifier_id;
         TypeId type_id;
-        std::unique_ptr<AssignmentStatement> assignment_statement;
+        AssignmentStatement* assignment_statement;
 
         VariableDefinitionStatement(StringId type_id,
             StringId identifier_id,
-            std::unique_ptr<AssignmentStatement> assignment_statement,
+            AssignmentStatement* assignment_statement,
             SourceLocation source_location)
-            : Statement(ASTNodeType::VariableDefinitionStatement, source_location),
+            : Statement(ASTNodeType::VariableDefinitionStatement, std::move(source_location)),
               type_identifier_id(type_id),
               identifier_id(identifier_id),
-              assignment_statement(std::move(assignment_statement)) {}
+              assignment_statement(assignment_statement) {}
     };
 
 }

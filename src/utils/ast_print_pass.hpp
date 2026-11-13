@@ -33,7 +33,6 @@
 #include "ast/struct.hpp"
 #include "semantic_analysis/symbol_table.hpp"
 #include "type_system/type_table.hpp"
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -55,7 +54,7 @@ namespace kepler {
         static constexpr char last_item_prefix[] = " \u2514\u2500 ";
 
         // TODO (improvement): Some of the const string& arguments could be turned into string_views or const char*, which could avoid some memory overhead
-        void print_nodes(const std::vector<std::unique_ptr<ASTNode>>& nodes, const std::string& label, std::string indent, bool is_last) const;
+        void print_nodes(const std::vector<ASTNode*>& nodes, const std::string& label, std::string indent, bool is_last) const;
         void print_node(const ASTNode* node, const std::string& prefix, std::string indent, bool is_last) const;
         void print_extern(const Extern* ext, const std::string& indent) const;
         void print_struct(const Struct* struct_node, std::string indent, bool is_last) const;
