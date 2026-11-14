@@ -188,7 +188,6 @@ namespace kepler {
                         const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                             StringPool::get().lookup(prototype_identifier));
                         diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), prototype->identifier_source_location);
-                        prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
                     return prototype_identifier;
@@ -200,7 +199,6 @@ namespace kepler {
                     if (!type_symbol.has_value()) {
                         const Diagnostic& diagnostic = type_symbol.error();
                         diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), prototype_identifier.type_source_location);
-                        prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
                     object_type_symbol = type_symbol.value();
@@ -210,7 +208,6 @@ namespace kepler {
                         const std::string message = std::format("Type name '{}' cannot be used as a member function identifier",
                             StringPool::get().lookup(prototype_identifier.identifier_id));
                         diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), prototype_identifier.identifier_source_location);
-                        prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
                     method_identifier_id = prototype_identifier.identifier_id;
@@ -221,6 +218,7 @@ namespace kepler {
             },
             prototype->identifier);
         if (identifier_id == StringId::invalid()) {
+            prototype->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
 
@@ -342,7 +340,7 @@ namespace kepler {
             {.return_type_id = object_type_id, .identifier_id = StringPool::get().store("__mneg"), .parameter_count = 1},
             actual_signature);
 
-        return {.poisoned = false};
+        return {.poisoned = prototype->node_kind == ASTNodeKind::Poison};
     }
 
     // clang-format off
@@ -512,9 +510,9 @@ namespace kepler {
         KPL_ASSERT_THAT(ext->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         symbol_table.open_scope(module_id, ScopeKind::Function);
-        const NameResolutionResult prototype_result = resolve_prototype(ext->prototype);
+        const NameResolutionResult resolution_result = resolve_prototype(ext->prototype);
         symbol_table.close_scope(module_id);
-        if (prototype_result.poisoned) {
+        if (resolution_result.poisoned) {
             ext->node_kind = ASTNodeKind::Poison;
         }
     }
@@ -525,16 +523,18 @@ namespace kepler {
         KPL_ASSERT_THAT(function->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         symbol_table.open_scope(module_id, ScopeKind::Function);
-        resolve_prototype(function->prototype);
+        const NameResolutionResult resolution_result = resolve_prototype(function->prototype);
         resolve_nodes(function->body.nodes);
         symbol_table.close_scope(module_id);
+        if (resolution_result.poisoned) {
+            function->node_kind = ASTNodeKind::Poison;
+            return;
+        }
     }
 
     NameResolutionResult NameResolutionPass::resolve_prototype(Prototype* prototype) const {
         KPL_ASSERT_NOT_NULLPTR(prototype);
-        // Normally this assert would be there,
-        // but because function overloading isn't implemented yet, prototypes poison themselves when trying to overload a function
-        // KPL_ASSERT_THAT(prototype->node_kind != ASTNodeKind::Poison);
+        KPL_ASSERT_THAT(prototype->node_kind != ASTNodeKind::Poison);
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         for (ParameterData& parameter_data : prototype->parameter_data) {
             KPL_ASSERT_THAT(parameter_data.type_id != TypeId::invalid());
