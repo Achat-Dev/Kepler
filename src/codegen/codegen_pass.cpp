@@ -246,7 +246,6 @@ namespace kepler {
 
     void CodegenPass::forward_declare_structs(const std::vector<Struct*>& struct_nodes) {
         for (const Struct* struct_node : struct_nodes) {
-            // TODO (fix): Don't mangle name if it's an extern once extern structs are implemented
             KPL_ASSERT_NOT_NULLPTR(struct_node);
             KPL_ASSERT_THAT(struct_node->identifier_id != StringId::invalid());
             KPL_ASSERT_THAT(struct_node->type_id != TypeId::invalid());

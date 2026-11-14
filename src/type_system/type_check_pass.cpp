@@ -541,7 +541,7 @@ namespace kepler {
             argument_type_ids);
         if (!method_symbol_id.has_value()) {
             const Diagnostic& diagnostic = method_symbol_id.error();
-            if (diagnostic.code == DiagnosticCode::NoMatchingCallCandidates) {
+            if (diagnostic.code == DiagnosticCode::NoMatchingSymbolCandidates) {
                 const Type* rhs_type = type_table.lookup(rhs_tcr.type_id);
                 const std::string message = std::format("No implementation of binary operator '{}' between types '{}' and '{}'",
                     expression->operator_kind,
@@ -635,7 +635,7 @@ namespace kepler {
             argument_type_ids);
         if (!matching_prototype_symbol_id.has_value()) {
             const Diagnostic& diagnostic = matching_prototype_symbol_id.error();
-            if (diagnostic.code == DiagnosticCode::NoMatchingCallCandidates) {
+            if (diagnostic.code == DiagnosticCode::NoMatchingSymbolCandidates) {
                 std::vector<Symbol*> candidate_symbols;
                 candidate_symbols.reserve(expression->candidate_symbol_ids.size());
                 for (SymbolId candidate_symbol_id : expression->candidate_symbol_ids) {
@@ -691,7 +691,7 @@ namespace kepler {
             arguments);
         if (matching_call_candidates.empty()) {
             // No matching candidates -> return the diagnostic code
-            return std::unexpected(Diagnostic{.code = DiagnosticCode::NoMatchingCallCandidates, .message = ""});
+            return std::unexpected(Diagnostic{.code = DiagnosticCode::NoMatchingSymbolCandidates, .message = ""});
         } else if (matching_call_candidates.size() == 1) {
             // Exactly one matching candidate -> return the candidate symbol id
             const MatchingCallCandidate& matching_call_candidate = matching_call_candidates[0];
@@ -969,7 +969,7 @@ namespace kepler {
         }
         if (method_symbol_id.value() == SymbolId::invalid()) {
             const std::string message = std::format("Type '{}' doesn't support unary operator '-'", *target_type);
-            diagnostic_sink.report(DiagnosticCode::InvalidMathematicalNegation, message, expression->source_location);
+            diagnostic_sink.report(DiagnosticCode::NoOperatorImplementation, message, expression->source_location);
             expression->node_kind = ASTNodeKind::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
         }

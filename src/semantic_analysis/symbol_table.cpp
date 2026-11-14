@@ -139,7 +139,7 @@ namespace kepler {
         Module& module = modules[module_id.value];
         if (&module == imported_module) {
             return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::InvalidImportOfSelf,
+                .code = DiagnosticCode::ImportOfSelf,
                 .message = std::format("Can't import self. The import is discarded, but consider removing it."),
             });
         }

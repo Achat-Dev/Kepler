@@ -36,13 +36,13 @@ namespace kepler {
         if (std::filesystem::is_directory(path)) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::FileIsADirectory,
-                .message = std::format("Path '{}' is a directory", path.string()),
+                .message = std::format("Failed to open file '{}' because it's a directory", path.string()),
             });
         }
         if (!std::filesystem::is_regular_file(path)) {
             return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::NotARegularFile,
-                .message = std::format("File '{}' is not a regular file", path.string()),
+                .code = DiagnosticCode::FileIsNotARegularFile,
+                .message = std::format("Failed to open file '{}' because it's not a regular file", path.string()),
             });
         }
 
@@ -51,7 +51,8 @@ namespace kepler {
         if (!file_stream) {
             return std::unexpected(Diagnostic{
                 .code = DiagnosticCode::FailedToCreateFileStream,
-                .message = std::format("Check the permissions for '{}' and make sure that the file is not locked by other programs", path.string()),
+                .message = std::format("Failed to open file '{}'. Check its permissions and make sure that the file is not locked by other programs",
+                    path.string()),
             });
         }
 

@@ -64,7 +64,7 @@ namespace kepler {
             }
             if (option == nullptr) {
                 return std::unexpected(Diagnostic{
-                    .code = DiagnosticCode::UnknownOption,
+                    .code = DiagnosticCode::UnknownCmdOption,
                     .message = std::format("Unknown cmd option '{}'\n{}", arg, get_arg_string_with_highlighted_error({index})),
                 });
             }
@@ -72,7 +72,7 @@ namespace kepler {
             // Check if option was already used
             if (option->original_arg_index != -1) {
                 return std::unexpected(Diagnostic{
-                    .code = DiagnosticCode::OptionUsedTooOften,
+                    .code = DiagnosticCode::CmdOptionUsedTooOften,
                     .message = std::format("Cmd option '-{}/--{}' can only be used once\n{}",
                         option->short_name,
                         StringPool::get().lookup(option->long_name_id),
@@ -179,7 +179,7 @@ namespace kepler {
         if (index < argc - 1) {
             if (argv[index + 1][0] != '-') {
                 return std::unexpected(Diagnostic{
-                    .code = DiagnosticCode::InvalidOptionValue,
+                    .code = DiagnosticCode::InvalidCmdOptionValue,
                     .message = std::format("Cmd option '-{}/--{}' doesn't take a value\n{}",
                         option->short_name,
                         StringPool::get().lookup(option->long_name_id),
@@ -216,7 +216,7 @@ namespace kepler {
                 }
                 const int faulty_arg_count = faulty_arg_indices.size() - 1; // -1 because the option itself is also part of the vector
                 return std::unexpected(Diagnostic{
-                    .code = DiagnosticCode::InvalidOptionValue,
+                    .code = DiagnosticCode::InvalidCmdOptionValue,
                     .message = std::format("Cmd option '-{}/--{}' only takes one value, received {} values\n{}",
                         option->short_name,
                         StringPool::get().lookup(option->long_name_id),
@@ -259,7 +259,7 @@ namespace kepler {
         KPL_ASSERT_THAT(index < argc);
         if (index == argc - 1) {
             return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::MissingOptionValue,
+                .code = DiagnosticCode::MissingCmdOptionValue,
                 .message = std::format("Cmd option '-{}'/'--{}' needs a value\n{}",
                     option->short_name,
                     StringPool::get().lookup(option->long_name_id),
@@ -270,7 +270,7 @@ namespace kepler {
         index += 1;
         if (argv[index][0] == '-') {
             return std::unexpected(Diagnostic{
-                .code = DiagnosticCode::MissingOptionValue,
+                .code = DiagnosticCode::MissingCmdOptionValue,
                 .message = std::format("Cmd option '-{}'/'--{}' needs a value\n{}",
                     option->short_name,
                     StringPool::get().lookup(option->long_name_id),

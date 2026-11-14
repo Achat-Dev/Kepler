@@ -17,71 +17,76 @@
 
 namespace kepler {
 
-    // TODO (check): Check which of these are actually still in use and maybe sort them a bit better
     enum class DiagnosticCode {
-        // Usage
-        HelpRequested = 100,
-        UnknownOption,
-        InvalidOptionValue,
-        MissingOptionValue,
-        NoInputFile,
-        NoOutputFile,
+        // -- Usage --
+        // Cmd options
+        UnknownCmdOption = 100,
+        InvalidCmdOptionValue,
+        MissingCmdOptionValue,
+        CmdOptionUsedTooOften,
+        // Usage of the compiler
+        MissingInputFile,
+        MissingOutputFile,
         WrongFileFormat,
-        OptionUsedTooOften,
         UnknownOptimizationLevel,
+        // Missing things that have to be installed for the compiler to work
         MissingDependency,
 
-        // I/O
+        // -- I/O --
         FileNotFound = 200,
         FileIsADirectory,
-        NotARegularFile,
+        FileIsNotARegularFile,
         FailedToCreateFileStream,
 
-        // Lexer
+        // -- Lexer --
         UnknownCharacter = 300,
         UnknownEscapeSequence,
         MultilineCommentNotClosed,
 
-        // Parser
+        // -- Parser --
         UnexpectedToken = 400,
-        ModuleRedefinition,
-        RedundantImport,
-        InvalidImportOfSelf,
-        InvalidCast,
         InvalidReturn,
-        InvalidLoopVariableType,
         InvalidMathematicalNegation,
         MissingEndKeyword,
-        UsingStatementAsExpression,
 
-        // Semantic analysis
-        UnreachableCode = 500,
-        MissingReturn,
-        UnknownModule,
+        // -- Semantic analysis --
+        // Module stuff
+        UnknownModule = 500,
+        AmbiguousModulePath,
+        ModuleRedefinition,
+        ImportOfSelf,
+        RedundantImport,
+        // Type stuff
+        UnknownType,
+        TypeMismatch,
+        TypeCannotBeUsedAsIdentifier,
+        InvalidVariableType,
+        MismatchingCastReturnType,
+        // Symbol stuff
         UnknownSymbol,
         SymbolAlreadyExists,
         InvalidSymbolUsage,
         AmbiguousSymbolImport,
-        AmbiguousModulePath,
-        UnknownType,
-        TypeMismatch,
-        InvalidIdentifier,
-        InvalidVariableType,
-        MismatchingOperatorParameterCount,
-        IntegerLiteralOutOfBounds,
-        UnsupportedMathematicalOperation,
-        AmbiguousObjectInitializer,
-        UnknownMemberInInitializer,
-        InvalidMemberAccess,
-        UnknownMember,
-        WrongVisibility,
-        RedundantCast,
-        MultipleMainMethods,
-        NoMatchingCallCandidates,
+        SymbolNotVisible,
+        NoMatchingSymbolCandidates,
         MultipleMatchingSymbolCandidates,
+        // Struct stuff
+        UnknownMember,
+        UnknownMemberInInitializer,
+        MemberAlreadyExists,
+        InvalidMemberAccess,
+        AmbiguousObjectInitializer,
+        // Miscellaneous
+        UnreachableCode,
+        MissingReturn,
+        RedundantCast,
+        IntegerLiteralOutOfBounds,
+        MultipleMainMethods,
+        MismatchingOperatorParameterCount,
         NoOperatorImplementation,
         MultipleOperatorImplementations,
 
+        // -- Unsupported --
         Unsupported = 999,
     };
 
@@ -136,7 +141,6 @@ struct std::formatter<kepler::DiagnosticSeverity> : std::formatter<std::string> 
                                                                kepler::ansi_codes::reset),
                     ctx);
         }
-
         KPL_ASSERT_UNREACHABLE("Missing format implementation for severity '{}'", static_cast<int>(severity));
     }
 };

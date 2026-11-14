@@ -177,7 +177,7 @@ namespace kepler {
 
         // Input file
         if (cmd_args.input_paths.empty()) {
-            return std::unexpected(Diagnostic{.code = DiagnosticCode::NoInputFile, .message = "Missing input file (-i)"});
+            return std::unexpected(Diagnostic{.code = DiagnosticCode::MissingInputFile, .message = "Missing input file (-i)"});
         } else {
             for (const std::filesystem::path& input_path : cmd_args.input_paths) {
                 const std::filesystem::path extension = input_path.extension();
@@ -190,7 +190,7 @@ namespace kepler {
 
         // Output file
         if (cmd_args.output_path.empty()) {
-            return std::unexpected(Diagnostic{.code = DiagnosticCode::NoOutputFile, .message = "Missing output file (-o)"});
+            return std::unexpected(Diagnostic{.code = DiagnosticCode::MissingOutputFile, .message = "Missing output file (-o)"});
         }
 
         // Additional files

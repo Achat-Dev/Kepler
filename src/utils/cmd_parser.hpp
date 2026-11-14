@@ -147,7 +147,7 @@ namespace kepler {
                 T result{};
                 if (!try_parse(text, result)) {
                     return std::unexpected(Diagnostic{
-                        .code = DiagnosticCode::InvalidOptionValue,
+                        .code = DiagnosticCode::InvalidCmdOptionValue,
                         .message = std::format("Cmd option '-{}/--{}' needs an integer value, but given value '{}' is not an integer\n{}",
                             option->short_name,
                             StringPool::get().lookup(option->long_name_id),

@@ -124,7 +124,7 @@ namespace kepler {
                         message += " because it's not exported";
                     }
                     return std::unexpected(Diagnostic{
-                        .code = DiagnosticCode::WrongVisibility,
+                        .code = DiagnosticCode::SymbolNotVisible,
                         .message = std::move(message),
                     });
                 }

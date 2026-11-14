@@ -187,7 +187,7 @@ namespace kepler {
                     if (identifier_type_symbol.has_value()) {
                         const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                             StringPool::get().lookup(prototype_identifier));
-                        diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), prototype->identifier_source_location);
+                        diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), prototype->identifier_source_location);
                         prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
@@ -209,7 +209,7 @@ namespace kepler {
                     if (identifier_type_id.has_value()) {
                         const std::string message = std::format("Type name '{}' cannot be used as a member function identifier",
                             StringPool::get().lookup(prototype_identifier.identifier_id));
-                        diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), prototype_identifier.identifier_source_location);
+                        diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), prototype_identifier.identifier_source_location);
                         prototype->node_kind = ASTNodeKind::Poison;
                         return StringId::invalid();
                     }
@@ -297,7 +297,7 @@ namespace kepler {
             const std::string message = std::format("Type mismatch: A cast must return the type it's defined for (expected '{}', got '{}')",
                 *type_table.lookup(object_type_id),
                 *type_table.lookup(prototype->return_type_id));
-            diagnostic_sink.report(DiagnosticCode::InvalidCast, std::move(message), prototype->source_location);
+            diagnostic_sink.report(DiagnosticCode::MismatchingCastReturnType, std::move(message), prototype->source_location);
             prototype->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
@@ -416,7 +416,7 @@ namespace kepler {
                 if (identifier_type_symbol.has_value()) {
                     const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                         StringPool::get().lookup(member.identifier_id));
-                    diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), member.identifier_source_location);
+                    diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), member.identifier_source_location);
                     struct_node->node_kind = ASTNodeKind::Poison;
                     continue;
                 }
@@ -427,7 +427,7 @@ namespace kepler {
                         const std::string message = std::format("Member with identifier '{}' already exists in struct '{}'",
                             StringPool::get().lookup(member.identifier_id),
                             StringPool::get().lookup(struct_node->identifier_id));
-                        diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), member.identifier_source_location);
+                        diagnostic_sink.report(DiagnosticCode::MemberAlreadyExists, std::move(message), member.identifier_source_location);
                         struct_node->node_kind = ASTNodeKind::Poison;
                         is_duplicate_member = true;
                         break;
@@ -544,7 +544,7 @@ namespace kepler {
             if (identifier_type_symbol.has_value()) {
                 const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                     StringPool::get().lookup(parameter_data.identifier_id));
-                diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), parameter_data.identifier_source_location);
+                diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), parameter_data.identifier_source_location);
                 prototype->node_kind = ASTNodeKind::Poison;
                 continue;
             }
@@ -661,7 +661,7 @@ namespace kepler {
         const auto identifier_type_symbol = resolve_type_identifier_to_type_symbol(statement->identifier_id);
         if (identifier_type_symbol.has_value()) {
             const std::string message = std::format("Type name '{}' cannot be used as an identifier", StringPool::get().lookup(statement->identifier_id));
-            diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), variable_expression->source_location);
+            diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), variable_expression->source_location);
             statement->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }
@@ -900,7 +900,7 @@ namespace kepler {
         if (identifier_type_symbol.has_value()) {
             const std::string message = std::format("Type name '{}' cannot be used as an identifier",
                 StringPool::get().lookup(expression->identifier_id));
-            diagnostic_sink.report(DiagnosticCode::InvalidIdentifier, std::move(message), expression->source_location);
+            diagnostic_sink.report(DiagnosticCode::TypeCannotBeUsedAsIdentifier, std::move(message), expression->source_location);
             expression->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }

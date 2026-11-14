@@ -14,61 +14,77 @@ namespace kepler {
 
     DiagnosticSeverity get_diagnostic_severity(DiagnosticCode diagnostic_code) {
         switch (diagnostic_code) {
-            case DiagnosticCode::HelpRequested:
-                return DiagnosticSeverity::Note;
-
+            // -- Lexer --
             case DiagnosticCode::MultilineCommentNotClosed:
+            // -- Module stuff --
+            case DiagnosticCode::ImportOfSelf:
             case DiagnosticCode::RedundantImport:
-            case DiagnosticCode::InvalidImportOfSelf:
-            case DiagnosticCode::RedundantCast:
+            // -- Miscellaneous --
             case DiagnosticCode::UnreachableCode:
+            case DiagnosticCode::RedundantCast:
                 return DiagnosticSeverity::Warning;
 
-            case DiagnosticCode::UnknownOption:
-            case DiagnosticCode::InvalidOptionValue:
-            case DiagnosticCode::MissingOptionValue:
-            case DiagnosticCode::NoInputFile:
-            case DiagnosticCode::NoOutputFile:
+            // -- Usage --
+            // Cmd options
+            case DiagnosticCode::UnknownCmdOption:
+            case DiagnosticCode::InvalidCmdOptionValue:
+            case DiagnosticCode::MissingCmdOptionValue:
+            case DiagnosticCode::CmdOptionUsedTooOften:
+            // Usage of the compiler
+            case DiagnosticCode::MissingInputFile:
+            case DiagnosticCode::MissingOutputFile:
             case DiagnosticCode::WrongFileFormat:
-            case DiagnosticCode::OptionUsedTooOften:
             case DiagnosticCode::UnknownOptimizationLevel:
+            // Missing things that have to be installed for the compiler to work
             case DiagnosticCode::MissingDependency:
+
+            // -- I/O --
             case DiagnosticCode::FileNotFound:
             case DiagnosticCode::FileIsADirectory:
-            case DiagnosticCode::NotARegularFile:
+            case DiagnosticCode::FileIsNotARegularFile:
             case DiagnosticCode::FailedToCreateFileStream:
+
+            // -- Lexer --
             case DiagnosticCode::UnknownCharacter:
             case DiagnosticCode::UnknownEscapeSequence:
+
+            // -- Parser --
             case DiagnosticCode::UnexpectedToken:
-            case DiagnosticCode::ModuleRedefinition:
-            case DiagnosticCode::InvalidCast:
             case DiagnosticCode::InvalidReturn:
-            case DiagnosticCode::InvalidLoopVariableType:
             case DiagnosticCode::InvalidMathematicalNegation:
             case DiagnosticCode::MissingEndKeyword:
-            case DiagnosticCode::UsingStatementAsExpression:
-            case DiagnosticCode::MissingReturn:
+
+            // -- Semantic analysis --
+            // Module stuff
             case DiagnosticCode::UnknownModule:
-            case DiagnosticCode::UnknownSymbol:
-            case DiagnosticCode::AmbiguousSymbolImport:
             case DiagnosticCode::AmbiguousModulePath:
-            case DiagnosticCode::SymbolAlreadyExists:
-            case DiagnosticCode::InvalidSymbolUsage:
+            case DiagnosticCode::ModuleRedefinition:
+            // Type stuff
             case DiagnosticCode::UnknownType:
             case DiagnosticCode::TypeMismatch:
-            case DiagnosticCode::InvalidIdentifier:
+            case DiagnosticCode::TypeCannotBeUsedAsIdentifier:
             case DiagnosticCode::InvalidVariableType:
-            case DiagnosticCode::MismatchingOperatorParameterCount:
-            case DiagnosticCode::IntegerLiteralOutOfBounds:
-            case DiagnosticCode::UnsupportedMathematicalOperation:
-            case DiagnosticCode::AmbiguousObjectInitializer:
-            case DiagnosticCode::UnknownMemberInInitializer:
-            case DiagnosticCode::InvalidMemberAccess:
-            case DiagnosticCode::UnknownMember:
-            case DiagnosticCode::WrongVisibility:
-            case DiagnosticCode::MultipleMainMethods:
-            case DiagnosticCode::NoMatchingCallCandidates:
+            case DiagnosticCode::MismatchingCastReturnType:
+            // Return checking
+            case DiagnosticCode::MissingReturn:
+            // Symbol stuff
+            case DiagnosticCode::UnknownSymbol:
+            case DiagnosticCode::SymbolAlreadyExists:
+            case DiagnosticCode::InvalidSymbolUsage:
+            case DiagnosticCode::AmbiguousSymbolImport:
+            case DiagnosticCode::SymbolNotVisible:
+            case DiagnosticCode::NoMatchingSymbolCandidates:
             case DiagnosticCode::MultipleMatchingSymbolCandidates:
+            // Struct stuff
+            case DiagnosticCode::UnknownMember:
+            case DiagnosticCode::UnknownMemberInInitializer:
+            case DiagnosticCode::MemberAlreadyExists:
+            case DiagnosticCode::InvalidMemberAccess:
+            case DiagnosticCode::AmbiguousObjectInitializer:
+            // Miscalleneous
+            case DiagnosticCode::IntegerLiteralOutOfBounds:
+            case DiagnosticCode::MultipleMainMethods:
+            case DiagnosticCode::MismatchingOperatorParameterCount:
             case DiagnosticCode::NoOperatorImplementation:
             case DiagnosticCode::MultipleOperatorImplementations:
                 return DiagnosticSeverity::Error;
@@ -76,7 +92,6 @@ namespace kepler {
             case DiagnosticCode::Unsupported:
                 return DiagnosticSeverity::Unsupported;
         }
-
         KPL_ASSERT_UNREACHABLE("Missing format implementation for severity mapping of diagnostic code '{}'", static_cast<int>(diagnostic_code));
     }
 
@@ -91,7 +106,6 @@ namespace kepler {
             case DiagnosticSeverity::Unsupported:
                 return ansi_codes::combine(ansi_codes::bold, ansi_codes::magenta);
         }
-
         KPL_ASSERT_UNREACHABLE("Missing styling implementation for severity '{}'", severity);
     }
 
