@@ -191,8 +191,7 @@ namespace kepler {
         bool is_variadic = false;
         while (current_token->token_kind == TokenKind::Identifier) {
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            const StringId parameter_type_id = std::get<StringId>(current_token->data);
-
+            const Token* parameter_type_token = current_token;
             next_token(true); // eat type identifier
             if (current_token->token_kind != TokenKind::Identifier) {
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected identifier after parameter type", current_token->source_location);
@@ -201,10 +200,10 @@ namespace kepler {
             }
 
             KPL_ASSERT_THAT(std::holds_alternative<StringId>(current_token->data));
-            const StringId parameter_identifier_id = std::get<StringId>(current_token->data);
             parameter_data.push_back({
-                .type_identifier_id = parameter_type_id,
-                .identifier_id = parameter_identifier_id,
+                .type_identifier_id = std::get<StringId>(parameter_type_token->data),
+                .identifier_id = std::get<StringId>(current_token->data),
+                .type_source_location = parameter_type_token->source_location,
                 .identifier_source_location = current_token->source_location,
             });
 
