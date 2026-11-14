@@ -378,12 +378,27 @@ namespace kepler {
         }
 
         if (expected_signature.parameter_count != actual_signature.parameter_count) {
-            const std::string message = std::format("Parameter count mismatch: Operator '{}' expects {} parameters, got {})",
+            const std::string message = std::format("Parameter count mismatch: Operator '{}' expects {} parameters, got {}",
                 StringPool::get().lookup(expected_signature.identifier_id),
                 expected_signature.parameter_count,
                 actual_signature.parameter_count);
-            // TODO (improvement): Point the source location at the mismatched parameters
-            diagnostic_sink.report(DiagnosticCode::MismatchingOperatorParameterCount, std::move(message), prototype->source_location);
+            SourceLocation source_location{.file_id = prototype->source_location.file_id};
+            if (expected_signature.parameter_count > actual_signature.parameter_count) {
+                // Less parameters than expected, highlight the closing bracket
+                // (This highlights the position after the identifier of the last parameter, which is usually the closing bracket.
+                // The user could theoretically put an extra space or newline there, which would highlight the wrong position,
+                // but that will hopefully not happen too often)
+                const SourceLocation& last_parameter_location = prototype->parameter_data.back().identifier_source_location;
+                source_location.position = last_parameter_location.position + 1;
+                source_location.size = 1;
+            } else {
+                // More parameters than expected, highlight them
+                source_location.position = prototype->parameter_data[expected_signature.parameter_count].type_source_location.position;
+                const SourceLocation& last_parameter_location = prototype->parameter_data.back().identifier_source_location;
+                const size_t last_parameter_end_position = last_parameter_location.position + last_parameter_location.size;
+                source_location.size = last_parameter_end_position - source_location.position;
+            }
+            diagnostic_sink.report(DiagnosticCode::MismatchingOperatorParameterCount, std::move(message), std::move(source_location));
             prototype->node_kind = ASTNodeKind::Poison;
             return;
         }
