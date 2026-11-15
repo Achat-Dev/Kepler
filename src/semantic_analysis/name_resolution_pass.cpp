@@ -112,7 +112,7 @@ namespace kepler {
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         for (Struct* struct_node : struct_nodes) {
             KPL_ASSERT_THAT(struct_node->type_id == TypeId::invalid());
-            const auto symbol_id = symbol_table.create_struct(module_id, struct_node->identifier_id, false);
+            const auto symbol_id = symbol_table.create_struct(module_id, struct_node->identifier_id, struct_node->linkage_kind, false);
             if (!symbol_id.has_value()) {
                 const Diagnostic& diagnostic = symbol_id.error();
                 diagnostic_sink.report(diagnostic.code, diagnostic.message, struct_node->source_location);

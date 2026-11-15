@@ -157,7 +157,7 @@ namespace kepler {
         return imported_module->id;
     }
 
-    std::expected<SymbolId, Diagnostic> SymbolTable::create_struct(ModuleId module_id, StringId identifier_id, bool is_builtin) {
+    std::expected<SymbolId, Diagnostic> SymbolTable::create_struct(ModuleId module_id, StringId identifier_id, LinkageKind linkage_kind, bool is_builtin) {
         KPL_ASSERT_THAT(module_id.value < modules.size(), "Module count: {}, received id: {}", modules.size(), module_id.value);
         KPL_ASSERT_THAT(identifier_id != StringId::invalid());
         Module& module = modules[module_id.value];
@@ -179,7 +179,7 @@ namespace kepler {
         Scope& scope = scopes[module.current_scope_id.value];
         const SymbolId symbol_id{.value = static_cast<uint32_t>(symbols.size())};
         scope.contained_symbols.emplace(identifier_id, symbol_id);
-        Symbol* symbol = symbol_allocator.allocate<TypeSymbol>(symbol_id, module_id, scope.id, identifier_id, is_builtin);
+        Symbol* symbol = symbol_allocator.allocate<TypeSymbol>(symbol_id, module_id, scope.id, identifier_id, linkage_kind, is_builtin);
         symbols.push_back(symbol);
         return symbol_id;
     }

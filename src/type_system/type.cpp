@@ -219,7 +219,8 @@ namespace kepler {
             KPL_ASSERT_THAT(type_kind != TypeKind::Struct);
             const ModuleId global_module_id = symbol_table.get_global_module()->id;
             const StringId identifier_id = get_type_kind_identifier_id(type_kind);
-            const auto symbol_id = symbol_table.create_struct(global_module_id, identifier_id, true);
+            // We need to use export for builtin types so that they are visible everywhere
+            const auto symbol_id = symbol_table.create_struct(global_module_id, identifier_id, LinkageKind::Export, true);
             KPL_ASSERT_THAT(symbol_id.has_value());
             const TypeId type_id = type_table.create_type(identifier_id, type_kind, symbol_id.value());
             symbol_table.lookup(symbol_id.value())->type_id = type_id;

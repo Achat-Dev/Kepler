@@ -95,8 +95,8 @@ namespace kepler {
     struct TypeSymbol : Symbol {
         std::vector<SymbolId> method_symbol_ids;
 
-        TypeSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, StringId identifier_id, bool is_builtin)
-            : Symbol(symbol_id, module_id, scope_id, TypeId::invalid(), identifier_id, LinkageKind::Internal, is_builtin) {}
+        TypeSymbol(SymbolId symbol_id, ModuleId module_id, ScopeId scope_id, StringId identifier_id, LinkageKind linkage_kind, bool is_builtin)
+            : Symbol(symbol_id, module_id, scope_id, TypeId::invalid(), identifier_id, linkage_kind, is_builtin) {}
 
         constexpr SymbolKind get_symbol_kind() const override {
             return SymbolKind::Type;
