@@ -9,8 +9,8 @@
 
 #include "compiler.hpp"
 
-// TODO (improvement): Enfore that structs and methods need to have the same export declaration
 // TODO (improvement): Enfore that there can only be one implementation of an operator
+// TODO (fix): User can create methods for types that are not imported and/or not visible
 int main(int argc, char** argv) {
     kepler::Compiler compiler;
     return compiler.run(argc, argv);

@@ -83,16 +83,17 @@ namespace kepler {
             "Required token: '{}', received: '{}'",
             TokenKind::Export,
             current_token->token_kind);
+        const SourceLocation& source_location = current_token->source_location;
         next_token(true); // eat 'export'
         switch (current_token->token_kind) {
             case TokenKind::Extern:
-                return parse_extern(LinkageKind::Export);
+                return parse_extern(LinkageKind::Export, source_location);
                 break;
             case TokenKind::Struct:
-                return parse_struct(LinkageKind::Export);
+                return parse_struct(LinkageKind::Export, source_location);
                 break;
             case TokenKind::Identifier:
-                return parse_top_level_identifier(LinkageKind::Export);
+                return parse_top_level_identifier(LinkageKind::Export, source_location);
                 break;
             default:
                 diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected 'extern' or type after 'export'", current_token->source_location);
@@ -101,7 +102,7 @@ namespace kepler {
         }
     }
 
-    Extern* Parser::parse_extern(LinkageKind linkage_kind) {
+    Extern* Parser::parse_extern(LinkageKind linkage_kind, SourceLocation linkage_source_location) {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Extern,
@@ -120,7 +121,7 @@ namespace kepler {
         if (!prototype) {
             return nullptr;
         }
-        return allocator->allocate<Extern>(prototype, linkage_kind, extern_source_location);
+        return allocator->allocate<Extern>(prototype, linkage_kind, extern_source_location, std::move(linkage_source_location));
     }
 
     Prototype* Parser::parse_prototype() {
@@ -248,7 +249,7 @@ namespace kepler {
             std::move(identifier_source_location));
     }
 
-    Struct* Parser::parse_struct(LinkageKind linkage_kind) {
+    Struct* Parser::parse_struct(LinkageKind linkage_kind, SourceLocation linkage_source_location) {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Struct);
@@ -301,10 +302,11 @@ namespace kepler {
         return allocator->allocate<Struct>(std::get<StringId>(identifier_token->data),
             std::move(members),
             linkage_kind,
-            identifier_token->source_location);
+            identifier_token->source_location,
+            std::move(linkage_source_location));
     }
 
-    ExportableNode* Parser::parse_top_level_identifier(LinkageKind linkage_kind) {
+    ExportableNode* Parser::parse_top_level_identifier(LinkageKind linkage_kind, const SourceLocation& linkage_source_location) {
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Identifier,
             "Required token: '{}', received: '{}'",
@@ -329,7 +331,7 @@ namespace kepler {
         } else if (current_token->token_kind == TokenKind::Dot || current_token->token_kind == TokenKind::BracketOpen) {
             previous_token(true); // Go back to identifier
             previous_token(true); // Go back to type
-            return parse_function(linkage_kind);
+            return parse_function(linkage_kind, linkage_source_location);
         }
 
         diagnostic_sink.report(DiagnosticCode::UnexpectedToken, "Expected '(' after identifier on top level", current_token->source_location);
@@ -337,7 +339,7 @@ namespace kepler {
         return nullptr;
     }
 
-    Function* Parser::parse_function(LinkageKind linkage_kind) {
+    Function* Parser::parse_function(LinkageKind linkage_kind, SourceLocation linkage_source_location) {
         KPL_ASSERT_NOT_NULLPTR(allocator);
         KPL_ASSERT_NOT_NULLPTR(current_token);
         KPL_ASSERT_THAT(current_token->token_kind == TokenKind::Identifier,
@@ -356,7 +358,8 @@ namespace kepler {
             return allocator->allocate<Function>(prototype,
                 std::vector<ASTNode*>{},
                 linkage_kind,
-                identifier_token->source_location);
+                identifier_token->source_location,
+                std::move(linkage_source_location));
         }
 
         KPL_ASSERT_THAT(std::holds_alternative<StringId>(identifier_token->data));
@@ -369,7 +372,11 @@ namespace kepler {
         if (prototype == nullptr || !body.has_value()) {
             return nullptr;
         }
-        return allocator->allocate<Function>(prototype, std::move(body.value()), linkage_kind, identifier_token->source_location);
+        return allocator->allocate<Function>(prototype,
+            std::move(body.value()),
+            linkage_kind,
+            identifier_token->source_location,
+            std::move(linkage_source_location));
     }
 
 }

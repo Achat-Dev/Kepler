@@ -61,8 +61,10 @@ namespace kepler {
 
     struct ExportableNode : ASTNode {
         LinkageKind linkage_kind;
-        ExportableNode(ASTNodeKind node_kind, LinkageKind linkage_kind, SourceLocation source_location)
-            : ASTNode(node_kind, std::move(source_location)), linkage_kind(linkage_kind) {}
+        SourceLocation linkage_source_location;
+
+        ExportableNode(ASTNodeKind node_kind, LinkageKind linkage_kind, SourceLocation source_location, SourceLocation linkage_source_location)
+            : ASTNode(node_kind, std::move(source_location)), linkage_kind(linkage_kind), linkage_source_location(std::move(linkage_source_location)) {}
     };
 
     struct NodeBody {

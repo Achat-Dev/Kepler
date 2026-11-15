@@ -82,6 +82,7 @@ namespace kepler {
         RedundantCast,
         IntegerLiteralOutOfBounds,
         MultipleMainMethods,
+        MismatchingLinkageKind,
         MismatchingOperatorParameterCount,
         NoOperatorImplementation,
         MultipleOperatorImplementations,

@@ -20,8 +20,8 @@ namespace kepler {
     struct Extern : ExportableNode {
         Prototype* prototype;
 
-        Extern(Prototype* prototype, LinkageKind linkage_kind, SourceLocation source_location)
-            : ExportableNode(ASTNodeKind::Extern, linkage_kind, std::move(source_location)), prototype(prototype) {
+        Extern(Prototype* prototype, LinkageKind linkage_kind, SourceLocation source_location, SourceLocation linkage_source_location)
+            : ExportableNode(ASTNodeKind::Extern, linkage_kind, std::move(source_location), std::move(linkage_source_location)), prototype(prototype) {
             KPL_ASSERT_THAT(linkage_kind != LinkageKind::Internal);
         }
     };

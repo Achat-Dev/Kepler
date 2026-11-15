@@ -29,6 +29,7 @@
 #include "ast/struct.hpp"
 #include "diagnostics/diagnostic.hpp"
 #include "diagnostics/diagnostic_sink.hpp"
+#include "diagnostics/source_location.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/symbol.hpp"
 #include "semantic_analysis/symbol_id.hpp"
@@ -70,7 +71,7 @@ namespace kepler {
         void create_struct_symbols_and_types(const std::vector<Struct*>& struct_nodes);
         void create_struct_symbol(Struct* struct_node);
         void create_prototype_symbols(const std::vector<ASTNode*>& top_level_nodes);
-        NameResolutionResult create_prototype_symbol(Prototype* prototype, LinkageKind linkage_type) const;
+        NameResolutionResult create_prototype_symbol(Prototype* prototype, LinkageKind linkage_kind, const SourceLocation& linkage_source_location) const;
         NameResolutionResult ensure_operator_signatures(Prototype* prototype,
             TypeId object_type_id,
             StringId method_identifier_id,

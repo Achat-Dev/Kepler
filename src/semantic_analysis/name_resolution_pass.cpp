@@ -134,7 +134,9 @@ namespace kepler {
                 case ASTNodeKind::Extern: {
                     Extern* ext = static_cast<Extern*>(node);
                     KPL_ASSERT_NOT_NULLPTR(ext->prototype);
-                    const NameResolutionResult resolution_result = create_prototype_symbol(ext->prototype, ext->linkage_kind);
+                    const NameResolutionResult resolution_result = create_prototype_symbol(ext->prototype,
+                        ext->linkage_kind,
+                        ext->linkage_source_location);
                     if (resolution_result.poisoned) {
                         ext->node_kind = ASTNodeKind::Poison;
                     }
@@ -143,7 +145,9 @@ namespace kepler {
                 case ASTNodeKind::Function: {
                     Function* function = static_cast<Function*>(node);
                     KPL_ASSERT_NOT_NULLPTR(function->prototype);
-                    const NameResolutionResult resolution_result = create_prototype_symbol(function->prototype, function->linkage_kind);
+                    const NameResolutionResult resolution_result = create_prototype_symbol(function->prototype,
+                        function->linkage_kind,
+                        function->linkage_source_location);
                     if (resolution_result.poisoned) {
                         function->node_kind = ASTNodeKind::Poison;
                     }
@@ -155,7 +159,12 @@ namespace kepler {
         }
     }
 
-    NameResolutionResult NameResolutionPass::create_prototype_symbol(Prototype* prototype, LinkageKind linkage_type) const {
+    // clang-format off
+    NameResolutionResult NameResolutionPass::create_prototype_symbol(Prototype* prototype,
+        LinkageKind linkage_kind,
+        const SourceLocation& linkage_source_location) const
+    {
+        // clang-format on
         KPL_ASSERT_THAT(module_id != ModuleId::invalid());
         KPL_ASSERT_NOT_NULLPTR(prototype);
         KPL_ASSERT_THAT(prototype->symbol_id == SymbolId::invalid());
@@ -245,12 +254,25 @@ namespace kepler {
             parameter_type_identifier_ids.push_back(parameter_data.type_identifier_id);
         }
 
-        if (object_type_symbol != nullptr && method_identifier_id != StringId::invalid()) {
-            const NameResolutionResult operator_signature_nrr = ensure_operator_signatures(prototype,
-                object_type_symbol->type_id,
-                method_identifier_id,
-                parameter_type_ids.size());
-            if (operator_signature_nrr.poisoned) {
+        if (object_type_symbol != nullptr) {
+            // Ensure that the method signature is correct if it's an operator
+            if (method_identifier_id != StringId::invalid()) {
+                const NameResolutionResult operator_signature_nrr = ensure_operator_signatures(prototype,
+                    object_type_symbol->type_id,
+                    method_identifier_id,
+                    parameter_type_ids.size());
+                if (operator_signature_nrr.poisoned) {
+                    prototype->node_kind = ASTNodeKind::Poison;
+                    return {.poisoned = true};
+                }
+            }
+            // Ensure that the method has the same linkage as the object type
+            if (linkage_kind != LinkageKind::External && object_type_symbol->linkage_kind != linkage_kind) {
+                const std::string message = std::format("Methods need to have the same linkage kind as their types; Linkage of type '{}' is '{}', method linkage is '{}'",
+                    *type_table.lookup(object_type_symbol->type_id),
+                    object_type_symbol->linkage_kind,
+                    linkage_kind);
+                diagnostic_sink.report(DiagnosticCode::MismatchingLinkageKind, std::move(message), linkage_source_location);
                 prototype->node_kind = ASTNodeKind::Poison;
                 return {.poisoned = true};
             }
@@ -259,7 +281,7 @@ namespace kepler {
         const auto symbol_id = symbol_table.create_prototype(module_id,
             return_type_symbol.value()->type_id,
             identifier_id,
-            linkage_type,
+            linkage_kind,
             std::move(parameter_type_ids),
             std::move(parameter_type_identifier_ids),
             prototype->is_variadic,

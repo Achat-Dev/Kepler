@@ -24,8 +24,9 @@ namespace kepler {
         Function(Prototype* prototype,
             std::vector<ASTNode*> body,
             LinkageKind linkage_kind,
-            SourceLocation source_location)
-            : ExportableNode(ASTNodeKind::Function, linkage_kind, std::move(source_location)),
+            SourceLocation source_location,
+            SourceLocation linkage_source_location)
+            : ExportableNode(ASTNodeKind::Function, linkage_kind, std::move(source_location), std::move(linkage_source_location)),
               prototype(prototype),
               body{.nodes = std::move(body)} {}
     };

@@ -77,11 +77,11 @@ namespace kepler {
         ModuleStatement* parse_module();
         ImportStatement* parse_import();
         ExportableNode* parse_export();
-        Extern* parse_extern(LinkageKind linkage_kind);
+        Extern* parse_extern(LinkageKind linkage_kind, SourceLocation linkage_source_location);
         Prototype* parse_prototype();
-        Struct* parse_struct(LinkageKind linkage_kind);
-        ExportableNode* parse_top_level_identifier(LinkageKind linkage_kind);
-        Function* parse_function(LinkageKind linkage_kind);
+        Struct* parse_struct(LinkageKind linkage_kind, SourceLocation linkage_source_location);
+        ExportableNode* parse_top_level_identifier(LinkageKind linkage_kind, const SourceLocation& linkage_source_location);
+        Function* parse_function(LinkageKind linkage_kind, SourceLocation linkage_source_location);
 
         // Main body nodes
         ASTNode* parse_statement();

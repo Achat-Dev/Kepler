@@ -84,6 +84,7 @@ namespace kepler {
             // Miscalleneous
             case DiagnosticCode::IntegerLiteralOutOfBounds:
             case DiagnosticCode::MultipleMainMethods:
+            case DiagnosticCode::MismatchingLinkageKind:
             case DiagnosticCode::MismatchingOperatorParameterCount:
             case DiagnosticCode::NoOperatorImplementation:
             case DiagnosticCode::MultipleOperatorImplementations:

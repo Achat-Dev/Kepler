@@ -70,21 +70,27 @@ namespace kepler {
                     break;
                 }
                 case TokenKind::Extern: {
-                    Extern* ast_node = parse_extern(LinkageKind::External);
+                    SourceLocation linkage_source_location = current_token->source_location;
+                    linkage_source_location.size = 1;
+                    Extern* ast_node = parse_extern(LinkageKind::External, std::move(linkage_source_location));
                     if (ast_node) {
                         ast.top_level_nodes.push_back(ast_node);
                     }
                     break;
                 }
                 case TokenKind::Struct: {
-                    Struct* ast_node = parse_struct(LinkageKind::Internal);
+                    SourceLocation linkage_source_location = current_token->source_location;
+                    linkage_source_location.size = 1;
+                    Struct* ast_node = parse_struct(LinkageKind::Internal, std::move(linkage_source_location));
                     if (ast_node) {
                         ast.struct_nodes.push_back(ast_node);
                     }
                     break;
                 }
                 case TokenKind::Identifier: {
-                    ExportableNode* ast_node = parse_top_level_identifier(LinkageKind::Internal);
+                    SourceLocation linkage_source_location = current_token->source_location;
+                    linkage_source_location.size = 1;
+                    ExportableNode* ast_node = parse_top_level_identifier(LinkageKind::Internal, std::move(linkage_source_location));
                     if (ast_node) {
                         ast.top_level_nodes.push_back(ast_node);
                     }
