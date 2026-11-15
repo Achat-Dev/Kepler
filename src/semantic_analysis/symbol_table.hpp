@@ -46,6 +46,7 @@ namespace kepler {
 
         Module* lookup(ModuleId module_id);
         Symbol* lookup(SymbolId symbol_id);
+        // TODO (improvement): Replace all of the searches with dictionary lookups to speed up performance (once all used lookups are known)
         // Note: Finding only searches global scopes after name resolution
         std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id, StringId identifier_id, SymbolKind symbol_kind);
         std::expected<std::vector<Symbol*>, Diagnostic> find_symbol_of_kind(ModuleId module_id,

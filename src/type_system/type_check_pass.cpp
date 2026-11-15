@@ -949,30 +949,46 @@ namespace kepler {
         KPL_ASSERT_THAT(typecheck_result.type_id != TypeId::invalid());
         expression->target_type_id = typecheck_result.type_id;
 
+        // Collect candidate symbols
         const Type* target_type = type_table.lookup(typecheck_result.type_id);
         const Symbol* target_type_symbol = symbol_table.lookup(target_type->symbol_id);
         KPL_ASSERT_THAT(target_type_symbol->get_symbol_kind() == SymbolKind::Type);
         const TypeSymbol* target_type_type_symbol = static_cast<const TypeSymbol*>(target_type_symbol);
-        // The data type of the expression to negate maybe doesn't support mathematical negation
-        // This can be the case either if the typecheck fulfills the requested data type or the typechecks fails but doesn't report a diagnostic
-        const auto method_symbol_id = target_type_type_symbol->find_method(StringPool::get().store("__mneg"),
-            {typecheck_result.type_id},
-            false,
-            module_id,
-            &symbol_table,
-            &type_table);
+        const std::string& target_type_identifier = StringPool::get().lookup(target_type->identifier_id);
+        const StringId mneg_identifier_id = StringPool::get().store(target_type_identifier + ".__mneg");
+        std::vector<SymbolId> candidate_symbol_ids;
+        for (SymbolId method_symbol_id : target_type_type_symbol->method_symbol_ids) {
+            KPL_ASSERT_THAT(method_symbol_id != SymbolId::invalid());
+            const Symbol* method_symbol = symbol_table.lookup(method_symbol_id);
+            if (method_symbol->identifier_id == mneg_identifier_id) {
+                candidate_symbol_ids.push_back(method_symbol_id);
+            }
+        }
+
+        // Find matching prototype symbol to call
+        const std::vector<TypeId> argument_type_ids = {typecheck_result.type_id};
+        const std::vector<Expression*> arguments = {expression->expression};
+        const auto method_symbol_id = find_matching_prototype_symbol(requested_type_id,
+            candidate_symbol_ids,
+            arguments,
+            argument_type_ids);
         if (!method_symbol_id.has_value()) {
             const Diagnostic& diagnostic = method_symbol_id.error();
-            diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            if (diagnostic.code == DiagnosticCode::NoMatchingSymbolCandidates) {
+                const std::string message = std::format("No implementation of unary operator '-' for type '{}'", *target_type);
+                diagnostic_sink.report(DiagnosticCode::NoOperatorImplementation, std::move(message), expression->source_location);
+            } else if (diagnostic.code == DiagnosticCode::MultipleMatchingSymbolCandidates) {
+                const std::string message = std::format("Multiple implementations of unary operator '-' for type '{}' found:\n{}",
+                    *target_type,
+                    std::move(diagnostic.message));
+                diagnostic_sink.report(DiagnosticCode::MultipleOperatorImplementations, std::move(message), expression->source_location);
+            } else {
+                diagnostic_sink.report(diagnostic.code, std::move(diagnostic.message), expression->source_location);
+            }
             expression->node_kind = ASTNodeKind::Poison;
             return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
         }
-        if (method_symbol_id.value() == SymbolId::invalid()) {
-            const std::string message = std::format("Type '{}' doesn't support unary operator '-'", *target_type);
-            diagnostic_sink.report(DiagnosticCode::NoOperatorImplementation, message, expression->source_location);
-            expression->node_kind = ASTNodeKind::Poison;
-            return {.status = TypeCheckResult::Status::PoisonedWithDiagnostic, .type_id = TypeId::invalid()};
-        }
+        KPL_ASSERT_THAT(method_symbol_id.value() != SymbolId::invalid());
         expression->method_symbol_id = method_symbol_id.value();
 
         // If the data type supports mathematical negation but the typecheck didn't report a diagnostic we have to propagate that
