@@ -254,25 +254,13 @@ namespace kepler {
             parameter_type_identifier_ids.push_back(parameter_data.type_identifier_id);
         }
 
-        if (object_type_symbol != nullptr) {
-            // Ensure that the method signature is correct if it's an operator
-            if (method_identifier_id != StringId::invalid()) {
-                const NameResolutionResult operator_signature_nrr = ensure_operator_signatures(prototype,
-                    object_type_symbol->type_id,
-                    method_identifier_id,
-                    parameter_type_ids.size());
-                if (operator_signature_nrr.poisoned) {
-                    prototype->node_kind = ASTNodeKind::Poison;
-                    return {.poisoned = true};
-                }
-            }
-            // Ensure that the method has the same linkage as the object type
-            if (linkage_kind != LinkageKind::External && object_type_symbol->linkage_kind != linkage_kind) {
-                const std::string message = std::format("Methods need to have the same linkage kind as their types; Linkage of type '{}' is '{}', method linkage is '{}'",
-                    *type_table.lookup(object_type_symbol->type_id),
-                    object_type_symbol->linkage_kind,
-                    linkage_kind);
-                diagnostic_sink.report(DiagnosticCode::MismatchingLinkageKind, std::move(message), linkage_source_location);
+        // Ensure that the method signature is correct if it's an operator
+        if (object_type_symbol != nullptr && method_identifier_id != StringId::invalid()) {
+            const NameResolutionResult operator_signature_nrr = ensure_operator_signatures(prototype,
+                object_type_symbol->type_id,
+                method_identifier_id,
+                parameter_type_ids.size());
+            if (operator_signature_nrr.poisoned) {
                 prototype->node_kind = ASTNodeKind::Poison;
                 return {.poisoned = true};
             }
@@ -289,7 +277,11 @@ namespace kepler {
             false);
         if (!symbol_id.has_value()) {
             const Diagnostic& diagnostic = symbol_id.error();
-            diagnostic_sink.report(diagnostic.code, diagnostic.message, prototype->identifier_source_location);
+            if (diagnostic.code == DiagnosticCode::MismatchingLinkageKind) {
+                diagnostic_sink.report(diagnostic.code, diagnostic.message, linkage_source_location);
+            } else {
+                diagnostic_sink.report(diagnostic.code, diagnostic.message, prototype->identifier_source_location);
+            }
             prototype->node_kind = ASTNodeKind::Poison;
             return {.poisoned = true};
         }

@@ -261,6 +261,18 @@ namespace kepler {
             }
         }
 
+        if (type_symbol_id != SymbolId::invalid()) {
+            const Symbol* type_symbol = lookup(type_symbol_id);
+            // Ensure that the method has the same linkage as the object type
+            if (linkage_kind != LinkageKind::External && type_symbol->linkage_kind != linkage_kind) {
+                const std::string message = std::format("Methods need to have the same linkage kind as their types. Linkage of type '{}' is '{}', method linkage is '{}'",
+                    *type_table.lookup(type_symbol->type_id),
+                    type_symbol->linkage_kind,
+                    linkage_kind);
+                return std::unexpected(Diagnostic{DiagnosticCode::MismatchingLinkageKind, std::move(message)});
+            }
+        }
+
         Scope& scope = scopes[module.current_scope_id.value];
         const SymbolId symbol_id{.value = static_cast<uint32_t>(symbols.size())};
         auto it = scope.contained_symbols.find(identifier_id);

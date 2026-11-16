@@ -10,7 +10,6 @@
 #pragma once
 
 #include "ast/ast_node.hpp"
-#include "diagnostics/diagnostic.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol_id.hpp"
@@ -20,7 +19,6 @@
 #include "utils/string_pool.hpp"
 #include <cstddef>
 #include <cstdint>
-#include <expected>
 #include <format>
 #include <functional>
 #include <string>
@@ -101,12 +99,6 @@ namespace kepler {
         constexpr SymbolKind get_symbol_kind() const override {
             return SymbolKind::Type;
         }
-        std::expected<SymbolId, Diagnostic> find_method(StringId identifier_id,
-            const std::vector<TypeId>& parameter_type_ids,
-            bool is_variadic,
-            ModuleId searching_module_id,
-            SymbolTable* symbol_table,
-            TypeTable* type_table) const;
     };
 
     struct SymbolDiagnosticSorter {

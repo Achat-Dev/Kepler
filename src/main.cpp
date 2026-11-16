@@ -10,7 +10,7 @@
 #include "compiler.hpp"
 
 // TODO (improvement): Enfore that there can only be one implementation of an operator
-// TODO (fix): User can create methods for types that are not imported and/or not visible
+// TODO (fix): No cast prints the type symbol as a candidate for the diagnostic
 int main(int argc, char** argv) {
     kepler::Compiler compiler;
     return compiler.run(argc, argv);
