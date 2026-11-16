@@ -62,6 +62,8 @@ namespace kepler {
             // (That diagnostic shouldn't be displayed immediately, but only when no fitting symbol is found in all imported modules)
             if (symbol->linkage_kind == LinkageKind::Export) {
                 return std::vector<Symbol*>{symbol};
+            } else {
+                return std::vector<Symbol*>{};
             }
         }
         return std::vector<Symbol*>{symbol};
