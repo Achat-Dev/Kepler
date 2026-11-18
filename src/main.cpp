@@ -9,8 +9,8 @@
 
 #include "compiler.hpp"
 
-// TODO (improvement): Enfore that there can only be one implementation of an operator
 // TODO (fix): No cast prints the type symbol as a candidate for the diagnostic
+// TODO (fix): Report diagnostic if the same input file is supplied multiple times
 int main(int argc, char** argv) {
     kepler::Compiler compiler;
     return compiler.run(argc, argv);

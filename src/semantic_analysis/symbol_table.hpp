@@ -81,6 +81,7 @@ namespace kepler {
             bool is_recursive_search);
         Module* find_submodule(Module* parent_module, const IdentifierPath& module_path);
         Module* get_root_module();
+        bool is_operator_method(StringId prototype_identifier_id) const;
     };
 
 }

@@ -11,6 +11,7 @@
 #include "ast/ast_node.hpp"
 #include "ast/prototype.hpp"
 #include "diagnostics/diagnostic.hpp"
+#include "lexer/operator_kind.hpp"
 #include "semantic_analysis/module.hpp"
 #include "semantic_analysis/scope.hpp"
 #include "semantic_analysis/symbol.hpp"
@@ -238,25 +239,45 @@ namespace kepler {
         Module& module = modules[module_id.value];
         KPL_ASSERT_THAT(module.current_scope_id.value < scopes.size(), "Scope count: {}, received id: {}", scopes.size(), module.current_scope_id.value);
         KPL_ASSERT_THAT(module.current_scope_id == module.scope_ids.front()); // Prototypes can only be defined on the top level
-        const auto found_symbol = find_symbol_of_kind(module_id, identifier_id, SymbolKind::All, false, false, true);
-        KPL_ASSERT_THAT(found_symbol.has_value());
-        const std::vector<Symbol*> existing_symbols = found_symbol.value();
-        if (!existing_symbols.empty()) {
-            const std::string& identifier = StringPool::get().lookup(identifier_id);
-            const std::string& module_identifier = StringPool::get().lookup(module.full_identifier_id);
-            for (const Symbol* existing_symbol : existing_symbols) {
-                if (existing_symbol->get_symbol_kind() != SymbolKind::Prototype) {
+        if (type_symbol_id != SymbolId::invalid() && is_operator_method(identifier_id)) {
+            const TypeSymbol* type_symbol = static_cast<const TypeSymbol*>(lookup(type_symbol_id));
+            for (SymbolId method_symbol_id : type_symbol->method_symbol_ids) {
+                const PrototypeSymbol* method_symbol = static_cast<const PrototypeSymbol*>(lookup(method_symbol_id));
+                if (method_symbol->identifier_id == identifier_id && method_symbol->parameter_type_ids == parameter_type_ids) {
+                    const Module* method_module = lookup(method_symbol->module_id);
+                    // This isn't the best diagnostic message because the module will change depending on which file is compiled first
+                    // It would be ideal to list all available candidates, however,
+                    // since the user can implement an operator n times it would be difficult to create a single list of all candidates
                     return std::unexpected(Diagnostic{
                         .code = DiagnosticCode::SymbolAlreadyExists,
-                        .message = std::format("Symbol with name '{}' already exists in module '{}'", identifier, module_identifier),
+                        .message = std::format("Operator with signature '{}' is already implemented for type '{}' in module '{}'",
+                            get_prototype_signature(identifier_id, parameter_type_ids, is_variadic, type_table),
+                            StringPool::get().lookup(identifier_id),
+                            StringPool::get().lookup(method_module->full_identifier_id)),
                     });
                 }
-                const PrototypeSymbol* existing_prototype_symbol = static_cast<const PrototypeSymbol*>(existing_symbol);
-                if (existing_prototype_symbol->parameter_type_ids == parameter_type_ids && existing_prototype_symbol->is_variadic == is_variadic) {
-                    const std::string message = std::format("Prototype with signature '{}' already exists in module '{}'",
-                        get_prototype_signature(identifier_id, parameter_type_ids, is_variadic, type_table),
-                        module_identifier);
-                    return std::unexpected(Diagnostic{.code = DiagnosticCode::SymbolAlreadyExists, .message = std::move(message)});
+            }
+        } else {
+            const auto found_symbol = find_symbol_of_kind(module_id, identifier_id, SymbolKind::All, false, false, true);
+            KPL_ASSERT_THAT(found_symbol.has_value());
+            const std::vector<Symbol*> existing_symbols = found_symbol.value();
+            if (!existing_symbols.empty()) {
+                const std::string& identifier = StringPool::get().lookup(identifier_id);
+                const std::string& module_identifier = StringPool::get().lookup(module.full_identifier_id);
+                for (const Symbol* existing_symbol : existing_symbols) {
+                    if (existing_symbol->get_symbol_kind() != SymbolKind::Prototype) {
+                        return std::unexpected(Diagnostic{
+                            .code = DiagnosticCode::SymbolAlreadyExists,
+                            .message = std::format("Symbol with name '{}' already exists in module '{}'", identifier, module_identifier),
+                        });
+                    }
+                    const PrototypeSymbol* existing_prototype_symbol = static_cast<const PrototypeSymbol*>(existing_symbol);
+                    if (existing_prototype_symbol->parameter_type_ids == parameter_type_ids && existing_prototype_symbol->is_variadic == is_variadic) {
+                        const std::string message = std::format("Prototype with signature '{}' already exists in module '{}'",
+                            get_prototype_signature(identifier_id, parameter_type_ids, is_variadic, type_table),
+                            module_identifier);
+                        return std::unexpected(Diagnostic{.code = DiagnosticCode::SymbolAlreadyExists, .message = std::move(message)});
+                    }
                 }
             }
         }
@@ -595,5 +616,27 @@ namespace kepler {
     Module* SymbolTable::get_root_module() {
         KPL_ASSERT_THAT(!modules.empty());
         return &modules.front();
+    }
+
+    bool SymbolTable::is_operator_method(StringId prototype_identifier_id) const {
+        const std::string& prototype_identifier = StringPool::get().lookup(prototype_identifier_id);
+        // Since this is a method (Type.Function), we need to split the identifier at the dot to get the actual function identifier
+        const size_t dot_index = prototype_identifier.find('.');
+        KPL_ASSERT_THAT(dot_index < prototype_identifier.size() - 1);
+        const std::string function_identifier = prototype_identifier.substr(dot_index + 1);
+        const StringId function_identifier_id = StringPool::get().store(function_identifier);
+        // clang-format off
+        return function_identifier_id == get_operator_identifier_id(OperatorKind::Plus)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::Minus)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::Multiplication)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::Division)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::LessThan)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::GreaterThan)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::Equals)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::NotEquals)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::LessEquals)
+            || function_identifier_id == get_operator_identifier_id(OperatorKind::GreaterEquals)
+            || function_identifier_id == StringPool::get().store("__mneg");
+        // clang-format on
     }
 }

@@ -36,7 +36,6 @@ namespace kepler {
             case OperatorKind::GreaterEquals:
                 return StringPool::get().store("__greater_equals");
         }
-
         KPL_ASSERT_UNREACHABLE("Missing operator name id implementation for operator kind '{}'", static_cast<int>(operator_kind));
     }
 
